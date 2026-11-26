@@ -1,0 +1,464 @@
+<div class="ticket-selector">
+  @if (hasExplodePipe) {
+    <h3 class="ticket-selector__title" data-testid="ticketing-step-title">
+      {{ 'boxOffice.chooseTickets' | translate }}
+    </h3>
+    <ticket-selector-level-obo
+      class="ticket-selector__levels"
+      [ticketTypes]="ticketTypesForLevelComponent"
+      [ticketTypeCounterBySessionId]="ticketTypeCounterBySessionId"
+      [ticketTypeCounterBySessionType]="ticketTypeCounterBySessionType"
+      (selectedLevel)="selectedLevel($event)"
+    >
+    </ticket-selector-level-obo>
+  }
+  @if (selectedTicketTypes.length > 0) {
+    <form class="ticket-type-form ticket-selector-obo__form" [formGroup]="ticketsFormGroup">
+      <h3
+        class="ticket-selector__title ticket-selector-obo__page-title"
+        [attr.data-testid]="hasExplodePipe ? 'ticketing-choose-tickets-title' : 'ticketing-step-title'"
+      >
+        {{ 'boxOffice.chooseTicketsFormTitle' | translate }}
+      </h3>
+      <div class="ticket-selector-obo__selector">
+        @if (unhiddenSectionTicketTypes.length > 0) {
+          <section class="ticket-selector-obo__section ticket-selector-obo__section--ruled" data-testid="ticketing-unhidden-section">
+            <h3 class="ticket-selector-obo__section-heading">{{ 'boxOffice.ticketSelectorStandardSection' | translate }}</h3>
+            <ul class="ticket-type-list ticket-type-list--in-obo-section" [ngClass]="{ 'new-ticket-type-list': showNewTicketTypeSelector }">
+              <ng-container
+                *ngFor="let ticketType of unhiddenSectionTicketTypes; trackBy: trackByFn"
+                [ngTemplateOutlet]="showNewTicketTypeSelector ? newTicketTypeSelector : ticketTypeSelector"
+                [ngTemplateOutletContext]="{ ticketType: ticketType }"
+              >
+              </ng-container>
+            </ul>
+          </section>
+        }
+
+        @if (unhiddenAddonSectionTicketTypes.length > 0) {
+          <section class="ticket-selector-obo__section ticket-selector-obo__section--ruled" data-testid="ticketing-addons-section">
+            <h3 class="ticket-selector-obo__section-heading">{{ 'listPlan.addons' | translate }}</h3>
+            <ul class="ticket-type-list ticket-type-list--in-obo-section" [ngClass]="{ 'new-ticket-type-list': showNewTicketTypeSelector }">
+              <ng-container
+                *ngFor="let addOn of unhiddenAddonSectionTicketTypes; trackBy: trackByFn"
+                [ngTemplateOutlet]="showNewTicketTypeSelector ? newTicketTypeSelector : ticketTypeSelector"
+                [ngTemplateOutletContext]="{ ticketType: addOn }"
+              >
+              </ng-container>
+            </ul>
+          </section>
+        }
+
+        @if (visibleOngoingMultiDayTicketGroups.length > 0) {
+          <section class="ticket-selector-obo__section ticket-selector-obo__section--ruled" data-testid="ticketing-ongoing-section">
+            <h3 class="ticket-selector-obo__section-heading">{{ 'boxOffice.ticketSelectorMultidaysSection' | translate }}</h3>
+            <ng-container *ngFor="let group of visibleOngoingMultiDayTicketGroups; let i = index">
+              <ul
+                class="ticket-type-list ticket-type-list--in-obo-section"
+                [ngClass]="{ 'new-ticket-type-list': showNewTicketTypeSelector }"
+              >
+                <ng-container
+                  *ngFor="let ticketType of group.ticketTypes; trackBy: trackByFn"
+                  [ngTemplateOutlet]="showNewTicketTypeSelector ? newTicketTypeSelector : ticketTypeSelector"
+                  [ngTemplateOutletContext]="{ ticketType: ticketType }"
+                >
+                </ng-container>
+              </ul>
+            </ng-container>
+          </section>
+        }
+
+        @if (hiddenSectionTicketTypes.length > 0 || hiddenAddonSectionTicketTypes.length > 0) {
+          <section class="ticket-selector-obo__section ticket-selector-obo__section--hidden" data-testid="ticketing-hidden-section">
+            <div class="ticket-selector-obo__hidden-heading">
+              <h3 class="ticket-selector-obo__section-heading">{{ 'boxOffice.hiddenTicketsSectionShort' | translate }}</h3>
+              <ignt-icon name="eye-slash" variant="light" size="base" aria-hidden="true" />
+            </div>
+            @if (hiddenSectionTicketTypes.length > 0) {
+              <ul
+                class="ticket-type-list ticket-type-list--in-obo-section"
+                [ngClass]="{ 'new-ticket-type-list': showNewTicketTypeSelector }"
+              >
+                <ng-container
+                  *ngFor="let ticketType of hiddenSectionTicketTypes; trackBy: trackByFn"
+                  [ngTemplateOutlet]="showNewTicketTypeSelector ? newTicketTypeSelector : ticketTypeSelector"
+                  [ngTemplateOutletContext]="{ ticketType: ticketType }"
+                >
+                </ng-container>
+              </ul>
+            }
+            @if (hiddenAddonSectionTicketTypes.length > 0) {
+              <div class="ticket-selector-obo__hidden-addons" data-testid="ticketing-hidden-addons-section">
+                <h3 class="ticket-selector-obo__section-heading">
+                  {{ 'listPlan.addons' | translate }}
+                </h3>
+                <ul
+                  class="ticket-type-list ticket-type-list--in-obo-section"
+                  [ngClass]="{ 'new-ticket-type-list': showNewTicketTypeSelector }"
+                >
+                  <ng-container
+                    *ngFor="let addOn of hiddenAddonSectionTicketTypes; trackBy: trackByFn"
+                    [ngTemplateOutlet]="showNewTicketTypeSelector ? newTicketTypeSelector : ticketTypeSelector"
+                    [ngTemplateOutletContext]="{ ticketType: addOn }"
+                  >
+                  </ng-container>
+                </ul>
+              </div>
+            }
+          </section>
+        }
+      </div>
+      <div class="ticket-type__taxes-included">
+        <span> * {{ 'boxOffice.taxesIncluded' | translate }}</span>
+      </div>
+    </form>
+  }
+</div>
+
+<ng-template #ticketTypeSelector let-ticketType="ticketType">
+  <li data-testid="ticket-type-container">
+    <div
+      class="ticket-type"
+      [class.ticket-type--invitations]="isInvitationChannel()"
+      [class.ticket-type--sold-out]="displayLabelAsSoldout(ticketType)"
+    >
+      @if (hasDiscountTicketType(ticketType)) {
+        <div class="ticket-type__discount-label">
+          <span class="tag tag--warning-outline">{{ 'boxOffice.memberships.discounts.label' | translate }}</span>
+        </div>
+      }
+      <div class="ticket-type__info" data-testid="ticket-type-label">
+        <div class="ticket-type__name">
+          @if (ticketType.isAddon) {
+            <div class="ticket-type__add-on-icon" [class.ticket-type__add-on-icon--centered]="showTicketAvailabilityInfo">
+              <img src="assets/images/icons/fa-grid-2-plus.svg" alt="Addon" width="15" height="15" />
+            </div>
+          }
+          {{ ticketType.getDisplayName(hasExplodePipe) }}
+          @if (ticketType.isHidden && ticketType.isOngoingMultiDay) {
+            <span class="tag tag--disable-outline ms-1">{{ 'boxOffice.hiddenTicketBadge' | translate }}</span>
+          }
+        </div>
+        @if (showTicketAvailabilityInfo) {
+          <ng-container
+            [ngTemplateOutlet]="ticketInfoTemplate"
+            [ngTemplateOutletContext]="{
+              availableTickets: getAvailableTicketsForDisplay(ticketType),
+              minimumTickets: ticketType.minimum,
+              isSoldOut: !ticketType.availableTickets,
+            }"
+          >
+          </ng-container>
+        }
+        <ng-container
+          [ngTemplateOutlet]="ticketRestrictionTemplate"
+          [ngTemplateOutletContext]="{ reservationRestriction: ticketType.reservationRestriction }"
+        >
+        </ng-container>
+      </div>
+      <div class="ticket-type__trail">
+        @if (showPrices) {
+          <div class="ticket-type__price" data-testid="ticket-type-price-mobile">
+            @if (hasDiscountTicketType(ticketType)) {
+              <span class="ticket-type__price--without-discount">{{
+                ticketType.price.amount | currency: ticketType.price.currency : 'symbol-narrow' : null : locale
+              }}</span>
+              <span>{{
+                ticketType.priceWithDiscount.amount | currency: ticketType.priceWithDiscount.currency : 'symbol-narrow' : null : locale
+              }}</span>
+            } @else {
+              {{
+                ticketType.price ? (ticketType.price.amount | currency: ticketType.price.currency : 'symbol-narrow' : null : locale) : ''
+              }}
+            }
+          </div>
+        }
+        <div class="ticket-type__amount">
+          <fieldset class="ticket-amount-control">
+            <button
+              class="icon-button icon-button--medium icon-button--primary"
+              [disabled]="isDecreaseDisabled(ticketType)"
+              (click)="decreaseTicketCounter(ticketType)"
+              data-testid="ticket-selector-decrease-button"
+            >
+              <fa-icon class="ticket-type__icon" data-testid="ticket-type-icon" [fixedWidth]="true" [icon]="['fal', 'minus']"></fa-icon>
+            </button>
+            <input
+              appInputMobileBehavior
+              [ngClass]="getControlClass(getFormControlByName(ticketType.sessionId))"
+              placeholder="0"
+              [disabled]="displayLabelAsSoldout(ticketType)"
+              data-testid="ticket-type-input"
+              class="ticket-amount-control__input field__input"
+              [name]="ticketType.sessionId.toString()"
+              [formControl]="getFormControlByName(ticketType.sessionId)"
+              [style.width]="getInputWidth(getFormControlByName(ticketType.sessionId)?.value)"
+              inputmode="numeric"
+              (ngModelChange)="inputCounterChange($event, ticketType)"
+              (beforeinput)="preventInvalidCharacters($event)"
+              (focus)="onQuantityFocus(ticketType)"
+              (blur)="onQuantityBlur(ticketType)"
+              (keydown.enter)="onQuantityEnter($event)"
+              enterkeyhint="go"
+            />
+            <button
+              class="icon-button icon-button--medium icon-button--primary"
+              [disabled]="isIncreaseDisabled(ticketType.sessionId, getMaxValueForTicket(ticketType))"
+              (click)="increaseTicketCounter(ticketType)"
+              data-testid="ticket-selector-increase-button"
+            >
+              <fa-icon class="ticket-type__icon" data-testid="ticket-type-icon" [fixedWidth]="true" [icon]="['fal', 'plus']"></fa-icon>
+            </button>
+          </fieldset>
+          @if (getQuantityNotice(ticketType)) {
+            <ng-container
+              [ngTemplateOutlet]="validationErrors"
+              [ngTemplateOutletContext]="{
+                error: getQuantityNotice(ticketType),
+                min: getEffectiveMin(ticketType),
+                max: getMaxValueForTicket(ticketType),
+                step: getSafeStep(ticketType),
+              }"
+            >
+            </ng-container>
+          }
+        </div>
+      </div>
+    </div>
+    @if (
+      !hasSeatingEntryTicketsSelected && (ticketType | isAddonWithoutEntryTicketsSelected: ticketsFormGroup : mergedSelectableTicketTypes)
+    ) {
+      <div class="ticket-type__disclaimer">
+        {{ 'boxOffice.addOnWarning' | translate }}
+      </div>
+    }
+    @if (ticketType.isOngoingMultiDay && ticketType.ongoingMultiDayStartOnLabel) {
+      <div class="ticket-type__ongoing-dates ticket-type__ongoing-dates--per-ticket" data-testid="ticket-type-ongoing-dates">
+        <span class="ticket-type__ongoing-date-part">{{
+          'boxOffice.ongoingMultiDayStartOn' | translate: { date: ticketType.ongoingMultiDayStartOnLabel }
+        }}</span>
+        @if (ticketType.ongoingMultiDayFinishOnLabel) {
+          <span class="ticket-type__ongoing-date-part">{{
+            'boxOffice.ongoingMultiDayFinishesOn' | translate: { date: ticketType.ongoingMultiDayFinishOnLabel }
+          }}</span>
+        }
+      </div>
+    }
+  </li>
+</ng-template>
+
+<ng-template #newTicketTypeSelector let-ticketType="ticketType">
+  <div class="new-ticket-type" [class.new-ticket-type--add-on]="ticketType.isAddon" data-testid="ticket-type-container">
+    <div class="new-ticket-type__container">
+      <div class="new-ticket-type__selector" [ngClass]="{ 'ticket-type__selector--add-on': ticketType.isAddon }">
+        <div class="new-ticket-type__details" [class.new-ticket-type__details--selected]="isTicketTypeSelected(ticketType)">
+          <div
+            class="new-ticket-type__label"
+            data-testid="new-ticket-type-label"
+            [class.new-ticket-type__label--sold-out]="displayLabelAsSoldout(ticketType)"
+          >
+            @if (ticketType.isAddon) {
+              <div class="new-ticket-type__add-on-icon" [class.new-ticket-type__add-on-icon--centered]="showTicketAvailabilityInfo">
+                <img src="assets/images/icons/fa-grid-2-plus.svg" alt="Addon" width="15" height="15" />
+              </div>
+            }
+            {{ ticketType.getDisplayName(hasExplodePipe) }}
+            @if (ticketType.isHidden && ticketType.isOngoingMultiDay) {
+              <span class="tag tag--disable-outline ms-1">{{ 'boxOffice.hiddenTicketBadge' | translate }}</span>
+            }
+          </div>
+          @if (showTicketAvailabilityInfo) {
+            <ng-container
+              [ngTemplateOutlet]="ticketInfoTemplate"
+              [ngTemplateOutletContext]="{
+                availableTickets: getAvailableTicketsForDisplay(ticketType),
+                minimumTickets: ticketType.minimum,
+                isAddon: ticketType.isAddon,
+                isSoldOut: !ticketType.availableTickets,
+              }"
+            >
+            </ng-container>
+          }
+          @if (ticketType.details) {
+            <div
+              (click)="toggleTicketTypeDetails(ticketType)"
+              class="new-ticket-type__info-cta"
+              [class.new-ticket-type__info-cta--sold-out]="displayLabelAsSoldout(ticketType)"
+            >
+              {{ ticketTypeDetailsMap.get(ticketType.sessionId) ? ('common.seeLess' | translate) : ('common.seeMore' | translate) }}
+            </div>
+          }
+          @if (ticketTypeDetailsMap.get(ticketType.sessionId)) {
+            <p class="new-ticket-type__info" [innerHTML]="ticketTypeDetailsMap.get(ticketType.sessionId)"></p>
+          }
+          <div class="new-ticket-type__price-container">
+            @if (showPrices) {
+              <div
+                class="new-ticket-type__price"
+                data-testid="new-ticket-type-price"
+                [class.new-ticket-type__price--sold-out]="displayLabelAsSoldout(ticketType)"
+              >
+                @if (ticketType.strikethroughPrice !== undefined) {
+                  <span class="new-ticket-type__price--original" data-testid="new-ticket-type-price-original">{{
+                    ticketType.strikethroughPrice.amount
+                      | currency: ticketType.strikethroughPrice.currency : 'symbol-narrow' : null : locale
+                  }}</span>
+                  <span data-testid="new-ticket-type-price-current">{{
+                    ticketType.price
+                      ? (ticketType.price.amount | currency: ticketType.price.currency : 'symbol-narrow' : null : locale)
+                      : ''
+                  }}</span>
+                } @else {
+                  {{
+                    ticketType.price
+                      ? (ticketType.price.amount | currency: ticketType.price.currency : 'symbol-narrow' : null : locale)
+                      : ''
+                  }}
+                }
+              </div>
+            }
+            @if (ticketType.surchargePerTicket?.amount > 0) {
+              <div class="new-ticket-type__fee-info" [class.new-ticket-type__fee-info--sold-out]="displayLabelAsSoldout(ticketType)">
+                +
+                {{
+                  (ticketType.surchargePerTicket?.amount
+                    | currency: ticketType.surchargePerTicket?.currency : 'symbol-narrow' : null : locale) +
+                    ' ' +
+                    ('boxOffice.cart.bookingFeePerTicket' | translate)
+                }}
+              </div>
+            }
+            @if (showReservationRestriction) {
+              <ng-container
+                [ngTemplateOutlet]="ticketRestrictionTemplate"
+                [ngTemplateOutletContext]="{ reservationRestriction: ticketType.reservationRestriction }"
+              >
+              </ng-container>
+            }
+            @if (
+              !hasSeatingEntryTicketsSelected &&
+              (ticketType | isAddonWithoutEntryTicketsSelected: ticketsFormGroup : mergedSelectableTicketTypes)
+            ) {
+              <div class="new-ticket-type__disclaimer">
+                {{ 'boxOffice.addOnWarning' | translate }}
+              </div>
+            }
+          </div>
+        </div>
+        <div class="new-ticket-type__separator" [class.new-ticket-type__separator--selected]="isTicketTypeSelected(ticketType)"></div>
+        <div class="new-ticket-type__counter revamp" [class.new-ticket-type__counter--selected]="isTicketTypeSelected(ticketType)">
+          <div class="new-ticket-type__counter-wrapper">
+            <button
+              class="icon-button icon-button--medium icon-button--primary"
+              [disabled]="isDecreaseDisabled(ticketType)"
+              (click)="decreaseTicketCounter(ticketType)"
+              data-testid="ticket-selector-decrease-button"
+            >
+              <fa-icon class="ticket-type__icon" data-testid="ticket-type-icon" [fixedWidth]="true" [icon]="['fal', 'minus']"></fa-icon>
+            </button>
+            <input
+              appInputMobileBehavior
+              [ngClass]="getControlClass(getFormControlByName(ticketType.sessionId))"
+              placeholder="0"
+              [disabled]="displayLabelAsSoldout(ticketType)"
+              data-testid="ticket-type-input"
+              class="new-ticket-type__input field__input"
+              [name]="ticketType.sessionId.toString()"
+              [formControl]="getFormControlByName(ticketType.sessionId)"
+              [style.width]="getInputWidth(getFormControlByName(ticketType.sessionId)?.value)"
+              inputmode="numeric"
+              (ngModelChange)="inputCounterChange($event, ticketType)"
+              (beforeinput)="preventInvalidCharacters($event)"
+              (focus)="onQuantityFocus(ticketType)"
+              (blur)="onQuantityBlur(ticketType)"
+              (keydown.enter)="onQuantityEnter($event)"
+              enterkeyhint="go"
+            />
+            <button
+              class="icon-button icon-button--medium icon-button--primary"
+              [disabled]="isIncreaseDisabled(ticketType.sessionId, getMaxValueForTicket(ticketType))"
+              (click)="increaseTicketCounter(ticketType)"
+              data-testid="ticket-selector-increase-button"
+            >
+              <fa-icon class="ticket-type__icon" data-testid="ticket-type-icon" [fixedWidth]="true" [icon]="['fal', 'plus']"></fa-icon>
+            </button>
+          </div>
+          @if (getQuantityNotice(ticketType)) {
+            <ng-container
+              [ngTemplateOutlet]="validationErrors"
+              [ngTemplateOutletContext]="{
+                error: getQuantityNotice(ticketType),
+                min: getEffectiveMin(ticketType),
+                max: getMaxValueForTicket(ticketType),
+                step: getSafeStep(ticketType),
+              }"
+            >
+            </ng-container>
+          }
+        </div>
+      </div>
+    </div>
+    @if (ticketType.isOngoingMultiDay && ticketType.ongoingMultiDayStartOnLabel) {
+      <div class="ticket-type__ongoing-dates ticket-type__ongoing-dates--per-ticket" data-testid="ticket-type-ongoing-dates">
+        <span class="ticket-type__ongoing-date-part">{{
+          'boxOffice.ongoingMultiDayStartOn' | translate: { date: ticketType.ongoingMultiDayStartOnLabel }
+        }}</span>
+        @if (ticketType.ongoingMultiDayFinishOnLabel) {
+          <span class="ticket-type__ongoing-date-part">{{
+            'boxOffice.ongoingMultiDayFinishesOn' | translate: { date: ticketType.ongoingMultiDayFinishOnLabel }
+          }}</span>
+        }
+      </div>
+    }
+  </div>
+</ng-template>
+
+<ng-template #ticketInfoTemplate let-availableTickets="availableTickets" let-minimumTickets="minimumTickets" let-isSoldOut="isSoldOut">
+  <div
+    class="ticket-type__ticket-info"
+    data-testid="info-ticket-type"
+    [class.ticket-type__ticket-info--empty]="!availableTickets || availableTickets < minimumTickets"
+  >
+    @if (!isSoldOut) {
+      <div class="ticket-type__available-label" data-testid="available-ticket-type-label">
+        {{ 'boxOffice.availableTickets' | translate: { availableTickets: availableTickets } }}
+      </div>
+      @if (minimumTickets > 1) {
+        <div class="ticket-type__minimum-label" data-testid="minimum-ticket-type-label">
+          {{ 'boxOffice.minimumTickets' | translate: { minimumTickets: minimumTickets } }}
+        </div>
+      }
+    }
+    @if (isSoldOut) {
+      <ignt-tag data-testid="ticket-type-sold-out-badge" [sentiment]="'danger'" [variant]="'outline'">
+        {{ 'boxOffice.soldOutBadge' | translate }}
+      </ignt-tag>
+    }
+  </div>
+</ng-template>
+
+<ng-template #ticketRestrictionTemplate let-reservationRestriction="reservationRestriction">
+  @if (reservationRestriction === reservationRestrictionEnum.NOT_ALLOWED) {
+    <span class="ticket-type-restriction" data-testid="restriction-ticket-type">
+      <fa-icon [icon]="['fas', 'info-circle']" class="ticket-type-restriction__icon"></fa-icon>
+      <span class="ticket-type-restriction__label" data-testid="ticket-type-restriction__label">
+        {{ 'boxOffice.reservationRestriction' | translate: { reservationRestriction: reservationRestriction } }}
+      </span>
+    </span>
+  }
+</ng-template>
+
+<ng-template #validationErrors let-error="error" let-min="min" let-max="max" let-step="step">
+  <div class="form-error" [ngSwitch]="error">
+    <fa-icon class="form-error--icon" [icon]="['fas', 'exclamation-circle']"></fa-icon>
+    <span class="form-error--message" *ngSwitchCase="'max'" data-testid="ticket-type-max-error">
+      {{ 'boxOffice.inputErrors.maximum' | translate: { maximum: max } }}
+    </span>
+    <span class="form-error--message" *ngSwitchCase="'min'" data-testid="ticket-type-min-error">
+      {{ 'boxOffice.inputErrors.minimum' | translate: { minimum: min } }}
+    </span>
+    <span class="form-error--message" *ngSwitchCase="'step'" data-testid="ticket-type-step-error">
+      {{ 'boxOffice.inputErrors.step' | translate: { step: step ?? 1 } }}
+    </span>
+  </div>
+</ng-template>

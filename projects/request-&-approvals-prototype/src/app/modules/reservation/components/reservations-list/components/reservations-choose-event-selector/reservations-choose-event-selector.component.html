@@ -1,0 +1,273 @@
+<ng-container *ngIf="!isMobile()">
+  <div class="main-wrapper">
+    <ignt-wrapper-card>
+      <div class="reservations-choose-event-selector-header">
+        <p class="reservations-choose-event-selector-header__title">
+          {{
+            selectedCity() && selectedCity()?.id !== -1
+              ? ('plansList.titleWithCity' | translate: { city: selectedCity()?.title })
+              : ('plansList.title' | translate)
+          }}
+          {{ selectedVenue() && selectedVenue()?.id !== -1 ? '· ' + selectedVenue()?.title : '' }}
+        </p>
+        <p class="reservations-choose-event-selector__description">{{ 'plansList.description' | translate }}</p>
+      </div>
+      <p
+        class="reservations-choose-event-selector__results"
+        [innerHTML]="'plansList.results' | translate: { count: filteredPlans().length } | sanitize"
+      ></p>
+      <table class="reservations-table">
+        <thead class="reservations-table__header">
+          <tr>
+            <th class="reservations-table__header-row">
+              {{ 'plansList.table.event' | translate }}
+              <button
+                class="reservations-table__header-sort"
+                [attr.data-testid]="'reservations-choose-event-header-name-sort'"
+                (click)="updateOrderBy('name')"
+              >
+                <ignt-icon class="name__header-sort-icon" variant="regular" [name]="orderByIcon('name')"></ignt-icon>
+              </button>
+            </th>
+            <th class="reservations-table__header-row reservations-table__header-row--fixed">
+              {{ 'plansList.table.dates' | translate }}
+            </th>
+            <th class="reservations-table__header-row reservations-table__header-row--fixed">
+              {{ 'plansList.table.status' | translate }}
+              <button
+                class="reservations-table__header-sort"
+                [attr.data-testid]="'reservations-choose-event-header-status-sort'"
+                (click)="updateOrderBy('status')"
+              >
+                <ignt-icon [name]="orderByIcon('status')" class="status__header-sort-icon" variant="regular"></ignt-icon>
+              </button>
+            </th>
+          </tr>
+        </thead>
+        <tbody *ngIf="!filteredPlans()?.length">
+          <tr class="reservations-table__no-results">
+            <td data-testid="choose-event-list-no-results" colspan="3">
+              <ignt-icon name="sensor-alert" variant="light" class="reservations-table__no-results-icon"></ignt-icon>
+              <p class="reservations-table__no-results-text" translate>plansList.noResults</p>
+              <p class="reservations-table__no-results-text" translate>plansList.noResultsExtra</p>
+              <button igntButton class="reservations-table__no-results-button" sentiment="secondary" (click)="clearFilters()">
+                {{ 'plansList.clearFilters' | translate }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+        <tbody *ngIf="filteredPlans()?.length !== 0">
+          <tr
+            *ngFor="let plan of filteredPlans()"
+            (click)="selectPlan(plan)"
+            [class.disabled]="plan.status !== 'on_sale'"
+            (keydown.enter)="selectPlan(plan)"
+            role="button"
+            tabindex="0"
+            [attr.data-testid]="'reservations-choose-event-selector-' + plan.id + '-' + plan.places?.[0]?.id"
+          >
+            <td class="reservations-table__cell">
+              <div class="reservations-table__cell-content">
+                <div>
+                  <img
+                    class="reservations-table__cell-image"
+                    alt="{{ plan.name }} - Cover"
+                    src="{{ plan.pictureURL }}"
+                    width="56"
+                    height="56"
+                  />
+                </div>
+                <div class="reservations-table__cell-text">
+                  <p class="reservations-table__cell-name">{{ plan.name }}</p>
+                  <ng-container *ngIf="plan.places && plan.places.length === 1">
+                    <p class="reservations-table__cell-venue-name">
+                      {{ plan.places[0].city?.name + '&nbsp;-&nbsp;' + plan.places[0].name }}
+                    </p>
+                    <p class="reservations-table__cell-address">{{ plan.places[0].address + '&nbsp;' + plan.places[0].zipCode }}</p>
+                  </ng-container>
+                  <ng-container *ngIf="plan.places && plan.places.length > 1">
+                    <a igntLink size="small" class="reservations-table__cell-venue-name">
+                      {{ 'plansList.viewMoreCities' | translate }}
+                      {{ 'plansList.viewMoreCitiesCount' | translate: { count: plan.places.length } }}
+                      <ignt-icon variant="light" name="chevron-down"></ignt-icon>
+                    </a>
+                  </ng-container>
+
+                  <div
+                    class="reservations-table__cell-more-cities"
+                    *ngIf="plan.places && plan.places.length > 1 && plan.id && expandedPlans()[plan.id]"
+                  >
+                    <ignt-pill
+                      igntTooltip
+                      [tooltipTemplate]="venueTooltip"
+                      size="small"
+                      class="reservations-table__cell-more-cities-item"
+                      [label]="''"
+                      [isActive]="false"
+                      [value]="place.id"
+                      (click)="selectPlanWithPlace(plan, place)"
+                      *ngFor="let place of plan.places"
+                    >
+                      <div class="reservations-table__cell-more-cities-item-label">
+                        <b>{{ place.city?.name }}</b> · {{ place.name }}
+                      </div>
+                      <ng-template #venueTooltip>
+                        <div>{{ place.city?.name + '&nbsp;·&nbsp;' + place.name }}</div>
+                        <div>{{ place.address + '&nbsp;' + place.zipCode }}</div>
+                      </ng-template>
+                    </ignt-pill>
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <td class="reservations-table__cell">
+              <div>
+                <p class="date-cell">
+                  {{ plan.firstSessionDate ? (plan.firstSessionDate | momentDate: 'd MMM yyyy' : plan.timezone) : '-' }}
+                </p>
+                <p class="date-cell">
+                  {{ plan.lastSessionDate ? (plan.lastSessionDate | momentDate: 'd MMM yyyy' : plan.timezone) : '-' }}
+                </p>
+              </div>
+            </td>
+            <td class="reservations-table__cell">
+              <div>
+                <app-plan-status-tag
+                  [status]="plan.status ?? ''"
+                  [style]="plan.status === 'off_sale' ? 'solid' : 'outline'"
+                ></app-plan-status-tag>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </ignt-wrapper-card>
+  </div>
+</ng-container>
+<ng-container *ngIf="isMobile()">
+  <div class="reservations-choose-event-selector__filters">
+    <p
+      class="reservations-choose-event-selector__results"
+      [innerHTML]="'plansList.results' | translate: { count: filteredPlans().length } | sanitize"
+    ></p>
+  </div>
+
+  <div class="mobile-table">
+    <div class="reservations-filters-mobile">
+      <div>
+        {{ 'plansList.table.event' | translate }}
+        <button
+          class="reservations-table__header-sort"
+          [attr.data-testid]="'reservations-choose-event-header-name-sort'"
+          (click)="updateOrderBy('name')"
+        >
+          <ignt-icon class="name__header-sort-icon" variant="regular" [name]="orderByIcon('name')"></ignt-icon>
+        </button>
+      </div>
+      <div>
+        {{ 'plansList.table.status' | translate }}
+        <button
+          class="reservations-table__header-sort"
+          [attr.data-testid]="'reservations-choose-event-header-status-sort'"
+          (click)="updateOrderBy('status')"
+        >
+          <ignt-icon class="status__header-sort-icon" variant="regular" [name]="orderByIcon('status')"></ignt-icon>
+        </button>
+      </div>
+    </div>
+    <ng-container *ngIf="filteredPlans().length === 0">
+      <div class="table-screen-content__no-results" data-testid="choose-event-list-no-results" colspan="3">
+        <ignt-icon variant="light" name="sensor-alert" class="table-screen-content__no-results-icon"></ignt-icon>
+        <p class="reservations-table__no-results-text" translate>plansList.noResults</p>
+        <p class="reservations-table__no-results-text" translate>plansList.noResultsExtra</p>
+        <button igntButton size="small" sentiment="secondary" class="reservations-table__no-results-button" (click)="clearFilters()">
+          {{ 'plansList.clearFilters' | translate }}
+        </button>
+      </div>
+    </ng-container>
+    <div class="mobile-table-content" *ngIf="filteredPlans().length !== 0">
+      <div
+        *ngFor="let plan of filteredPlans()"
+        (click)="selectPlan(plan)"
+        [class.disabled]="plan.status !== 'on_sale'"
+        (keydown.enter)="selectPlan(plan)"
+        role="button"
+        tabindex="0"
+      >
+        <div class="mobile-table__container">
+          <div class="mobile-table__content">
+            <div>
+              <img class="mobile-table__image" alt="{{ plan.name }} - Cover" src="{{ plan.pictureURL }}" width="88" height="88" />
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0">
+              <app-plan-status-tag [status]="plan.status" [style]="plan.status === 'off_sale' ? 'solid' : 'outline'"></app-plan-status-tag>
+              <p class="mobile-table__title">{{ plan.name }}</p>
+              <div class="mobile-table__address-and-dates-container">
+                <svg width="16" height="16" viewBox="0 0 30 30" fill="#536b75">
+                  <g id="fa-icon/calendar-day">
+                    <path
+                      id="icon"
+                      d="M7.5 15.375C7.5 14.3438 8.29688 13.5 9.375 13.5H13.125C14.1562 13.5 15 14.3438 15 15.375V19.125C15 20.2031 14.1562 21 13.125 21H9.375C8.29688 21 7.5 20.2031 7.5 19.125V15.375ZM9 15.375V19.125C9 19.3594 9.14062 19.5 9.375 19.5H13.125C13.3125 19.5 13.5 19.3594 13.5 19.125V15.375C13.5 15.1875 13.3125 15 13.125 15H9.375C9.14062 15 9 15.1875 9 15.375ZM10.5 6H19.5V3.75C19.5 3.375 19.8281 3 20.25 3C20.625 3 21 3.375 21 3.75V6H22.5C24.1406 6 25.5 7.35938 25.5 9V24C25.5 25.6875 24.1406 27 22.5 27H7.5C5.8125 27 4.5 25.6875 4.5 24V9C4.5 7.35938 5.8125 6 7.5 6H9V3.75C9 3.375 9.32812 3 9.75 3C10.125 3 10.5 3.375 10.5 3.75V6ZM6 24C6 24.8438 6.65625 25.5 7.5 25.5H22.5C23.2969 25.5 24 24.8438 24 24V12H6V24ZM6 9V10.5H24V9C24 8.20312 23.2969 7.5 22.5 7.5H7.5C6.65625 7.5 6 8.20312 6 9Z"
+                      fill="#536b75"
+                    />
+                  </g>
+                </svg>
+                <p class="mobile-table__address-and-dates">
+                  {{
+                    (plan.firstSessionDate ? (plan.firstSessionDate | momentDate: 'd MMM yyyy' : plan.timezone) : '') +
+                      '&nbsp;-&nbsp;' +
+                      (plan.lastSessionDate ? (plan.lastSessionDate | momentDate: 'd MMM yyyy' : plan.timezone) : '')
+                  }}
+                </p>
+              </div>
+
+              <ng-container *ngIf="plan.places && plan.places.length === 1">
+                <div class="mobile-table__address-and-dates-container">
+                  <ignt-icon name="map-marker-alt" variant="light" class="mobile-table__address-and-dates-icon" />
+                  <div class="mobile-table__address-and-dates">
+                    <p class="mobile-table__address-city">
+                      {{ plan.places?.[0]?.city?.name + '&nbsp;-&nbsp;' + plan.places?.[0]?.name }}
+                    </p>
+                    <p class="mobile-table__address-city">{{ plan.places?.[0]?.address + '&nbsp;' + plan.places?.[0]?.zipCode }}</p>
+                  </div>
+                </div>
+              </ng-container>
+              <ng-container *ngIf="plan.places && plan.places.length > 1">
+                <a igntLink size="small" class="reservations-table__cell-venue-name">
+                  {{ 'plansList.viewMoreCities' | translate }}
+                  {{ 'plansList.viewMoreCitiesCount' | translate: { count: plan.places.length } }}
+                </a>
+              </ng-container>
+            </div>
+          </div>
+          <div
+            class="mobile-table__address-with-more-cities"
+            *ngIf="plan.places && plan.places.length > 1 && plan.id && expandedPlans()[plan.id]"
+          >
+            <ignt-pill
+              [fluid]="true"
+              igntTooltip
+              [tooltipTemplate]="venueTooltip"
+              size="small"
+              class="reservations-table__cell-more-cities-item"
+              [label]="''"
+              [isActive]="false"
+              [value]="place.id"
+              (click)="selectPlanWithPlace(plan, place)"
+              *ngFor="let place of plan.places"
+            >
+              <div class="mobile-table__cell-more-cities-item-label">
+                <b>{{ place.city?.name }}</b> · {{ place.name }}
+              </div>
+              <ng-template #venueTooltip>
+                <div>{{ place.city?.name + '&nbsp;·&nbsp;' + place.name }}</div>
+                <div>{{ place.address + '&nbsp;' + place.zipCode }}</div>
+              </ng-template>
+            </ignt-pill>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-container>

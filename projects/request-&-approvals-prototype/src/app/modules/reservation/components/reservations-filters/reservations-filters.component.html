@@ -1,0 +1,192 @@
+@if (isMobile()) {
+  <div class="reservations-filters__settings">
+    <app-date-input-selector
+      [selectedDateRange]="selectedDateRange"
+      [maxDateRange]="maxDateRange"
+      (dateRangeChange)="selectDateRangeDialog($event)"
+    />
+    <ignt-pill
+      [label]="''"
+      [leadingIcon]="['fas', 'sliders-h']"
+      [trailingIcon]="['fal', 'angle-down']"
+      [isActive]="getTotalActiveFilters() > 0"
+      value="activeFilters"
+      (statusChange)="openSheet(filtersDialog)"
+    >
+      @if (getTotalActiveFilters() > 0) {
+        <span class="reservations-filters__active-filters">{{ getTotalActiveFilters() }}</span>
+      }
+    </ignt-pill>
+  </div>
+  <label class="reservations-filters__search cell field cell--expanded">
+    <ignt-icon class="reservations-filters__search__icon" name="search" variant="regular" aria-hidden="true"></ignt-icon>
+    <input
+      data-testid="reservations-filters-search-term"
+      #searchTerm
+      type="search"
+      [class.reservations-filter--disabled]="disableFilters"
+      [disabled]="disableFilters"
+      class="field__input reservations-filters__search__input"
+      [value]="selectedFilters.searchTerm ?? ''"
+      (input)="selectSearchTerm($event)"
+      [placeholder]="'reservations.filterLabels.multiQueriesSearch' | translate"
+    />
+    <button
+      type="button"
+      class="reservations-filters__search__icon-clear"
+      [attr.aria-label]="'common.clearAll' | translate"
+      (click)="clearSearchTerm($event)"
+    >
+      <ignt-icon name="times" variant="solid" aria-hidden="true"></ignt-icon>
+    </button>
+    <span class="field__label">{{ 'reservations.filterLabels.multiQueriesSearch' | translate }}</span>
+  </label>
+}
+@if (!isMobile()) {
+  <div class="cell">
+    <fieldset class="wrapper">
+      <div class="wrapper wrapper--align-center cell cell--fill-xxl">
+        <ng-container *ngTemplateOutlet="mainFilters"></ng-container>
+      </div>
+    </fieldset>
+  </div>
+}
+<ng-template #filtersDialog>
+  <ignt-dialog-header hideCloseButton>{{ 'reservations.filterLabels.bottomSheetTitle' | translate }}</ignt-dialog-header>
+
+  <ignt-dialog-content>
+    <ng-container *ngTemplateOutlet="mainFilters" />
+  </ignt-dialog-content>
+
+  <ignt-dialog-footer hideCancelButton>
+    <ignt-button
+      fill
+      variant="tertiary"
+      [label]="'reservations.filterLabels.clearFilters' | translate"
+      (click)="clearFiltersAndCloseSheet()"
+      data-testid="reservations-filters-clear-button"
+    />
+    <ignt-button
+      fill
+      [label]="'reservations.filterLabels.applyFiltersText' | translate"
+      (click)="closeSheet()"
+      data-testid="reservations-filters-apply-button"
+    />
+  </ignt-dialog-footer>
+</ng-template>
+
+<ng-template #mainFilters>
+  <div class="reservations-filters__main-filters wrapper wrapper--align-center cell cell--fill-xxl">
+    @if (!isMobile()) {
+      <app-date-input-selector
+        [selectedDateRange]="selectedDateRange"
+        [maxDateRange]="maxDateRange"
+        (dateRangeChange)="selectDateRangeDialog($event)"
+      />
+    }
+    @if (isAudienceSelectorVisible()) {
+      <div class="reservations-filters__field cell cell--fill-lg">
+        <ignt-typeahead
+          data-testid="reservations-filters-audience"
+          [class.reservations-filter--disabled]="disableFilters"
+          [disabled]="disableFilters"
+          [fieldLabel]="'reservations.filterLabels.audience.label' | translate"
+          [options]="audienceOptions"
+          [selectedOption]="selectedAudienceOption"
+          [editable]="false"
+          (selected)="selectAudienceOption($event)"
+        ></ignt-typeahead>
+      </div>
+    }
+    @if (!isMobile()) {
+      <label class="reservations-filters__search cell field cell--fill-lg cell--expanded">
+        <ignt-icon class="reservations-filters__search__icon" name="search" variant="regular" aria-hidden="true"></ignt-icon>
+        <input
+          data-testid="reservations-filters-search-term"
+          #searchTerm
+          type="search"
+          [class.reservations-filter--disabled]="disableFilters"
+          [disabled]="disableFilters"
+          class="field__input reservations-filters__search__input"
+          [value]="selectedFilters.searchTerm ?? ''"
+          (input)="selectSearchTerm($event)"
+          [placeholder]="'reservations.filterLabels.multiQueriesSearch' | translate"
+        />
+        <button
+          type="button"
+          class="reservations-filters__search__icon-clear"
+          [attr.aria-label]="'common.clearAll' | translate"
+          (click)="clearSearchTerm($event)"
+        >
+          <ignt-icon name="times" variant="solid" aria-hidden="true"></ignt-icon>
+        </button>
+        <span class="field__label">{{ 'reservations.filterLabels.multiQueriesSearch' | translate }}</span>
+      </label>
+    }
+    <div class="reservations-filters__order-id cell cell--fill-lg cell--expanded">
+      <label class="reservations-filters__search field" [class.reservations-filters__search--error]="orderIdError">
+        <ignt-icon class="reservations-filters__search__icon" name="search" variant="regular" aria-hidden="true"></ignt-icon>
+        <input
+          data-testid="reservations-filters-order-id"
+          #orderId
+          type="search"
+          inputmode="numeric"
+          [class.reservations-filter--disabled]="disableFilters"
+          [disabled]="disableFilters"
+          class="field__input reservations-filters__search__input"
+          [value]="selectedFilters.orderId ?? ''"
+          (input)="selectOrderId($event)"
+          [attr.aria-invalid]="orderIdError ? 'true' : null"
+          [placeholder]="'reservations.filterLabels.orderIdPlaceholder' | translate"
+        />
+        <button
+          ignt-icon-button
+          type="button"
+          size="small"
+          sentiment="tertiary"
+          [icon]="['fas', 'times']"
+          class="reservations-filters__search__icon-clear"
+          [attr.aria-label]="'common.clearAll' | translate"
+          (click)="clearOrderId($event)"
+        ></button>
+        <span class="field__label">{{ 'reservations.filterLabels.orderId' | translate }}</span>
+      </label>
+      @if (orderIdError) {
+        <span class="reservations-filters__order-id__error" data-testid="reservations-filters-order-id-error" role="alert">
+          {{ orderIdError }}
+        </span>
+      }
+    </div>
+    <div class="reservations-filters__field cell cell--fill-lg">
+      <span class="reservations-filters__field-label">{{ 'reservations.filterLabels.status' | translate }}</span>
+      <app-multi-select
+        data-testid="reservations-filters-status"
+        [disabled]="disableFilters"
+        [options]="statusOptionsFilters"
+        [selectedOptions]="statusOptionSelected"
+        [displayInPlaceMaximum]="2"
+        (selected)="selectStatusOption($event)"
+        [showAllSelectedOnFeatureToggle]="true"
+        [placeholder]="'reservations.filterLabels.status' | translate"
+      >
+      </app-multi-select>
+    </div>
+    @if (!isBusiness()) {
+      <div class="reservations-filters__field cell cell--fill-lg">
+        <span class="reservations-filters__field-label">{{ 'reservations.filterLabels.businessType' | translate }}</span>
+        <app-multi-select
+          data-testid="reservations-filters-business-type"
+          [class.reservations-filter--disabled]="disableFilters || isMarketplaceAudienceSelected()"
+          [disabled]="disableFilters || isMarketplaceAudienceSelected()"
+          [options]="businessTypeOptionsFilters"
+          [selectedOptions]="businessTypeOptionSelected"
+          [displayInPlaceMaximum]="2"
+          (selected)="selectBusinessTypeOption($event)"
+          [placeholder]="'reservations.filterLabels.businessType' | translate"
+          [showAllSelectedOnFeatureToggle]="true"
+        >
+        </app-multi-select>
+      </div>
+    }
+  </div>
+</ng-template>

@@ -1,0 +1,78 @@
+<ul class="ir-file-tree-branch" [class.ir-file-tree-branch--nested]="!root()" [attr.role]="root() ? 'tree' : 'group'">
+  @for (folder of folders(); track folder.key) {
+    <li class="ir-file-tree-branch__folder" role="treeitem" [attr.aria-expanded]="folder.expanded">
+      <ignt-button
+        variant="tertiary"
+        sentiment="neutral"
+        size="small"
+        [leadingIcon]="folderIcon"
+        [trailingIcon]="folder.chevron"
+        [label]="folder.name"
+        [attr.data-testid]="testIdPrefix() + '-folder-' + folder.pathLabel"
+        (click)="toggleFolder.emit(folder.key)"
+        (keydown.arrowright)="requestExpanded(folder, true)"
+        (keydown.arrowleft)="requestExpanded(folder, false)"
+      ></ignt-button>
+      @if (folder.expanded) {
+        <app-ir-file-tree-branch
+          [folders]="folder.folders"
+          [files]="folder.files"
+          [disabled]="disabled()"
+          [viewingFileKey]="viewingFileKey()"
+          [testIdPrefix]="testIdPrefix()"
+          (toggleFolder)="toggleFolder.emit($event)"
+          (view)="view.emit($event)"
+          (remove)="remove.emit($event)"
+        />
+      }
+    </li>
+  }
+  @for (node of files(); track node.key) {
+    <li class="ir-file-tree-branch__file-row" role="treeitem">
+      <app-file-thumbnail
+        [driveFileId]="node.inDrive ? node.file.driveFileId : undefined"
+        [remoteThumbnailUrl]="node.file.thumbnailUrl"
+        [previewImageUrl]="localPreview(node)"
+        [mimeType]="node.file.mimeType"
+        [fileName]="node.file.originalName"
+        [testId]="testIdPrefix() + '-thumb-' + node.key"
+      />
+      @if (node.inDrive) {
+        <a [href]="node.file.webViewLink" target="_blank" rel="noopener noreferrer">{{ node.file.originalName }}</a>
+      } @else {
+        <span class="ir-file-tree-branch__file-name">{{ node.file.originalName }}</span>
+      }
+      @if (viewableFileKeys().has(node.key)) {
+        <ignt-button
+          variant="tertiary"
+          sentiment="neutral"
+          size="small"
+          [loading]="viewingFileKey() === node.key"
+          [disabled]="viewingFileKey() !== null"
+          [label]="'informationRequests.question.file.view' | translate"
+          [attr.data-testid]="testIdPrefix() + '-view-' + node.key"
+          (click)="view.emit(node.file)"
+        ></ignt-button>
+      }
+      @if (!node.inDrive) {
+        <span
+          class="ir-file-tree-branch__file-status"
+          [class.ir-file-tree-branch__file-status--failed]="node.file.syncStatus === 'DRIVE_SYNC_FAILED'"
+          [attr.data-status]="node.file.syncStatus"
+          [attr.data-testid]="testIdPrefix() + '-sync-' + node.key"
+        >
+          {{ fileSyncStatusKey(node.file) | translate }}
+        </span>
+      }
+      <ignt-button
+        variant="tertiary"
+        sentiment="danger"
+        size="small"
+        [disabled]="disabled()"
+        [label]="'informationRequests.question.file.remove' | translate"
+        [attr.data-testid]="testIdPrefix() + '-remove-' + node.key"
+        (click)="remove.emit(node.file)"
+      ></ignt-button>
+    </li>
+  }
+</ul>

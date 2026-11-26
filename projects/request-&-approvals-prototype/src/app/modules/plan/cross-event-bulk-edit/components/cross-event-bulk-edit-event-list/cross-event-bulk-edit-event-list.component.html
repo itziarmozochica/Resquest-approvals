@@ -1,0 +1,95 @@
+<div class="cross-event-bulk-edit-event-list" data-testid="cross-event-bulk-edit-event-list">
+  @if (loadFailed()) {
+    <ignt-alert data-testid="cross-event-bulk-edit-event-list-error" sentiment="danger" [description]="'listPlan.error' | translate" />
+  }
+
+  @if (isLoading()) {
+    <p data-testid="cross-event-bulk-edit-event-list-loading">{{ 'common.loading' | translate }}</p>
+  } @else if (!loadFailed() && plans().length === 0) {
+    <p data-testid="cross-event-bulk-edit-event-list-empty">{{ 'listPlan.crossEventBulkEdit.empty' | translate }}</p>
+  }
+
+  @if (!isLoading() && plans().length > 0) {
+    @if (isSelectionFull()) {
+      <ignt-alert
+        data-testid="cross-event-bulk-edit-selection-limit"
+        sentiment="warning"
+        [description]="'listPlan.crossEventBulkEdit.selectionLimit' | translate: { limit: selectionLimit }"
+      />
+    }
+
+    <div class="cross-event-bulk-edit-event-list__header">
+      <div class="cross-event-bulk-edit-event-list__event">
+        <ignt-checkbox
+          [ariaLabel]="'listPlan.crossEventBulkEdit.selectAll' | translate"
+          [checked]="isSelectAllChecked()"
+          data-testid="cross-event-bulk-edit-select-all"
+          dataTestId="cross-event-bulk-edit-select-all"
+          (change)="onToggleAll()"
+        />
+        <span>{{ 'listPlan.crossEventBulkEdit.eventColumn' | translate }}</span>
+      </div>
+      <span class="cross-event-bulk-edit-event-list__status">{{ 'listPlan.statusLabel' | translate }}</span>
+    </div>
+
+    <ul class="cross-event-bulk-edit-event-list__rows">
+      @for (plan of plans(); track plan.id) {
+        <li class="cross-event-bulk-edit-event-list__row" [attr.data-testid]="'cross-event-bulk-edit-event-' + plan.id">
+          <div class="cross-event-bulk-edit-event-list__event">
+            <ignt-checkbox
+              [ariaLabel]="plan.name ?? ''"
+              [attr.data-testid]="'cross-event-bulk-edit-event-checkbox-' + plan.id"
+              [checked]="isPlanSelected(plan.id)"
+              [dataTestId]="'cross-event-bulk-edit-event-checkbox-' + plan.id"
+              [disabled]="isSelectionDisabled(plan.id)"
+              (change)="onTogglePlan(plan.id)"
+            />
+            <div class="cross-event-bulk-edit-event-list__details">
+              <span class="cross-event-bulk-edit-event-list__name">{{ plan.name }}</span>
+              @if (plan.firstPlace; as place) {
+                @if (place.cityName !== '') {
+                  <span
+                    class="cross-event-bulk-edit-event-list__location"
+                    [attr.data-testid]="'cross-event-bulk-edit-event-location-' + plan.id"
+                  >
+                    <ignt-icon name="map-marker-alt" size="sm" variant="regular" />
+                    {{ place.cityName | cityTranslate }} -
+                    {{ plan.hasMultiplePlaces === true ? ('listPlan.multipleVenues' | translate) : venueName(plan) }}
+                  </span>
+                }
+              }
+            </div>
+          </div>
+          @if (plan.status) {
+            <app-plan-status-tag class="cross-event-bulk-edit-event-list__status" [status]="plan.status" [style]="'outline'" />
+          }
+        </li>
+      }
+    </ul>
+  }
+
+  @if (nextPageQuery() !== null) {
+    @if (isLoadingMore()) {
+      <div class="cross-event-bulk-edit-event-list__loading-more" data-testid="cross-event-bulk-edit-loading-more">
+        <ignt-icon name="spinner" size="h4" variant="solid" [spin]="true" aria-hidden="true" />
+        <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
+      </div>
+    } @else if (loadFailed()) {
+      <div class="cross-event-bulk-edit-event-list__load-more">
+        <ignt-button
+          data-testid="cross-event-bulk-edit-load-more"
+          size="small"
+          variant="secondary"
+          [label]="'listPlan.crossEventBulkEdit.loadMore' | translate"
+          (click)="onLoadMore()"
+        />
+      </div>
+    }
+    <div
+      #loadMoreSentinel
+      aria-hidden="true"
+      class="cross-event-bulk-edit-event-list__sentinel"
+      data-testid="cross-event-bulk-edit-load-more-sentinel"
+    ></div>
+  }
+</div>

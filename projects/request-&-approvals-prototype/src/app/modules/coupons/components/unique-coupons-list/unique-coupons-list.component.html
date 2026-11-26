@@ -1,0 +1,93 @@
+<ng-container *ngIf="templateCouponPreview">
+  <div class="lateral-slider-body__wrapper">
+    <section class="details__section">
+      <h6 class="details__title">{{ 'coupons.form.codeList.details.title' | translate }}</h6>
+      <div class="wrapper details__content">
+        <div class="wrapper">
+          <div class="wrapper details__quantity-container">
+            <label>{{ 'coupons.form.codeList.details.totals.redeemed' | translate }}</label>
+            <label data-testid="current-usages">{{ templateCouponPreview.templateCouponDetail.currentUsages }}</label>
+          </div>
+          <div class="wrapper details__quantity-container">
+            <label>{{ 'coupons.form.codeList.details.totals.used' | translate }}</label>
+            <label data-testid="current-consumptions">{{ templateCouponPreview.templateCouponDetail.currentConsumptions }}</label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="unique-coupons__section">
+      <div class="wrapper unique-coupons">
+        <div class="wrapper">
+          <label class="cell field">
+            <input
+              class="field__input"
+              type="text"
+              [placeholder]="'coupons.list.searchByNameOrCode' | translate"
+              [(ngModel)]="name"
+              (ngModelChange)="onSearchFieldChanged($event)"
+              data-testid="unique-coupons-filter"
+            />
+            <fa-icon class="field__icon field__icon--lead" [icon]="['far', 'search']" />
+          </label>
+        </div>
+
+        <table class="unique-coupons__table">
+          <thead class="wrapper unique-coupons__table__header">
+            <th>{{ 'coupons.form.codeList.table.code' | translate }}</th>
+            <th>{{ 'coupons.form.codeList.table.redeemed' | translate }}</th>
+            <th>{{ 'coupons.form.codeList.table.used' | translate }}</th>
+            <th>{{ 'coupons.form.codeList.table.discount' | translate }}</th>
+          </thead>
+
+          <ng-container *ngIf="!isThereAnError(); else errorMessage">
+            <tbody class="unique-coupons__table__body" data-testid="unique-coupons-table">
+              <tr *ngFor="let coupon of uniqueCoupons(); trackBy: trackCoupon" class="wrapper">
+                <td>{{ coupon.code }}</td>
+                <td>{{ formatRedemptionCount(coupon) }}</td>
+                <td>{{ formatAppliedCount(coupon) }}</td>
+                <td>{{ formatDiscount(coupon) }}</td>
+              </tr>
+              <tr class="sentinel"></tr>
+            </tbody>
+            <ng-container *ngTemplateOutlet="noResultsOrLoader" />
+          </ng-container>
+        </table>
+      </div>
+    </section>
+
+    <section class="buttons__section wrapper">
+      <button
+        igntButton
+        sentiment="secondary"
+        [fill]="true"
+        variant="sharp"
+        [leadingIcon]="['fas', 'file-download']"
+        data-testid="download-unique-coupon-button"
+        [disabled]="isDownloadingReport()"
+        (click)="onDownloadReportClicked()"
+      >
+        {{ 'coupons.form.buttons.download' | translate }}
+      </button>
+      <button igntButton sentiment="tertiary" [fill]="true" data-testid="back-unique-coupon-button" (click)="onBackButtonClicked()">
+        {{ 'coupons.form.buttons.back' | translate }}
+      </button>
+    </section>
+  </div>
+</ng-container>
+
+<ng-template #noResultsOrLoader>
+  <ng-container *ngIf="isEmpty() && !isLoading()">
+    <label class="no-results">{{ 'coupons.form.codeList.table.emptyBody' | translate }}</label>
+  </ng-container>
+
+  <ng-container *ngIf="isLoading() && isEmpty()">
+    <div class="loader-container" data-testid="request-results-loading">
+      <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'3x'" />
+    </div>
+  </ng-container>
+</ng-template>
+
+<ng-template #errorMessage>
+  <h4>{{ 'coupons.list.messages.error' | translate }}</h4>
+</ng-template>

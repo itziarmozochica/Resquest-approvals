@@ -1,0 +1,83 @@
+<div class="landing">
+  @if (base(); as baseProject) {
+    <app-manage-translations-landing-base-header
+      [base]="baseProject"
+      [canManageTranslations]="canManageTranslations()"
+      [isContextsDialogAvailable]="isContextsDialogAvailable()"
+      (action)="onBaseAction($event)"
+    />
+  }
+
+  <div class="landing__bar">
+    <h2 class="landing__section-label">{{ 'manageTranslations.subprojectsSectionLabel' | translate }}</h2>
+    @if (canManageTranslations()) {
+      <div class="landing__bar-actions">
+        <ignt-button
+          variant="secondary"
+          size="small"
+          [label]="'manageTranslations.history.open' | translate"
+          data-testid="manage-translations-open-history"
+          (click)="openHistory.emit(null)"
+        />
+        <ignt-button
+          size="small"
+          [label]="'manageTranslations.addSubproject.trigger' | translate"
+          [leadingIcon]="{ name: 'plus', variant: 'solid' }"
+          data-testid="manage-translations-add-subproject"
+          (click)="addSubproject.emit()"
+        />
+      </div>
+    }
+  </div>
+
+  <div class="wrapper-card wrapper-card--elevation-100 wrapper-card--custom-mobile landing__list">
+    <app-manage-translations-landing-search
+      [search]="search()"
+      [hasSearch]="hasSearch()"
+      [isCountHidden]="isCountHidden()"
+      [resultCount]="total()"
+      [subprojectCount]="base()?.subprojectCount ?? 0"
+      (searchChange)="onSearchChange($event)"
+      (clear)="onClearSearch()"
+    />
+
+    @if (error(); as message) {
+      <div class="landing__error" role="alert" data-testid="manage-translations-landing-error">
+        <p>{{ 'manageTranslations.landing.error.message' | translate }}</p>
+        <p class="landing__error-detail">{{ message }}</p>
+        <ignt-button
+          variant="secondary"
+          size="small"
+          [label]="'manageTranslations.landing.error.retry' | translate"
+          data-testid="manage-translations-landing-retry"
+          (click)="onRetry()"
+        />
+      </div>
+    } @else {
+      <app-manage-translations-landing-table
+        [rows]="rows()"
+        [sort]="sort()"
+        [hasSearch]="hasSearch()"
+        [isLoading]="isLoading()"
+        [canManageTranslations]="canManageTranslations()"
+        [isContextsDialogAvailable]="isContextsDialogAvailable()"
+        [deletingRelationIds]="deletingRelationIds()"
+        (rowAction)="onRowAction($event)"
+        (sortToggle)="onSortToggle()"
+        (clearSearch)="onClearSearch()"
+      />
+      @if (total() > pageSize) {
+        <div class="landing__pagination" data-testid="manage-translations-landing-pagination">
+          <app-pagination-with-numbers
+            [nextPage]="page() < totalPages() ? page() + 1 : null"
+            [pageSize]="pageSize"
+            [previousPage]="page() > 1 ? page() - 1 : null"
+            [selectedPage]="page()"
+            [totalCountResults]="total()"
+            (numPageSelected)="onPageChange($event)"
+          />
+        </div>
+      }
+    }
+  </div>
+</div>

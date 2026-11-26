@@ -1,0 +1,72 @@
+<ignt-expansion-panel class="activity-row" variant="borderless" [isCollapsed]="!row().isExpanded">
+  <div expansion-panel-title class="activity-row__header" data-testid="activity-row-header">
+    <div class="activity-row__meta">
+      <span class="activity-row__time" data-testid="activity-row-time">{{ row().timeRange }}</span>
+      @if (row().pax !== null) {
+        <span class="activity-row__pax" data-testid="activity-row-pax">{{ 'bookedSlots.paxCount' | translate: { count: row().pax } }}</span>
+      }
+    </div>
+    <span class="activity-row__name" data-testid="activity-row-name">{{ row().activityName }}</span>
+    @if (row().isExclusiveHire) {
+      <span class="activity-row__exclusive" data-testid="activity-row-exclusive">{{
+        'bookedSlots.cardV3.exclusiveWholeAsset' | translate
+      }}</span>
+    }
+  </div>
+
+  <div class="activity-row__body">
+    @for (asset of row().assets; track asset.bookedSlotId) {
+      <div class="activity-row__asset" data-testid="activity-row-asset-block">
+        <div class="activity-row__asset-details">
+          <div class="activity-row__detail">
+            <span class="activity-row__detail-label">{{ 'bookedSlots.asset' | translate }}:</span>
+            @if (asset.canLocate) {
+              <a
+                igntLink
+                size="small"
+                role="button"
+                tabindex="0"
+                class="activity-row__detail-value activity-row__asset-link"
+                data-testid="activity-row-asset"
+                [attr.aria-label]="'bookedSlots.locateAsset' | translate: { assetName: asset.assetName }"
+                (click)="onLocateAsset(asset.bookedSlotId, $event)"
+                (keydown.enter)="onLocateAsset(asset.bookedSlotId, $event)"
+                (keydown.space)="onLocateAsset(asset.bookedSlotId, $event)"
+                >{{ asset.assetName }}</a
+              >
+            } @else {
+              <span class="activity-row__detail-value" data-testid="activity-row-asset">{{ asset.assetName }}</span>
+            }
+            @if (asset.isProvisional) {
+              <span class="activity-row__provisional" data-testid="activity-row-provisional">{{ 'journey.provisional' | translate }}</span>
+            }
+          </div>
+          @if (asset.showGroups) {
+            <div class="activity-row__detail">
+              <span class="activity-row__detail-label"
+                >{{ (asset.partySizes ? 'journey.peopleOnAsset' : 'bookedSlots.groups') | translate }}:</span
+              >
+              <span class="activity-row__detail-value" data-testid="activity-row-groups">{{
+                asset.partySizes ? asset.partySizes.join(' + ') : asset.groups
+              }}</span>
+            </div>
+          }
+        </div>
+
+        @if (asset.canMove) {
+          <button
+            ignt-icon-button
+            type="button"
+            class="activity-row__move-trigger"
+            data-testid="activity-row-move-trigger"
+            size="small"
+            sentiment="tertiary"
+            [icon]="['fal', 'pencil']"
+            [attr.aria-label]="('bookedSlots.moveAsset' | translate) + ' ' + asset.assetName"
+            (click)="onMoveAsset(asset.bookedSlotId)"
+          ></button>
+        }
+      </div>
+    }
+  </div>
+</ignt-expansion-panel>

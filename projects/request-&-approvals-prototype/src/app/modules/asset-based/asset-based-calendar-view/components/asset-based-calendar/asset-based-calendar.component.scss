@@ -1,0 +1,2308 @@
+@use 'sass:color';
+@use 'foundations' as foundations;
+@use '../../block-surface' as block-surface;
+@use '../../booking-card-tag-surfaces' as booking-card-tag-surfaces;
+@use '../../booking-card-v3' as card;
+@use '../../calendar-dim' as calendar-dim;
+@use '../../locked-slot-surface' as locked-slot-surface;
+
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/mixins/breakpoints';
+
+$card-v3-pill-width: 2rem;
+$card-v3-narrow-pill-width: 1.5rem;
+$card-v3-strip-offset: 1.25rem;
+$card-v3-now-pill-font-size: 0.5rem;
+$card-v3-phone-time-label-font-size: 0.5625rem;
+$card-v3-time-label-inset: foundations.$space-3;
+$card-v3-hour-label-offset: foundations.$space-1;
+$card-v3-half-hour-label-offset: foundations.$size-px2;
+$card-v3-phone-hour-label-offset: calc(#{foundations.$size-px} + #{foundations.$size-px2});
+$card-v3-header-end-inset: 2.25rem;
+// The 44px touch toggle plus its 4px end offset.
+$card-v3-header-end-inset-coarse: 3rem;
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+// Status dot: orange when a capacity rule or a hub special day overrides the asset on the selected
+// day, grey when the asset has weekly rules but none applies. Doubles as the entry point to the rules panel.
+.asset-capacity-rules-dot {
+  background: foundations.$palette-warning-600;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  display: block;
+  flex-shrink: 0;
+  height: foundations.$space-2;
+  padding: 0;
+  position: relative;
+  width: foundations.$space-2;
+
+  // Invisible hit area centred on the dot, so pointing at it needs no precision
+  // while the dot itself stays small in the header layout.
+  &::after {
+    content: '';
+    height: foundations.$space-6;
+    inset-inline-start: 50%;
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: foundations.$space-6;
+  }
+
+  &:hover {
+    background: foundations.$palette-warning-700;
+  }
+
+  &--neutral {
+    background: foundations.$palette-neutral-400;
+
+    &:hover {
+      background: foundations.$palette-neutral-500;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid foundations.$palette-primary-500;
+    outline-offset: 2px;
+  }
+}
+
+$table-border-color: foundations.$palette-neutral-200;
+$column-border-width: foundations.$size-px;
+$outside-opening-hours-background: foundations.$palette-neutral-50;
+// Base hue for date-exception hatch, lanes above window max parties, and outside-recurring fill.
+$calendar-capacity-muted-fill: #f2f3f3;
+$calendar-capacity-muted-stripe: #e4e6e7;
+$scroll-margin-top: 60px;
+$scroll-margin-left-mobile: 65px;
+$scroll-margin-left: 100px;
+
+// Z-index hierarchy for calendar stacking context
+// All values must be below Fever header (z-index: 5)
+// 0 = Base content (cells) and lanes above window max parties
+// 1 = Events (booked slots, unavailable blocks, date-exception / rule-focus underlay)
+//    Spanning overlays (`dateExceptionOverlay`) render before booked slots so later siblings stay on top.
+// 2 = Current time line (above events), header row and time column
+// 3 = Sticky thead corner
+// 4 = Current time pill (above time column content)
+$z-index-base: 0;
+$z-index-events: 1;
+$z-index-dnd-restricted-overlay: 3;
+$z-index-dnd-drop-preview: 4;
+$card-lift-scale: 1.03;
+$card-lift-tilt: 1.2deg;
+$drag-card-shadow: drop-shadow(0 14px 28px rgba(foundations.$palette-neutral-700, 0.28));
+
+$booking-card-inset-block: 2px;
+$booking-card-inset-inline: 3px;
+$z-index-current-time-line: 2;
+$z-index-time-column: 2;
+$z-index-header: 2;
+$z-index-corner: 3;
+$z-index-current-time-pill: 4;
+$capacity-rule-focus-border-color: #4db8e8;
+$capacity-rule-focus-background-color: rgba(77, 184, 232, 0.1);
+// Opaque equivalent of side-panel `rgba(77, 184, 232, 0.1)` on white — hides grid lines beneath.
+$capacity-rule-focus-overlay-background: color.mix($capacity-rule-focus-border-color, foundations.$palette-neutral-white, 10%);
+$capacity-rule-focus-ring-color: rgba(77, 184, 232, 0.35);
+
+@mixin capacity-rule-focus-highlight {
+  background-color: $capacity-rule-focus-background-color;
+  border: foundations.$size-px solid $capacity-rule-focus-border-color;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px $capacity-rule-focus-ring-color;
+  box-sizing: border-box;
+}
+
+@mixin capacity-rule-focus-overlay {
+  background-color: $capacity-rule-focus-overlay-background;
+  border: foundations.$size-px solid $capacity-rule-focus-border-color;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px $capacity-rule-focus-ring-color;
+  box-sizing: border-box;
+  transform: translateZ(0);
+}
+
+// Date-exception hatch only; outside recurring uses solid `$calendar-capacity-muted-fill` on the base block.
+@mixin unavailable-capacity-date-exception-hatch-fill {
+  background-color: $calendar-capacity-muted-fill;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    $calendar-capacity-muted-fill,
+    $calendar-capacity-muted-fill 5px,
+    $calendar-capacity-muted-stripe 5px,
+    $calendar-capacity-muted-stripe 6px
+  );
+}
+
+// Lane drawn beyond the asset's configured capacity: the booking inside it is real, the capacity is not.
+@mixin over-capacity-lane-fill {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 5px,
+    rgba(foundations.$palette-neutral-500, 0.08) 5px,
+    rgba(foundations.$palette-neutral-500, 0.08) 10px
+  );
+}
+
+@mixin over-capacity-mark {
+  background-color: foundations.$palette-neutral-800;
+  border-radius: foundations.$size-1;
+  color: foundations.$palette-neutral-white;
+  font-size: foundations.$size-caption;
+  font-weight: foundations.$font-base-bold;
+
+  .over-capacity-mark__icon {
+    color: foundations.$palette-neutral-white;
+    font-size: foundations.$size-caption;
+  }
+}
+
+@mixin over-capacity-lane-label {
+  color: foundations.$palette-neutral-500;
+  font-style: italic;
+}
+
+$dnd-restricted-blur: 3px;
+$dnd-restricted-saturate: 0.82;
+$dnd-restricted-content-opacity: 0.72;
+
+@mixin drag-card-overlay {
+  border-radius: foundations.$radii-1;
+  content: '';
+  inset: var(--card-v3-inset-block-start, 0) 0 var(--card-v3-inset-block-end, 0);
+  pointer-events: none;
+  position: absolute;
+}
+
+@mixin dnd-restricted-column-style {
+  &:not(:has(.event--dnd-drop-preview))::after {
+    background-color: rgba(foundations.$palette-neutral-white, 0.22);
+    content: '';
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
+    z-index: $z-index-dnd-restricted-overlay;
+  }
+
+  .event:not(.event--dragging-source):not(.event--dnd-drop-preview):not(.event--drag-card) {
+    filter: blur($dnd-restricted-blur) saturate($dnd-restricted-saturate);
+    opacity: $dnd-restricted-content-opacity;
+  }
+}
+
+@mixin dnd-restricted-header-content-style {
+  filter: blur($dnd-restricted-blur) saturate($dnd-restricted-saturate);
+  opacity: $dnd-restricted-content-opacity;
+}
+
+@mixin pinned-group-title {
+  background-color: foundations.$palette-neutral-50;
+  box-sizing: border-box;
+  color: card.$group-title-color;
+  display: block;
+  font-family: card.$font-stack;
+  font-size: card.$group-title-font-size;
+  font-weight: card.$weight-semibold;
+  inset-inline-start: var(--calendar-time-column-width, 0);
+  letter-spacing: card.$group-title-letter-spacing;
+  line-height: foundations.$space-3-5;
+  max-inline-size: var(--grouped-title-max-width, none);
+  min-inline-size: 0;
+  overflow: visible;
+  padding-inline-end: foundations.$space-2;
+  position: sticky;
+  text-transform: uppercase;
+  white-space: nowrap;
+  z-index: 1;
+
+  @media (pointer: coarse) {
+    line-height: foundations.$size-11;
+    min-inline-size: min(#{foundations.$size-11}, var(--grouped-title-max-width, #{foundations.$size-11}));
+
+    &::after {
+      content: '';
+      inline-size: max(100%, #{foundations.$size-11});
+      inset-block: 0;
+      inset-inline-start: 0;
+      position: absolute;
+    }
+
+    &:has(+ .asset-capacity-rules-dot)::after {
+      inline-size: 100%;
+    }
+  }
+
+  &:focus-visible {
+    outline-offset: calc(-1 * #{foundations.$size-px2});
+  }
+}
+
+@mixin pinned-group-title-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@mixin calendar-time-tooltip {
+  background-color: foundations.$palette-neutral-900;
+  border-radius: foundations.$radii-1;
+  color: foundations.$palette-neutral-white;
+  font-size: foundations.$size-tiny;
+  font-weight: 600;
+  left: 4px;
+  line-height: 1.2;
+  padding: 2px 6px;
+  pointer-events: none;
+  position: absolute;
+  white-space: nowrap;
+  z-index: 4;
+}
+
+.calendar {
+  table-layout: auto;
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+
+  thead {
+    position: sticky;
+    top: 0;
+    z-index: $z-index-corner;
+    background-color: foundations.$palette-neutral-50;
+    text-align: left;
+    // Grab the header to pan the grid sideways (CalendarHorizontalPanDirective). `pan-y` leaves
+    // the vertical swipe to the browser on a touch screen and hands us the horizontal one.
+    cursor: grab;
+    touch-action: pan-y;
+
+    &.calendar-horizontal-pan--panning {
+      cursor: grabbing;
+      user-select: none;
+    }
+
+    // The header's own controls keep their pointer, so they never read as a pan handle.
+    .asset-capacity-rules-dot,
+    .people-count-lanes-toggle {
+      cursor: pointer;
+    }
+  }
+
+  .asset-header-group {
+    top: 0;
+    background-color: foundations.$palette-neutral-50;
+    z-index: $z-index-header;
+    padding: 8px;
+    text-align: center;
+    min-width: 96px;
+    max-width: none;
+    width: auto;
+    min-height: 48px;
+    height: auto;
+    border-top: foundations.$size-px solid $table-border-color;
+    border-left: 0;
+    pointer-events: auto;
+
+    + .asset-header-group {
+      border-left: foundations.$size-px solid $table-border-color;
+    }
+
+    .asset-header-group__content {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      min-height: 100%;
+      padding: 0 4px;
+      gap: 4px;
+    }
+
+    .asset-header-group__title-with-rules {
+      align-items: center;
+      display: flex;
+      flex: 1;
+      flex-direction: row;
+      // The dot trails the name on the same line: the name shrinks instead of pushing it down.
+      flex-wrap: nowrap;
+      gap: foundations.$space-1;
+      min-width: 0;
+      text-align: start;
+    }
+
+    // The new frame has no lane header row, so the folded over-capacity lanes are counted next to their toggle.
+    .asset-header-group__over-capacity-count {
+      @include over-capacity-mark;
+
+      align-items: center;
+      display: inline-flex;
+      flex-shrink: 0;
+      gap: foundations.$size-1;
+      padding-inline: foundations.$size-1;
+      white-space: nowrap;
+    }
+
+    .asset-header-group__reorder-btn {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      color: foundations.$palette-neutral-500;
+      pointer-events: auto;
+      border-radius: 4px;
+      opacity: 0;
+      transition:
+        opacity 0.15s ease,
+        color 0.15s ease,
+        background-color 0.15s ease;
+    }
+
+    &:hover .asset-header-group__reorder-btn {
+      opacity: 1;
+
+      &:hover {
+        color: foundations.$palette-primary-500;
+        background-color: foundations.$palette-neutral-100;
+      }
+    }
+
+    .asset-header-group__reorder-icon {
+      font-size: foundations.$size-caption;
+    }
+
+    .asset-header-group__name {
+      /* stylelint-disable-next-line value-no-vendor-prefix */
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      line-clamp: 2;
+      font-weight: 600;
+      font-size: foundations.$size-caption;
+      word-break: normal;
+      text-align: left;
+      overflow: hidden;
+      min-width: 0;
+
+      &[title] {
+        text-decoration: underline dotted;
+        text-underline-offset: 2px;
+
+        &:focus-visible::after {
+          background-color: foundations.$palette-neutral-900;
+          border-radius: foundations.$radii-1;
+          color: foundations.$palette-neutral-white;
+          content: attr(title);
+          font-size: foundations.$size-caption;
+          font-weight: 400;
+          inset-inline-start: 4px;
+          line-height: 1.2;
+          max-width: 240px;
+          padding: 2px 6px;
+          pointer-events: none;
+          position: absolute;
+          top: 100%;
+          white-space: normal;
+          width: max-content;
+          z-index: 4;
+        }
+      }
+    }
+
+    &--dnd-restricted {
+      @include dnd-restricted-column-style;
+
+      .asset-header-group__content {
+        @include dnd-restricted-header-content-style;
+      }
+    }
+  }
+
+  &__columns-row {
+    .asset-header {
+      border-bottom: foundations.$size-px solid foundations.$palette-neutral-200;
+    }
+  }
+
+  td,
+  th {
+    pointer-events: none;
+    padding: 0;
+    position: relative;
+    min-width: 80px;
+    width: auto;
+
+    .event {
+      pointer-events: auto;
+      font-size: foundations.$size-tiny;
+      position: absolute;
+      right: auto;
+      scroll-margin-left: $scroll-margin-left-mobile;
+      scroll-margin-top: $scroll-margin-top;
+      overflow: hidden;
+      z-index: $z-index-events;
+      min-height: 3px;
+      min-width: 68px;
+
+      @media (hover: none) {
+        -webkit-touch-callout: none;
+        user-select: none;
+      }
+
+      @include media-breakpoint-up(xl) {
+        scroll-margin-left: $scroll-margin-left;
+      }
+
+      // Capacity cells are positioned absolutely and sized strictly from their duration.
+      // A minimum height would inflate a short segment past its span and overlap the next.
+      &.event--timeslot-summary {
+        min-height: 0;
+      }
+
+      &.event--timeslot-summary--card-v3 {
+        box-sizing: border-box;
+        overflow: visible;
+        padding-block: var(--card-v3-inset-block-start, 0) var(--card-v3-inset-block-end, 0);
+      }
+
+      &.event--timeslot-summary-spine {
+        min-width: 0;
+      }
+
+      /**
+       * Geometry only. The card inside is the by-party booking card, which brings its own background,
+       * border and states with it — painting anything here would put a second card around the first
+       * one, which is how the two drifted apart in the first place (GAME-1362).
+       */
+      &.event--people-count-lane {
+        box-sizing: border-box;
+        min-width: 0;
+
+        /**
+         * A by-party card pads itself sideways to sit off its column's borders. A lane card has none
+         * to clear: the lane gap is its margin, so the padding here would only widen it and leave
+         * less room for the booking. The vertical padding stays — that one separates a card from the
+         * booking above and below it in the same lane.
+         */
+        &.event--with-drag-handle {
+          padding-left: 0;
+          padding-right: 0;
+        }
+
+        &:focus-visible {
+          outline: foundations.$size-px2 solid foundations.$palette-primary-700;
+          outline-offset: -2px;
+        }
+      }
+
+      /**
+       * The time the asset is held with no guest in it, hatched so the operator reads it apart from
+       * the guest time at a glance (GAME-1258 T1) — the one thing it does not borrow from the block
+       * beside it, which is flat wherever the progressive card is off. It is not a block, though:
+       * there is no row behind it to open, move or delete, so it takes no pointer and no place in
+       * the accessibility tree.
+       */
+      &.event--turnaround {
+        border-radius: block-surface.$block-surface-tight-radius;
+        box-sizing: border-box;
+        // The block is as thin as its turnaround is short; the base floor would inflate it over the card.
+        min-height: 0;
+        min-width: 0;
+        pointer-events: none;
+        z-index: $z-index-events;
+
+        // The box tiles with the card, but the card paints inside its padding — so the surface takes the same inset.
+        &::before {
+          @include block-surface.block-surface-fill;
+          border-radius: inherit;
+          box-sizing: border-box;
+          content: '';
+          display: block;
+          height: 100%;
+          width: 100%;
+        }
+
+        &.event--turnaround--inset {
+          padding: $booking-card-inset-block $booking-card-inset-inline;
+        }
+
+        &.event--turnaround--lane.event--turnaround--inset {
+          padding: $booking-card-inset-block 0;
+        }
+
+        &.event--turnaround--card-v3,
+        &.event--turnaround--lane.event--turnaround--card-v3 {
+          padding-block: var(--card-v3-inset-block-start, 0) var(--card-v3-inset-block-end, 0);
+
+          &::before {
+            @include locked-slot-surface.locked-slot-surface-fill;
+            border: 0;
+            box-shadow: none;
+          }
+        }
+
+        &.event--turnaround--card-v3:not(.event--turnaround--lane) {
+          padding-inline: foundations.$space-1;
+        }
+      }
+
+      &.event--unavailable-capacity {
+        background-color: $calendar-capacity-muted-fill;
+        box-sizing: border-box;
+        min-height: 2px;
+        pointer-events: none;
+        z-index: $z-index-base;
+
+        &.event--unavailable-capacity--date-exception {
+          @include unavailable-capacity-date-exception-hatch-fill;
+          cursor: pointer;
+          pointer-events: auto;
+          // Above grid borders; opaque hatch hides lines beneath the block.
+          z-index: $z-index-events;
+          border: foundations.$size-px dashed foundations.$palette-neutral-500;
+          border-radius: 8px;
+          // Wider than one `td` is set inline (`getDateExceptionUnavailableOverlayWidth`); `top` / `left` / `height` / `width`
+          // insets keep the block inside the asset’s party-column group with a small gap to grid lines.
+          overflow: hidden;
+          padding: 6px 8px;
+          transform: translateZ(0);
+
+          .event--unavailable-capacity__content {
+            align-items: flex-start;
+            display: flex;
+            gap: 6px;
+            min-height: 100%;
+          }
+
+          .event--unavailable-capacity__icon {
+            color: foundations.$palette-neutral-700;
+            flex-shrink: 0;
+            font-size: foundations.$size-caption;
+            margin-top: 1px;
+          }
+
+          .event--unavailable-capacity__text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+          }
+
+          .event--unavailable-capacity__title {
+            color: foundations.$palette-neutral-800;
+            font-size: foundations.$size-caption;
+            font-weight: 600;
+            line-height: 1.2;
+          }
+
+          .event--unavailable-capacity__duration {
+            color: foundations.$palette-neutral-600;
+            font-size: foundations.$size-tiny;
+            font-weight: 400;
+            line-height: 1.2;
+          }
+
+          &.event--unavailable-capacity--rule-focused {
+            box-shadow: inset 0 0 0 2px $capacity-rule-focus-border-color;
+          }
+        }
+
+        &.event--unavailable-capacity--rule-focused:not(.event--unavailable-capacity--date-exception) {
+          @include capacity-rule-focus-highlight;
+          z-index: $z-index-events;
+        }
+      }
+
+      &.event--capacity-rule-focus {
+        @include capacity-rule-focus-overlay;
+        min-height: 2px;
+        pointer-events: none;
+        // Above `td` row borders (same as unavailable overlays); DOM order keeps bookings on top.
+        z-index: $z-index-events;
+      }
+
+      &.event--with-drag-handle {
+        align-items: stretch;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: row;
+        gap: 0;
+        padding: $booking-card-inset-block $booking-card-inset-inline;
+
+        .event__slot-content {
+          flex: 1;
+          height: 100%;
+          min-width: 0;
+
+          ::ng-deep .calendar-item-container {
+            height: 100%;
+            margin: 0;
+            width: 100%;
+          }
+
+          ::ng-deep .calendar-item-container__timeslot {
+            border-left: 0;
+            border-radius: 0 foundations.$radii-2 foundations.$radii-2 0;
+            height: 100%;
+          }
+
+          ::ng-deep .calendar-item-container--clamped .calendar-item-container__timeslot {
+            border-radius: 0 foundations.$radii-2 0 0;
+          }
+        }
+
+        &.event--clamped .event__drag-handle {
+          border-radius: foundations.$radii-2 0 0 0;
+        }
+
+        &:has(.calendar-item-container--dimmed) .event__drag-handle {
+          filter: calendar-dim.$calendar-dim-filter;
+          opacity: calendar-dim.$calendar-dim-opacity;
+        }
+
+        &:has(.calendar-item-container--to-be-paid) .event__drag-handle {
+          border-color: foundations.$color-border-warning-medium;
+        }
+
+        &:has(.calendar-item-container--to-be-paid.calendar-item-container--selected) .event__drag-handle {
+          border-width: foundations.$size-px2;
+          border-right: 0;
+        }
+
+        &:has(.calendar-item-container--selected:not(.calendar-item-container--to-be-paid)) .event__drag-handle {
+          border-color: foundations.$color-border-primary-medium;
+          border-width: foundations.$size-px2;
+          border-right: 0;
+        }
+
+        // The handle is the card's left edge, so a tinted card hands it the tag bar too.
+        @each $color, $bar in booking-card-tag-surfaces.$booking-card-tag-bars {
+          &:has(.calendar-item-container[data-tag-color='#{$color}']) {
+            --booking-card-bar-color: #{$bar};
+          }
+        }
+
+        &:has(.calendar-item-container--to-be-paid[data-tag-color]) .event__drag-handle {
+          border-color: var(--booking-card-bar-color);
+        }
+      }
+
+      &__drag-handle {
+        align-self: stretch;
+        appearance: none;
+        background-color: foundations.$palette-primary-100;
+        border: foundations.$size-px solid foundations.$color-border-primary-medium;
+        border-radius: foundations.$radii-2 0 0 foundations.$radii-2;
+        border-right: 0;
+        box-sizing: border-box;
+        color: foundations.$palette-primary-600;
+        cursor: grab;
+        display: grid;
+        flex-shrink: 0;
+        height: auto;
+        margin: 0;
+        min-height: 0;
+        padding: 0;
+        place-items: center;
+        touch-action: none;
+        transition:
+          background-color 0.15s ease,
+          color 0.15s ease;
+        width: 16px;
+        z-index: 1;
+
+        &:hover {
+          background-color: foundations.$palette-primary-200;
+          color: foundations.$palette-primary-700;
+        }
+
+        &:active {
+          background-color: foundations.$palette-primary-300;
+          cursor: grabbing;
+        }
+
+        &:focus-visible {
+          background-color: foundations.$palette-primary-200;
+          box-shadow: inset 0 0 0 1px foundations.$palette-primary-700;
+          color: foundations.$palette-primary-800;
+          outline: none;
+        }
+
+        .icon-button__icon {
+          background-color: transparent;
+          border: 0;
+          border-radius: 0;
+          color: currentColor;
+          display: flex;
+          font-size: foundations.$size-caption;
+          height: auto;
+          line-height: 0;
+          width: auto;
+
+          ::ng-deep svg {
+            display: block;
+          }
+        }
+
+        :host(.asset-based-calendar--slot-drag-active) & {
+          cursor: inherit;
+        }
+      }
+
+      &__slot-content {
+        flex: 1;
+        height: 100%;
+        min-width: 0;
+      }
+
+      &__drop-state {
+        align-items: center;
+        color: inherit;
+        position: relative;
+        display: flex;
+        font-size: foundations.$size-tiny;
+        font-weight: 600;
+        gap: 2px;
+        line-height: 1.2;
+        max-height: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        padding: 0 2px;
+        text-align: center;
+      }
+
+      &__drop-state-icon {
+        flex-shrink: 0;
+        line-height: 0;
+      }
+
+      &__drop-state-label {
+        overflow: hidden;
+        overflow-wrap: anywhere;
+      }
+
+      &__drop-party-usage {
+        font-size: foundations.$size-tiny;
+        line-height: 1.2;
+        max-width: 100%;
+        overflow: hidden;
+        padding: 0 2px;
+        position: relative;
+        text-align: center;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      // Touchscreen handoff §6: a long press lifts the card under the finger until it starts to move.
+      &.event--lifted .event__slot-content {
+        box-shadow: foundations.$shadow-100;
+
+        @media (prefers-reduced-motion: no-preference) {
+          transform: scale($card-lift-scale) rotate($card-lift-tilt);
+        }
+      }
+
+      &.event--dragging-source {
+        opacity: 0.45;
+        // V1: source stays in its column; only the drop-preview overlay moves to the target asset.
+        transform: none !important;
+
+        &.event--card-v3 {
+          opacity: 1;
+
+          > * {
+            visibility: hidden;
+          }
+
+          &::after {
+            @include drag-card-overlay;
+            border: foundations.$size-px2 dashed foundations.$palette-neutral-400;
+          }
+        }
+
+        &.event--turnaround--card-v3 {
+          visibility: hidden;
+        }
+      }
+
+      &.event--drag-card {
+        background: transparent;
+        border: 0;
+        color: inherit;
+        filter: $drag-card-shadow;
+        inset: 0 auto auto 0;
+        margin: 0;
+        pointer-events: none;
+        position: fixed;
+        translate: var(--drag-card-x, 0) var(--drag-card-y, 0);
+        will-change: translate;
+        z-index: $z-index-dnd-drop-preview;
+
+        @media (prefers-reduced-motion: no-preference) {
+          rotate: $card-lift-tilt;
+          scale: $card-lift-scale;
+        }
+
+        &.event--drag-card-unavailable::after {
+          @include drag-card-overlay;
+          background-color: rgba(foundations.$palette-danger-100, 0.6);
+          border: foundations.$size-px2 dashed foundations.$color-border-danger-base;
+        }
+      }
+
+      &.event--resizing {
+        opacity: 0.92;
+        overflow: visible;
+        // Stay above overlapping slots while resizing, but below sticky thead ($z-index-corner: 3).
+        z-index: $z-index-events + 1;
+      }
+
+      &.event--with-resize-handles {
+        box-sizing: border-box;
+
+        .event__slot-content {
+          flex: 1;
+          min-height: 0;
+        }
+
+        &:hover,
+        &:focus-within,
+        &.event--resizing {
+          .event__resize-handle {
+            pointer-events: auto;
+          }
+
+          .event__resize-handle::after {
+            opacity: 0.45;
+          }
+
+          .event__resize-handle:hover::after,
+          .event__resize-handle:focus-visible::after {
+            opacity: 1;
+          }
+        }
+      }
+
+      &__resize-handle {
+        appearance: none;
+        background-color: transparent;
+        border: 0;
+        cursor: ns-resize;
+        height: min(12px, 35%);
+        left: 0;
+        margin: 0;
+        padding: 0;
+        pointer-events: none;
+        position: absolute;
+        right: 0;
+        touch-action: none;
+        width: 100%;
+        z-index: 3;
+
+        &::after {
+          background-color: foundations.$palette-primary-500;
+          border-radius: foundations.$radii-1;
+          content: '';
+          height: 3px;
+          left: 50%;
+          opacity: 0;
+          position: absolute;
+          top: 50%;
+          transform: translate(-50%, -50%);
+          transition: opacity 0.15s ease;
+          width: 28px;
+        }
+
+        &--start {
+          border-radius: foundations.$radii-2 foundations.$radii-2 0 0;
+          top: 0;
+        }
+
+        &--end {
+          border-radius: 0 0 foundations.$radii-2 foundations.$radii-2;
+          bottom: 0;
+        }
+      }
+
+      &.event--with-drag-handle.event--with-resize-handles {
+        .event__resize-handle {
+          left: 18px;
+          width: calc(100% - 18px);
+        }
+      }
+
+      &.event--card-v3 {
+        @include card.descendant-state-variables('.calendar-item-container');
+
+        @each $color, $bar in booking-card-tag-surfaces.$booking-card-tag-bars {
+          &:has(.calendar-item-container[data-tag-color='#{$color}']:not([data-booking-live-state='finished'])) {
+            --booking-card-v3-bar: #{$bar};
+            --booking-card-v3-title: #{booking-card-tag-surfaces.$booking-card-tag-title};
+          }
+        }
+
+        &:has(.calendar-item-container[data-colored-by-tags]:not([data-tag-color]):not([data-booking-live-state='finished'])) {
+          --booking-card-v3-bar: #{booking-card-tag-surfaces.$booking-card-untagged-bar};
+          --booking-card-v3-title: #{booking-card-tag-surfaces.$booking-card-untagged-ink};
+        }
+
+        container-type: inline-size;
+        min-width: 0;
+        padding-block: var(--card-v3-inset-block-start, 0) var(--card-v3-inset-block-end, 0);
+        overflow: visible;
+
+        &.event--people-count-lane .event__slot-content ::ng-deep .calendar-item-container--card-v3 {
+          inline-size: 100%;
+          margin-inline: 0;
+        }
+
+        &.event--with-drag-handle {
+          padding-inline: calc(#{foundations.$space-1} - #{foundations.$size-px}) foundations.$space-1;
+
+          .event__slot-content ::ng-deep .calendar-item-container {
+            border-radius: 0 foundations.$radii-1 foundations.$radii-1 0;
+          }
+
+          .event__drag-handle,
+          .event__drag-handle:hover,
+          .event__drag-handle:active,
+          .event__drag-handle:focus-visible {
+            align-content: center;
+            background-color: var(--booking-card-v3-bar);
+            border: 0;
+            border-radius: foundations.$radii-1 0 0 foundations.$radii-1;
+            color: foundations.$palette-neutral-white;
+            inline-size: card.$strip-width;
+          }
+
+          .event__drag-handle ::ng-deep .icon-button__icon,
+          .event__drag-handle:hover ::ng-deep .icon-button__icon,
+          .event__drag-handle:active ::ng-deep .icon-button__icon,
+          .event__drag-handle:focus-visible ::ng-deep .icon-button__icon {
+            background-color: transparent;
+            color: currentcolor;
+            font-size: foundations.$size-small;
+          }
+
+          .event__drag-handle:focus-visible {
+            outline: foundations.$size-px2 solid foundations.$palette-primary-600;
+            outline-offset: calc(-1 * #{foundations.$size-px2});
+          }
+
+          &:has(.booking-card-v3[data-height-tier='12']) .event__drag-handle ::ng-deep .icon-button__icon {
+            font-size: foundations.$size-tiny;
+          }
+
+          &:has(.booking-card-v3[data-height-tier='8']) .event__drag-handle ::ng-deep .icon-button__icon {
+            display: none;
+          }
+
+          &:has(.booking-card-v3[data-width-tier='12']),
+          &:has(.booking-card-v3[data-width-tier='20']),
+          &:has(.booking-card-v3[data-width-tier='32']) {
+            .event__drag-handle ::ng-deep .icon-button__icon {
+              transform: translateX(calc((100cqi - #{card.$strip-width}) / 2));
+            }
+
+            .event__resize-handle--end::after {
+              display: none;
+            }
+          }
+        }
+
+        &.event--with-drag-handle.event--with-resize-handles .event__resize-handle {
+          inline-size: calc(100% - #{$card-v3-strip-offset} - #{foundations.$space-1});
+          inset-inline-start: $card-v3-strip-offset;
+        }
+
+        &.event--people-count-lane.event--with-drag-handle {
+          padding-inline: 0;
+        }
+
+        &.event--people-count-lane.event--with-drag-handle.event--with-resize-handles .event__resize-handle {
+          inline-size: calc(100% - #{card.$strip-width});
+          inset-inline-start: card.$strip-width;
+        }
+
+        &.event--with-resize-handles {
+          .event__resize-handle--end {
+            block-size: foundations.$space-3;
+            inset-block-end: var(--card-v3-inset-block-end, 0);
+            max-block-size: calc(100% - var(--card-v3-inset-block-end, 0px));
+            pointer-events: auto;
+
+            // A finger needs 44px; the card clips its overflow, so the handle grows inward, short cards keeping most
+            // of their own tap area.
+            @media (pointer: coarse) {
+              block-size: min(#{foundations.$size-11}, 40%);
+            }
+
+            &::after {
+              background-color: var(--booking-card-v3-title);
+              block-size: foundations.$size-1;
+              border-radius: foundations.$radii-full;
+              inline-size: $card-v3-pill-width;
+              inset-block: auto foundations.$space-1;
+              opacity: 1;
+              transform: translateX(-50%);
+            }
+          }
+
+          &:hover .event__resize-handle--end::after,
+          &:focus-within .event__resize-handle--end::after {
+            opacity: 1;
+          }
+
+          &:has(.booking-card-v3[data-width-tier='56']) .event__resize-handle--end::after {
+            inline-size: $card-v3-narrow-pill-width;
+          }
+
+          &:has(.booking-card-v3[data-height-tier='8']) .event__resize-handle--end::after,
+          &:has(.booking-card-v3[data-height-tier='12']) .event__resize-handle--end::after,
+          &:has(.booking-card-v3[data-height-tier='22']) .event__resize-handle--end::after {
+            display: none;
+          }
+        }
+      }
+
+      &__move-tooltip {
+        @include calendar-time-tooltip;
+
+        top: 0;
+        transform: translateY(-50%);
+      }
+
+      &__resize-tooltip {
+        @include calendar-time-tooltip;
+
+        &--start {
+          top: 0;
+          transform: translateY(-50%);
+        }
+
+        &--end {
+          bottom: 0;
+          transform: translateY(50%);
+        }
+
+        &--limit {
+          background-color: foundations.$palette-danger-600;
+        }
+      }
+
+      &.cdk-drag-dragging {
+        transform: none !important;
+      }
+
+      &.cdk-drag-animating {
+        transform: none !important;
+        transition: none !important;
+      }
+
+      &.event--quick-block-preview {
+        align-items: center;
+        box-sizing: border-box;
+        color: foundations.$color-text-main;
+        display: flex;
+        inset-inline: 0;
+        justify-content: center;
+        min-width: 0;
+        overflow: visible;
+        pointer-events: none;
+        width: auto;
+        z-index: $z-index-dnd-drop-preview;
+
+        &::before {
+          background-color: foundations.$palette-neutral-100;
+          border: foundations.$size-px2 dashed foundations.$palette-neutral-400;
+          border-radius: 8px;
+          content: '';
+          inset: $booking-card-inset-block $booking-card-inset-inline;
+          position: absolute;
+        }
+      }
+
+      &.event--dnd-drop-preview {
+        align-items: center;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        overflow: visible;
+        pointer-events: none;
+        z-index: $z-index-dnd-drop-preview;
+
+        &::before {
+          border-radius: 8px;
+          content: '';
+          inset: $booking-card-inset-block $booking-card-inset-inline;
+          position: absolute;
+        }
+
+        &--available {
+          color: foundations.$palette-positive-800;
+
+          &::before {
+            background-color: foundations.$palette-positive-100;
+            border: foundations.$size-px2 solid foundations.$color-border-positive-strong;
+          }
+        }
+
+        &--swap {
+          color: foundations.$color-text-warning;
+
+          &::before {
+            background-color: foundations.$palette-warning-100;
+            border: foundations.$size-px2 dashed foundations.$color-border-warning-base;
+          }
+        }
+
+        &--unavailable {
+          color: foundations.$palette-danger-600;
+
+          &::before {
+            background-color: foundations.$palette-danger-100;
+            border: foundations.$size-px2 dashed foundations.$color-border-danger-base;
+          }
+        }
+
+        &--people-count-lanes {
+          min-width: 0;
+
+          &::before {
+            inset-inline: 0;
+          }
+        }
+      }
+    }
+
+    &.time-header,
+    &.hour-hint {
+      position: sticky;
+      left: 0;
+      min-width: 0;
+      width: 0;
+      max-width: none;
+      white-space: nowrap;
+      border-right: foundations.$size-px solid $table-border-color;
+
+      @include media-breakpoint-up(xl) {
+        text-transform: uppercase;
+      }
+    }
+
+    &.hour-hint {
+      z-index: $z-index-time-column;
+
+      &--has-current-time {
+        overflow: visible;
+        z-index: $z-index-current-time-pill;
+      }
+    }
+
+    &.time-header {
+      z-index: $z-index-corner;
+      height: 50px;
+      min-width: 0;
+      width: 0;
+      max-width: none;
+    }
+
+    .time-header__content,
+    .hour-hint__content {
+      text-align: center;
+      height: 100%;
+      width: auto;
+      background-color: foundations.$palette-neutral-white;
+      display: none;
+
+      &--small {
+        display: block;
+      }
+
+      @include media-breakpoint-up(xl) {
+        display: block;
+
+        &--small {
+          display: none;
+        }
+      }
+    }
+
+    .hour-hint__content {
+      font-size: foundations.$size-caption;
+      font-weight: 600;
+    }
+
+    .time-header__content {
+      font-size: foundations.$size-tiny;
+      font-weight: foundations.$font-base-regular;
+      display: inline-flex;
+      align-items: flex-end;
+      white-space: nowrap;
+    }
+  }
+
+  td {
+    border-top: foundations.$size-px solid $table-border-color;
+    border-bottom: 0;
+    scroll-snap-align: start start;
+    scroll-margin-left: $scroll-margin-left-mobile;
+    scroll-margin-top: $scroll-margin-top;
+
+    @include media-breakpoint-up(xl) {
+      scroll-margin-left: $scroll-margin-left;
+    }
+
+    &:nth-child(n + 3) {
+      border-left: foundations.$size-px solid $table-border-color;
+    }
+
+    &:first-child {
+      min-width: 0;
+      width: 0;
+      max-width: none;
+    }
+
+    &.asset-body-cell--quick-block-armed {
+      cursor: crosshair;
+      pointer-events: auto;
+    }
+
+    &.asset-body-cell--dnd-restricted {
+      @include dnd-restricted-column-style;
+    }
+
+    &.asset-body-cell--over-capacity {
+      @include over-capacity-lane-fill;
+    }
+  }
+
+  // Folded over-capacity lanes: one block per run of overbooked parties, at its hour, counting the busiest instant.
+  .over-capacity-spine-segment {
+    @include over-capacity-mark;
+
+    align-items: center;
+    box-sizing: border-box;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$size-px2;
+    inset-inline: foundations.$size-1;
+    min-height: foundations.$size-8;
+    padding-block-start: foundations.$size-1;
+    pointer-events: auto;
+    position: absolute;
+    z-index: $z-index-events;
+
+    &:hover {
+      background-color: foundations.$palette-neutral-900;
+    }
+
+    &:focus-visible {
+      outline: foundations.$size-px2 solid foundations.$palette-neutral-900;
+      outline-offset: foundations.$size-px;
+    }
+  }
+
+  .asset-based-calendar__current-time-line {
+    height: 2px;
+    left: 0;
+    pointer-events: none;
+    position: absolute;
+    right: -$column-border-width;
+    z-index: $z-index-current-time-line;
+
+    &::before {
+      background-color: foundations.$palette-danger-700;
+      content: '';
+      display: block;
+      height: 2px;
+      width: 100%;
+    }
+  }
+
+  td:last-child .asset-based-calendar__current-time-line {
+    right: 0;
+  }
+
+  .asset-based-calendar__current-time-pill-wrapper {
+    align-items: center;
+    display: flex;
+    justify-content: flex-start;
+    left: 0;
+    overflow: visible;
+    pointer-events: none;
+    position: absolute;
+    right: 0;
+    z-index: $z-index-current-time-pill;
+  }
+
+  .asset-based-calendar__current-time-line-segment {
+    align-self: flex-start;
+    background-color: foundations.$palette-danger-700;
+    flex: 1;
+    height: 2px;
+    margin-right: -1px;
+    min-width: 8px;
+  }
+
+  .asset-based-calendar__current-time-pill {
+    background-color: foundations.$palette-danger-700;
+    border-radius: 12px;
+    color: foundations.$palette-neutral-white;
+    flex-shrink: 0;
+    font-size: foundations.$size-small;
+    font-weight: 600;
+    padding: 2px 8px;
+    transform: translateY(-50%);
+    white-space: nowrap;
+  }
+
+  // First row of body without top border
+  tbody tr:first-child td {
+    border-top: 0;
+  }
+
+  // Date-exception overlay spans multiple party `td`s from the first lane — do not clip it at the cell edge.
+  tbody tr:first-child td.asset-body-cell {
+    overflow: visible;
+  }
+
+  th {
+    &.time-header {
+      position: sticky;
+      top: 0;
+      left: 0;
+      background-color: foundations.$palette-neutral-white;
+      border-bottom: foundations.$size-px solid $table-border-color;
+      text-transform: uppercase;
+      font-size: foundations.$size-tiny;
+      font-weight: foundations.$font-base-regular;
+      min-width: fit-content;
+      width: fit-content;
+      max-width: none;
+      padding-right: 4px;
+    }
+
+    &.asset-header {
+      height: 20px;
+      padding: 0;
+      vertical-align: bottom;
+      white-space: normal;
+      background-color: foundations.$palette-neutral-50;
+      min-width: 68px;
+      max-width: 68px;
+      width: auto;
+      outline: none;
+      border-right: 0;
+      border-left: foundations.$size-px solid $table-border-color;
+
+      &:first-of-type {
+        border-left: 0;
+      }
+
+      .asset-header__content {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding-left: 10px;
+        padding-right: 0;
+
+        // Align party info with asset name when reorder buttons are present
+        // Offset = group padding (8px) + button width (16px) + gap (4px) - content padding (10px)
+        &--with-reorder {
+          padding-left: 28px;
+        }
+      }
+
+      .asset-header__name {
+        flex: 1 1 auto;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        padding-left: 0;
+        min-width: 0;
+        word-break: break-word;
+        overflow-wrap: break-word;
+      }
+
+      .asset-header__max {
+        font-size: foundations.$size-caption;
+        font-weight: 400;
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding-left: 0;
+        padding-right: 0;
+        margin-top: auto;
+      }
+
+      &--empty {
+        color: foundations.$palette-neutral-300;
+      }
+
+      &--selected {
+        color: foundations.$palette-primary-500;
+      }
+
+      &--dnd-restricted {
+        @include dnd-restricted-column-style;
+
+        .asset-header__content {
+          @include dnd-restricted-header-content-style;
+        }
+      }
+    }
+
+    &:not(:first-child) {
+      text-align: left;
+      outline: none;
+    }
+
+    &.asset-header--same-asset {
+      outline: none;
+      border-left: 0;
+    }
+
+    &.asset-header--over-capacity {
+      .asset-header__max,
+      .asset-header__over-capacity-count {
+        @include over-capacity-lane-label;
+      }
+    }
+  }
+
+  &.calendar--extended {
+    td:not(:first-child) {
+      min-width: 140px;
+    }
+
+    th.asset-header {
+      min-width: 140px;
+    }
+
+    .asset-header-group {
+      min-width: 68px;
+
+      .asset-header-group__content {
+        padding: 0 8px;
+      }
+
+      .asset-header-group__name {
+        font-size: foundations.$size-small;
+      }
+    }
+  }
+
+  &.calendar--fixed-lanes {
+    width: max-content;
+
+    .asset-header-group__content {
+      contain: inline-size;
+    }
+  }
+
+  &.calendar--new-frame {
+    // CalendarPinchZoomDirective. Two fingers zoom the day grid, never the page: `pan-x pan-y` leaves one-finger
+    // scrolling to the browser and keeps its pinch-zoom off the grid.
+    touch-action: pan-x pan-y;
+
+    th.asset-header-group,
+    th.time-header {
+      block-size: calc(#{foundations.$size-12} + #{foundations.$space-1});
+      border-block-end: foundations.$size-px solid foundations.$color-border-main;
+      border-block-start: 0;
+      box-sizing: border-box;
+      padding-block: 0;
+    }
+
+    th.asset-header-group,
+    th.asset-header-group + th.asset-header-group {
+      background-image: linear-gradient(foundations.$color-border-main, foundations.$color-border-main);
+      background-position: left bottom;
+      background-repeat: no-repeat;
+      background-size: foundations.$size-px calc(#{foundations.$space-4} + #{foundations.$size-px2});
+      border-inline-start: 0;
+    }
+
+    .asset-header-group .asset-header-group__title-with-rules {
+      justify-content: center;
+    }
+
+    .asset-header-group .asset-header-group__name {
+      color: foundations.$color-text-main;
+      flex: 1 1 auto;
+      font-size: foundations.$size-caption;
+      font-weight: 600;
+      line-height: calc(#{foundations.$space-4} + #{foundations.$size-px2});
+      min-inline-size: 0;
+      overflow: hidden;
+      text-align: center;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+
+      // The name opens its tooltip on tap, so on a touch screen its one line is a 44px-tall target.
+      @media (pointer: coarse) {
+        line-height: foundations.$size-11;
+      }
+    }
+
+    .asset-header-group .people-count-lanes-toggle {
+      margin-inline-start: auto;
+    }
+
+    th.time-header,
+    td.hour-hint {
+      padding-inline: foundations.$space-4;
+    }
+
+    th.time-header,
+    th .time-header__content {
+      background-color: foundations.$palette-neutral-50;
+    }
+
+    th.time-header,
+    td.hour-hint,
+    .calendar-row--off-hour td.hour-hint {
+      border-inline-end: 0;
+    }
+
+    td.hour-hint,
+    td .hour-hint__content {
+      background-color: foundations.$palette-neutral-75;
+    }
+
+    th .time-header__content,
+    td .hour-hint__content {
+      display: block;
+      font-size: foundations.$size-tiny;
+      line-height: foundations.$space-4;
+      text-transform: uppercase;
+    }
+
+    th .time-header__content {
+      align-items: center;
+      color: foundations.$color-text-subtle;
+      display: flex;
+      font-weight: 400;
+      justify-content: center;
+    }
+
+    td .hour-hint__content {
+      color: foundations.$color-text-main;
+      font-weight: 600;
+    }
+
+    .calendar-row--off-hour td .hour-hint__content {
+      color: foundations.$color-text-subtle;
+      font-weight: 400;
+    }
+  }
+
+  &.calendar--card-v3 {
+    td {
+      border-top-color: card.$grid-hour-line-color;
+
+      &:nth-child(n + 3) {
+        border-left-color: card.$grid-hour-line-color;
+      }
+
+      .event {
+        min-width: 0;
+      }
+
+      .event.event--unavailable-capacity--date-exception {
+        padding-inline: clamp(0px, calc(50% - 6px - #{foundations.$size-px} - #{foundations.$size-caption} / 2), 8px);
+      }
+    }
+
+    .event--timeslot-summary {
+      padding-block-start: foundations.$size-px;
+    }
+
+    td.asset-body-cell,
+    td.hour-hint,
+    td .hour-hint__content {
+      background-color: card.$grid-cell-color;
+    }
+
+    .calendar-row--no-line td {
+      border-top-width: 0;
+    }
+
+    td .hour-hint__content--inside {
+      color: foundations.$palette-neutral-500;
+      font-weight: card.$weight-regular;
+      inset-block-start: var(--calendar-half-hour-inside);
+      inset-inline-start: $card-v3-time-label-inset;
+      position: absolute;
+    }
+
+    th.asset-header-group,
+    th.asset-header-group + th.asset-header-group {
+      background-image: linear-gradient(card.$grid-hour-line-color, card.$grid-hour-line-color);
+      background-size: foundations.$size-px 100%;
+      padding-block: 0;
+      padding-inline: foundations.$space-2 $card-v3-header-end-inset;
+
+      @media (pointer: coarse) {
+        padding-inline-end: $card-v3-header-end-inset-coarse;
+      }
+    }
+
+    th.time-header + th.asset-header-group {
+      background-image: none;
+    }
+
+    // The end inset keeps room for the people-count toggle. A header that draws the toggle never gets this class, so
+    // here the inset is free to go: left in place, its 44px of padding would hold a one-party lane open at Thread,
+    // Sliver and Slim.
+    th.asset-header-group.asset-header-group--narrow,
+    th.asset-header-group + th.asset-header-group.asset-header-group--narrow {
+      padding-inline: foundations.$size-px2;
+    }
+
+    th.asset-header-group .asset-header-group__content {
+      padding: 0;
+    }
+
+    .asset-header-group .people-count-lanes-toggle {
+      block-size: foundations.$size-8;
+      border-radius: foundations.$radii-full;
+      color: foundations.$palette-neutral-700;
+      inline-size: foundations.$size-8;
+      inset-block-start: 50%;
+      inset-inline-end: foundations.$space-1;
+      position: absolute;
+      transform: translateY(-50%);
+
+      @media (pointer: coarse) {
+        block-size: foundations.$size-11;
+        inline-size: foundations.$size-11;
+      }
+
+      &:hover {
+        background-color: foundations.$palette-neutral-100;
+      }
+
+      ::ng-deep .icon-button__icon {
+        color: currentcolor;
+      }
+    }
+
+    .asset-header-group .asset-header-group__over-capacity-count {
+      margin-inline-start: auto;
+    }
+
+    th .time-header__content {
+      font-family: card.$font-stack;
+      letter-spacing: card.$grid-header-letter-spacing;
+    }
+
+    td.hour-hint {
+      border-top-width: 0;
+      overflow: visible;
+      padding-inline: $card-v3-time-label-inset 0;
+      vertical-align: top;
+    }
+
+    td .hour-hint__content {
+      font-family: card.$font-stack;
+      font-size: foundations.$size-tiny;
+      font-weight: card.$weight-semibold;
+      height: auto;
+      margin-block-start: $card-v3-hour-label-offset;
+      text-align: start;
+    }
+
+    td .hour-hint__content--inside,
+    .calendar-row--no-line td .hour-hint__content {
+      margin-block-start: $card-v3-half-hour-label-offset;
+    }
+
+    .calendar-row--no-line td .hour-hint__content {
+      color: foundations.$palette-neutral-500;
+      font-weight: card.$weight-regular;
+    }
+
+    .asset-header-group .asset-header-group__name {
+      font-family: card.$font-stack;
+      font-size: foundations.$size-caption;
+      font-weight: card.$weight-semibold;
+      letter-spacing: card.$grid-header-letter-spacing;
+      line-height: foundations.$size-4;
+      text-transform: uppercase;
+
+      @media (pointer: coarse) {
+        line-height: foundations.$size-11;
+      }
+    }
+
+    .asset-based-calendar__current-time-pill-wrapper {
+      background: linear-gradient(foundations.$palette-danger-700, foundations.$palette-danger-700) no-repeat left top /
+        $card-v3-time-label-inset foundations.$size-px;
+      padding-inline-start: $card-v3-time-label-inset;
+    }
+
+    .asset-based-calendar__current-time-line,
+    .asset-based-calendar__current-time-line::before,
+    .asset-based-calendar__current-time-line-segment {
+      block-size: foundations.$size-px;
+    }
+
+    .asset-based-calendar__current-time-pill {
+      block-size: foundations.$size-4;
+      border-radius: foundations.$radii-1;
+      box-sizing: border-box;
+      color: foundations.$palette-neutral-75;
+      font-family: card.$font-stack;
+      font-size: $card-v3-now-pill-font-size;
+      font-weight: card.$weight-semibold;
+      line-height: foundations.$size-4;
+      padding: 0 foundations.$space-1-5;
+    }
+  }
+
+  // Grids handoff, section 16 "On phones": a 44px gutter with short labels ("10 AM", "10:30") and an
+  // empty START TIME corner, so the width goes to the lanes.
+  &.calendar--card-v3.calendar--phone {
+    th.time-header,
+    td.hour-hint {
+      box-sizing: border-box;
+      inline-size: foundations.$size-11;
+      max-inline-size: foundations.$size-11;
+      min-inline-size: foundations.$size-11;
+    }
+
+    td.hour-hint {
+      padding-inline: foundations.$space-1 0;
+    }
+
+    td .hour-hint__content {
+      font-size: $card-v3-phone-time-label-font-size;
+      line-height: foundations.$space-4;
+      margin-block-start: $card-v3-phone-hour-label-offset;
+    }
+
+    td .hour-hint__content--inside {
+      inset-inline-start: foundations.$space-1;
+    }
+
+    td .hour-hint__content--inside,
+    .calendar-row--no-line td .hour-hint__content {
+      margin-block-start: $card-v3-half-hour-label-offset;
+    }
+
+    .asset-based-calendar__current-time-pill-wrapper {
+      background-size: foundations.$space-1 foundations.$size-px;
+      padding-inline-start: foundations.$space-1;
+    }
+  }
+
+  .calendar-row--off-hour {
+    td {
+      border-top: foundations.$size-px dashed $table-border-color;
+      border-image: repeating-linear-gradient(to right, $table-border-color 0, $table-border-color 8px, transparent 6px, transparent 12px) 6
+        stretch;
+      border-bottom: 0;
+    }
+
+    td.hour-hint {
+      border-top: 0;
+      border-bottom: 0;
+      border-right: foundations.$size-px solid $table-border-color;
+      border-image: none;
+    }
+
+    .hour-hint__content {
+      font-weight: 400;
+    }
+  }
+
+  .calendar-row--outside-opening-hours {
+    td.asset-body-cell {
+      background-color: $outside-opening-hours-background;
+    }
+
+    td.hour-hint .hour-hint__content {
+      color: foundations.$palette-neutral-500;
+    }
+  }
+
+  &.calendar--new-frame.calendar--card-v3 {
+    td.asset-type-band,
+    th.asset-type-band {
+      background-color: card.$type-band-color;
+      border-block: 0;
+      border-inline-end: foundations.$size-px solid card.$type-band-line-color;
+      border-inline-start: 0;
+      box-sizing: border-box;
+      cursor: default;
+      inline-size: foundations.$space-1-5;
+      max-inline-size: foundations.$space-1-5;
+      min-inline-size: foundations.$space-1-5;
+      padding: 0;
+      pointer-events: none;
+      position: relative;
+    }
+
+    th.asset-type-band {
+      background:
+        linear-gradient(to bottom, transparent 0, card.$type-band-line-color foundations.$space-11) right top / foundations.$size-px 100%
+          no-repeat,
+        linear-gradient(to bottom, foundations.$palette-neutral-50 0, card.$type-band-color foundations.$space-10);
+      border-inline-end: 0;
+    }
+
+    td.asset-body-cell.asset-body-cell--type-start {
+      border-inline-start-width: 0;
+    }
+
+    th.asset-header-group.asset-header-group--type-start {
+      background-image: none;
+    }
+
+    th.asset-header-run,
+    th.asset-header-group.asset-header-group--with-lanes {
+      --grouped-title-rest-end: max(#{foundations.$size-px} + var(--grouped-title-width), var(--grouped-title-dot-end));
+
+      position: relative;
+    }
+
+    th.asset-header-run {
+      padding: 0;
+
+      .asset-header-run__head,
+      .asset-header-group__lanes,
+      .asset-header-lane {
+        pointer-events: none;
+      }
+
+      .asset-header-run__title,
+      .asset-header-lane__label,
+      .asset-capacity-rules-dot {
+        pointer-events: auto;
+      }
+
+      .asset-capacity-rules-dot::after {
+        z-index: -1;
+      }
+    }
+
+    .asset-header-run__head {
+      align-items: center;
+      box-sizing: border-box;
+      display: flex;
+      inset: 0;
+      overflow: clip;
+      padding-inline: foundations.$size-px foundations.$space-2;
+      position: absolute;
+    }
+
+    .asset-header-run__title {
+      @include pinned-group-title;
+
+      padding-inline-start: calc(#{foundations.$space-3} - #{foundations.$size-px});
+    }
+
+    .asset-header-run__title-text {
+      @include pinned-group-title-text;
+    }
+
+    .asset-header-run__title.asset-header-run__title--cramped,
+    th.asset-header-group--with-lanes .asset-header-group__name.asset-header-group__name--cramped {
+      padding-inline: 0;
+
+      .asset-header-run__title-text,
+      .asset-header-group__name-text {
+        text-overflow: clip;
+      }
+    }
+
+    th.asset-header-group--with-lanes {
+      .asset-header-group__title-with-rules {
+        justify-content: flex-start;
+      }
+
+      .asset-header-group__name {
+        @include pinned-group-title;
+
+        flex: 0 1 auto;
+        margin-inline-start: calc(#{foundations.$size-px} - #{foundations.$space-2});
+        padding-inline-start: calc(#{foundations.$space-2} - #{foundations.$size-px});
+        text-align: start;
+      }
+
+      .asset-header-group__name-text {
+        @include pinned-group-title-text;
+      }
+
+      .asset-header-group__lanes {
+        pointer-events: none;
+      }
+
+      .asset-header-lane__label {
+        pointer-events: auto;
+      }
+    }
+
+    .asset-header-group__lanes {
+      display: flex;
+      inset: 0;
+      position: absolute;
+    }
+
+    .asset-header-lane {
+      align-items: center;
+      box-sizing: border-box;
+      display: flex;
+      flex: 1 1 auto;
+      gap: foundations.$space-1;
+      justify-content: center;
+      min-inline-size: 0;
+
+      + .asset-header-lane {
+        background-image: linear-gradient(foundations.$color-border-main, foundations.$color-border-main);
+        background-position: left bottom;
+        background-repeat: no-repeat;
+        background-size: foundations.$size-px calc(#{foundations.$space-4} + #{foundations.$size-px2});
+      }
+
+      &.asset-header-lane--raised-capacity-dot {
+        position: relative;
+
+        .asset-capacity-rules-dot {
+          inset-block-start: calc(50% - #{foundations.$space-4});
+          inset-inline-end: foundations.$size-px;
+          position: absolute;
+        }
+      }
+
+      &.asset-header-lane--label-hidden .asset-header-lane__content {
+        visibility: hidden;
+      }
+
+      &.asset-header-lane--dnd-restricted {
+        position: relative;
+
+        @include dnd-restricted-column-style;
+
+        .asset-header-lane__label {
+          @include dnd-restricted-header-content-style;
+        }
+      }
+    }
+
+    .asset-header-lane__content {
+      align-items: center;
+      display: inline-flex;
+      gap: foundations.$space-1;
+      inset-inline-start: calc(var(--calendar-time-column-width) + var(--grouped-title-width));
+      margin-inline-start: calc(2 * max(0px, min(var(--lane-label-travel), var(--grouped-title-rest-end) - var(--lane-label-start))));
+      min-inline-size: 0;
+      position: sticky;
+    }
+
+    .asset-header-lane__label {
+      color: card.$lane-label-color;
+      font-family: card.$font-stack;
+      font-size: card.$group-title-font-size;
+      font-weight: card.$weight-regular;
+      letter-spacing: card.$lane-label-letter-spacing;
+      line-height: foundations.$space-4;
+      min-inline-size: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+
+      @media (pointer: coarse) {
+        line-height: foundations.$size-11;
+      }
+    }
+  }
+
+  // =============================================
+  // LIST MODE: days on X axis, assets on Y axis
+  // =============================================
+  &.calendar--list {
+    width: auto;
+
+    thead {
+      position: sticky;
+      top: 0;
+      z-index: $z-index-corner;
+    }
+
+    // Corner cell (top-left)
+    .list-row-header-cell {
+      position: sticky;
+      left: 0;
+      z-index: $z-index-corner;
+      background-color: foundations.$palette-neutral-white;
+      border-right: foundations.$size-px solid $table-border-color;
+      border-bottom: foundations.$size-px solid $table-border-color;
+      min-width: 200px;
+      padding: 4px 8px;
+      pointer-events: none;
+
+      .time-header__content {
+        display: block;
+        font-size: foundations.$size-tiny;
+        font-weight: foundations.$font-base-regular;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+    }
+
+    // Asset/party row header (left column)
+    .list-row-header {
+      position: sticky;
+      left: 0;
+      z-index: $z-index-time-column;
+      background-color: foundations.$palette-neutral-white;
+      border-right: foundations.$size-px solid $table-border-color;
+      min-width: 200px;
+      max-width: 260px;
+      padding: 12px 8px;
+      pointer-events: none;
+      vertical-align: middle;
+    }
+
+    .list-row-header__content {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      // When reorder buttons are present, indent party-info to align with asset name
+      &--with-reorder > .list-row-header__party-info {
+        // Offset = reorder button width (16px) + asset-group gap (4px)
+        padding-left: 20px;
+      }
+    }
+
+    .list-row-header__asset-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .list-row-header__asset-name {
+      font-weight: 600;
+      font-size: foundations.$size-small;
+      /* stylelint-disable-next-line value-no-vendor-prefix */
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      line-clamp: 2;
+      overflow: hidden;
+      word-break: normal;
+    }
+
+    .list-row-header__party-info {
+      font-size: foundations.$size-caption;
+      font-weight: 400;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: foundations.$palette-neutral-600;
+    }
+
+    .asset-header-group__reorder-btn--list {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      color: foundations.$palette-neutral-500;
+      pointer-events: auto;
+      border-radius: 4px;
+      opacity: 0;
+      transition:
+        opacity 0.15s ease,
+        color 0.15s ease,
+        background-color 0.15s ease;
+      font-size: foundations.$size-caption;
+    }
+
+    .list-row-header:hover .asset-header-group__reorder-btn--list {
+      opacity: 1;
+
+      &:hover {
+        color: foundations.$palette-primary-500;
+        background-color: foundations.$palette-neutral-100;
+      }
+    }
+
+    // Asset boundary row
+    .list-row--asset-start {
+      td {
+        border-top: foundations.$size-px2 solid foundations.$palette-neutral-300;
+      }
+    }
+
+    // Same treatment the grid gives an over-capacity lane, so the list does not pass it off as sellable.
+    .list-row--over-capacity {
+      .list-day-cell {
+        @include over-capacity-lane-fill;
+      }
+
+      .list-row-header__party-info {
+        @include over-capacity-lane-label;
+      }
+    }
+
+    // First row without heavy border
+    tbody tr:first-child td {
+      border-top: 0;
+    }
+
+    // Day header cells
+    .list-day-header {
+      background-color: foundations.$palette-neutral-50;
+      border-bottom: foundations.$size-px solid $table-border-color;
+      border-left: foundations.$size-px solid $table-border-color;
+      padding: 8px 12px;
+      text-align: center;
+      min-width: 160px;
+
+      &--today {
+        background-color: rgba(foundations.$palette-primary-500, 0.06);
+      }
+    }
+
+    .list-day-header__content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .list-day-header__weekday {
+      font-size: foundations.$size-caption;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: foundations.$palette-neutral-600;
+    }
+
+    .list-day-header__date {
+      font-size: foundations.$size-small;
+      font-weight: 400;
+    }
+
+    .list-day-header--today .list-day-header__weekday,
+    .list-day-header--today .list-day-header__date {
+      color: foundations.$palette-primary-500;
+      font-weight: 600;
+    }
+
+    // Day body cells
+    .list-day-cell {
+      padding: 4px;
+      border-top: foundations.$size-px solid $table-border-color;
+      border-left: foundations.$size-px solid $table-border-color;
+      vertical-align: top;
+      min-width: 160px;
+
+      &--today {
+        background-color: rgba(foundations.$palette-primary-500, 0.03);
+      }
+    }
+
+    .list-day-event {
+      margin-bottom: 4px;
+      border-radius: 4px;
+      overflow: hidden;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
+:host.asset-based-calendar--slot-drag-active {
+  cursor: move;
+
+  .calendar td.asset-body-cell {
+    pointer-events: auto;
+  }
+}
+
+:host.asset-based-calendar--slot-drop-blocked {
+  cursor: not-allowed;
+}
+
+:host.asset-based-calendar--slot-drop-cancel {
+  cursor: default;
+}
+
+.people-count-lanes-toggle {
+  align-self: center;
+  flex: 0 0 auto;
+  pointer-events: auto;
+}
+
+.people-count-lanes {
+  background-color: foundations.$palette-neutral-50;
+  border-left: foundations.$size-px solid foundations.$palette-neutral-200;
+
+  .calendar--card-v3 & {
+    background-color: card.$lane-sub-column-color;
+    background-image: linear-gradient(to bottom, card.$grid-hour-line-color 0 foundations.$size-px, transparent foundations.$size-px);
+    background-position: 0 var(--people-count-lanes-first-hour);
+    background-repeat: repeat-y;
+    background-size: 100% var(--people-count-lanes-hour);
+    border-left-color: card.$lane-sub-column-line-color;
+  }
+
+  box-sizing: border-box;
+  overflow-x: auto;
+  overflow-y: hidden;
+  pointer-events: auto;
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: $z-index-events;
+
+  &__track {
+    height: 100%;
+    position: relative;
+  }
+}
+
+// Between two steps the grid is stretched about its corner and moved so the point under the fingers stays there.
+// The time column and the header row are sticky: each is moved back to where it sticks and keeps its own size
+// across the axis it is pinned on.
+.calendar.calendar--pinching {
+  transform: translate(var(--calendar-pinch-offset-x), var(--calendar-pinch-offset-y))
+    scale(var(--calendar-pinch-scale-x), var(--calendar-pinch-scale-y));
+  transform-origin: var(--calendar-pinch-origin-x) var(--calendar-pinch-origin-y);
+  will-change: transform;
+
+  thead {
+    transform: translateY(var(--calendar-pinch-pin-y)) scaleY(var(--calendar-pinch-unscale-y));
+    transform-origin: 0 0;
+  }
+
+  th.time-header,
+  td.hour-hint {
+    transform: translateX(var(--calendar-pinch-pin-x)) scaleX(var(--calendar-pinch-unscale-x));
+    transform-origin: 0 0;
+  }
+}

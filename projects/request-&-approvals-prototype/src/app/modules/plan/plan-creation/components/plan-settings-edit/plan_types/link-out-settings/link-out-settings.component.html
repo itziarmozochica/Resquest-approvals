@@ -1,0 +1,256 @@
+<div class="link-out-settings">
+  <label class="link-out-settings__title">{{ 'planSettings.title' | translate }}</label>
+
+  <ignt-alert [description]="'planSettings.optionalBannerDescription' | translate"></ignt-alert>
+
+  <form [formGroup]="form" class="link-out-settings__form">
+    <div class="link-out-settings__is-direct-routing-toggle-row">
+      <div class="link-out-settings__is-direct-routing-toggle-content">
+        <label class="link-out-settings__is-direct-routing-toggle-label" (click)="onIsDirectRoutingToggle()">{{
+          'planSettings.linkOut.directRouting.title' | translate
+        }}</label>
+        <p class="link-out-settings__is-direct-routing-toggle-description">
+          {{ 'planSettings.linkOut.directRouting.description' | translate }}
+        </p>
+      </div>
+      <ignt-toggle
+        [checked]="form.get('isDirectRouting')?.value"
+        [disabled]="!canEditPlan()"
+        (change)="onIsDirectRoutingToggle()"
+        data-testid="link-out-is-direct-routing-toggle"
+      />
+    </div>
+
+    @if (!form.get('isDirectRouting')?.value) {
+      <div class="link-out-settings__redirect-button-label-row">
+        <div class="link-out-settings__label-with-tooltip">
+          <label for="link-out-redirect-button-label" class="link-out-settings__label">
+            {{ 'planSettings.linkOut.redirectButtonLabel.title' | translate }}
+          </label>
+          <ignt-icon name="info-circle" variant="solid" size="sm" [appTemplatedTooltip]="redirectButtonLabelTooltip"></ignt-icon>
+        </div>
+        <ignt-input-field
+          id="link-out-redirect-button-label"
+          type="text"
+          formControlName="redirectButtonLabel"
+          [label]="''"
+          [placeholder]="'planSettings.linkOut.redirectButtonLabel.placeholder' | translate"
+          [placeholderAsEmptyValue]="true"
+          data-testid="link-out-redirect-button-label"
+        ></ignt-input-field>
+      </div>
+    }
+
+    <div class="link-out-settings__date-row">
+      <div class="link-out-settings__date-group">
+        <label class="link-out-settings__label" for="link-out-start-date">
+          {{ 'planSettings.linkOut.startDate' | translate }}
+        </label>
+        <div class="link-out-settings__date-field">
+          <ignt-native-date-input
+            type="date"
+            inputId="link-out-start-date"
+            [disabled]="!canEditPlan()"
+            [value]="startsAtLocal()"
+            [min]="minDateLocal()"
+            [hasError]="hasStartDateError"
+            [errorMessage]="'planSettings.errors.invalidDate' | translate"
+            testId="link-out-start-date"
+            (valueChange)="onStartDateChange($event)"
+            (blurred)="onStartDateBlur()"
+          />
+        </div>
+      </div>
+
+      <div class="link-out-settings__date-group">
+        <label class="link-out-settings__label" for="link-out-end-date">
+          {{ 'planSettings.linkOut.endDate' | translate }}
+        </label>
+        <div class="link-out-settings__date-field">
+          <ignt-native-date-input
+            type="date"
+            inputId="link-out-end-date"
+            [disabled]="!canEditPlan()"
+            [value]="endsAtLocal()"
+            [min]="getEndDateMin()"
+            [hasError]="hasEndDateError || hasDateRangeError"
+            [errorMessage]="
+              hasEndDateError ? ('planSettings.errors.invalidDate' | translate) : ('planSettings.errors.invalidDateRange' | translate)
+            "
+            testId="link-out-end-date"
+            (valueChange)="onEndDateChange($event)"
+            (blurred)="onEndDateBlur()"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="link-out-settings__price-row">
+      <div class="link-out-settings__label-with-tooltip">
+        <label for="link-out-starting-price" class="link-out-settings__label">
+          {{ 'planSettings.linkOut.startingPrice.title' | translate }}
+        </label>
+        <ignt-icon name="info-circle" variant="solid" size="sm" [appTemplatedTooltip]="startingPriceTooltip"></ignt-icon>
+      </div>
+      <label class="field link-out-settings__starting-price-field">
+        <input
+          id="link-out-starting-price"
+          appAutoformatNumericInput
+          formControlName="startingPrice"
+          [currency]="cityCurrency() || undefined"
+          [class.has-error]="hasStartingPriceError"
+          [decimalPlaces]="2"
+          [placeHolderValue]="'planSettings.linkOut.startingPrice.title' | translate"
+          autocomplete="off"
+          min="0"
+          class="field__input"
+          (blur)="onStartingPriceBlur()"
+          data-testid="link-out-starting-price"
+        />
+        <span class="field__label">{{ 'planSettings.linkOut.startingPrice.title' | translate }}</span>
+        @if (form.get('startingPrice')?.touched && form.get('startingPrice')?.hasError('required')) {
+          <ignt-field-error
+            [formControlValue]="form.get('startingPrice')"
+            errorName="required"
+            [attr.data-testid]="'link-out-starting-price-error'"
+          >
+            {{ 'planSettings.linkOut.startingPrice.error' | translate }}
+          </ignt-field-error>
+        }
+        @if (form.get('startingPrice')?.touched && form.get('startingPrice')?.hasError('min')) {
+          <ignt-field-error
+            [formControlValue]="form.get('startingPrice')"
+            errorName="min"
+            [attr.data-testid]="'link-out-starting-price-error'"
+          >
+            {{ 'planSettings.linkOut.startingPrice.error' | translate }}
+          </ignt-field-error>
+        }
+      </label>
+    </div>
+
+    <div class="link-out-settings__main-url-row">
+      <label for="link-out-main-url" class="link-out-settings__label">
+        {{ 'planSettings.linkOut.mainUrl.title' | translate }}
+      </label>
+      <ignt-input-field
+        id="link-out-main-url"
+        type="url"
+        formControlName="mainUrl"
+        [label]="''"
+        placeholder="https://..."
+        [placeholderAsEmptyValue]="true"
+        [customFormErrors]="[
+          {
+            type: 'required',
+            message: 'planSettings.linkOut.mainUrl.error' | translate,
+          },
+          {
+            type: 'pattern',
+            message: 'planSettings.linkOut.mainUrl.error' | translate,
+          },
+        ]"
+        (blurred)="onMainUrlBlur()"
+        data-testid="link-out-main-url"
+      ></ignt-input-field>
+    </div>
+
+    <div class="link-out-settings__localized-url-container">
+      @if (localizedUrls.controls.length > 0) {
+        <div class="link-out-settings__label-with-tooltip">
+          <label class="link-out-settings__label">
+            {{ 'planSettings.linkOut.localizedUrl.title' | translate }}
+          </label>
+          <ignt-icon name="info-circle" variant="solid" size="sm" [appTemplatedTooltip]="localizedUrlTooltip"></ignt-icon>
+        </div>
+        <div formArrayName="localizedUrls" class="link-out-settings__localized-urls">
+          @for (control of localizedUrls.controls; track control; let i = $index) {
+            <div [formGroupName]="i" class="link-out-settings__localized-url-row">
+              <ignt-input-field
+                [id]="'link-out-localized-url-' + i"
+                type="url"
+                formControlName="url"
+                [label]="''"
+                placeholder="https://..."
+                [placeholderAsEmptyValue]="true"
+                [customFormErrors]="[
+                  {
+                    type: 'required',
+                    message: 'planSettings.linkOut.mainUrl.error' | translate,
+                  },
+                  {
+                    type: 'pattern',
+                    message: 'planSettings.linkOut.mainUrl.error' | translate,
+                  },
+                ]"
+                [attr.data-testid]="'link-out-localized-url-' + i"
+              ></ignt-input-field>
+
+              <div class="link-out-settings__localized-url-language">
+                <ignt-typeahead
+                  [id]="'link-out-localized-language-' + i"
+                  [disabled]="!canEditPlan()"
+                  [fieldLabel]="'planSettings.linkOut.selectLanguage' | translate"
+                  [selectedOption]="getSelectedLanguageOption(i)"
+                  [options]="supportedLanguageOptions"
+                  (selected)="onLanguageSelected($event, i)"
+                  [editable]="false"
+                ></ignt-typeahead>
+
+                <ignt-icon
+                  class="link-out-settings__remove-btn"
+                  name="trash-alt"
+                  variant="solid"
+                  [fixedWidth]="true"
+                  (click)="onLocalizedUrlRemoved(i)"
+                  [attr.data-testid]="'link-out-remove-localized-url-' + i"
+                ></ignt-icon>
+              </div>
+            </div>
+          }
+        </div>
+      }
+      <button
+        type="button"
+        class="link-out-settings__add-btn-container"
+        [disabled]="!canEditPlan()"
+        (click)="onLocalizedUrlAdded()"
+        data-testid="link-out-add-secondary-url"
+      >
+        <ignt-icon name="plus" variant="light" size="sm"></ignt-icon>
+        <span class="link-out-settings__add_text">{{ 'planSettings.linkOut.addSecondaryUrl' | translate }}</span>
+      </button>
+    </div>
+  </form>
+</div>
+
+<app-actions-bar
+  [useConfirmButton]="true"
+  [showSaveDraftButton]="mode === 'creation'"
+  [continueButtonTranslationKey]="mode === 'edit' ? 'common.saveSettings' : continueToNextTab() ? 'common.continue' : 'common.confirm'"
+  [continueButtonDisabled]="!canEditPlan() || isSaving() || form.invalid || (mode === 'edit' && !form.dirty)"
+  [continueButtonLoading]="isSaving()"
+  [saveDraftDisabled]="!canEditPlan() || isSaving()"
+  (saveDraft)="onDraftSaved()"
+  (continue)="onConfirm()"
+  continueButtonTestId="link-out-confirm-button"
+  saveDraftTestId="link-out-save-draft"
+></app-actions-bar>
+
+<ng-template #redirectButtonLabelTooltip>
+  <div class="link-out-settings__tooltip">
+    {{ 'planSettings.linkOut.redirectButtonLabel.tooltip' | translate }}
+  </div>
+</ng-template>
+
+<ng-template #startingPriceTooltip>
+  <div class="link-out-settings__tooltip">
+    {{ 'planSettings.linkOut.startingPrice.tooltip' | translate }}
+  </div>
+</ng-template>
+
+<ng-template #localizedUrlTooltip>
+  <div class="link-out-settings__tooltip">
+    {{ 'planSettings.linkOut.localizedUrl.tooltip' | translate }}
+  </div>
+</ng-template>

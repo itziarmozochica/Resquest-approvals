@@ -1,0 +1,298 @@
+@use 'foundations' as foundations;
+@use 'abstracts/functions/all';
+
+/*
+  Styles copied and adapted from src/theme/components/fields/textfield/textfield.scss
+  Modified for textarea usage
+*/
+
+/* colors */
+$input-color-background: foundations.$color-background-main;
+$input-color-background-disable: foundations.$color-action-background-disable;
+$input-color-background-readonly: foundations.$color-action-background-disable;
+$input-color-border: var(--input-color-border, foundations.$color-border-main);
+$input-color-border-disable: foundations.$color-action-border-disable;
+$input-color-border-readonly: foundations.$color-action-border-disable;
+$input-color-border-focus: foundations.$color-action-border-primary-hover;
+$input-color-border-danger: foundations.$color-action-border-danger;
+$input-color-border-warning: foundations.$color-border-warning-base;
+$input-color-border-danger-focus: foundations.$color-action-border-danger-hover;
+$input-helper-color: foundations.$color-text-main;
+$input-helper-color-danger: foundations.$color-text-danger;
+$input-helper-color-positive: foundations.$color-text-positive;
+$input-label-color: foundations.$color-text-subtle;
+$input-placeholder-color: foundations.$color-action-text-disable;
+$input-value-color: foundations.$color-text-main;
+$input-value-color-disable: foundations.$color-action-text-disable;
+$input-value-color-readonly: foundations.$color-text-subtle;
+$input-label-color-disable: $input-value-color-disable;
+$input-label-color-readonly: $input-value-color-readonly;
+$input-label-color-danger: foundations.$color-action-text-danger;
+$input-label-color-warning: foundations.$color-text-warning;
+$input-placeholder-color-disable: $input-value-color-disable;
+$input-color-accessibility-outline: foundations.$color-accessibility-outline;
+$input-color-accessibility-outline-danger: foundations.$color-accessibility-outline-danger;
+/* numbers */
+$input-dimensions-radii: var(--input-dimensions-radii, foundations.$size-2);
+$input-dimensions-min-height: foundations.$size-14;
+$input-dimensions-padding-inline: foundations.$space-3;
+$input-dimensions-padding-inline-icon: foundations.$size-toucharea;
+$input-dimensions-padding-block-end: foundations.$space-2;
+$input-dimensions-padding-block-start: foundations.$space-6;
+$input-helper-dimensions-gap: foundations.$space-1;
+$input-helper-dimensions-padding-block-start: foundations.$space-2;
+$input-helper-dimensions-padding-inline-start: foundations.$space-0;
+
+%text-ellipsis {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+%field-error-state {
+  border-color: $input-color-border-danger;
+  box-shadow: inset 0 0 0 foundations.$size-px $input-color-border-danger;
+}
+
+%field-error-state-focus {
+  border-color: $input-color-border-danger-focus;
+  box-shadow: inset 0 0 0 foundations.$size-px $input-color-border-danger-focus;
+  outline: foundations.$size-1 solid $input-color-accessibility-outline-danger;
+}
+
+@mixin field-label {
+  position: absolute;
+  font: foundations.$font-base-regular;
+  top: foundations.$size-4;
+  left: $input-dimensions-padding-inline;
+  right: $input-dimensions-padding-inline;
+  margin-block-end: 0;
+  transition:
+    transform 120ms ease-in-out,
+    font 120ms ease-in-out,
+    color 120ms ease-in-out;
+  color: foundations.$color-text-subtle;
+  cursor: text;
+  text-align: start;
+  @extend %text-ellipsis;
+
+  &--readonly {
+    font: foundations.$font-caption-bold;
+    overflow-wrap: break-word;
+  }
+}
+
+@mixin field-disabled {
+  border-color: $input-color-border-disable;
+  color: $input-value-color-disable;
+  background-color: $input-color-background-disable;
+  cursor: not-allowed;
+
+  ~ .field__label,
+  ~ .field__icon,
+  ~ .field__helper {
+    color: $input-label-color-disable;
+    cursor: not-allowed;
+  }
+
+  &::placeholder {
+    color: $input-placeholder-color-disable;
+  }
+
+  &[data-placeholder-as-empty-value='true'] {
+    &:disabled::placeholder {
+      color: $input-value-color-disable;
+    }
+  }
+}
+
+.field {
+  position: relative;
+  display: block;
+  margin: 0;
+
+  .error-message {
+    display: flex;
+    align-items: center;
+    height: 20px;
+    margin-top: 7px;
+
+    &__icon {
+      margin-right: 3px;
+      color: $input-helper-color-danger;
+    }
+  }
+
+  &:has(.field__icon--trail) :is(.field__textarea, .field__select) {
+    padding-inline-end: $input-dimensions-padding-inline-icon;
+  }
+
+  &:has(.field__icon--lead) :is(.field__textarea, .field__select) {
+    padding-inline-start: $input-dimensions-padding-inline-icon;
+  }
+
+  &:has(.field__icon--lead) {
+    .field__label {
+      left: $input-dimensions-padding-inline-icon;
+    }
+  }
+
+  &__textarea {
+    position: relative;
+    min-height: $input-dimensions-min-height;
+    border-radius: $input-dimensions-radii;
+    background-color: $input-color-background;
+    appearance: none;
+    border: foundations.$size-px solid $input-color-border;
+    padding-block: $input-dimensions-padding-block-start $input-dimensions-padding-block-end;
+    padding-inline: $input-dimensions-padding-inline;
+    font: foundations.$font-base-regular;
+    width: 100%;
+    color: $input-value-color;
+    box-shadow: none;
+    display: block;
+    resize: vertical;
+    line-height: 1.5;
+
+    &::placeholder {
+      opacity: 0;
+      transition: opacity 120ms ease-in-out;
+      color: $input-placeholder-color;
+    }
+
+    &:focus:not([readonly]) {
+      border-color: $input-color-border-focus;
+      box-shadow: inset 0 0 0 foundations.$size-px $input-color-border-focus;
+      outline: foundations.$size-1 solid $input-color-accessibility-outline;
+      outline-offset: 0;
+    }
+
+    &:not(:focus)[data-placeholder-as-empty-value='true'] {
+      &::placeholder {
+        color: $input-value-color;
+      }
+    }
+
+    &:focus:not([readonly]),
+    &:not(:placeholder-shown),
+    &[data-placeholder-as-empty-value='true'] {
+      &::placeholder {
+        opacity: 1;
+      }
+
+      ~ .field__label {
+        transform: translateY(-#{foundations.$size-2});
+        font: foundations.$font-caption-bold;
+      }
+    }
+
+    &--typeahead {
+      &.open,
+      &.open ~ .field__icon,
+      &.open ~ .field__label {
+        z-index: 2;
+      }
+    }
+
+    &[disabled] {
+      @include field-disabled;
+    }
+
+    &[readonly] {
+      border-color: $input-color-border-readonly;
+      background-color: $input-color-background-readonly;
+      color: $input-value-color-readonly;
+      outline: none;
+      cursor: not-allowed;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+
+      ~ .field__label,
+      ~ .field__helper {
+        color: $input-label-color-readonly;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  &__label {
+    @include field-label;
+  }
+
+  &__icon {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    top: 0.375rem;
+    width: foundations.$size-toucharea;
+    height: foundations.$size-toucharea;
+    cursor: pointer;
+
+    &--lead {
+      left: 0;
+      font: foundations.$font-h3;
+    }
+
+    &--trail {
+      right: 0;
+    }
+  }
+
+  &__helper {
+    display: flex;
+    gap: $input-helper-dimensions-gap;
+    font: foundations.$font-caption-regular;
+    padding-block-start: $input-helper-dimensions-padding-block-start;
+    padding-inline-start: $input-helper-dimensions-padding-inline-start;
+
+    &--danger {
+      color: $input-helper-color-danger;
+    }
+
+    &--positive {
+      color: $input-helper-color-positive;
+    }
+  }
+
+  &:has(textarea.has-error),
+  &:has(textarea.ng-invalid.ng-dirty.ng-touched),
+  &:has(select.ng-invalid.ng-dirty.ng-touched),
+  &--danger {
+    .field {
+      &__textarea {
+        @extend %field-error-state;
+
+        &::placeholder {
+          opacity: 1;
+        }
+
+        &:focus {
+          @extend %field-error-state-focus;
+        }
+      }
+
+      &__label {
+        transform: translateY(-#{foundations.$size-2});
+        font: foundations.$font-caption-bold;
+        color: $input-label-color-danger;
+      }
+
+      &__helper {
+        color: $input-helper-color-danger;
+      }
+    }
+  }
+
+  &--warning {
+    .field {
+      &__textarea {
+        border-color: $input-color-border-warning;
+      }
+
+      &__label {
+        color: $input-label-color-warning;
+      }
+    }
+  }
+}

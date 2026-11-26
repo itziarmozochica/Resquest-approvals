@@ -1,0 +1,206 @@
+<div class="group-wizard">
+  <div class="group-wizard__page">
+    <ignt-breadcrumb class="group-wizard__breadcrumb" [items]="breadcrumbs()" />
+
+    <h1 class="group-wizard__title" data-testid="group-wizard-header">{{ title() }}</h1>
+
+    <ignt-progress-stepper
+      class="group-wizard__stepper"
+      data-testid="group-wizard-stepper"
+      [allowItemActivate]="!isLocked()"
+      [ariaLabel]="'distributors.groups.wizard.stepperLabel' | translate"
+      [items]="steps()"
+      [showNavigation]="false"
+      [stepCountLabel]="stepCountLabel"
+      [(currentIndex)]="stepIndex"
+    />
+
+    <section class="group-wizard__step" [attr.data-testid]="'group-wizard-step-' + step()">
+      @if (step() === 'name') {
+        @if (nameError(); as error) {
+          <ignt-alert data-testid="group-wizard-name-error" sentiment="danger" [description]="error | translate" />
+        }
+
+        <form class="group-wizard__name" (submit)="onNameSubmit($event)">
+          <ignt-input-field
+            id="distributor-group-name"
+            [customFormErrors]="nameErrors"
+            [formControl]="name"
+            [label]="'distributors.groups.nameField.label' | translate"
+            [placeholder]="'distributors.groups.nameField.placeholder' | translate"
+            [placeholderAsEmptyValue]="true"
+          />
+        </form>
+      }
+
+      @if (step() === 'events') {
+        <app-wizard-events-step
+          [areAllSelected]="areAllEventsSelected()"
+          [catalogueSize]="eventsCatalogueSize()"
+          [hasError]="eventsError()"
+          [hasSelectedMatches]="hasSelectedMatchingEvents()"
+          [isLoading]="isLoadingEvents()"
+          [isSelectingMatches]="isSelectingMatchingEvents()"
+          [pageIndex]="eventsPageIndex()"
+          [search]="eventSearch()"
+          [selectedCount]="selectedEventCount()"
+          [selectedIds]="selectedEventIds()"
+          [totalEvents]="totalEvents()"
+          [visibleEvents]="events()"
+          (allToggled)="toggleAllEvents($event)"
+          (matchesSelected)="selectMatchingEvents()"
+          (pageChanged)="goToEventsPage($event)"
+          (retried)="retryEvents()"
+          (searchChanged)="searchEvents($event)"
+          (toggled)="toggleEvent($event)"
+        />
+      }
+
+      @if (step() === 'distributors') {
+        <ignt-alert
+          data-testid="group-wizard-distributors-warning"
+          sentiment="warning"
+          [description]="'distributors.groups.wizard.steps.distributors.warning' | translate"
+        />
+        <ignt-alert
+          data-testid="group-wizard-distributors-info"
+          sentiment="info"
+          [description]="'distributors.groups.wizard.steps.distributors.info' | translate"
+        />
+
+        <app-wizard-distributors-step
+          [areAllSelected]="areAllDistributorsSelected()"
+          [hasError]="distributorsError()"
+          [isLoading]="isLoadingDistributors()"
+          [pageIndex]="distributorsPageIndex()"
+          [search]="distributorSearch()"
+          [selectedIds]="selectedDistributorIds()"
+          [totalDistributors]="totalDistributors()"
+          [visibleDistributors]="distributors()"
+          (allToggled)="toggleAllDistributors($event)"
+          (pageChanged)="goToDistributorsPage($event)"
+          (retried)="retryDistributors()"
+          (searchChanged)="searchDistributors($event)"
+          (toggled)="toggleDistributor($event)"
+        />
+      }
+
+      @if (step() === 'rules') {
+        @if (isLoadingRules()) {
+          <div class="group-wizard__rules-loading" aria-busy="true" aria-live="polite" data-testid="group-wizard-rules-loading">
+            <span class="group-wizard__rules-message">{{ 'distributors.groups.wizard.rules.loading' | translate }}</span>
+            <ignt-skeleton type="list" [animation]="true" [numElements]="6" />
+          </div>
+        } @else if (rulesError()) {
+          <div class="group-wizard__rules-failure" role="alert" data-testid="group-wizard-rules-error">
+            <p class="group-wizard__rules-message">{{ 'distributors.groups.wizard.rules.error' | translate }}</p>
+            <ignt-button
+              data-testid="group-wizard-rules-retry"
+              variant="secondary"
+              [label]="'distributors.groups.wizard.rules.retry' | translate"
+              (click)="retryRules()"
+            />
+          </div>
+        } @else {
+          <ignt-table class="group-wizard__rules" data-testid="group-wizard-rules" layout="table" [data]="rules()">
+            <ignt-table-column key="label" columnType="primary" [header]="'distributors.groups.wizard.rules.columns.rule' | translate">
+              <ng-template [igntTableColumnTemplateType]="ruleSample" let-item="item">
+                <span class="group-wizard__rule-label" igntTooltip tabindex="0" [tooltipLabel]="item.help">
+                  {{ item.label }}
+                  <ignt-icon aria-hidden="true" name="info-circle" size="caption" variant="solid" />
+                </span>
+              </ng-template>
+            </ignt-table-column>
+            <ignt-table-column
+              key="value"
+              align="right"
+              columnType="secondary"
+              [header]="'distributors.groups.wizard.rules.columns.value' | translate"
+            >
+              <ng-template [igntTableColumnTemplateType]="ruleSample" let-item="item">
+                <span class="group-wizard__rule-value" [attr.data-testid]="'group-wizard-rule-' + item.id">{{ item.value }}</span>
+              </ng-template>
+            </ignt-table-column>
+          </ignt-table>
+        }
+      }
+
+      @if (step() === 'publish') {
+        <ignt-alert
+          data-testid="group-wizard-publish-info"
+          sentiment="info"
+          [description]="'distributors.groups.wizard.steps.publish.backgroundInfo' | translate"
+        />
+
+        @if (creationError(); as error) {
+          <ignt-alert data-testid="group-wizard-create-error" sentiment="danger" [description]="error | translate" />
+        }
+
+        <app-wizard-review-step
+          [blockedEventCodes]="publicationCheck().blockedEventCodes"
+          [events]="reviewEvents()"
+          [groupName]="createdGroup()?.name ?? null"
+          [hasError]="reviewError()"
+          [isLoading]="isLoadingReview()"
+          [isTruncated]="reviewTruncated()"
+          [maxEvents]="maxPlansPerPublish"
+          [uncheckedEventIds]="publicationCheck().uncheckedEventIds"
+          (detailsOpened)="openEventDetails($event)"
+          (retried)="retryReview()"
+        />
+      }
+    </section>
+  </div>
+
+  <footer class="group-wizard__footer">
+    @if (canLeaveWithoutPublishing()) {
+      <ignt-button
+        data-testid="group-wizard-leave-unpublished"
+        variant="secondary"
+        [fill]="isPhone()"
+        [label]="'distributors.groups.wizard.backToGroups' | translate"
+        (click)="leaveWithoutPublishing()"
+      />
+    } @else if (isFirstStep()) {
+      <ignt-button
+        data-testid="group-wizard-cancel"
+        variant="secondary"
+        [fill]="isPhone()"
+        [disabled]="isLocked()"
+        [label]="'distributors.groups.wizard.backToGroups' | translate"
+        (click)="leave()"
+      />
+    } @else {
+      <ignt-button
+        data-testid="group-wizard-back"
+        variant="secondary"
+        [fill]="isPhone()"
+        [disabled]="isLocked()"
+        [label]="'distributors.groups.wizard.backTo' | translate: { step: previousStepLabel() }"
+        (click)="back()"
+      />
+    }
+
+    @if (isLastStep()) {
+      <ignt-button
+        data-testid="group-wizard-finish"
+        variant="primary"
+        [fill]="isPhone()"
+        [disabled]="isFinishDisabled()"
+        [label]="finishLabel()"
+        [loading]="isCreating()"
+        (click)="finish()"
+      />
+    } @else {
+      <ignt-button
+        data-testid="group-wizard-continue"
+        variant="primary"
+        [fill]="isPhone()"
+        [disabled]="isContinueDisabled()"
+        [label]="'distributors.groups.wizard.continue' | translate"
+        [loading]="isSavingName()"
+        (click)="continue()"
+      />
+    }
+  </footer>
+</div>

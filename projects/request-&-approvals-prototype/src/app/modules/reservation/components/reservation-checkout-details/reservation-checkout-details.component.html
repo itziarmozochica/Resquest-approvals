@@ -1,0 +1,91 @@
+<ng-container *ngIf="reservationCart() && currentPlan(); else loading">
+  <div class="reservation-checkout-details">
+    <app-plan-detail-card [plan]="displayPlan()" [showShadow]="false" />
+
+    @if (currentReservation()?.locator; as locator) {
+      <app-reservation-id-card [reservationId]="locator" />
+    }
+
+    @if (externalReservationIdEnabled) {
+      <div class="reservation-checkout-details__external-reservation-id">
+        <ignt-input-field
+          data-testid="reservation-checkout-details__external-reservation-id"
+          type="text"
+          [label]="'reservation.externalReservationId.label' | translate"
+          [placeholder]="'reservation.externalReservationId.placeholder' | translate"
+          [ngModel]="externalReservationId()"
+          (ngModelChange)="onExternalReservationIdChange($event)"
+        />
+      </div>
+    }
+
+    @if (currentReservation()?.id) {
+      <div class="reservation-checkout-details__notes">
+        <app-notes
+          [customerNotesReservationId]="currentReservation()?.id ?? null"
+          [note]="currentReservation()?.note ?? null"
+          [hideNoteDetails$]="hideNoteDetails$"
+          [showErrorSubject]="showNoteError$"
+          [requiredPermissions]="[permissions.CAN_MODIFY_RESERVATION, permissions.CAN_MODIFY_MY_RESERVATION]"
+          [permissionOverride]="notesPermissionOverride()"
+          (noteUpdated)="onCheckoutNoteUpdated($event)"
+          (deleteNote)="onCheckoutNoteDeleted()"
+        />
+      </div>
+    }
+
+    <div class="cart-and-deposit-section">
+      <app-cart-detail-v2
+        [showCollapsedByDefault]="isTablet()"
+        [showSeatingInModal]="true"
+        [planNamesByPlanId]="planNamesByPlanId()"
+        [showPlanNames]="showPlanNames()"
+        [showServingTime]="servingTimeFlagEnabled"
+        [canEditServingTime]="canSetServingTime()"
+        [servingTimeActionDisabled]="servingTimeSaving()"
+        [servingTimesBySessionId]="servingTimesBySessionId()"
+        [servingTimeAnchorDate]="servingTimeAnchor()"
+        (serviceTimeRequested)="onServiceTimeRequested()"
+      />
+
+      <ng-container *ngIf="canModifyReservation()">
+        <ng-container *ngIf="reservationCart() as cart">
+          <ng-container *ngIf="currentPlan() as plan">
+            <ng-container *ngIf="cart.id && plan.partnerId && cart.userId">
+              <app-reservation-coupon
+                [cartId]="cart.id"
+                [partnerId]="plan.partnerId"
+                [userId]="cart.userId"
+                [couponCodeApplied]="couponCodeApplied"
+                [couponCodeError]="couponCodeErrorSubject"
+                [giftCardCombinationEnabled]="giftCardCombinationEnabled"
+                [appliedGiftCardCodes]="appliedGiftCardCodes"
+                (couponCode)="applyCouponToCart($event)"
+                (addGiftCard)="addGiftCardToCart($event)"
+              ></app-reservation-coupon>
+            </ng-container>
+          </ng-container>
+        </ng-container>
+      </ng-container>
+
+      <div *ngIf="reservationCart()?.deposit && isDepositSelected()" class="deposit-alerts-container">
+        <div class="deposit-refund-policy">
+          <ignt-alert
+            sentiment="info"
+            [title]="'reservation.deposit.refundPolicy' | translate"
+            [description]="'reservation.deposit.refundPolicyDescription' | translate"
+          />
+        </div>
+
+        <div *ngIf="reservationCart()?.deposit?.warningMessage" class="deposit-warning">
+          <ignt-alert sentiment="info" [description]="reservationCart()?.deposit?.warningMessage || ''" />
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-container>
+<ng-template #loading>
+  <div data-testid="kiosk-management-loading" class="spinner">
+    <ignt-icon class="loader" name="spinner" variant="solid" size="display" [spin]="true" aria-hidden="true" />
+  </div>
+</ng-template>

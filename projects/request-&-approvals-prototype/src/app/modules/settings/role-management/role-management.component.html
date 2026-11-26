@@ -1,0 +1,319 @@
+<app-page-title [title]="'menu.settings' | translate" class="new-design"></app-page-title>
+
+<div class="main-wrapper">
+  <div class="wrapper-card wrapper-card--elevation-100">
+    <div class="roles-management">
+      <div class="roles-management__header">
+        <h3>{{ 'roleManagement.title' | translate }}</h3>
+        @if (canManageRoles) {
+          <div class="roles-management__header-actions">
+            <button
+              class="roles-management__add-btn"
+              (click)="openCreateRoleModal()"
+              [disabled]="loading"
+              [title]="'roleManagement.createRole' | translate"
+            >
+              <ignt-icon name="plus" variant="light"></ignt-icon>
+              {{ 'roleManagement.createRole' | translate }}
+            </button>
+            <button
+              class="roles-management__add-btn"
+              (click)="openGrantModal()"
+              [disabled]="loading"
+              [title]="'roleManagement.grantStaticPermissionToRoles' | translate"
+            >
+              <ignt-icon name="plus" variant="light"></ignt-icon>
+              Grant Permission
+            </button>
+          </div>
+        }
+      </div>
+
+      <div *ngIf="loading" class="roles-management__loading">
+        <ignt-icon name="spinner" variant="solid" [spin]="true"></ignt-icon>
+        {{ 'common.loading' | translate }}
+      </div>
+
+      <div *ngIf="error" class="roles-management__error">
+        <ignt-icon name="exclamation-triangle" variant="light"></ignt-icon>
+        {{ error }}
+      </div>
+
+      <div *ngIf="permissionsData && allRoles.length && !loading" class="roles-management__content">
+        <div class="roles-management__permissions-list">
+          <div
+            *ngFor="let role of getRoles(); trackBy: trackByRole"
+            class="roles-management__permission-row"
+            [class.roles-management__permission-row--expanded]="isRoleExpanded(role.id)"
+          >
+            <div class="roles-management__permission-header" (click)="toggleRoleExpansion(role.id)">
+              <div class="roles-management__permission-main">
+                <div class="roles-management__permission-info">
+                  <span class="roles-management__permission-title">
+                    {{ getTranslatedRoleLabel(role.label) }}
+                  </span>
+                </div>
+              </div>
+              <div class="roles-management__permission-summary">
+                <span class="roles-management__role-count"> {{ getRolePermissionCount(role.id) }} permissions </span>
+                @if (canManageRoles) {
+                  <button
+                    class="roles-management__delete-btn"
+                    (click)="openDeleteRoleModal(role, $event)"
+                    [disabled]="loading"
+                    [title]="'roleManagement.deleteRole' | translate"
+                  >
+                    <ignt-icon name="trash-alt" variant="light"></ignt-icon>
+                  </button>
+                }
+                <ignt-icon
+                  [name]="isRoleExpanded(role.id) ? 'chevron-up' : 'chevron-down'"
+                  variant="solid"
+                  class="roles-management__expand-icon"
+                ></ignt-icon>
+              </div>
+            </div>
+
+            <div *ngIf="isRoleExpanded(role.id)" class="roles-management__roles-table">
+              <div *ngIf="getPermissionsForRole(role.id).length > 0; else noGrantedRoles" class="roles-management__granted-roles">
+                <div
+                  *ngFor="let permissionAccess of getPermissionsForRole(role.id); trackBy: trackByPermission"
+                  class="roles-management__granted-role-item"
+                  [class.roles-management__granted-role-item--revoked]="permissionAccess.isRevoked"
+                >
+                  <div class="roles-management__role-content">
+                    <span class="roles-management__role-name">{{ permissionAccess.permission }}</span>
+                    <span *ngIf="permissionAccess.isRevoked" class="roles-management__revoked-label">(revoked)</span>
+                  </div>
+                  @if (canManageRoles && !permissionAccess.isRevoked) {
+                    <button
+                      class="roles-management__revoke-btn"
+                      (click)="revokePermissionFromRole(role.id, permissionAccess.permission)"
+                      [disabled]="loading"
+                      [title]="'roleManagement.revokeStaticPermissionFromRole' | translate"
+                    >
+                      <span class="roles-management__btn-icon">−</span>
+                    </button>
+                  }
+                  @if (canManageRoles && permissionAccess.isRevoked) {
+                    <button
+                      class="roles-management__grant-btn"
+                      (click)="grantPermissionToRole(role.id, permissionAccess.permission)"
+                      [disabled]="loading"
+                      [title]="'roleManagement.grantStaticPermissionToRole' | translate"
+                    >
+                      <span class="roles-management__btn-icon">+</span>
+                    </button>
+                  }
+                </div>
+
+                @if (canManageRoles) {
+                  <div class="roles-management__add-permission">
+                    <span class="roles-management__add-permission-label">{{ 'roleManagement.addPermissionToRole' | translate }}</span>
+                    <button
+                      class="roles-management__add-permission-btn"
+                      (click)="openGrantModalForRole(role)"
+                      [disabled]="loading"
+                      [title]="'featureManagement.grantPermissionToRole' | translate"
+                    >
+                      <span class="roles-management__btn-icon">+</span>
+                    </button>
+                  </div>
+                }
+              </div>
+
+              <ng-template #noGrantedRoles>
+                <div class="roles-management__no-granted-roles">
+                  <ignt-icon name="info-circle" variant="regular"></ignt-icon>
+                  <span>{{ 'roleManagement.noPermissionsGranted' | translate }}</span>
+                </div>
+
+                @if (canManageRoles) {
+                  <div class="roles-management__add-permission">
+                    <span class="roles-management__add-permission-label">{{ 'roleManagement.addPermissionToRole' | translate }}</span>
+                    <button
+                      class="roles-management__add-permission-btn"
+                      (click)="openGrantModalForRole(role)"
+                      [disabled]="loading"
+                      [title]="'featureManagement.grantPermissionToRole' | translate"
+                    >
+                      <span class="roles-management__btn-icon">+</span>
+                    </button>
+                  </div>
+                }
+              </ng-template>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="showGrantModal" class="roles-management__modal-overlay" (click)="closeGrantModal()">
+        <div class="roles-management__modal" (click)="$event.stopPropagation()">
+          <div class="roles-management__modal-header">
+            <h4>
+              <span *ngIf="!selectedRole">{{ 'roleManagement.grantStaticPermission' | translate }}</span>
+              <span *ngIf="selectedRole"
+                >{{ 'featureManagement.grantPermissionToRole' | translate }}: {{ getTranslatedRoleLabel(selectedRole.label) }}</span
+              >
+            </h4>
+            <button class="roles-management__modal-close" (click)="closeGrantModal()">×</button>
+          </div>
+
+          <div class="roles-management__modal-content">
+            <div class="roles-management__permission-input">
+              <label for="permission-name">{{ 'roleManagement.permissionName' | translate }}:</label>
+              <ng-select
+                class="roles-management__select"
+                data-testid="grant-permission-select"
+                [items]="allPermissions"
+                bindLabel="name"
+                bindValue="name"
+                [placeholder]="'roleManagement.selectPermissionPlaceholder' | translate"
+                [loading]="loading"
+                [disabled]="loading"
+                [(ngModel)]="selectedPermission"
+                [clearable]="true"
+                [searchable]="true"
+              ></ng-select>
+            </div>
+
+            <div *ngIf="!selectedRole" class="roles-management__role-selection">
+              <p>{{ 'featureManagement.selectRolesToGrant' | translate }}</p>
+
+              <div class="roles-management__role-list">
+                <div *ngFor="let role of getAvailableRolesForGrant()" class="roles-management__role-option">
+                  <input
+                    type="checkbox"
+                    [id]="'role-' + role.id"
+                    [(ngModel)]="role.selected"
+                    class="roles-management__role-checkbox-modal"
+                  />
+                  <label [for]="'role-' + role.id" class="roles-management__role-label">
+                    {{ getTranslatedRoleLabel(role.label) }}
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="roles-management__modal-actions">
+            <button class="roles-management__modal-cancel" (click)="closeGrantModal()" [disabled]="loading">
+              {{ 'common.cancel' | translate }}
+            </button>
+            <button
+              class="roles-management__modal-confirm"
+              (click)="confirmGrantPermissions()"
+              [disabled]="loading || (!selectedRole && !hasSelectedRoles()) || !selectedPermission"
+            >
+              <ignt-icon *ngIf="loading" name="spinner" variant="solid" [spin]="true"></ignt-icon>
+              <span *ngIf="!selectedRole">{{ 'featureManagement.grantSelected' | translate }}</span>
+              <span *ngIf="selectedRole">{{ 'featureManagement.grantPermission' | translate }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="showDeleteRoleModal" class="roles-management__modal-overlay" (click)="closeDeleteRoleModal()">
+        <div class="roles-management__modal roles-management__modal--delete" (click)="$event.stopPropagation()">
+          <div class="roles-management__modal-header roles-management__modal-header--delete">
+            <h4>{{ 'roleManagement.deleteRoleTitle' | translate }}</h4>
+            <button class="roles-management__modal-close" (click)="closeDeleteRoleModal()">×</button>
+          </div>
+
+          <div class="roles-management__modal-content">
+            <div class="roles-management__delete-warning">
+              <ignt-icon name="exclamation-triangle" variant="light" class="roles-management__delete-warning-icon"></ignt-icon>
+              <p>
+                {{ 'roleManagement.deleteRoleConfirmation' | translate }}
+                <strong>{{ roleToDelete?.label }}</strong
+                >?
+              </p>
+              <p class="roles-management__delete-warning-note">{{ 'roleManagement.deleteRoleWarning' | translate }}</p>
+            </div>
+          </div>
+
+          <div class="roles-management__modal-actions">
+            <button class="roles-management__modal-cancel" (click)="closeDeleteRoleModal()" [disabled]="loading">
+              {{ 'common.cancel' | translate }}
+            </button>
+            <button
+              class="roles-management__modal-confirm roles-management__modal-confirm--delete"
+              (click)="confirmDeleteRole()"
+              [disabled]="loading"
+            >
+              <ignt-icon *ngIf="loading" name="spinner" variant="solid" [spin]="true"></ignt-icon>
+              {{ 'roleManagement.deleteRole' | translate }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="showCreateRoleModal" class="roles-management__modal-overlay" (click)="closeCreateRoleModal()">
+        <div class="roles-management__modal" (click)="$event.stopPropagation()">
+          <div class="roles-management__modal-header">
+            <h4>{{ 'roleManagement.createNewRole' | translate }}</h4>
+            <button class="roles-management__modal-close" (click)="closeCreateRoleModal()">×</button>
+          </div>
+
+          <div class="roles-management__modal-content">
+            <div class="roles-management__form-field">
+              <label for="role-label">{{ 'roleManagement.roleLabel' | translate }} *</label>
+              <input
+                id="role-label"
+                type="text"
+                [(ngModel)]="newRoleLabel"
+                [placeholder]="'roleManagement.roleLabelPlaceholder' | translate"
+                class="roles-management__input"
+              />
+              <small class="roles-management__field-help">{{ 'roleManagement.roleLabelHelp' | translate }}</small>
+            </div>
+
+            <div class="roles-management__form-field">
+              <label for="role-description">{{ 'roleManagement.roleDescription' | translate }} *</label>
+              <textarea
+                id="role-description"
+                [(ngModel)]="newRoleDescription"
+                [placeholder]="'roleManagement.roleDescriptionPlaceholder' | translate"
+                class="roles-management__textarea"
+                rows="3"
+              ></textarea>
+              <small class="roles-management__field-help">{{ 'roleManagement.roleDescriptionHelp' | translate }}</small>
+            </div>
+          </div>
+
+          <div class="roles-management__modal-actions">
+            <button class="roles-management__modal-cancel" (click)="closeCreateRoleModal()" [disabled]="loading">
+              {{ 'common.cancel' | translate }}
+            </button>
+            <button
+              class="roles-management__modal-confirm"
+              (click)="confirmCreateRole()"
+              [disabled]="loading || !newRoleLabel.trim() || !newRoleDescription.trim()"
+            >
+              <ignt-icon *ngIf="loading" name="spinner" variant="solid" [spin]="true"></ignt-icon>
+              {{ 'roleManagement.createRole' | translate }}
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="policy-preview">
+        <div class="policy-preview__header">
+          <ignt-icon name="link" variant="light"></ignt-icon>
+          <span class="policy-preview__title">main.polar</span>
+        </div>
+        <div class="policy-preview__content">
+          <p class="policy-preview__description">{{ 'roleManagement.findValidPermissionNames' | translate }}</p>
+          <a
+            href="(internal repository)"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="policy-preview__link"
+          >
+            <ignt-icon name="link" variant="light"></ignt-icon>
+            {{ 'roleManagement.viewCompletePolicyFile' | translate }}
+            <ignt-icon name="external-link-alt" variant="light"></ignt-icon>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

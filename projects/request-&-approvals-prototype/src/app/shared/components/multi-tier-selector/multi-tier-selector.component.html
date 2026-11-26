@@ -1,0 +1,57 @@
+<app-templated-dropdown [ngClass]="errorClasses" #templatedDropdown [disabled]="isDisabled" class="multi-tier-selector">
+  <div
+    dropdownButton
+    (click)="searchInput.focus(); preventDropDownClosing($event)"
+    data-testid="multi-tier-selector-selected"
+    class="multi-tier-selector__selected-options"
+  >
+    <ng-container *ngIf="selectedTiers.length > 0">
+      <ng-container
+        *ngFor="let tier of selectedTiers; trackBy: trackByIdFn"
+        [ngTemplateOutlet]="tierTag"
+        [ngTemplateOutletContext]="{ $implicit: tier }"
+      >
+      </ng-container>
+    </ng-container>
+    <input
+      #searchInput
+      data-testid="multi-tier-selector-filter-input"
+      (keydown.backspace)="removeLastElement()"
+      (keydown.enter)="addFirstElement()"
+      [placeholder]="selectedTiers.length === 0 ? ('common.all' | translate) : ''"
+      [formControl]="filterInput"
+      class="multi-tier-selector__search-input"
+    />
+    <div class="multi-tier-selector__label">{{ 'common.tiers' | translate }}</div>
+  </div>
+
+  <div class="multi-tier-selector__option-list" dropdownOptions>
+    <label class="multi-tier-selector__option">
+      <input data-testid="multi-tier-selector-select-all" type="checkbox" [formControl]="toggleSelectAll" />{{ 'common.all' | translate }}
+    </label>
+    <form [formGroup]="formGroup">
+      <label
+        data-testid="multi-tier-selector-option"
+        *ngFor="let option of displayedOptions; let i = index; trackBy: trackByIdFn"
+        [class.multi-tier-selector__option--selected]="filterInput.value !== '' && i === 0"
+        class="multi-tier-selector__option"
+      >
+        <input
+          [formControl]="formGroup.controls.selectedTiers.controls[option.id]"
+          data-testid="multi-tier-selector-option-checkbox"
+          type="checkbox"
+        /><ng-container *ngTemplateOutlet="tierTag; context: { $implicit: option }"></ng-container>
+      </label>
+    </form>
+  </div>
+</app-templated-dropdown>
+
+<ng-template #tierTag let-tier>
+  <span
+    data-testid="multi-tier-selector-option-tag"
+    class="tag time-slot-tag"
+    [ngStyle]="{ color: tier.color, 'border-color': tier.color }"
+  >
+    {{ tier.name }}
+  </span>
+</ng-template>

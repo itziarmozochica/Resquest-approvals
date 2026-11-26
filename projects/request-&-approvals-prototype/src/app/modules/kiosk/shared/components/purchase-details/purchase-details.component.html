@@ -1,0 +1,132 @@
+<div class="purchase-details" *ngIf="cart !== null">
+  <header class="purchase-details__header">
+    <h1 class="purchase-details__header__title">{{ 'kiosk.checkout.purchaseDetails.title' | translate }}</h1>
+    <ul class="purchase-details__header__event-details">
+      <li class="purchase-details__header__event-details__item" data-fzk="checkout-event-date">
+        <img src="assets/images/icons/fa-calendar-day.svg" alt="" /> {{ eventDate }}
+      </li>
+      <li class="purchase-details__header__event-details__item">
+        <img src="assets/images/icons/fa-location-dot.svg" alt="" /> {{ eventLocation }}
+      </li>
+    </ul>
+  </header>
+  <ul class="purchase-details__cart-list">
+    <li *ngFor="let session of cartSessions" class="purchase-details__cart-list__cart-item">
+      <app-kiosk-cart-item
+        [amount]="session.units"
+        [ticketTypeName]="getLastSegment(session.sessionName)"
+        [ticketTypePrice]="session.price"
+        [ticketTypePriceStrikethrough]="session.totalStrikethroughPrice ?? null"
+        [totalSurchagePrice]="session.totalSurchargePerTicket"
+        [feePricePerTicket]="session.surchargePerTicket"
+      >
+      </app-kiosk-cart-item>
+    </li>
+  </ul>
+  @if (!canShowPromotions() && (!uiRefreshEnabled || hasValidCouponCode())) {
+    <ng-container [ngTemplateOutlet]="couponSection"></ng-container>
+  }
+  <ng-template #couponSection>
+    <div class="purchase-details__coupon">
+      @if (!hasValidCouponCode()) {
+        <ignt-input-field
+          class="purchase-details__coupon__input-field"
+          label="{{ 'boxOffice.coupon.title' | translate }}"
+          [formControl]="couponFormControl"
+          [pipe]="uppercasePipe"
+          (input)="onCouponInputFieldChange($event)"
+          (keydown.enter)="validateCoupon()"
+        >
+        </ignt-input-field>
+      } @else {
+        <div class="purchase-details__coupon__badge">
+          <ignt-icon class="purchase-details__coupon__badge__icon" name="badge-percent" variant="solid" size="h2"></ignt-icon>
+          <div class="purchase-details__coupon__badge__info">
+            <div class="applied">
+              <span>{{ couponCode() }}</span> {{ 'boxOffice.coupon.applied' | translate }}
+            </div>
+            @if (!uiRefreshEnabled) {
+              <div class="discount">
+                -<ng-container *ngTemplateOutlet="cartMoney; context: { money: discount(), locale: locale() }"></ng-container>
+              </div>
+            }
+          </div>
+          @if (uiRefreshEnabled) {
+            <ignt-icon
+              class="purchase-details__coupon__badge__remove"
+              data-fzk="purchase-details-coupon-remove"
+              data-testid="purchase-details-coupon-remove"
+              name="times-circle"
+              variant="light"
+              (click)="removeCoupon()"
+            ></ignt-icon>
+            <div class="purchase-details__coupon__badge__discount-amount">
+              -&nbsp;<ng-container *ngTemplateOutlet="cartMoney; context: { money: discount(), locale: locale() }"></ng-container>
+            </div>
+          }
+        </div>
+      }
+      @if (!uiRefreshEnabled || !hasValidCouponCode()) {
+        <kiosk-button
+          class="purchase-details__coupon__apply-btn"
+          data-fzk="purchase-details-coupon-apply"
+          [attr.aria-busy]="isValidatingCoupon()"
+          [label]="(hasValidCouponCode() ? 'boxOffice.coupon.removeButton' : 'boxOffice.coupon.applyButton') | translate"
+          [secondary]="true"
+          [compact]="true"
+          [disabled]="isValidatingCoupon() || (!hasValidCouponCode() && couponCode().length === 0)"
+          (click)="validateCoupon()"
+        ></kiosk-button>
+      }
+    </div>
+  </ng-template>
+  <app-kiosk-promotions
+    *ngIf="canShowPromotions()"
+    [cartId]="cart?.id"
+    [discount]="discount()"
+    [isValidatingCoupon]="isValidatingCoupon()"
+    [partnerId]="partner?.id"
+    (promotionApplied)="onPromotionApplied($event)"
+    (promotionRemoved)="removeCoupon()"
+  ></app-kiosk-promotions>
+  <footer class="purchase-details__footer">
+    <ng-container *ngIf="totalTaxMoney() !== null">
+      <div class="purchase-details__footer__taxes footer-row">
+        <span class="purchase-details__footer__taxes__label">{{ 'kiosk.checkout.purchaseDetails.taxIncluded' | translate }}</span>
+        <span class="purchase-details__footer__taxes__total-price">
+          <ng-container *ngTemplateOutlet="cartMoney; context: { money: totalTaxMoney(), locale: locale() }"></ng-container>
+        </span>
+      </div>
+    </ng-container>
+    <div class="purchase-details__footer__total footer-row">
+      <div class="purchase-details__footer__total__label">{{ 'kiosk.checkout.purchaseDetails.total' | translate }}</div>
+      <div class="purchase-details__footer__total__price">
+        <div class="original-total-price" *ngIf="hasValidCouponCode()">
+          <ng-container *ngTemplateOutlet="cartMoney; context: { money: totalMoneyWithoutDiscount(), locale: locale() }"></ng-container>
+        </div>
+        <div class="current-total-price">
+          <ng-container *ngTemplateOutlet="cartMoney; context: { money: cart.total, locale: locale() }"></ng-container>
+        </div>
+      </div>
+    </div>
+  </footer>
+  @if (!canShowPromotions() && uiRefreshEnabled && !hasValidCouponCode()) {
+    <ignt-button
+      class="purchase-details__coupon-toggle"
+      variant="tertiary"
+      sentiment="neutral"
+      data-fzk="purchase-details-apply-discount"
+      data-testid="purchase-details-apply-discount"
+      label="{{ 'kiosk.checkout.purchaseDetails.applyDiscount' | translate }}"
+      [leadingIcon]="couponSectionExpanded() ? { name: 'minus-circle', variant: 'light' } : { name: 'plus-circle', variant: 'light' }"
+      (click)="toggleCouponSection()"
+    ></ignt-button>
+    @if (couponSectionExpanded()) {
+      <ng-container [ngTemplateOutlet]="couponSection"></ng-container>
+    }
+  }
+</div>
+
+<ng-template #cartMoney let-locale="locale" let-money="money">
+  {{ money ? (money.amount | kioskCurrency: money.currency : locale) : '-' }}
+</ng-template>

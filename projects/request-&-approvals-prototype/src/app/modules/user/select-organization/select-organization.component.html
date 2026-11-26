@@ -1,0 +1,186 @@
+@if (isDialog) {
+  <ignt-dialog-header>{{ 'selectOrganization.select' | translate }}</ignt-dialog-header>
+}
+<ng-container *ngTemplateOutlet="selectOrganizationTemplate"></ng-container>
+
+<ng-template #selectOrganizationTemplate>
+  <app-login-form-container
+    [hideBackButtons]="true"
+    [title]="(componentAsModal ? 'selectOrganization.select' : 'selectOrganization.title') | translate"
+    [showTitle]="showTitle"
+    [componentAsModal]="componentAsModal"
+  >
+    @if (showSkeleton()) {
+      <div class="organizations__skeleton" data-testid="organizations-skeleton" aria-busy="true">
+        <div class="organizations__recent">
+          <ignt-skeleton-base [animation]="true" [height]="20" width="56px" />
+          <div class="organizations__skeleton-pills">
+            @for (pill of [1, 2, 3]; track pill) {
+              <ignt-skeleton-base [animation]="true" [height]="40" width="128px" />
+            }
+          </div>
+        </div>
+        <ignt-skeleton-base [animation]="true" [height]="48" width="100%" />
+        <div class="organizations__filters">
+          <ignt-skeleton-base [animation]="true" [height]="40" width="112px" />
+          <ignt-skeleton-base [animation]="true" [height]="20" width="88px" />
+        </div>
+        <div class="organizations__skeleton-list">
+          @for (row of skeletonRows; track row) {
+            <ng-container *ngTemplateOutlet="organizationSkeleton"></ng-container>
+          }
+        </div>
+        @if (showControlPanelEntry()) {
+          <ignt-skeleton-base class="organizations__skeleton-control-panel" [animation]="true" [height]="20" width="176px" />
+        }
+      </div>
+    }
+    <div class="organizations__content" [hidden]="showSkeleton()">
+      @if (recentOrganizations().length > 0) {
+        <div class="organizations__recent" data-testid="recent-organizations">
+          <span class="organizations__recent-label">{{ 'selectOrganization.recent' | translate }}</span>
+          <div class="organizations__recent-chips">
+            @for (recent of recentOrganizations(); track recent.id) {
+              <ignt-pill
+                [label]="recent.name"
+                [leadingIcon]="getRecentOrganizationIcon(recent)"
+                [isActive]="false"
+                [value]="recent.id"
+                size="small"
+                data-testid="recent-organization"
+                (statusChange)="selectRecentOrganization(recent)"
+              />
+            }
+          </div>
+        </div>
+      }
+      <div class="organizations__search-box">
+        <ignt-icon class="organizations__search-icon" name="search" variant="light" />
+        <div class="organizations__input-wrapper">
+          <label *ngIf="inputValue" class="organizations__label">
+            {{ searchPlaceholderKey() | translate }}
+          </label>
+          <input
+            data-testid="organizations-search-bar"
+            #search
+            type="text"
+            class="organizations__input--new"
+            [placeholder]="searchPlaceholderKey() | translate"
+            (input)="onInput($event)"
+            (keydown.enter)="onEnterKeyPress()"
+            autofocus
+          />
+        </div>
+        <ignt-icon
+          *ngIf="inputValue"
+          class="organizations__clear-icon"
+          name="times"
+          variant="regular"
+          (click)="onClearSearch()"
+          data-testid="organizations-search-clear-button"
+        />
+      </div>
+      <div class="organizations__filters">
+        <ignt-pill-button
+          [label]="'selectOrganization.favorites' | translate"
+          value="favorites"
+          [checked]="showFavorites()"
+          [icon]="{ name: 'star', variant: showFavorites() ? 'solid' : 'regular' }"
+          (checkedChange)="showFavoriteOrganizations($event)"
+          data-testid="favorite-organizations-filter"
+        />
+        <div class="organizations__show-deleted">
+          <ignt-checkbox
+            [checked]="showDeleted"
+            (change)="showDeletedOrganizations($event)"
+            [label]="'selectOrganization.archived' | translate"
+          ></ignt-checkbox>
+        </div>
+      </div>
+      @let listedOrganizations = visibleOrganizations();
+      @let listLoading = showFavorites() ? favoritesLoading() : loading;
+      <div *ngIf="listedOrganizations.length > 0 || listLoading" class="organization-list" (scroll)="onScroll($event)">
+        <ng-container *ngFor="let organization of listedOrganizations; trackBy: trackById">
+          <div
+            class="organization"
+            [ngClass]="getOrganizationClasses(organization)"
+            (click)="!organization.isDeleted() && onSelectOrganization(organization)"
+            data-testid="organization"
+          >
+            <div class="organization__type">
+              <div class="organization__type-icon">
+                <ignt-icon [name]="organization.type === OrganizationTypeEnum.PARTNER ? 'building' : 'user'" variant="regular" />
+              </div>
+            </div>
+            <div class="organization__info">
+              <div class="organization__name">
+                {{ organization.name }}
+              </div>
+              <div class="organization__country">
+                <ignt-icon [fixedWidth]="true" name="map-marker-alt" variant="regular" /> {{ organization.countryCode }}
+                <span class="organization__type-label organization__type-label--inline" data-testid="organization-type-inline">{{
+                  organization.type === OrganizationTypeEnum.PARTNER ? ('common.organization' | translate) : ('common.reseller' | translate)
+                }}</span>
+              </div>
+            </div>
+            <div class="organization__type-badge">
+              <span class="organization__type-label">{{
+                organization.type === OrganizationTypeEnum.PARTNER ? ('common.organization' | translate) : ('common.reseller' | translate)
+              }}</span>
+            </div>
+            @if (!organization.isDeleted()) {
+              <app-organization-favorite-star class="organization__favorite" [organization]="organization" />
+            }
+            <div class="organization__icon">
+              <ignt-icon class="flip-rtl" name="chevron-right" variant="regular" />
+            </div>
+          </div>
+        </ng-container>
+        <div class="loading" *ngIf="listLoading">
+          <ng-container *ngTemplateOutlet="organizationSkeleton"></ng-container>
+          <ng-container *ngTemplateOutlet="organizationSkeleton"></ng-container>
+        </div>
+      </div>
+      <div class="no-results" *ngIf="listedOrganizations.length === 0 && !listLoading">
+        <img src="/assets/images/shared/big-shoes-standing.svg" alt="No results" class="no-results-image" />
+        <hr class="no-results-divider" />
+        @if (showFavorites() && !inputValue) {
+          <h5 class="no-results-title" data-testid="no-favorite-organizations">{{ 'selectOrganization.noFavorites' | translate }}</h5>
+          <p class="no-results-subtitle">{{ 'selectOrganization.noFavoritesDescription' | translate }}</p>
+        } @else {
+          <h5 class="no-results-title">{{ 'selectOrganization.noResults' | translate }}</h5>
+          <p class="no-results-subtitle">{{ 'selectOrganization.noResultsDescription' | translate }}</p>
+        }
+      </div>
+      @if (showControlPanelEntry()) {
+        <div
+          class="organizations__control-panel"
+          (click)="navigateToControlPanel($event)"
+          data-testid="control-panel-entry"
+          role="button"
+          tabindex="0"
+          (keydown.enter)="navigateToControlPanel($event)"
+        >
+          <ignt-icon name="lock-keyhole" variant="light" />
+          <span>{{ 'selectOrganization.controlPanelCta' | translate }}</span>
+        </div>
+        <hr class="organizations__divider" />
+      }
+      <div class="organizations__footer" *ngIf="showLogout" (click)="logout()">
+        {{ 'menu.logOut' | translate }}
+      </div>
+    </div>
+  </app-login-form-container>
+</ng-template>
+
+<ng-template #organizationSkeleton>
+  <div class="organization organization--skeleton" data-testid="organization-skeleton">
+    <ignt-skeleton-base class="organization__skeleton-type" [animation]="true" [contrast]="true" [height]="40" width="40px" />
+    <div class="organization__info organization__skeleton-info">
+      <ignt-skeleton-base [animation]="true" [contrast]="true" [height]="20" width="60%" />
+      <ignt-skeleton-base [animation]="true" [contrast]="true" [height]="20" width="40px" />
+    </div>
+    <ignt-skeleton-base class="organization__skeleton-badge" [animation]="true" [contrast]="true" [height]="24" width="88px" />
+    <ignt-skeleton-base class="organization__skeleton-star" [animation]="true" [contrast]="true" [height]="20" width="20px" />
+  </div>
+</ng-template>

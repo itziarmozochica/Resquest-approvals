@@ -1,0 +1,77 @@
+<section class="static-html-asset-folder" data-testid="static-html-asset-folder">
+  <div class="static-html-asset-folder__intro">
+    <div class="static-html-asset-folder__copy">
+      <h4 class="static-html-asset-folder__title">{{ 'staticHtml.assets.folder.title' | translate }}</h4>
+      <p class="static-html-asset-folder__hint">{{ 'staticHtml.assets.folder.hint' | translate }}</p>
+    </div>
+
+    <div class="static-html-asset-folder__actions">
+      <!-- Directory picking is non-standard, so the button only exists where the engine can honour it. -->
+      @if (isDirectoryPickSupported) {
+        <ignt-button
+          data-testid="static-html-asset-folder-pick-directory"
+          sentiment="brand"
+          size="small"
+          variant="secondary"
+          [disabled]="isCommitting()"
+          [label]="'staticHtml.assets.folder.pickDirectory' | translate"
+          (click)="openDirectoryPicker()"
+        />
+      }
+
+      <ignt-button
+        data-testid="static-html-asset-folder-pick-files"
+        size="small"
+        variant="tertiary"
+        [disabled]="isCommitting()"
+        [label]="'staticHtml.assets.folder.pickFiles' | translate"
+        (click)="openFilePicker()"
+      />
+
+      @if (hasPick()) {
+        <ignt-button
+          data-testid="static-html-asset-folder-clear"
+          size="small"
+          variant="tertiary"
+          [disabled]="isCommitting()"
+          [label]="'staticHtml.assets.folder.clear' | translate"
+          (click)="clear()"
+        />
+      }
+    </div>
+  </div>
+
+  @if (hasPick()) {
+    @if (hasMissingPaths()) {
+      <p class="static-html-asset-folder__note" role="alert" data-testid="static-html-asset-folder-no-paths">
+        {{ 'staticHtml.assets.folder.noRelativePaths' | translate }}
+      </p>
+    } @else if (isFilesPick()) {
+      <p class="static-html-asset-folder__note" data-testid="static-html-asset-folder-files-note">
+        {{ 'staticHtml.assets.folder.filesPickNote' | translate }}
+      </p>
+    }
+
+    <!-- The counts, not the entries: every paired reference is a row in the list below. -->
+    <p class="static-html-asset-folder__summary" role="status" data-testid="static-html-asset-folder-summary">
+      {{ 'staticHtml.assets.folder.summary' | translate: summary() }}
+    </p>
+
+    <!--
+      The count is already in the summary; the names sit behind a disclosure. A file that answered
+      nothing is usually a non-answer the author does not need spelled out, but when a pick goes
+      wrong these names are the evidence — and a `title` tooltip reaches neither keyboard nor reader.
+    -->
+    @if (unusedFiles().length > 0) {
+      <details class="static-html-asset-folder__unused" data-testid="static-html-asset-folder-unused">
+        <summary class="static-html-asset-folder__unused-summary">{{ 'staticHtml.assets.folder.unusedTitle' | translate }}</summary>
+
+        <ul class="static-html-asset-folder__unused-list">
+          @for (file of unusedFiles(); track file.id) {
+            <li class="static-html-asset-folder__file" data-testid="static-html-asset-folder-unused-file">{{ file.path }}</li>
+          }
+        </ul>
+      </details>
+    }
+  }
+</section>

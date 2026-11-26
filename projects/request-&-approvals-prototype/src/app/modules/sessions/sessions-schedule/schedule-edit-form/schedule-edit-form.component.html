@@ -1,0 +1,146 @@
+<div class="common-session-edit lateral-slider-body__wrapper">
+  <ng-container *ngIf="formLoaded && schedule">
+    <form [formGroup]="formGroup" class="common-session-edit__form">
+      <ng-container *ngIf="!enableReschedule">
+        <ng-container *ngIf="!isStartsAtLocked">
+          <ng-container *ngTemplateOutlet="fieldDateTemplate; context: { fieldName: 'startDate' }"> </ng-container>
+        </ng-container>
+
+        <ng-container *ngTemplateOutlet="fieldDateTemplate; context: { fieldName: 'endDate' }"> </ng-container>
+      </ng-container>
+
+      <ng-container *ngIf="canChangeSalesStartAt">
+        <div class="checkbox-group">
+          <input
+            formControlName="updateSalesStart"
+            id="updateSalesStart"
+            class="checkbox-group__input"
+            type="checkbox"
+            data-testid="session-checkbox-update-sales-start"
+          />
+          <label class="checkbox-group__label" for="updateSalesStart">
+            {{ 'sessions.schedule.edition.field.updateSalesStart' | translate }}
+          </label>
+        </div>
+        <ng-container *ngIf="formGroup.get('updateSalesStart').value">
+          <ng-container *ngTemplateOutlet="fieldDateTemplate; context: { fieldName: 'salesStartDate' }"> </ng-container>
+        </ng-container>
+      </ng-container>
+
+      <ng-container *ngTemplateOutlet="fieldDateTemplate; context: { fieldName: 'expirationDate' }"> </ng-container>
+
+      <ng-template #fieldDateTemplate let-fieldName="fieldName">
+        <label class="field-date__label" for="{{ fieldName }}" translate>{{ 'sessions.schedule.edition.field.' + fieldName }} </label>
+        <div class="input-inline">
+          <ng-container *ngTemplateOutlet="inputDateTemplate; context: { fieldName: fieldName }"></ng-container>
+          <ng-container *ngTemplateOutlet="inputDatetimeTemplate; context: { fieldName: fieldName + 'time' }"></ng-container>
+        </div>
+        <ng-container
+          *ngTemplateOutlet="
+            validationErrors;
+            context: { error: getControlError(formGroup.get(fieldName)) || getControlError(formGroup.get(fieldName + 'time')) }
+          "
+        >
+        </ng-container>
+        <div
+          *ngIf="showHasSeveralDatesMessage(fieldName) || showHasSeveralDatesMessage(fieldName + 'time')"
+          class="field-date__info"
+          translate
+        >
+          {{ 'sessions.schedule.edition.severalDates.' + fieldName }}
+        </div>
+        <div *ngIf="fieldName === 'salesStartDate' && shouldShowSalesStartRemovalWarning()" class="field-date__info" translate>
+          {{ 'sessions.schedule.edition.field.salesStartRemovalWarning' | translate }}
+        </div>
+      </ng-template>
+
+      <ng-template #inputDateTemplate let-fieldName="fieldName">
+        <div class="w-100">
+          <div
+            [class.form-group--error]="getControlError(formGroup.get(fieldName))"
+            [attr.data-testid]="'session-datepicker-' + fieldName + '-container'"
+            class="form-group"
+          >
+            <label class="form-label" for="{{ fieldName }}" translate>{{ 'sessions.schedule.edition.field.date' }} </label>
+            <app-date-picker-input
+              [attr.data-testid]="'session-datepicker-' + fieldName"
+              (partialInputChange)="handleDatePartialChange(fieldName, $event)"
+              (changeDate)="updateDateField(fieldName, $event)"
+              [startDate]="formGroup.get(fieldName)?.value"
+            >
+            </app-date-picker-input>
+          </div>
+        </div>
+      </ng-template>
+
+      <ng-template #inputDatetimeTemplate let-fieldName="fieldName">
+        <div class="w-100">
+          <div
+            [class.form-group--error]="getControlError(formGroup.get(fieldName))"
+            [attr.data-testid]="'session-timepicker-' + fieldName + '-container'"
+            class="form-group"
+          >
+            <label class="form-label" for="{{ fieldName }}" translate>{{ 'sessions.schedule.edition.field.datetime' }} </label>
+            <app-time-picker-input
+              [attr.data-testid]="'session-timepicker-' + fieldName"
+              (partialInputChange)="handleTimePartialChange(fieldName, $event)"
+              (changeTime)="updateDateField(fieldName, $event)"
+              [startTime]="formGroup.get(fieldName)?.value ?? ''"
+            >
+            </app-time-picker-input>
+          </div>
+        </div>
+      </ng-template>
+      @if (enableTierFeatures && tiers.length) {
+        <app-time-slot-tier-selector
+          class="schedule-edit-form__tier"
+          data-testid="schedule-tier-selector"
+          [formControl]="tierIdControl"
+          [label]="'sessions.sessionsPerTimeslot.edition.field.tier' | translate"
+          [options]="tiers"
+        ></app-time-slot-tier-selector>
+      }
+    </form>
+  </ng-container>
+</div>
+<div class="lateral-slider-body__footer">
+  <ignt-button
+    variant="tertiary"
+    [label]="'sessions.sessionsPerTimeslot.edition.button.discard' | translate"
+    data-testid="session-discard-button"
+    (click)="cancel()"
+  />
+
+  <ignt-button
+    [label]="'sessions.sessionsPerTimeslot.edition.button.save' | translate"
+    (click)="save()"
+    [disabled]="isSaveButtonDisabled()"
+    data-testid="session-save-button"
+  />
+</div>
+
+<ng-template #validationErrors let-error="error">
+  <ng-container *ngIf="error">
+    <div [ngSwitch]="error" class="form-error">
+      <fa-icon [icon]="['fas', 'exclamation-circle']" class="form-error--icon"></fa-icon>
+      <span *ngSwitchCase="'required'" class="form-error--message" data-testid="error-mandatory-field">
+        {{ 'form.error.mandatoryField' | translate }}
+      </span>
+      <span *ngSwitchCase="'invalidStartDate'" class="form-error--message" data-testid="error-mandatory-field">
+        {{ 'sessions.schedule.edition.errors.invalidStartDate' | translate }}
+      </span>
+      <span *ngSwitchCase="'invalidEndDate'" class="form-error--message" data-testid="error-mandatory-field">
+        {{ 'sessions.schedule.edition.errors.invalidEndDate' | translate }}
+      </span>
+      <span *ngSwitchCase="'invalidExpirationDate'" class="form-error--message" data-testid="error-mandatory-field">
+        {{ 'sessions.schedule.edition.errors.invalidExpirationDate' | translate }}
+      </span>
+      <span *ngSwitchCase="'invalidSalesStartDate'" class="form-error--message" data-testid="error-mandatory-field">
+        {{ 'sessions.schedule.edition.errors.invalidSalesStartDate' | translate }}
+      </span>
+      <span *ngSwitchCase="'datesCrossError'" class="form-error--message" data-testid="error-field-dates-cross">
+        {{ 'sessions.sessionsPerTimeslot.edition.error.datesCrossError' | translate }}
+      </span>
+    </div>
+  </ng-container>
+</ng-template>

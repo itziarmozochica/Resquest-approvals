@@ -1,0 +1,55 @@
+<div class="affected-businesses">
+  <div class="affected-businesses__search">
+    <ignt-input-field
+      [formControl]="searchControl"
+      [label]="'reservations.reservationRulesForm.affectedBusinesses.businessName' | translate"
+      [placeholder]="'reservations.reservationRulesForm.affectedBusinesses.searchPlaceholder' | translate"
+      [leadIcon]="['far', 'search']"
+    >
+    </ignt-input-field>
+  </div>
+  @if (isLoading()) {
+    <div class="affected-businesses__loading">
+      <ignt-icon class="loader" name="spinner" variant="solid" size="display"></ignt-icon>
+    </div>
+  } @else if (businesses().length > 0) {
+    <ul class="affected-businesses__list">
+      @for (business of businesses(); track business.id) {
+        <li class="affected-businesses__item">
+          <span class="affected-businesses__name">{{ business.name }}</span>
+          <span
+            *permissionBased="permissions.CAN_EDIT_BUSINESSES"
+            class="affected-businesses__id"
+            data-testid="affected-businesses-go-to-detail"
+            (click)="onBusinessDetail(business.businessId)"
+          >
+            {{ 'reservations.reservationRulesForm.affectedBusinesses.goToBusinessDetail' | translate }}
+            <ignt-icon class="edit-icon" name="edit" variant="solid"></ignt-icon>
+          </span>
+        </li>
+      }
+    </ul>
+    @if (totalCount() > pageSize) {
+      <div class="affected-businesses__pagination">
+        <app-pagination-with-numbers
+          [selectedPage]="currentPage()"
+          [totalCountResults]="totalCount()"
+          [pageSize]="pageSize"
+          [previousPage]="previousPage"
+          [nextPage]="nextPage"
+          (numPageSelected)="onPageChange($event)"
+        ></app-pagination-with-numbers>
+      </div>
+    }
+  } @else {
+    <p class="affected-businesses__empty">
+      @if (hasError()) {
+        {{ 'reservations.reservationRulesForm.affectedBusinesses.error' | translate }}
+      } @else if (hasActiveSearch) {
+        {{ 'reservations.reservationRulesForm.affectedBusinesses.noResults' | translate }}
+      } @else {
+        {{ 'reservations.reservationRulesForm.affectedBusinesses.empty' | translate }}
+      }
+    </p>
+  }
+</div>

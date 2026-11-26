@@ -1,0 +1,213 @@
+<div class="bulk-guest-details">
+  <div class="bulk-guest-details__header">
+    <div class="bulk-guest-details__title-row">
+      <span class="content__title" data-testid="bulk-gest-details-step-title">
+        {{ 'invitations.bulkGuestDetails.title' | translate }}
+      </span>
+      @if (hasCapacityExceededWarning()) {
+        <span class="bulk-guest-details__capacity-warning-icon" data-testid="bulk-invitation-capacity-warning" aria-label="Warning">
+          <ignt-icon name="exclamation-triangle" variant="solid" [appTemplatedTooltip]="capacityExceededTooltipTpl" />
+        </span>
+      }
+    </div>
+    @if (csvData().length > 0) {
+      <span (click)="clearPastedData()" class="bulk-guest-details__clear-link" data-testid="bulk-guest-details-clear-data">
+        {{ 'invitations.bulkGuestDetails.clearData' | translate }}
+      </span>
+    }
+  </div>
+  <form [formGroup]="bulkForm()" class="bulk-guest-details__form">
+    @if (csvData().length === 0) {
+      <div class="form-group">
+        <p
+          class="form-group__help-text"
+          [innerHTML]="'invitations.bulkGuestDetails.pasteInstructions' | translate: { link: bulkInvitationSample }"
+        ></p>
+        <textarea
+          formControlName="pasteArea"
+          class="bulk-guest-details__paste-area"
+          rows="6"
+          [placeholder]="'invitations.bulkGuestDetails.pastePlaceholder' | translate"
+          (paste)="onPasteData($event)"
+          data-testid="bulk-guest-details-paste-area"
+        ></textarea>
+      </div>
+    }
+
+    @if (csvData().length > 0) {
+      <div class="form-group">
+        <ng-container *ngTemplateOutlet="dataPreviewTemplate"></ng-container>
+      </div>
+    }
+
+    <div class="content__title">
+      {{ 'invitations.guestDetails.form.attribution.label' | translate }}
+    </div>
+    <div class="form-group">
+      <label for="guestGroup" class="form-label form-label--with-tooltip">
+        {{ 'invitations.guestDetails.form.guestGroup.label' | translate }}
+        <ignt-icon name="info-circle" variant="light" [appTemplatedTooltip]="guestGroupTooltip" />
+      </label>
+      <ignt-typeahead
+        [fieldLabel]="'invitations.guestDetails.form.guestGroup.label' | translate"
+        [emptyLabel]="'common.selectsPlaceholder' | translate"
+        [options]="guestGroupOptions"
+        [editable]="false"
+        [disabled]="guestGroupOptions.length === 0"
+        (selected)="selectGuestGroup($event)"
+        data-testid="bulk-guest-group"
+      />
+    </div>
+    <div class="form-group">
+      <label for="requestor" class="form-label form-label--with-tooltip">
+        {{ 'invitations.guestDetails.form.requestor.label' | translate }}
+        <ignt-icon name="info-circle" variant="light" [appTemplatedTooltip]="requestorTooltip" />
+      </label>
+      <ignt-input-field
+        id="requestor"
+        [label]="'invitations.guestDetails.form.requestor.label' | translate"
+        type="text"
+        formControlName="requestor"
+        autocomplete="off"
+        [maxlength]="128"
+        placeholder="John Doe"
+        data-testid="bulk-guest-requestor"
+      />
+    </div>
+    <div class="form-group">
+      <label for="businessEntityId" class="form-label form-label--with-tooltip">
+        {{ 'invitations.guestDetails.form.businessEntityId.label' | translate }}
+        <ignt-icon name="info-circle" variant="light" [appTemplatedTooltip]="businessEntityIdTooltip" />
+      </label>
+      <ignt-typeahead
+        [fieldLabel]="'invitations.guestDetails.form.businessEntityId.label' | translate"
+        [emptyLabel]="'common.selectsPlaceholder' | translate"
+        [options]="businesses()"
+        [editable]="true"
+        [disabled]="businesses().length === 0"
+        (selected)="selectBusiness($event)"
+        data-testid="bulk-guest-business-entity-id"
+      />
+    </div>
+    @if (shouldShowNotificationType() && csvData().length > 0 && hasValidData()) {
+      <div class="form-group">
+        <label class="form-label" translate>{{ 'invitations.guestDetails.form.notificationType.title' }}</label>
+
+        <ignt-radio-group formControlName="notificationType">
+          <ignt-radio
+            [dataTestId]="'guest-notification-type-no-pdf-option'"
+            [label]="'invitations.guestDetails.form.notificationType.emailLabel' | translate"
+            [description]="'invitations.guestDetails.form.notificationType.email' | translate"
+            [value]="invitationNotificationType.NO_PDF"
+          ></ignt-radio>
+          <ignt-radio
+            [dataTestId]="'guest-notification-type-combined-option'"
+            [label]="'invitations.guestDetails.form.notificationType.combinedLabel' | translate"
+            [description]="'invitations.guestDetails.form.notificationType.combined' | translate"
+            [value]="invitationNotificationType.COMBINED_PDF"
+          ></ignt-radio>
+          <ignt-radio
+            [dataTestId]="'guest-notification-type-separated-option'"
+            [label]="'invitations.guestDetails.form.notificationType.separatedLabel' | translate"
+            [description]="'invitations.guestDetails.form.notificationType.separated' | translate"
+            [value]="invitationNotificationType.SEPARATED_PDF"
+          ></ignt-radio>
+        </ignt-radio-group>
+      </div>
+    }
+    <ignt-alert>
+      <ng-template #igntAlertContent>
+        <div [innerHTML]="'invitations.guestDetails.feesWarningMessage' | translate"></div>
+      </ng-template>
+    </ignt-alert>
+  </form>
+</div>
+
+<ng-template #capacityExceededTooltipTpl>
+  <div class="bulk-guest-details__tooltip">
+    <ignt-icon name="exclamation-triangle" variant="solid" class="tooltip--warning__icon" />
+    <span class="tooltip--warning__text">{{ 'invitations.bulkNoTicketsAvailableForGuests' | translate }}</span>
+  </div>
+</ng-template>
+
+<ng-template #businessEntityIdTooltip>
+  <div class="bulk-guest-details__tooltip">
+    {{ 'invitations.guestDetails.form.businessEntityId.tooltip' | translate }}
+  </div>
+</ng-template>
+
+<ng-template #guestGroupTooltip>
+  <div class="bulk-guest-details__tooltip">
+    {{ 'invitations.guestDetails.form.guestGroup.tooltip' | translate }}
+  </div>
+</ng-template>
+
+<ng-template #requestorTooltip>
+  <div class="bulk-guest-details__tooltip">
+    {{ 'invitations.guestDetails.form.requestor.tooltip' | translate }}
+  </div>
+</ng-template>
+
+<ng-template #dataPreviewTemplate>
+  <div class="bulk-guest-details__preview">
+    <div class="bulk-guest-details__table-container">
+      <table class="bulk-guest-details__table">
+        <thead>
+          <tr>
+            <th translate>invitations.bulkGuestDetails.firstName</th>
+            <th translate>invitations.bulkGuestDetails.lastName</th>
+            <th translate>invitations.bulkGuestDetails.email</th>
+            <th translate>invitations.bulkGuestDetails.status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (guest of csvData(); track $index; let i = $index) {
+            <tr [class]="getGuestErrorClass(guest)">
+              <td>{{ guest.firstName || '-' }}</td>
+              <td>{{ guest.lastName || '-' }}</td>
+              <td>{{ guest.email || '-' }}</td>
+              <td class="bulk-guest-details__status-cell">
+                @if (guest.isValid) {
+                  <span class="bulk-guest-details__status bulk-guest-details__status--valid">
+                    <ignt-icon
+                      name="check"
+                      variant="solid"
+                      class="bulk-guest-details__status-icon bulk-guest-details__status-icon--valid"
+                    />
+                  </span>
+                }
+                @if (!guest.isValid) {
+                  <div class="bulk-guest-details__errors">
+                    <span class="bulk-guest-details__status bulk-guest-details__status--invalid">
+                      <ignt-icon
+                        name="times"
+                        variant="solid"
+                        class="bulk-guest-details__status-icon bulk-guest-details__status-icon--invalid"
+                      />
+                    </span>
+                    <ul class="bulk-guest-details__error-list">
+                      @for (error of guest.errors; track $index) {
+                        <li class="bulk-guest-details__error-item" data-testid="bulk-guest-details-error-item">
+                          {{ error | translate }}
+                        </li>
+                      }
+                    </ul>
+                  </div>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="bulk-guest-details__summary">
+      <span class="bulk-guest-details__summary-item bulk-guest-details__summary-item--valid">
+        {{ validCsvGuestCount() }} <span>{{ 'invitations.bulkGuestDetails.validGuests' | translate }}</span>
+      </span>
+      <span class="bulk-guest-details__summary-item bulk-guest-details__summary-item--invalid">
+        {{ invalidCsvGuestCount() }} <span>{{ 'invitations.bulkGuestDetails.invalidGuests' | translate }}</span>
+      </span>
+    </div>
+  </div>
+</ng-template>

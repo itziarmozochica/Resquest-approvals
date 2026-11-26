@@ -1,0 +1,126 @@
+<div class="whitelabel-media-gallery">
+  <div class="whitelabel-media-gallery__filters">
+    <div class="whitelabel-media-gallery__filter">
+      <label class="whitelabel-media-gallery__label" for="whitelabel-media-gallery-scope-filter">
+        {{ 'whitelabelMediaGallery.scope.label' | translate }}
+      </label>
+      <select
+        id="whitelabel-media-gallery-scope-filter"
+        class="whitelabel-media-gallery__select"
+        [value]="scopeFilter()"
+        (change)="onScopeFilterChange($event)"
+        data-testid="whitelabel-media-gallery-scope-filter"
+      >
+        @for (opt of scopeFilterOptions; track opt.value) {
+          <option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="whitelabel-media-gallery__filter">
+      <label class="whitelabel-media-gallery__label" for="whitelabel-media-gallery-usage-filter">
+        {{ 'whitelabelMediaGallery.filter.label' | translate }}
+      </label>
+      <select
+        id="whitelabel-media-gallery-usage-filter"
+        class="whitelabel-media-gallery__select"
+        [value]="usageFilter()"
+        (change)="onUsageFilterChange($event)"
+        data-testid="whitelabel-media-gallery-usage-filter"
+      >
+        @for (opt of usageFilterOptions; track opt.value) {
+          <option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+        }
+      </select>
+    </div>
+
+    @if (!selectable()) {
+      <ignt-button
+        variant="primary"
+        size="small"
+        [leadingIcon]="{ name: 'upload', variant: 'light' }"
+        [label]="'whitelabelMediaGallery.uploadNew' | translate"
+        class="whitelabel-media-gallery__upload"
+        (click)="onUploadClick()"
+        data-testid="whitelabel-media-gallery-upload"
+      />
+    }
+  </div>
+
+  <div class="whitelabel-media-gallery__scroll" [class.whitelabel-media-gallery__scroll--bounded]="selectable()">
+    @if (loading() || showSearchingState()) {
+      <div class="whitelabel-media-gallery__loader" aria-busy="true">
+        <ignt-icon aria-hidden="true" name="spinner" variant="solid" size="h4" [spin]="true" />
+      </div>
+    } @else if (showEmptyState()) {
+      <p class="whitelabel-media-gallery__empty">{{ 'whitelabelMediaGallery.empty' | translate }}</p>
+    } @else {
+      <div class="whitelabel-media-gallery__grid" [attr.role]="selectable() ? 'listbox' : 'list'">
+        @for (asset of filteredItems(); track asset.id) {
+          <article
+            class="whitelabel-media-gallery__card"
+            [attr.role]="selectable() ? 'option' : 'listitem'"
+            [class.whitelabel-media-gallery__card--selectable]="selectable()"
+            [class.whitelabel-media-gallery__card--selected]="selectable() && selectedAssetId() === asset.id"
+            [attr.tabindex]="selectable() ? 0 : null"
+            [attr.aria-selected]="selectable() ? selectedAssetId() === asset.id : null"
+            [attr.aria-label]="selectable() ? ('whitelabelMediaGallery.selectAsset' | translate) + ': ' + asset.file_name : null"
+            (click)="onCardClick(asset)"
+            (keydown.enter)="onCardClick(asset)"
+            (keydown.space)="$event.preventDefault(); onCardClick(asset)"
+          >
+            <div class="whitelabel-media-gallery__preview">
+              @if (assetPreviewSrc(asset); as previewUrl) {
+                <img class="whitelabel-media-gallery__preview-img" [src]="previewUrl" [alt]="asset.file_name" loading="lazy" />
+              } @else {
+                <ignt-icon class="whitelabel-media-gallery__preview-icon" name="image" variant="regular" size="h4" aria-hidden="true" />
+              }
+            </div>
+            <div class="whitelabel-media-gallery__card-footer">
+              <p class="whitelabel-media-gallery__filename" [title]="asset.file_name">{{ asset.file_name }}</p>
+              @if (copiedAssetId() === asset.id) {
+                <span class="whitelabel-media-gallery__copied" aria-hidden="true">{{ 'whitelabelMediaGallery.copied' | translate }}</span>
+              }
+              <button
+                type="button"
+                ignt-icon-button
+                size="small"
+                sentiment="tertiary"
+                class="whitelabel-media-gallery__copy"
+                [class.whitelabel-media-gallery__copy--copied]="copiedAssetId() === asset.id"
+                [icon]="copiedAssetId() === asset.id ? ['fas', 'check'] : ['fal', 'copy']"
+                [attr.title]="
+                  (copiedAssetId() === asset.id ? 'whitelabelMediaGallery.copied' : 'whitelabelMediaGallery.copyUrl') | translate
+                "
+                [attr.aria-label]="
+                  (copiedAssetId() === asset.id ? 'whitelabelMediaGallery.copied' : 'whitelabelMediaGallery.copyUrl') | translate
+                "
+                (click)="$event.stopPropagation(); copyUrl(asset)"
+              ></button>
+              <button
+                type="button"
+                ignt-icon-button
+                size="small"
+                sentiment="tertiary"
+                class="whitelabel-media-gallery__details"
+                [icon]="['fal', 'circle-info']"
+                [attr.title]="'whitelabelMediaGallery.viewDetails' | translate"
+                [attr.aria-label]="'whitelabelMediaGallery.viewDetails' | translate"
+                (click)="$event.stopPropagation(); openDetails(asset)"
+                data-testid="whitelabel-media-gallery-details"
+              ></button>
+            </div>
+          </article>
+        }
+      </div>
+    }
+
+    @if (loadingMore() && filteredItems().length > 0) {
+      <div class="whitelabel-media-gallery__loader whitelabel-media-gallery__loader--more" aria-busy="true">
+        <ignt-icon aria-hidden="true" name="spinner" variant="solid" size="caption" [spin]="true" />
+      </div>
+    }
+
+    <div class="whitelabel-media-gallery__sentinel" aria-hidden="true"></div>
+  </div>
+</div>

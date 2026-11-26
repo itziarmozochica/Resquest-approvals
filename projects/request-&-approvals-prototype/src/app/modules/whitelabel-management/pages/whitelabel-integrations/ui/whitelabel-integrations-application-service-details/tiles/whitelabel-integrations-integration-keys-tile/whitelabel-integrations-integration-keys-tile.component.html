@@ -1,0 +1,82 @@
+<section class="whitelabel-integrations-hub-panel" aria-labelledby="integration-keys-heading">
+  <div class="whitelabel-integrations-hub-panel__head">
+    <h2 class="whitelabel-integrations-hub-panel__title" id="integration-keys-heading">
+      {{ 'whitelabelManagement.integrations.apiKeys.section' | translate }}
+    </h2>
+    @if (keys().length > 0 && !isReadOnly()) {
+      <button igntButton sentiment="secondary" size="small" type="button" (click)="onAddKeyClick()">
+        {{ 'whitelabelManagement.integrations.apiKeys.addKey' | translate }}
+      </button>
+    }
+  </div>
+  <div class="whitelabel-integrations-hub-panel__separator" aria-hidden="true"></div>
+  @if (listError()) {
+    <div class="alert alert-danger whitelabel-integrations-hub-panel__alert" role="alert">
+      {{ listError()! | translate }}
+    </div>
+  }
+  @if (loading()) {
+    <p class="whitelabel-integrations-hub-panel__empty text-muted mb-0">
+      {{ 'common.loading' | translate }}
+    </p>
+  } @else if (keys().length === 0) {
+    <div class="whitelabel-integrations-hub-panel__empty-cta">
+      <p class="whitelabel-integrations-hub-panel__empty-cta-message text-muted mb-0">
+        {{ 'whitelabelManagement.integrations.apiKeys.empty' | translate }}
+      </p>
+      @if (!isReadOnly()) {
+        <button igntButton sentiment="secondary" size="small" type="button" (click)="onAddKeyClick()">
+          {{ 'whitelabelManagement.integrations.apiKeys.addKey' | translate }}
+        </button>
+      }
+    </div>
+  } @else {
+    <div #keysTableScroll class="whitelabel-integrations-hub-panel__table-scroll" (scroll)="onKeysScroll($event)">
+      <table class="table table-sm table-striped align-middle mb-0">
+        <thead class="whitelabel-integrations-hub-panel__thead">
+          <tr>
+            <th scope="col">{{ 'whitelabelManagement.integrations.apiKeys.columnAlias' | translate }}</th>
+            <th scope="col">{{ 'whitelabelManagement.integrations.apiKeys.columnKey' | translate }}</th>
+            <th scope="col">{{ 'whitelabelManagement.integrations.apiKeys.columnType' | translate }}</th>
+            <th scope="col">{{ 'whitelabelManagement.integrations.apiKeys.columnStrategy' | translate }}</th>
+            <th scope="col">{{ 'whitelabelManagement.integrations.apiKeys.columnCreated' | translate }}</th>
+            <th class="text-end" scope="col">
+              <span class="visually-hidden">{{ 'whitelabelManagement.integrations.linkedServicesTableActions' | translate }}</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of keys(); track row.id) {
+            <tr>
+              <td>{{ row.alias }}</td>
+              <td>
+                <code class="whitelabel-integrations-hub-panel__mono">{{ row.key_masked }}</code>
+              </td>
+              <td>{{ row.integration_type }}</td>
+              <td>{{ row.key_validation_strategy }}</td>
+              <td>{{ row.created_at | date: 'medium' }}</td>
+              <td class="text-end">
+                @if (!isReadOnly()) {
+                  <button
+                    class="btn btn-link text-danger p-0 whitelabel-integrations-hub-panel__delete"
+                    type="button"
+                    [attr.aria-label]="'whitelabelManagement.integrations.apiKeys.deleteAria' | translate"
+                    [disabled]="deletingKeyId() === row.id"
+                    (click)="onDeleteKeyClick(row, $event)"
+                  >
+                    <ignt-icon name="trash-alt" variant="light" size="base" aria-hidden="true" />
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      @if (loadingMore()) {
+        <p class="whitelabel-integrations-hub-panel__load-more text-muted text-center mb-0 py-2">
+          {{ 'common.loading' | translate }}
+        </p>
+      }
+    </div>
+  }
+</section>

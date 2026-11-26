@@ -1,0 +1,115 @@
+<div
+  [class]="cardClass()"
+  [attr.data-testid]="'create-event-quick-setup-schedule-card-' + testIdSuffix()"
+  [class.quick-setup-schedule-card--collapsed]="isCollapsed()"
+  [class.quick-setup-schedule-card--interaction-locked]="isScheduleItemLocked()"
+>
+  <div class="quick-setup-schedule-card__header">
+    <div class="quick-setup-schedule-card__heading">
+      <span class="quick-setup-schedule-card__icon" aria-hidden="true">
+        <ignt-icon name="calendar" variant="light"></ignt-icon>
+      </span>
+
+      @if (editingScheduleNameControl(); as nameControl) {
+        <div class="quick-setup-schedule-card__name-edit" data-testid="create-event-quick-setup-schedule-name-edit">
+          <ignt-input-field
+            class="quick-setup-schedule-card__name-input"
+            [formControl]="nameControl"
+            label=""
+            [placeholder]="'createEvent.quickSetupWizard.step3.scheduleNamePlaceholder' | translate"
+            [attr.data-testid]="'create-event-quick-setup-schedule-name-input-' + testIdSuffix()"
+          />
+
+          <div class="quick-setup-schedule-card__name-actions">
+            <ignt-button
+              class="quick-setup-schedule-card__name-action"
+              size="small"
+              sentiment="danger"
+              variant="tertiary"
+              [attr.data-testid]="'create-event-quick-setup-schedule-name-cancel-' + testIdSuffix()"
+              [label]="'common.cancel' | translate"
+              (click)="cancelEditingScheduleName()"
+            />
+            <ignt-button
+              class="quick-setup-schedule-card__name-action"
+              size="small"
+              variant="secondary"
+              [attr.data-testid]="'create-event-quick-setup-schedule-name-save-' + testIdSuffix()"
+              [label]="'common.save' | translate"
+              (click)="saveScheduleName()"
+            />
+          </div>
+        </div>
+      } @else {
+        <div class="quick-setup-schedule-card__name-row">
+          <h3 class="quick-setup-schedule-card__title" [attr.data-testid]="'create-event-quick-setup-schedule-name-' + testIdSuffix()">
+            {{ scheduleName() }}
+          </h3>
+          @if (canStartEditingScheduleName()) {
+            <button
+              type="button"
+              ignt-icon-button
+              sentiment="tertiary"
+              size="medium"
+              class="quick-setup-schedule-card__edit-button"
+              [icon]="['far', 'edit']"
+              [attr.data-testid]="'create-event-quick-setup-schedule-name-edit-' + testIdSuffix()"
+              [attr.aria-label]="'createEvent.quickSetupWizard.step3.editScheduleName' | translate"
+              (click)="startEditingScheduleName()"
+            ></button>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="quick-setup-schedule-card__header-actions">
+      @if (canDeleteSchedule() && !isScheduleNameEditLocked()) {
+        <button
+          type="button"
+          ignt-icon-button
+          sentiment="tertiary"
+          size="medium"
+          class="quick-setup-schedule-card__delete-button"
+          [icon]="['fas', 'trash']"
+          [attr.data-testid]="'create-event-quick-setup-schedule-delete-' + testIdSuffix()"
+          [attr.aria-label]="'createEvent.quickSetupWizard.step3.deleteSchedule' | translate"
+          (click)="removeSchedule.emit()"
+        ></button>
+      }
+
+      <button
+        type="button"
+        ignt-icon-button
+        sentiment="tertiary"
+        size="medium"
+        class="quick-setup-schedule-card__collapse-button"
+        [icon]="isCollapsed() ? ['fas', 'chevron-up'] : ['fas', 'chevron-down']"
+        [attr.data-testid]="'create-event-quick-setup-schedule-collapse-' + testIdSuffix()"
+        [attr.aria-expanded]="!isCollapsed()"
+        [attr.aria-label]="
+          (isCollapsed() ? 'createEvent.quickSetupWizard.step3.expandSchedule' : 'createEvent.quickSetupWizard.step3.collapseSchedule')
+            | translate
+        "
+        (click)="toggleCollapsed()"
+      ></button>
+    </div>
+  </div>
+
+  <div
+    class="quick-setup-schedule-card__body"
+    [attr.data-testid]="'create-event-quick-setup-schedule-body-' + testIdSuffix()"
+    [hidden]="isCollapsed()"
+  >
+    <app-quick-setup-schedule-item
+      [formControl]="scheduleItemControl"
+      [availableSessionTypeIds]="availableSessionTypeIds()"
+      [capacityTemplateId]="capacityTemplateId()"
+      [isPricesByTier]="isPricesByTier()"
+      [locale]="locale()"
+      [sessionTypeOptions]="sessionTypeOptions()"
+      [tierOptions]="tierOptions()"
+      [timezone]="timezone()"
+      (calendarScrollToMonth)="calendarScrollToMonth.emit($event)"
+    />
+  </div>
+</div>

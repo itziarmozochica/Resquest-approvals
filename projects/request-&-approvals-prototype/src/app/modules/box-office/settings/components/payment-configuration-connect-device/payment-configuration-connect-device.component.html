@@ -1,0 +1,59 @@
+<section class="payment-configuration-connect-device" data-testid="gateway-adyen-local-connect-device">
+  <span class="payment-configuration-connect-device__title">
+    {{ 'paymentConfig.editor.gateway.terminals.connectedTitle' | translate }}
+  </span>
+
+  @if (displayedTerminals().length === 0) {
+    <p class="payment-configuration-connect-device__helper" data-testid="gateway-adyen-local-terminals-empty">
+      {{ 'paymentConfig.editor.gateway.terminals.adyenLocal.connectedEmpty' | translate }}
+    </p>
+  } @else {
+    <ul class="payment-configuration-connect-device__terminal-list">
+      @for (terminal of displayedTerminals(); track terminal.externalId) {
+        <li class="payment-configuration-connect-device__terminal" [attr.data-testid]="'gateway-terminal-' + terminal.externalId">
+          <ignt-pill
+            [label]="terminal.externalId | uppercase"
+            [disabled]="disabled()"
+            [attr.data-testid]="'gateway-terminal-remove-' + terminal.externalId"
+            (clicked)="onRemove(terminal.externalId)"
+          />
+          @if (terminal.ipAddress !== null) {
+            <span class="payment-configuration-connect-device__terminal-ip">{{ terminal.ipAddress }}</span>
+          }
+        </li>
+      }
+    </ul>
+  }
+
+  @if (isConnected() && storedKeyVersion() !== null) {
+    <p class="payment-configuration-connect-device__helper" data-testid="gateway-adyen-local-connect-key-version">
+      {{ 'paymentConfig.editor.gateway.terminals.adyenLocal.connect.connectedKeyVersion' | translate: { version: storedKeyVersion() } }}
+    </p>
+  }
+
+  @if (supportsConnect) {
+    <ignt-button
+      class="payment-configuration-connect-device__action"
+      data-testid="gateway-adyen-local-connect-button"
+      variant="secondary"
+      [disabled]="disabled() || !hasCredentials()"
+      [label]="
+        (isConnected()
+          ? 'paymentConfig.editor.gateway.terminals.adyenLocal.connect.reconnectButton'
+          : 'paymentConfig.editor.gateway.terminals.adyenLocal.connect.button'
+        ) | translate
+      "
+      (click)="openConnectDialog()"
+    />
+
+    @if (!hasCredentials()) {
+      <p class="payment-configuration-connect-device__helper" data-testid="gateway-adyen-local-connect-needs-credentials">
+        {{ 'paymentConfig.editor.gateway.terminals.adyenLocal.connect.needsCredentials' | translate }}
+      </p>
+    }
+  } @else {
+    <p class="payment-configuration-connect-device__helper" data-testid="gateway-adyen-local-connect-not-dual-screen">
+      {{ 'paymentConfig.editor.gateway.terminals.adyenLocal.connect.notDualScreen' | translate }}
+    </p>
+  }
+</section>

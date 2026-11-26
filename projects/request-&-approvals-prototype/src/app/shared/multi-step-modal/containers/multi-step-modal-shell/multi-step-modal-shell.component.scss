@@ -1,0 +1,149 @@
+@use 'foundations' as foundations;
+@use 'foundations/effects/motion' as motion;
+
+.multi-step-modal-shell {
+  width: 100%;
+  max-width: 100%;
+  // The dialog owns the (fixed) width; only the content-driven height is animated here, pinned so
+  // CSS can transition it (it can't transition an `auto` height) as steps of different heights come
+  // and go. Clipped so the natural-height sizer doesn't flash a scrollbar while the pinned height
+  // catches up.
+  overflow: clip;
+  transition: height motion.$motion-duration-moderate1 motion.$motion-easing-regular;
+
+  &__sizer {
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-4;
+    padding: foundations.$space-6;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: foundations.$space-3;
+    padding-bottom: foundations.$space-4;
+    border-bottom: foundations.$dimension-px solid foundations.$color-border-main;
+
+    &--centered {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      column-gap: foundations.$space-2;
+      padding-bottom: foundations.$space-3;
+    }
+  }
+
+  &__back,
+  &__close {
+    justify-self: start;
+  }
+
+  &__close {
+    grid-column: 3;
+    justify-self: end;
+  }
+
+  &__title {
+    flex: 1;
+    margin: 0;
+    font: foundations.$font-h4;
+    color: foundations.$color-text-main;
+    text-align: center;
+    min-width: 0;
+
+    .multi-step-modal-shell__header--centered & {
+      flex: unset;
+      grid-column: 2;
+      justify-self: center;
+    }
+  }
+
+  &__progress {
+    height: foundations.$space-1-5;
+    border-radius: foundations.$radii-full;
+    background: foundations.$color-background-subtle-weak;
+    overflow: hidden;
+  }
+
+  &__progress-bar {
+    display: block;
+    height: 100%;
+    background: foundations.$color-background-positive-base;
+
+    @media (prefers-reduced-motion: no-preference) {
+      transition: width motion.$motion-duration-moderate1 motion.$motion-easing-regular;
+    }
+  }
+
+  &__content {
+    min-height: foundations.$dimension-60;
+  }
+
+  &--compact {
+    .multi-step-modal-shell__content {
+      min-height: 0;
+    }
+
+    .multi-step-modal-shell__sizer {
+      gap: foundations.$space-6;
+      padding-block: foundations.$space-4 foundations.$space-6;
+      padding-inline: 0;
+    }
+  }
+
+  &__footer {
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-4;
+
+    &--separated {
+      padding-top: foundations.$space-4;
+      border-top: foundations.$dimension-px solid foundations.$color-border-main;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-start;
+    gap: foundations.$space-3;
+
+    &--full-width {
+      flex-direction: column;
+
+      .multi-step-modal-shell__action--primary {
+        display: block;
+        width: 100%;
+
+        ::ng-deep .button {
+          width: 100%;
+        }
+      }
+    }
+  }
+
+  // Chrome (fill, border, radius, disabled, bold label) is owned by the DS button; the shell only
+  // places the actions. The row packs from the start, and the first action that is not `leading`
+  // absorbs the free space, so the actions the config marks `leading` stay pinned to the start and
+  // everything after them clusters at the end. Both degenerate footers fall out of the same two
+  // rules: only `leading` actions stay at the start, and none at all still cluster at the end.
+  &__action {
+    &--full-width {
+      width: 100%;
+
+      ::ng-deep .button {
+        width: 100%;
+      }
+    }
+  }
+
+  &__action:not(&__action--leading):first-child,
+  &__action--leading ~ &__action:not(&__action--leading) {
+    margin-inline-start: auto;
+  }
+
+  &__action:not(&__action--leading):first-child ~ &__action,
+  &__action--leading ~ &__action:not(&__action--leading) ~ &__action {
+    margin-inline-start: 0;
+  }
+}

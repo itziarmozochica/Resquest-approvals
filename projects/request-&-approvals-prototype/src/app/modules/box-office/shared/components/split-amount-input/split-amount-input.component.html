@@ -1,0 +1,62 @@
+<div class="split-amount-input">
+  <div class="split-amount-input__inputs">
+    <div class="split-amount-input__group">
+      <label class="split-amount-input__label">{{ 'boxOffice.splitAmountInput.numberOfSplits' | translate }}</label>
+      <input
+        type="number"
+        min="1"
+        step="1"
+        class="split-amount-input__field"
+        data-testid="split-number-of-splits"
+        [placeholder]="'boxOffice.splitAmountInput.numberOfSplitsPlaceholder' | translate"
+        [value]="numberOfSplitsInput()"
+        [disabled]="disabled()"
+        (input)="onNumberOfSplitsChange($event)"
+      />
+      @if (suggestedAmount()) {
+        <span class="split-amount-input__hint" data-testid="split-suggested-amount">≈ {{ suggestedAmount()! | number: '1.2-2' }}</span>
+      }
+    </div>
+    <div class="split-amount-input__group">
+      <label class="split-amount-input__label">{{ 'boxOffice.splitAmountInput.customAmount' | translate }}</label>
+      <input
+        appAutoformatNumericInput
+        type="text"
+        class="split-amount-input__field"
+        data-testid="split-custom-amount"
+        [class.split-amount-input__field--error]="isAmountExceedingRemaining()"
+        [atmMode]="true"
+        [currency]="currency()"
+        [placeHolderValue]="0"
+        [atmMaxAmount]="remainingAmount()"
+        [disabled]="disabled()"
+        (rawValue)="onCustomAmountRawValue($event)"
+      />
+      @if (effectiveAmount() && !isAmountExceedingRemaining() && !isAmountTooLow() && !wouldLeaveInsufficient()) {
+        <span class="split-amount-input__hint" data-testid="split-effective-amount">
+          {{ 'boxOffice.splitAmountInput.amountToBeSent' | translate: { amount: (effectiveAmount()! | number: '1.2-2') } }}
+        </span>
+      }
+      @if (isAmountExceedingRemaining()) {
+        <span class="split-amount-input__hint split-amount-input__hint--error" data-testid="split-error-exceeds-remaining">
+          {{ 'boxOffice.splitAmountInput.exceedsRemaining' | translate }}
+        </span>
+      }
+      @if (isAmountTooLow()) {
+        <span class="split-amount-input__hint split-amount-input__hint--error" data-testid="split-error-minimum-amount">
+          {{ 'boxOffice.splitAmountInput.minimumAmount' | translate: { amount: minimumAmountFormatted } }}
+        </span>
+      }
+      @if (wouldLeaveInsufficient()) {
+        <span class="split-amount-input__hint split-amount-input__hint--error" data-testid="split-error-insufficient-remainder">
+          {{ 'boxOffice.splitAmountInput.insufficientRemainder' | translate: { amount: minimumAmountFormatted } }}
+        </span>
+      }
+    </div>
+  </div>
+  @if (effectiveAmount() === null) {
+    <span class="split-amount-input__hint" data-testid="split-enter-amount-hint">{{
+      'boxOffice.splitAmountInput.enterAmountHint' | translate
+    }}</span>
+  }
+</div>

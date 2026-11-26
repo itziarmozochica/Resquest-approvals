@@ -1,0 +1,149 @@
+@let plan = drawing();
+
+<svg
+  class="booked-slot-move-plan-drawing"
+  data-testid="booked-slot-move-plan-drawing"
+  aria-hidden="true"
+  focusable="false"
+  [attr.viewBox]="'0 0 ' + plan.width + ' ' + plan.height"
+>
+  @for (column of plan.columns; track column.assetId) {
+    <rect
+      class="booked-slot-move-plan-drawing__column"
+      rx="3"
+      [attr.x]="column.x"
+      [attr.y]="plan.gridTop"
+      [attr.width]="column.width"
+      [attr.height]="plan.gridBottom - plan.gridTop"
+    ></rect>
+    <text class="booked-slot-move-plan-drawing__asset" text-anchor="middle" [attr.x]="column.x + column.width / 2" y="18">
+      {{ column.name }}
+    </text>
+  }
+
+  @for (tick of plan.ticks; track tick.y) {
+    <text
+      class="booked-slot-move-plan-drawing__tick"
+      [class.booked-slot-move-plan-drawing__tick--hour]="tick.isHour"
+      text-anchor="end"
+      [attr.x]="plan.gutterX - 10"
+      [attr.y]="tick.y + 3.5"
+    >
+      {{ tick.label }}
+    </text>
+    @if (tick.y > plan.gridTop && tick.y < plan.gridBottom) {
+      @for (column of plan.columns; track column.assetId) {
+        <line
+          class="booked-slot-move-plan-drawing__tick-line"
+          [attr.x1]="column.x"
+          [attr.y1]="tick.y"
+          [attr.x2]="column.x + column.width"
+          [attr.y2]="tick.y"
+        ></line>
+      }
+    }
+  }
+
+  @for (vacated of plan.vacatedSpaces; track vacated.bookedSlotId) {
+    <g [attr.data-booked-slot-id]="vacated.bookedSlotId">
+      <rect
+        class="booked-slot-move-plan-drawing__vacated"
+        rx="5"
+        [attr.x]="vacated.x"
+        [attr.y]="vacated.y"
+        [attr.width]="vacated.width"
+        [attr.height]="vacated.height"
+      ></rect>
+      @if (vacated.labelKey) {
+        <text class="booked-slot-move-plan-drawing__vacated-label" [attr.x]="vacated.labelX" [attr.y]="vacated.labelY">
+          {{ vacated.labelKey | translate: vacated.labelParams }}
+        </text>
+      }
+    </g>
+  }
+
+  @for (block of plan.blocks; track block.bookedSlotId) {
+    <g
+      class="booked-slot-move-plan-drawing__block booked-slot-move-plan-drawing__block--{{ block.isNeighbour ? 'neighbour' : block.kind }}"
+      data-testid="booked-slot-move-plan-drawing-block"
+      [attr.data-booked-slot-id]="block.bookedSlotId"
+    >
+      <rect
+        class="booked-slot-move-plan-drawing__block-body"
+        rx="5"
+        [attr.x]="block.x"
+        [attr.y]="block.y"
+        [attr.width]="block.width"
+        [attr.height]="block.height"
+      ></rect>
+      <rect
+        class="booked-slot-move-plan-drawing__block-rail"
+        rx="1.5"
+        width="3"
+        [attr.x]="block.x + 1.5"
+        [attr.y]="block.y + 1.5"
+        [attr.height]="block.height - 3"
+      ></rect>
+      @if (block.density !== 'bare') {
+        <text class="booked-slot-move-plan-drawing__block-title" [attr.x]="block.x + 14" [attr.y]="block.y + 15">{{ block.title }}</text>
+      }
+      @if (block.density === 'full') {
+        <text class="booked-slot-move-plan-drawing__block-subtitle" [attr.x]="block.x + 14" [attr.y]="block.y + 31">
+          {{ block.subtitle }}
+        </text>
+      }
+      @if (block.hasPositionChip) {
+        <circle
+          class="booked-slot-move-plan-drawing__block-chip"
+          r="7.5"
+          [attr.cx]="block.x + block.width - 14"
+          [attr.cy]="block.y + 13"
+        ></circle>
+        <text
+          class="booked-slot-move-plan-drawing__block-chip-label"
+          text-anchor="middle"
+          [attr.x]="block.x + block.width - 14"
+          [attr.y]="block.y + 16.5"
+        >
+          {{ block.position }}
+        </text>
+      }
+      @if (block.isNeighbour && block.density !== 'bare') {
+        <text
+          class="booked-slot-move-plan-drawing__block-aside"
+          text-anchor="end"
+          [attr.x]="block.x + block.width - 12"
+          [attr.y]="block.y + 15"
+        >
+          {{ 'bookedSlots.movePlanModal.notAffected' | translate }}
+        </text>
+      }
+    </g>
+  }
+
+  @for (edge of plan.previousEndEdges; track edge.bookedSlotId) {
+    <line
+      class="booked-slot-move-plan-drawing__previous-end"
+      [attr.data-booked-slot-id]="edge.bookedSlotId"
+      [attr.x1]="edge.x1"
+      [attr.y1]="edge.y"
+      [attr.x2]="edge.x2"
+      [attr.y2]="edge.y"
+    ></line>
+  }
+
+  @for (arrow of plan.arrows; track arrow.bookedSlotId) {
+    <g
+      class="booked-slot-move-plan-drawing__arrow booked-slot-move-plan-drawing__arrow--{{ arrow.kind }}"
+      data-testid="booked-slot-move-plan-drawing-arrow"
+      [attr.data-booked-slot-id]="arrow.bookedSlotId"
+    >
+      <path class="booked-slot-move-plan-drawing__arrow-line" [attr.d]="arrow.path"></path>
+      <polygon class="booked-slot-move-plan-drawing__arrow-head" [attr.points]="arrow.headPoints"></polygon>
+    </g>
+  }
+
+  <text class="booked-slot-move-plan-drawing__footnote" [attr.x]="plan.gutterX" [attr.y]="plan.gridBottom + 13">
+    {{ 'bookedSlots.movePlanModal.affectedAssetsOnly' | translate }}
+  </text>
+</svg>

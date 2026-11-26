@@ -1,0 +1,40 @@
+<section class="booking-detail">
+  <kiosk-button [secondary]="true" (click)="goBack()" [label]="'kiosk.booking.back' | translate"></kiosk-button>
+
+  @if (order(); as detail) {
+    <h1 class="booking-detail__title">{{ detail.catalog_main_plan_name || detail.plan_name }}</h1>
+
+    <ul class="booking-detail__tickets">
+      @if (ticketTypes().length) {
+        <li class="booking-ticket">
+          @if (scheduledAt(); as when) {
+            <p class="booking-detail__schedule">{{ when | momentDate: 'EEE d MMM, HH:mm' : venueTimezone() }}</p>
+          }
+          <div class="booking-ticket__info">
+            @for (type of ticketTypes(); track type.label) {
+              <span class="booking-ticket__type">{{ type.label }} &times;{{ type.count }}</span>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+
+    @if (detail.tickets.length) {
+      <kiosk-button
+        [disabled]="isPrinting()"
+        (click)="printTickets()"
+        [label]="(isPrinting() ? 'kiosk.booking.detail.printing' : 'kiosk.booking.detail.print') | translate"
+      ></kiosk-button>
+    }
+    @if (printError()) {
+      <p class="booking-detail__print-error">{{ 'kiosk.booking.detail.printError' | translate }}</p>
+    }
+  } @else {
+    @if (isLoading()) {
+      <p>{{ 'kiosk.booking.detail.loading' | translate }}</p>
+    }
+    @if (hasError()) {
+      <p>{{ 'kiosk.booking.detail.error' | translate }}</p>
+    }
+  }
+</section>

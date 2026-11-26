@@ -1,0 +1,65 @@
+<div class="bulk-edit-ticket-types-step">
+  <p class="bulk-edit-ticket-types-step__description">
+    {{ 'inventory.ticketTypes.bulkEdit.ticketTypesStep.description' | translate }}
+  </p>
+
+  <ignt-input-field
+    class="bulk-edit-ticket-types-step__search"
+    data-testid="itt-bulk-edit-ticket-types-search"
+    [formControl]="searchControl"
+    [label]="''"
+    [leadIcon]="['far', 'search']"
+    [placeholder]="'inventory.ticketTypes.bulkEdit.ticketTypesStep.searchPlaceholder' | translate"
+    [placeholderAsEmptyValue]="true"
+  />
+
+  @if (hasExceededMaxSelection()) {
+    <ignt-alert
+      class="bulk-edit-ticket-types-step__alert"
+      data-testid="itt-bulk-edit-max-selection-alert"
+      sentiment="warning"
+      [title]="'inventory.ticketTypes.bulkEdit.ticketTypesStep.maxSelectionReached' | translate: { max: maxSelection }"
+    />
+  }
+
+  @if (filteredGroups().length === 0) {
+    <p class="bulk-edit-ticket-types-step__empty" data-testid="itt-bulk-edit-ticket-types-empty">
+      {{ 'inventory.ticketTypes.bulkEdit.ticketTypesStep.noResults' | translate }}
+    </p>
+  } @else {
+    <ignt-checkbox
+      class="bulk-edit-ticket-types-step__select-all"
+      data-testid="itt-bulk-edit-select-all"
+      [checked]="areAllVisibleSelected()"
+      [label]="'inventory.ticketTypes.bulkEdit.ticketTypesStep.selectAll' | translate"
+      (change)="toggleAllVisible($event)"
+    />
+
+    @for (group of filteredGroups(); track trackByGroupId(group)) {
+      <div class="bulk-edit-ticket-types-step__group">
+        <ignt-checkbox
+          class="bulk-edit-ticket-types-step__group-name"
+          [attr.data-testid]="'itt-bulk-edit-group-' + trackByGroupId(group)"
+          [checked]="isGroupSelected(group)"
+          [label]="group.name"
+          (change)="toggleGroup(group, $event)"
+        />
+
+        @for (sessionType of group.sessionTypes; track sessionType.id) {
+          <div class="bulk-edit-ticket-types-step__ticket-type">
+            <ignt-checkbox
+              [attr.data-testid]="'itt-bulk-edit-ticket-type-' + sessionType.id"
+              [checked]="isSessionTypeSelected(sessionType.id)"
+              (change)="toggleSessionType(sessionType.id, $event)"
+            >
+              <span class="bulk-edit-ticket-types-step__ticket-type-label">
+                <ignt-icon name="ticket" variant="light" aria-hidden="true" />
+                {{ sessionType.label }}
+              </span>
+            </ignt-checkbox>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>

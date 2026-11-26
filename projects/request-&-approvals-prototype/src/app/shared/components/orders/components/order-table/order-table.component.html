@@ -1,0 +1,226 @@
+<div class="order-table">
+  <table class="order-table__scroll-container">
+    <thead class="order-table__header">
+      <tr>
+        <ng-container
+          *ngTemplateOutlet="sortableHeader; context: { column: 'purchase_date', labelKey: 'orders.tableColumns.purchaseDate' }"
+        ></ng-container>
+        <ng-container
+          *ngTemplateOutlet="sortableHeader; context: { column: 'order_id', labelKey: 'orders.tableColumns.orderId' }"
+        ></ng-container>
+        @if (!hiddenChannel()) {
+          <ng-container
+            *ngTemplateOutlet="sortableHeader; context: { column: 'channel', labelKey: 'orders.tableColumns.channel' }"
+          ></ng-container>
+        }
+        <ng-container
+          *ngTemplateOutlet="sortableHeader; context: { column: 'payment_method', labelKey: 'orders.tableColumns.paymentMethod' }"
+        ></ng-container>
+        <ng-container
+          *ngTemplateOutlet="sortableHeader; context: { column: 'full_name', labelKey: 'orders.tableColumns.fullName' }"
+        ></ng-container>
+        <ng-container
+          *ngTemplateOutlet="sortableHeader; context: { column: 'tickets', labelKey: 'orders.tableColumns.tickets' }"
+        ></ng-container>
+        @if (showSeatsColumn()) {
+          <ng-container
+            *ngTemplateOutlet="sortableHeader; context: { column: 'seats', labelKey: 'orders.tableColumns.seatLabel' }"
+          ></ng-container>
+        }
+        <ng-container
+          *ngTemplateOutlet="sortableHeader; context: { column: 'event_name', labelKey: 'orders.tableColumns.eventName' }"
+        ></ng-container>
+        <ng-container
+          *ngTemplateOutlet="sortableHeader; context: { column: 'event_date', labelKey: 'orders.tableColumns.eventDay' }"
+        ></ng-container>
+        <th class="order-table__header-cell">{{ 'orders.tableColumns.eventTime' | translate }}</th>
+        <ng-container
+          *ngTemplateOutlet="sortableHeader; context: { column: 'venue', labelKey: 'orders.tableColumns.placeName' }"
+        ></ng-container>
+        <ng-container
+          *ngTemplateOutlet="sortableHeader; context: { column: 'city', labelKey: 'orders.tableColumns.cityName' }"
+        ></ng-container>
+        <ng-container
+          *ngTemplateOutlet="sortableHeader; context: { column: 'payment', labelKey: 'orders.tableColumns.payment' }"
+        ></ng-container>
+        <th class="order-table__header-cell">{{ 'orders.tableColumns.externalOrderId' | translate }}</th>
+        <th class="order-table__header-cell">{{ 'orders.tableColumns.channelManagerOrderId' | translate }}</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      @for (order of orders(); track trackOrderBy($index, order); let i = $index) {
+        @if (order?.orderId) {
+          <tr data-testid="order-table-row" class="order-table__row order-table__row--link">
+            <ng-container *ngTemplateOutlet="tableRow; context: { order, index: i }"> </ng-container>
+          </tr>
+        } @else {
+          <tr data-testid="order-table-row" class="order-table__row">
+            <ng-container *ngTemplateOutlet="tableRow; context: { order, index: i }"> </ng-container>
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>
+
+<ng-template #sortableHeader let-column="column" let-labelKey="labelKey">
+  <th
+    class="order-table__header-cell"
+    [class.order-table__header-cell--sortable]="sortable() && isSortableColumn(column)"
+    [attr.aria-sort]="sortable() && isSortableColumn(column) ? ariaSortFor(column) : null"
+  >
+    @if (sortable() && isSortableColumn(column)) {
+      <button type="button" class="order-table__sort-trigger" (click)="sortHeaderClick($event, column)">
+        <span>{{ labelKey | translate }}</span>
+        <fa-icon
+          [icon]="sortIcon(column)"
+          class="order-table__sort-icon"
+          [class.order-table__sort-icon--active]="isSortIndicatorActive(column)"
+          aria-hidden="true"
+        ></fa-icon>
+      </button>
+    } @else {
+      {{ labelKey | translate }}
+    }
+  </th>
+</ng-template>
+
+<ng-template #tableRow let-order="order" let-index="index">
+  <td data-testid="order-table-purchase-date" class="order-table__purchase-date order-table__row-cell">
+    @if (order.orderId) {
+      <a
+        data-testid="order-table-row-link"
+        class="order-table__row-link"
+        [routerLink]="['/validation']"
+        [queryParams]="{ id: order.orderId, type: 'order' }"
+        [attr.aria-label]="'R' + order.orderId"
+        (click)="sendClickOrderMixpanelEvent(order.orderId)"
+      ></a>
+    }
+    <ng-container *ngTemplateOutlet="formatedDate; context: { date: order.purchaseDate, timezone: order.placeTimezone }"> </ng-container>
+  </td>
+  <td data-testid="order-table-order-id" class="order-table__order-id order-table__row-cell">
+    @if (order?.orderId) {
+      R{{ order?.orderId }}
+    } @else {
+      <ng-container *ngTemplateOutlet="emptyColumn"></ng-container>
+    }
+  </td>
+  @if (!hiddenChannel()) {
+    <td data-testid="order-table-channel" class="order-table__channel order-table__row-cell">
+      {{ order.channelId | channelTranslate: order.channelName }}
+    </td>
+  }
+  <td data-testid="order-table-payment-method" class="order-table__payment-method order-table__row-cell">
+    {{ order.paymentMethod | orderPaymentMethodLabel: order.channelId : order.paymentMethodName }}
+  </td>
+  <td data-testid="order-table-fullname" class="order-table__fullname order-table__row-cell">
+    <div>{{ order.fullName }}</div>
+    @if (order.isGuest) {
+      <div data-testid="order-table-is-guest-tag" class="is-guest-tag">
+        {{ 'validateTicketsNew.orderHeader.guestTag' | translate }}
+      </div>
+    }
+  </td>
+  <td data-testid="order-table-tickets" class="order-table__tickets order-table__row-cell">
+    @if (order.ticketCount > 0) {
+      <button
+        type="button"
+        class="order-table__count-cell"
+        [attr.aria-label]="'orders.tableColumns.ticketsAriaLabel' | translate: { count: order.ticketCount }"
+        (click)="onTicketCellClick(order, $event)"
+      >
+        <ignt-icon aria-hidden="true" class="order-table__count-icon" name="ticket" variant="light"></ignt-icon>
+        <span>{{ order.ticketCount }}</span>
+      </button>
+    } @else {
+      <ng-container *ngTemplateOutlet="emptyColumn"></ng-container>
+    }
+  </td>
+  @if (showSeatsColumn()) {
+    <td data-testid="order-table-seats" class="order-table__seats order-table__row-cell">
+      @if (order.seats.length > 0) {
+        <button
+          type="button"
+          class="order-table__count-cell"
+          [attr.aria-label]="'orders.tableColumns.seatsAriaLabel' | translate: { count: order.seats.length }"
+          (click)="onSeatCellClick(order, $event)"
+        >
+          <ignt-icon aria-hidden="true" class="order-table__count-icon" name="loveseat" variant="solid"></ignt-icon>
+          <span>{{ order.seats.length }}</span>
+        </button>
+      } @else {
+        <ng-container *ngTemplateOutlet="emptyColumn"></ng-container>
+      }
+    </td>
+  }
+  <td data-testid="order-table-plan-name" class="order-table__row-cell">
+    {{ order.planName }}
+  </td>
+  <td data-testid="order-table-plan-date" class="order-table__plan-date order-table__row-cell">
+    @if (order.planDate) {
+      <div>{{ order.planDate | momentDate: 'yyyy-MM-dd' : order.placeTimezone }}</div>
+    } @else {
+      <ng-container *ngTemplateOutlet="emptyColumn"></ng-container>
+    }
+  </td>
+  <td data-testid="order-table-plan-time" class="order-table__plan-time order-table__row-cell">
+    @if (order.planDate) {
+      <div>{{ order.planDate | momentDate: 'HH:mm' : order.placeTimezone }}</div>
+    } @else {
+      <ng-container *ngTemplateOutlet="emptyColumn"></ng-container>
+    }
+  </td>
+  <td data-testid="order-table-place-name" class="order-table__row-cell">
+    {{ order.placeName }}
+  </td>
+  <td data-testid="order-table-city-name" class="order-table__row-cell">
+    {{ order.cityName }}
+  </td>
+  <td data-testid="order-table-payment" class="order-table__row-cell">
+    @if (shouldShowOrderLoyaltyPoints(order)) {
+      {{ 'orders.loyaltyPoints' | translate: { points: order.loyaltyPoints | number } }}
+    } @else {
+      <ng-container
+        *ngTemplateOutlet="orderMoney; context: { money: showPartnerTotal() ? (order.partnerTotal ?? order.total) : order.total, locale }"
+      >
+      </ng-container>
+    }
+  </td>
+  <td data-testid="order-table-external-order-id" class="order-table__row-cell">
+    @if (order.externalOrderId) {
+      {{ order.externalOrderId }}
+    } @else {
+      <ng-container *ngTemplateOutlet="emptyColumn"></ng-container>
+    }
+  </td>
+  <td data-testid="order-table-channel-manager-order-id" class="order-table__row-cell">
+    @if (order.channelManagerOrderId) {
+      {{ order.channelManagerOrderId }}
+    } @else {
+      <ng-container *ngTemplateOutlet="emptyColumn"></ng-container>
+    }
+  </td>
+</ng-template>
+
+<ng-template #formatedDate let-date="date" let-timezone="timezone">
+  @if (date) {
+    <div>{{ date | momentDate: 'yyyy-MM-dd' : timezone }}</div>
+    <div>{{ date | momentDate: 'HH:mm' : timezone }}</div>
+  } @else {
+    <ng-container *ngTemplateOutlet="emptyColumn"></ng-container>
+  }
+</ng-template>
+
+<ng-template #emptyColumn>
+  <div class="empty-cell">-</div>
+</ng-template>
+
+<ng-template #orderMoney let-locale="locale" let-money="money">
+  {{ money ? (money.amount | currency: money.currency : 'symbol-narrow' : undefined : locale) : '-' }}
+</ng-template>
+
+<ng-template #orderLink let-orderId="orderId">
+  <a routerLink="/validation" [queryParams]="{ type: 'order', id: orderId }"> R{{ orderId }} </a>
+</ng-template>

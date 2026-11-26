@@ -1,0 +1,107 @@
+<div class="el-filter__date-input" [ngClass]="{ 'el-filter__date-input--disabled': disabled }" #input (click)="openForDesktopDevices()">
+  <div *ngIf="!isMobile" class="el-daterangepicker--input">
+    <div data-testid="date-range-start-date">
+      {{
+        dateRange?.startDate
+          ? (dateRange?.startDate | date: 'yyyy-MM-dd' : '+00:00')
+          : showNewCalendarOnReservations
+            ? ('filters.anytime' | translate)
+            : ('filters.startDate' | translate)
+      }}
+      <fa-icon class="el-daterangepicker--icon" [icon]="['fal', 'calendar-day']"></fa-icon>
+    </div>
+    <div data-testid="date-range-end-date">
+      {{
+        dateRange?.endDate
+          ? (dateRange?.endDate | date: 'yyyy-MM-dd' : '+00:00')
+          : showNewCalendarOnReservations
+            ? ('filters.anytime' | translate)
+            : ('filters.endDate' | translate)
+      }}
+      <fa-icon class="el-daterangepicker--icon" [icon]="['fal', 'calendar-day']"></fa-icon>
+    </div>
+  </div>
+  <div *ngIf="isMobile" class="el-daterangepicker--input">
+    <label *ngIf="!initialDateShown" class="el-daterangepicker--input-label">
+      {{ dateRange?.startDate ? (dateRange.startDate | date: 'yyyy-MM-dd' : '+00:00') : ('filters.startDate' | translate) }}
+    </label>
+    <input
+      type="date"
+      data-testid="mobile-start-date-input"
+      [ngClass]="{ 'hidden-text': !initialDateShown }"
+      (ngModelChange)="onNativeFromDateSelection($event)"
+      [ngModel]="dateRange?.startDate | date: 'yyyy-MM-dd' : '+00:00'"
+      [attr.max]="maxDate() | date: 'yyyy-MM-dd' : '+00:00'"
+      [disabled]="disabled"
+    />
+    <label *ngIf="!initialDateShown" class="el-daterangepicker--input-label">{{
+      dateRange?.endDate ? (dateRange.endDate | date: 'yyyy-MM-dd' : '+00:00') : ('filters.endDate' | translate)
+    }}</label>
+    <input
+      type="date"
+      data-testid="mobile-end-date-input"
+      [ngClass]="{ 'hidden-text': !initialDateShown }"
+      (ngModelChange)="onNativeToDateSelection($event)"
+      [ngModel]="dateRange?.endDate | date: 'yyyy-MM-dd' : '+00:00'"
+      [min]="dateRange?.startDate | date: 'yyyy-MM-dd'"
+      [attr.max]="maxDate() | date: 'yyyy-MM-dd' : '+00:00'"
+      [disabled]="disabled"
+    />
+  </div>
+</div>
+
+<ngb-datepicker
+  [outsideDays]="'hidden'"
+  class="date-range-picker"
+  #datepicker
+  (dateSelect)="onDateSelection($event)"
+  [startDate]="fromDate"
+  [footerTemplate]="footerTemplate"
+  [displayMonths]="displayMonths"
+  [maxDate]="maxNgbDate()"
+  [dayTemplate]="dateTemplate"
+  *ngIf="isOpen || alwaysOpen"
+>
+</ngb-datepicker>
+
+<ng-template #dateTemplate let-date let-disabled="disabled" let-focused="focused">
+  <span
+    class="range-day"
+    data-testid="date-range"
+    [class.disabled]="disabled"
+    [class.focused]="focused"
+    [class.range]="isRange(date)"
+    [class.faded]="isHovered(date) || isInside(date)"
+    [ngClass]="{ 'range-exceeded': isRange(date) && calculateDateDifference(fromDate, date) > maxDateRange }"
+    (mouseenter)="hoveredDate = date"
+    (mouseleave)="hoveredDate = null"
+  >
+    {{ date.day }}
+  </span>
+</ng-template>
+
+<ng-template #footerTemplate>
+  <div class="el-daterangepicker__footer">
+    <span class="max-range-message" *ngIf="maxDateRange">{{ 'filters.maxDateRange' | translate }} {{ maxDateRange }}</span>
+    <hr />
+    <div class="footer-buttons">
+      <ng-container *ngIf="allowClearDate">
+        <button
+          [ngClass]="{ btn: true, 'btn-primary': true, 'btn-sm': true, 'm-2': true, 'btn--new': true }"
+          data-testid="date-range-clear-button"
+          (click)="clear()"
+        >
+          {{ 'filters.clear' | translate }}
+        </button>
+      </ng-container>
+      <div class="filter-buttons" *ngIf="showFooterShortcuts">
+        <button class="btn btn-primary btn-sm m-2" data-testid="date-range-today-button" (click)="today()">
+          {{ 'filters.today' | translate }}
+        </button>
+        <button class="btn btn-primary btn-sm m-2" data-testid="date-range-current-week-button" (click)="selectActualWeek()">
+          {{ 'filters.currentWeek' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-template>

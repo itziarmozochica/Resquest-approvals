@@ -1,0 +1,60 @@
+<!-- The panel's default `variant="card"` already renders a wrapper card internally, so this replaces the
+     card's own wrapper instead of nesting inside one, and its `elevation` default of 0 keeps the bordered,
+     shadowless look the sidebar's siblings have. The title moves into the panel header, which is also the
+     click target that collapses it.
+
+     Expanded by default, deliberately: this card exists because the request was not visible while the
+     coordinator reproduced it in the selector (GAME-1380). Shipping it collapsed would reintroduce that
+     exact problem — the collapse is there to reclaim sidebar space once the request has been read. -->
+<ignt-expansion-panel [isCollapsed]="false" [title]="'leads.detail.leadDetails' | translate">
+  <div class="lead-context-card" data-testid="lead-context-card">
+    <div class="lead-context-card__identity">
+      <p class="lead-context-card__name" data-testid="lead-context-card-name">{{ displayName() }}</p>
+      @if (showEmail()) {
+        <p class="lead-context-card__email" data-testid="lead-context-card-email">{{ lead().guestEmail }}</p>
+      }
+    </div>
+
+    <dl class="lead-context-card__fields">
+      @if (lead().eventType) {
+        <div class="lead-context-card__field">
+          <dt>{{ 'leads.detail.eventType' | translate }}</dt>
+          <dd data-testid="lead-context-card-event-type">{{ lead().eventType }}</dd>
+        </div>
+      }
+      <!-- `!== null` rather than an `as` alias: a party size of zero is a real value the guest asked for,
+           and truthiness would drop that row. `null` is how the lead says "not asked". -->
+      @if (requestedTicketCount() !== null) {
+        <div class="lead-context-card__field">
+          <dt>{{ 'leads.detail.guestCount' | translate }}</dt>
+          <dd data-testid="lead-context-card-guest-count">
+            {{ 'leads.detail.guestCountValue' | translate: { count: requestedTicketCount() } }}
+          </dd>
+        </div>
+      }
+      <!-- `preferredDate` is a date-only string (`2026-08-08`). Angular's DatePipe has a dedicated branch
+           for those, building the date in local time instead of parsing it as UTC midnight, so this shows
+           the same day in every timezone. Same expression as the lead detail page, on purpose. -->
+      @if (lead().preferredDate; as preferredDate) {
+        <div class="lead-context-card__field">
+          <dt>{{ 'leads.detail.preferredDate' | translate }}</dt>
+          <dd data-testid="lead-context-card-preferred-date">{{ preferredDate | date: 'mediumDate' }}</dd>
+        </div>
+      }
+      @if (lead().preferredTimeWindow; as preferredTimeWindow) {
+        <div class="lead-context-card__field">
+          <dt>{{ 'leads.detail.preferredTimeWindow' | translate }}</dt>
+          <dd data-testid="lead-context-card-preferred-time-window">{{ preferredTimeWindow }}</dd>
+        </div>
+      }
+      @if (notes(); as notes) {
+        <div class="lead-context-card__field" data-testid="lead-context-card-notes">
+          <dt>{{ 'leads.detail.notes' | translate }}</dt>
+          <dd>
+            <app-notes-timeline-message [message]="notes" />
+          </dd>
+        </div>
+      }
+    </dl>
+  </div>
+</ignt-expansion-panel>

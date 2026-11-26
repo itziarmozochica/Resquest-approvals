@@ -1,0 +1,102 @@
+<app-list-sorting
+  class="photo-list"
+  [class.photo-list--disabled]="isUploading || disabled"
+  [template]="mediaListItemTemplate"
+  [addElementControlTemplate]="disabled ? null : addTemplate"
+  [(elements)]="elements"
+>
+</app-list-sorting>
+
+<ng-template #mediaListItemTemplate let-element="element" let-index="index">
+  <div class="photo-card" [class.photo-card--cover]="coverMediaIndexes.includes(index)">
+    <div
+      data-testid="image-sortable-card-content"
+      class="photo-card__content"
+      [style.background-image]="
+        element.media_type === 'photo' ? 'url(' + element.url + ')' : element.poster ? 'url(' + element.poster + ')' : 'none'
+      "
+    >
+      <div class="photo-card__cover">
+        {{
+          element.media_type === 'video'
+            ? ('planEdition.galleryEdition.coverVideo' | translate)
+            : ('planEdition.galleryEdition.coverImage' | translate)
+        }}
+      </div>
+      <div
+        *ngIf="!disabled"
+        (click)="removeMediaItem(index)"
+        (touchstart)="removeMediaItem(index)"
+        data-testid="image-sortable-card-remove"
+        class="photo-card__remove"
+      >
+        <fa-icon [icon]="['fas', 'times']"></fa-icon>
+      </div>
+      <div *ngIf="!disabled" class="photo-card__draggable">
+        <fa-icon [icon]="['fas', 'ellipsis-v']"></fa-icon>
+      </div>
+      <div *ngIf="element.media_type === 'video'" class="photo-card__video-icon">
+        <fa-icon [icon]="['fas', 'play']"></fa-icon>
+      </div>
+    </div>
+    <div data-testid="image-sortable-card-name" class="photo-card__name">{{ element.name || '&nbsp;' }}</div>
+
+    @if (showCoverVariant && index === 0) {
+      <div class="photo-card__variant" data-testid="image-sortable-card-variant">
+        <div class="photo-card__variant-title">{{ 'planEdition.galleryEdition.variantAspectLabel' | translate }}</div>
+        @if (element.sixteenByNine) {
+          <div
+            class="photo-card__variant-preview"
+            data-testid="image-sortable-card-variant-preview"
+            [style.background-image]="
+              element.media_type === 'photo'
+                ? 'url(' + element.sixteenByNine.url + ')'
+                : element.sixteenByNine.poster
+                  ? 'url(' + element.sixteenByNine.poster + ')'
+                  : 'none'
+            "
+          ></div>
+        } @else {
+          <div class="photo-card__variant-preview photo-card__variant-preview--empty" data-testid="image-sortable-card-variant-empty">
+            {{ 'planEdition.galleryEdition.variantEmpty' | translate }}
+          </div>
+        }
+        @if (!disabled) {
+          <div class="photo-card__variant-actions">
+            <ignt-button
+              size="small"
+              variant="tertiary"
+              [attr.data-testid]="element.sixteenByNine ? 'image-sortable-card-variant-replace' : 'image-sortable-card-variant-add'"
+              [label]="
+                (element.sixteenByNine ? 'planEdition.galleryEdition.variantReplace' : 'planEdition.galleryEdition.variantAdd') | translate
+              "
+              (click)="addSixteenByNine(index)"
+            />
+            @if (element.sixteenByNine) {
+              <ignt-button
+                size="small"
+                sentiment="danger"
+                variant="tertiary"
+                data-testid="image-sortable-card-variant-remove"
+                [label]="'planEdition.galleryEdition.variantRemove' | translate"
+                (click)="removeSixteenByNine(index)"
+              />
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+</ng-template>
+
+<ng-template #addTemplate>
+  <div class="add-control-card">
+    <div data-testid="image-sortable-card-add" class="add-control-card__content" (click)="requestUploadFile(false)">
+      <fa-icon class="add-control-card__icon" [icon]="['fas', 'file-upload']"></fa-icon>
+      <div class="add-control-card__title">
+        {{ 'planEdition.galleryEdition.clickToUpload' | translate }}
+      </div>
+      <div class="add-control-card__text" [innerHTML]="'planEdition.galleryEdition.uploadFileText' | translate"></div>
+    </div>
+  </div>
+</ng-template>

@@ -1,0 +1,90 @@
+<div class="question-answer">
+  @switch (question().type) {
+    @case (types.SINGLE_CHOICE) {
+      <ignt-typeahead
+        class="question-answer__field"
+        container="body"
+        [fieldLabel]="label()"
+        [readonly]="!isEditing()"
+        [error]="choiceError() !== null"
+        [errorMessage]="choiceError()"
+        [options]="choiceOptions()"
+        [selectedOption]="selectedChoiceOption()"
+        (selected)="onChoiceSelected($event)"
+      />
+    }
+    @case (types.MULTIPLE_CHOICE) {
+      <app-multi-select
+        class="question-answer__field"
+        container="body"
+        [fieldLabel]="label()"
+        [readonly]="!isEditing()"
+        [errorMessage]="choiceError()"
+        [options]="choiceOptions()"
+        [selectedOptions]="selectedChoiceOptions()"
+        [displayInPlaceMaximum]="5"
+        (selected)="onChoicesSelected($event)"
+      />
+    }
+    @case (types.CHECKBOX_WITH_TERMS) {
+      <div class="question-answer__surface">
+        <ng-container *ngTemplateOutlet="fixedLabel" />
+        <ignt-checkbox class="question-answer__checkbox" [checked]="isChecked()" [disabled]="true" />
+      </div>
+    }
+    @case (types.IMAGE) {
+      <div class="question-answer__surface">
+        <ng-container *ngTemplateOutlet="fixedLabel" />
+        <app-question-answer-file [file]="file()" [title]="question().title" />
+      </div>
+    }
+    @default {
+      <ignt-input-field
+        class="question-answer__field"
+        [id]="inputId()"
+        [label]="label()"
+        [type]="inputType()"
+        [leadIcon]="leadIcon()"
+        [readonly]="!isEditing()"
+        [formControl]="textControl"
+        [customFormErrors]="errorMessages"
+      />
+    }
+  }
+
+  @if (emptyHelperText(); as emptyText) {
+    <ignt-alert [sentiment]="isMissing() ? 'warning' : 'info'" [description]="emptyText" />
+  }
+
+  @for (field of followUpFields(); track field.choice) {
+    <div class="question-answer__follow-up" data-testid="answer-follow-up">
+      <ignt-input-field
+        class="question-answer__follow-up-field"
+        [id]="inputId() + '-follow-up-' + $index"
+        [label]="field.message"
+        [readonly]="!isEditing()"
+        [formControl]="field.control"
+        [customFormErrors]="errorMessages"
+      />
+    </div>
+  }
+</div>
+
+<ng-template #fixedLabel>
+  @if (label() || editing()) {
+    <span class="question-answer__label">
+      {{ label() }}
+      @if (editing()) {
+        <ignt-tag
+          class="question-answer__readonly-tag"
+          data-testid="answer-read-only-tag"
+          sentiment="sharp"
+          variant="outline"
+          [startIcon]="lockIcon"
+        >
+          {{ 'questionAnswer.readOnly' | translate }}
+        </ignt-tag>
+      }
+    </span>
+  }
+</ng-template>

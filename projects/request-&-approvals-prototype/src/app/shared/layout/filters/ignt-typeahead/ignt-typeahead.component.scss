@@ -1,0 +1,350 @@
+@use 'foundations' as foundations;
+@use 'components/fields/textfield/tokens' as fields;
+@use 'foundations/font/font-properties' as font-properties;
+@import 'abstracts/all';
+
+ignt-typeahead {
+  .field {
+    position: relative;
+  }
+
+  .field__select--typeahead {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+[dir='rtl'] ignt-typeahead {
+  .field__icon--trail {
+    right: unset;
+    inset-inline-end: 0;
+  }
+}
+
+.field-dropdown--in-body.dropdown-menu {
+  width: max-content;
+  min-width: 12rem;
+  max-width: 24rem;
+}
+
+// Adaptations for a body-attached popup opened from an Ignite dialog (`isInDialog`; the class comes
+// on top of `--in-body`, opted into per instance so popups on plain pages keep the block above):
+// - `container="body"` takes the popup out of the stacking context of whatever opened it, and makes
+//   `NgbTypeahead` hardcode an INLINE `z-index: 1055` on the window (`_openPopup`,
+//   "container === 'body'" branch). That is one tier below the CDK overlay container hosting Ignite
+//   dialogs — raised to `$zindex-tooltip` (1080) in `theme/general/_modals.scss` — so the popup
+//   painted behind the very dialog that opened it. `!important` is required to beat the inline style
+//   (same approach as the `top` override in `theme/general/_dropdown.scss`); `$zindex-toast` (1090)
+//   is the named tier just above the overlay.
+// - The width is synced to the field by the `sameWidth` positioner modifier (see
+//   `typeahead-same-width.util.ts`) — the same field-wide popup the inline flavour gets from its
+//   CSS `width: 100%`. The `--in-body` min/max caps are lifted so they cannot fight the sync.
+// - Inline popups live inside `.field` and inherit its `max-height` cap (see
+//   `theme/components/fields/textfield/textfield.scss`), which is what makes them scroll — and
+//   scrolling is what drives the `scrollToEnd` paging of server-backed option lookups. A
+//   body-attached popup escapes that scope, so without its own cap it would grow as tall as its
+//   option list and never scroll. Same cap as the inline flavour.
+.field-dropdown--in-dialog.dropdown-menu {
+  min-width: 0;
+  max-width: none;
+  max-height: rem-calc(330);
+  overflow-y: auto;
+  /* stylelint-disable-next-line declaration-no-important -- overrides ngb's inline z-index, see above */
+  z-index: $zindex-toast !important;
+}
+
+/**
+ * In-dialog popups use `strategy: 'fixed'` (see `ignt-typeahead.component.ts`), so Popper keeps
+ * `top: 0` as a neutral baseline and does all positioning via `transform: translate3d(…)`. The
+ * legacy theme pins `top: -5px !important` on every typeahead popup (`theme/general/_dropdown.scss`)
+ * to nudge downward popups closer to their field; on a fixed-strategy popup that nudge shifts the
+ * transform result by 5 px, so reset it here.
+ *
+ * The flipped ("top") placement additionally needs `top: auto !important`: without it the legacy
+ * pin beats the positioner's `auto`, landing the popup at the viewport's top edge and letting the
+ * transform's negative translate carry it clean off-screen.
+ */
+ngb-typeahead-window.field-dropdown--in-dialog.dropdown-menu {
+  /* stylelint-disable-next-line declaration-no-important -- outranks the legacy theme's !important top */
+  top: 0 !important;
+}
+
+ngb-typeahead-window.field-dropdown--in-dialog.dropdown-menu[data-popper-placement^='top'] {
+  /* stylelint-disable-next-line declaration-no-important -- outranks the legacy theme's !important top */
+  top: auto !important;
+}
+
+ngb-typeahead-window.field-dropdown.dropdown-menu {
+  .dropdown-item,
+  .dropdown-item.active {
+    background-color: transparent;
+    border: 0;
+    display: block;
+    margin: 0;
+    padding: 0;
+  }
+
+  .field-dropdown-item {
+    align-items: center;
+    background: none;
+    border: 0;
+    border-radius: foundations.$radii-2;
+    cursor: pointer;
+    display: flex;
+    gap: foundations.$space-2;
+    margin-block: foundations.$size-px2;
+    outline: none;
+    padding-block: foundations.$space-2;
+    padding-inline: foundations.$space-2;
+    text-align: start;
+
+    &.dropdown-item--selected,
+    &:hover:not(.dropdown-item--create-new-form):not(.field-dropdown-item--group-header) {
+      background-color: foundations.$color-background-primary-weak;
+    }
+
+    &.dropdown-item--selected:hover {
+      background-color: foundations.$palette-primary-200;
+    }
+
+    &:focus {
+      outline: none;
+    }
+
+    &.dropdown-item--create-new-form {
+      cursor: default;
+      padding: 0;
+      margin: 0;
+      background: none;
+
+      &:hover,
+      &:focus,
+      &:focus-within,
+      &.active {
+        background-color: transparent;
+      }
+    }
+  }
+
+  .dropdown-item--create-new-form.active {
+    background-color: transparent;
+  }
+
+  ngb-highlight {
+    padding: 0;
+  }
+
+  .create-new-icon {
+    color: foundations.$palette-primary-500;
+    margin-inline-end: foundations.$space-2;
+  }
+
+  .field-dropdown-item__swatch {
+    flex: none;
+    width: foundations.$space-3;
+    height: foundations.$space-3;
+    margin-inline-end: foundations.$space-2;
+    border-radius: foundations.$radii-1;
+  }
+
+  .field-dropdown-item.dropdown-item--create-new {
+    color: foundations.$palette-primary-500;
+    font-weight: font-properties.$weight-bold;
+    margin-top: 0;
+  }
+
+  // The divider only makes sense when there is a list to separate the entry from.
+  .dropdown-item:not(:only-child) .field-dropdown-item.dropdown-item--create-new {
+    border-block-end: foundations.$size-px solid foundations.$color-border-main;
+    border-end-end-radius: 0;
+    border-end-start-radius: 0;
+    padding-block-end: foundations.$space-2;
+  }
+
+  .field-dropdown-item--group-header {
+    cursor: default;
+    color: foundations.$color-text-subtle;
+    font-size: foundations.$size-small;
+    font-weight: 600;
+    margin-block-start: foundations.$space-2;
+    text-transform: uppercase;
+    padding-block: foundations.$space-1;
+  }
+
+  .dropdown-item:first-child .field-dropdown-item--group-header {
+    margin-block-start: 0;
+  }
+
+  .field-dropdown-item__content {
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$size-px2;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .field-dropdown-item__description {
+    color: foundations.$color-text-subtle;
+    font-size: foundations.$size-small;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .field-dropdown-item--disabled {
+    cursor: default;
+    justify-content: space-between;
+
+    &:hover {
+      background-color: transparent;
+    }
+
+    .field-dropdown-item__disabled-content {
+      display: flex;
+      flex-direction: column;
+      gap: foundations.$size-px2;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .field-dropdown-item__disabled-title {
+      color: foundations.$color-text-subtle;
+      font-size: foundations.$size-base;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .field-dropdown-item__disabled-description {
+      color: foundations.$color-text-subtle;
+      font-size: foundations.$size-small;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .field-dropdown-item__edit-button {
+      color: foundations.$palette-primary-600;
+      cursor: pointer;
+    }
+  }
+
+  &.field-dropdown--in-dialog {
+    .field-dropdown-item__description,
+    .field-dropdown-item--disabled .field-dropdown-item__disabled-description {
+      overflow: visible;
+      text-overflow: clip;
+      white-space: normal;
+    }
+  }
+
+  .typeahead-custom-option-form-wrapper {
+    padding: foundations.$space-2;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+
+    .typeahead-custom-option-input-row {
+      display: flex;
+      align-items: center;
+      gap: foundations.$space-2;
+      width: 100%;
+    }
+
+    .custom-option-input-injected {
+      flex: 1;
+      padding: foundations.$space-2;
+      border: foundations.$dimension-px solid foundations.$palette-neutral-200;
+      border-radius: foundations.$radii-1;
+      font-size: $font-size-base;
+      outline: none;
+
+      &:focus {
+        border-color: foundations.$palette-primary-500;
+      }
+
+      &.has-error {
+        border-color: foundations.$palette-danger-500;
+      }
+    }
+
+    .custom-option-confirm-button {
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+
+    .field__helper {
+      margin-top: foundations.$space-1;
+      padding-inline-start: 0;
+    }
+  }
+}
+
+.field__label-tooltip {
+  color: foundations.$color-text-subtle;
+  cursor: help;
+  display: inline-flex;
+  margin-inline-start: foundations.$space-1;
+  pointer-events: auto;
+  vertical-align: middle;
+}
+
+// Adaptations for a popup detached from its field (`detachedPopup`; the class comes on top of
+// `--in-body`). Same shape of problem as `--in-dialog` — a body-attached, viewport-positioned popup
+// fighting the legacy theme — with two differences: the width and the height come from the
+// positioner (`withSameWidth`, `withViewportMaxHeight`) rather than from here, so the `--in-body`
+// caps are lifted and no `max-height` is declared; and the z-index is left alone, because ngb's
+// hardcoded inline `1055` already clears the calendar's own drawer.
+.field-dropdown--detached.dropdown-menu {
+  min-width: 0;
+  max-width: none;
+  overflow-y: auto;
+}
+
+// The legacy theme pins `top: -5px !important` on every typeahead popup
+// (`theme/general/_dropdown.scss`); on the fixed-strategy popups these two use it shifts the
+// positioner's transform. See the same pair of rules for `--in-dialog` above.
+ngb-typeahead-window.field-dropdown--detached.dropdown-menu {
+  /* stylelint-disable-next-line declaration-no-important -- outranks the legacy theme's !important top */
+  top: 0 !important;
+}
+
+ngb-typeahead-window.field-dropdown--detached.dropdown-menu[data-popper-placement^='top'] {
+  /* stylelint-disable-next-line declaration-no-important -- outranks the legacy theme's !important top */
+  top: auto !important;
+}
+
+.field.field--readonly {
+  .field__select[readonly] {
+    background-color: fields.$input-color-background-readonly;
+    border-color: fields.$input-color-border-readonly;
+    color: foundations.$color-text-main;
+    cursor: default;
+    outline: none;
+
+    // The field keeps its place on Tab, so the editable focus ring has to go with the outline.
+    &:focus {
+      box-shadow: none;
+    }
+  }
+
+  .field__select[readonly] ~ .field__label {
+    color: foundations.$color-text-subtle;
+    cursor: default;
+  }
+}
+
+.field.field--readonly .field__select[readonly].has-error {
+  border-color: fields.$input-color-border-danger;
+  box-shadow: inset 0 0 0 foundations.$size-px fields.$input-color-border-danger;
+
+  ~ .field__label {
+    color: fields.$input-label-color-danger;
+  }
+}
+
+.field.field--readonly + .field__helper--danger {
+  color: fields.$input-helper-color-danger;
+}

@@ -1,0 +1,93 @@
+<tr class="landing-row" [attr.data-testid]="'manage-translations-landing-row-' + row().relationId">
+  <td class="landing-row__cell landing-row__name" [attr.data-testid]="'manage-translations-landing-name-' + row().relationId">
+    <ng-template #nameContent>
+      @for (segment of row().nameSegments; track $index) {
+        @if (segment.isMatch) {
+          <mark class="landing-row__mark" data-testid="manage-translations-landing-name-match">{{ segment.text }}</mark>
+        } @else {
+          <span>{{ segment.text }}</span>
+        }
+      }
+    </ng-template>
+    @if (row().defaultLanguage) {
+      <a igntLink [routerLink]="[]" [queryParams]="translationsQueryParams()" queryParamsHandling="merge">
+        <ng-container [ngTemplateOutlet]="nameContent" />
+      </a>
+    } @else {
+      <ng-container [ngTemplateOutlet]="nameContent" />
+    }
+  </td>
+  <td class="landing-row__cell">
+    <span class="landing-row__id-content">
+      <code
+        class="landing-row__short-id"
+        [class.landing-row__short-id--match]="row().isIdMatch"
+        [attr.title]="row().relationId"
+        [attr.data-testid]="'manage-translations-landing-id-' + row().relationId"
+        >{{ row().shortId }}…</code
+      >
+      <button
+        ignt-icon-button
+        size="small"
+        sentiment="tertiary"
+        [icon]="['fal', 'copy']"
+        [attr.aria-label]="'manageTranslations.landing.copyId.ariaLabel' | translate: { name: row().name }"
+        [attr.data-testid]="'manage-translations-landing-copy-id-' + row().relationId"
+        (click)="onAction(ManageTranslationsLandingAction.CopyId)"
+      ></button>
+    </span>
+  </td>
+  <td class="landing-row__cell">
+    <span igntTooltip [tooltipLabel]="languagesTooltip()" class="landing-row__badge-host">
+      @if (canManageTranslations()) {
+        <ignt-button
+          variant="secondary"
+          sentiment="neutral"
+          size="small"
+          [label]="languagesLabel()"
+          [ariaLabel]="languagesAriaLabel()"
+          [attr.data-testid]="'manage-translations-landing-languages-' + row().relationId"
+          (click)="onAction(ManageTranslationsLandingAction.ManageLanguages)"
+        />
+      } @else {
+        <span class="landing-row__badge" [attr.data-testid]="'manage-translations-landing-languages-' + row().relationId">{{
+          languagesLabel()
+        }}</span>
+        <span class="visually-hidden">{{ languagesTooltip() }}</span>
+      }
+    </span>
+  </td>
+  <td class="landing-row__cell">
+    <span igntTooltip [tooltipLabel]="contextsTooltip()" class="landing-row__badge-host">
+      @if (canManageTranslations() && isContextsDialogAvailable()) {
+        <ignt-button
+          [variant]="row().contexts ? 'secondary' : 'tertiary'"
+          [sentiment]="row().contexts?.isHighlighted ? 'brand' : 'neutral'"
+          size="small"
+          [label]="contextsLabel()"
+          [ariaLabel]="contextsAriaLabel()"
+          [attr.data-testid]="'manage-translations-landing-contexts-' + row().relationId"
+          (click)="onAction(ManageTranslationsLandingAction.ManageContexts)"
+        />
+      } @else {
+        <span
+          class="landing-row__badge landing-row__badge--mono"
+          [class.landing-row__badge--empty]="!row().contexts"
+          [class.landing-row__badge--match]="row().contexts?.isHighlighted"
+          [attr.data-testid]="'manage-translations-landing-contexts-' + row().relationId"
+          >{{ contextsLabel() }}</span
+        >
+        <span class="visually-hidden">{{ contextsTooltip() }}</span>
+      }
+    </span>
+  </td>
+  <td class="landing-row__cell landing-row__actions">
+    <app-whitelabel-list-action-dropdown
+      [id]="row().relationId"
+      [options]="menuOptions()"
+      [ariaLabel]="menuAriaLabel()"
+      [attr.data-testid]="'manage-translations-landing-menu-' + row().relationId"
+      (optionClick)="onAction($event)"
+    />
+  </td>
+</tr>

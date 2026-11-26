@@ -1,0 +1,161 @@
+@let cardLayout = layout();
+<div
+  class="booking-card-v3"
+  data-testid="booking-card-v3"
+  [attr.data-state]="state()"
+  [attr.data-colored-by-tags]="isColoredByTags() ? '' : null"
+  [attr.data-tag-color]="tagColor()"
+  [attr.data-width-tier]="cardLayout.widthTier"
+  [attr.data-height-tier]="cardLayout.heightTier"
+  [class.booking-card-v3--move-mode]="isMoveMode()"
+  [class.booking-card-v3--one-row]="cardLayout.isOneRow"
+  [class.booking-card-v3--has-lead-dots]="cardLayout.leadDotCount > 0"
+>
+  <div class="booking-card-v3__bar">
+    @if (state() === 'playing') {
+      <span
+        class="booking-card-v3__bar-drained"
+        data-testid="booking-card-v3-bar-drained"
+        [style.block-size.%]="playingDrainedPercent()"
+      ></span>
+    }
+  </div>
+  <div class="booking-card-v3__body">
+    @switch (cardLayout.body) {
+      @case ('glyph') {
+        <div class="booking-card-v3__top">
+          @if (cardLayout.leadDotCount > 0) {
+            <ng-container [ngTemplateOutlet]="leadDotsTemplate" />
+          }
+          <span class="booking-card-v3__icon-box booking-card-v3__glyph" data-testid="booking-card-v3-glyph">
+            <ignt-icon aria-hidden="true" size="caption" [name]="glyph().iconName" [variant]="glyph().variant" />
+          </span>
+        </div>
+        @if (cardLayout.rowDotCount > 0) {
+          <ng-container [ngTemplateOutlet]="rowDotsTemplate" />
+        }
+      }
+      @case ('compactRow') {
+        <div class="booking-card-v3__row" data-testid="booking-card-v3-top-row">
+          @if (cardLayout.leadDotCount > 0) {
+            <ng-container [ngTemplateOutlet]="leadDotsTemplate" />
+          }
+          <span class="booking-card-v3__middle" [class.booking-card-v3__middle--nameless]="!cardLayout.isNameShown">
+            <span class="booking-card-v3__name" data-testid="booking-card-v3-name">{{ cardLayout.isNameShown ? name() : '' }}</span>
+            @if (isExclusiveHire()) {
+              <span class="booking-card-v3__count" data-testid="booking-card-v3-exclusive">{{
+                'bookedSlots.cardV3.exclusive' | translate
+              }}</span>
+            } @else {
+              <span class="booking-card-v3__count" data-testid="booking-card-v3-count">{{ countText() }}</span>
+            }
+          </span>
+        </div>
+      }
+      @case ('rows') {
+        <div class="booking-card-v3__top">
+          <div class="booking-card-v3__row" data-testid="booking-card-v3-top-row">
+            @if (cardLayout.leadDotCount > 0) {
+              <ng-container [ngTemplateOutlet]="leadDotsTemplate" />
+            }
+            <span class="booking-card-v3__icon-box booking-card-v3__glyph" data-testid="booking-card-v3-glyph">
+              <ignt-icon aria-hidden="true" size="caption" [name]="glyph().iconName" [variant]="glyph().variant" />
+            </span>
+            <span class="booking-card-v3__middle" [class.booking-card-v3__middle--nameless]="!cardLayout.isNameShown">
+              <span class="booking-card-v3__name" data-testid="booking-card-v3-name">{{ cardLayout.isNameShown ? name() : '' }}</span>
+              @if (isExclusiveHire()) {
+                <span class="booking-card-v3__icon-box booking-card-v3__signal" data-testid="booking-card-v3-exclusive">
+                  <ignt-icon aria-hidden="true" name="award" size="caption" variant="light" />
+                </span>
+              } @else if (cardLayout.hasCountGlyph) {
+                <span class="booking-card-v3__group">
+                  <span class="booking-card-v3__count" data-testid="booking-card-v3-count">{{ countText() }}</span>
+                  <span class="booking-card-v3__icon-box booking-card-v3__signal">
+                    <ignt-icon aria-hidden="true" name="user" size="caption" variant="light" />
+                  </span>
+                </span>
+              } @else {
+                <span class="booking-card-v3__count" data-testid="booking-card-v3-count">{{ countText() }}</span>
+              }
+            </span>
+          </div>
+        </div>
+        @if (cardLayout.rowDotCount > 0) {
+          <ng-container [ngTemplateOutlet]="rowDotsTemplate" />
+        }
+        @if (cardLayout.isNoteShown || cardLayout.isBottomRowShown) {
+          <div class="booking-card-v3__bottom">
+            @if (cardLayout.isNoteShown) {
+              <div class="booking-card-v3__note" data-testid="booking-card-v3-note">
+                <span class="booking-card-v3__icon-box booking-card-v3__signal">
+                  <ignt-icon aria-hidden="true" name="file-alt" size="caption" variant="light" />
+                </span>
+                <span class="booking-card-v3__note-text">{{ noteText() }}</span>
+              </div>
+            }
+            @if (cardLayout.isBottomRowShown) {
+              <div class="booking-card-v3__row" data-testid="booking-card-v3-bottom-row">
+                @if (cardLayout.chipCount > 0) {
+                  <div class="booking-card-v3__tags">
+                    @for (tag of chips(); track tag.id) {
+                      <span
+                        class="booking-card-v3__chip booking-card-v3__chip--{{ colorOf(tag.color) }}"
+                        data-testid="booking-card-v3-chip"
+                      >
+                        <ignt-icon
+                          aria-hidden="true"
+                          class="booking-card-v3__chip-glyph"
+                          size="caption"
+                          variant="solid"
+                          [name]="tag.icon ?? iconlessTagGlyph"
+                        />
+                      </span>
+                    }
+                    @if (cardLayout.hiddenTagCount > 0) {
+                      <span class="booking-card-v3__chip booking-card-v3__chip--counter" data-testid="booking-card-v3-tag-counter"
+                        >+{{ cardLayout.hiddenTagCount }}</span
+                      >
+                    }
+                  </div>
+                }
+                <span class="booking-card-v3__signals">
+                  @if (cardLayout.isJourneyShown) {
+                    <span class="booking-card-v3__icon-box booking-card-v3__signal" data-testid="booking-card-v3-journey">
+                      <ignt-icon aria-hidden="true" name="route" size="caption" variant="light" />
+                    </span>
+                  }
+                  @if (cardLayout.isSplitShown) {
+                    <span class="booking-card-v3__group" data-testid="booking-card-v3-split">
+                      @if (!isSplitCompact() && !isExclusiveHire()) {
+                        <span class="booking-card-v3__count" data-testid="booking-card-v3-split-number">{{ splitText() }}</span>
+                      }
+                      <span class="booking-card-v3__icon-box booking-card-v3__signal">
+                        <ignt-icon aria-hidden="true" name="link-simple" size="caption" variant="regular" />
+                      </span>
+                    </span>
+                  }
+                </span>
+              </div>
+            }
+          </div>
+        }
+      }
+    }
+  </div>
+</div>
+
+<ng-template #leadDotsTemplate>
+  <span class="booking-card-v3__lead-dots" aria-hidden="true" data-testid="booking-card-v3-lead-dots">
+    @for (tag of leadDots(); track tag.id) {
+      <span class="booking-card-v3__dot booking-card-v3__dot--{{ colorOf(tag.color) }}" data-testid="booking-card-v3-dot"></span>
+    }
+  </span>
+</ng-template>
+
+<ng-template #rowDotsTemplate>
+  <div class="booking-card-v3__dot-row" aria-hidden="true" data-testid="booking-card-v3-dot-row">
+    @for (tag of rowDots(); track tag.id) {
+      <span class="booking-card-v3__dot booking-card-v3__dot--{{ colorOf(tag.color) }}" data-testid="booking-card-v3-dot"></span>
+    }
+  </div>
+</ng-template>

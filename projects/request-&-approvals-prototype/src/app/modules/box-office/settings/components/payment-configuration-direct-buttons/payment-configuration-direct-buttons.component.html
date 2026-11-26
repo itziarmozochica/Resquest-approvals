@@ -1,0 +1,78 @@
+<div class="direct-buttons" data-testid="payment-configuration-direct-buttons">
+  @for (slot of methodSlots(); track slot.id) {
+    <div class="direct-buttons__slot" [attr.data-testid]="'payment-configuration-direct-buttons-' + slot.id">
+      <div class="direct-buttons__field">
+        @if (slot.enabled) {
+          <label class="direct-buttons__label" [for]="'payment-configuration-direct-button-' + slot.id">
+            {{ 'paymentConfig.editor.directButtons.slots.' + slot.id | translate }}
+          </label>
+          <ng-select
+            [attr.data-testid]="'payment-configuration-direct-buttons-' + slot.id + '-select'"
+            [labelForId]="'payment-configuration-direct-button-' + slot.id"
+            bindLabel="label"
+            bindValue="id"
+            [items]="slot.items"
+            [clearable]="false"
+            [searchable]="false"
+            [readonly]="disabled()"
+            [ngModel]="slot.selectedKey"
+            (ngModelChange)="slotChange.emit({ id: slot.id, key: $event })"
+          />
+        } @else {
+          <ignt-input-field
+            type="text"
+            [attr.data-testid]="'payment-configuration-direct-buttons-' + slot.id + '-field'"
+            [disabled]="true"
+            [label]="'paymentConfig.editor.directButtons.slots.' + slot.id | translate"
+            [ngModel]="slot.unavailable ? ('paymentConfig.editor.directButtons.notAvailable' | translate) : ''"
+          />
+        }
+      </div>
+      <ignt-switch
+        class="direct-buttons__switch"
+        [attr.data-testid]="'payment-configuration-direct-buttons-' + slot.id + '-switch'"
+        [ariaLabel]="'paymentConfig.editor.directButtons.toggle.' + slot.id | translate"
+        [checked]="slot.enabled"
+        [disabled]="disabled() || !slot.toggleable"
+        (checkedChange)="slotToggle.emit({ id: slot.id, enabled: $event })"
+      />
+    </div>
+  }
+
+  @if (secondaryUnavailable()) {
+    <ignt-alert
+      data-testid="payment-configuration-direct-buttons-secondary-alert"
+      sentiment="info"
+      [description]="'paymentConfig.editor.directButtons.secondaryUnavailable' | translate"
+    />
+  }
+
+  <section class="direct-buttons__split" data-testid="payment-configuration-direct-buttons-split">
+    <h4 class="direct-buttons__split-title">{{ 'paymentConfig.editor.split.title' | translate }}</h4>
+    <p class="direct-buttons__helper">{{ 'paymentConfig.editor.split.helper' | translate }}</p>
+    <div class="direct-buttons__split-control">
+      <ignt-switch
+        data-testid="payment-configuration-editor-split-toggle"
+        [ariaLabel]="'paymentConfig.editor.split.title' | translate"
+        [checked]="allowSplitPayments()"
+        [disabled]="disabled()"
+        (checkedChange)="splitToggle.emit()"
+      />
+      <span class="direct-buttons__split-state">{{ 'paymentConfig.editor.split.state' | translate }}</span>
+    </div>
+  </section>
+
+  @if (allowSplitPayments()) {
+    <ignt-alert data-testid="payment-configuration-direct-buttons-split-alert" sentiment="info">
+      <ng-template #igntAlertContent>
+        <p class="direct-buttons__alert-text" [innerHTML]="splitAlertKey() | translate"></p>
+      </ng-template>
+    </ignt-alert>
+  } @else if (seeMoreForced()) {
+    <ignt-alert
+      data-testid="payment-configuration-direct-buttons-see-more-alert"
+      sentiment="info"
+      [description]="'paymentConfig.editor.directButtons.seeMoreAlert' | translate"
+    />
+  }
+</div>

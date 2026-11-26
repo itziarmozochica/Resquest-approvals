@@ -1,0 +1,98 @@
+<div class="oss-hierarchy-tiles" [class.oss-hierarchy-tiles--mobile-breadcrumb]="isMobile() && breadcrumbs().length > 1">
+  <div class="oss-hierarchy-tiles__left-content">
+    <div
+      class="oss-hierarchy-tiles__breadcrumb"
+      data-testid="oss-breadcrumb"
+      *ngIf="!isMobile() ? breadcrumbs().length > 0 : breadcrumbs().length > 1"
+    >
+      <ng-container *ngIf="!isMobile(); else mobileBreadcrumb">
+        <button
+          type="button"
+          class="breadcrumb-item breadcrumb-item__home"
+          [ngClass]="{ 'breadcrumb-item__home--disabled': breadcrumbs().length === 1 }"
+          (click)="navigateToHome()"
+          data-testid="oss-breadcrumb-home"
+        >
+          <ignt-icon name="house" variant="solid" size="base" aria-hidden="true" />
+        </button>
+
+        <div class="breadcrumb-items-wrapper" *ngIf="breadcrumbs().length > 1">
+          <ng-container *ngFor="let breadcrumb of breadcrumbs(); let first = first">
+            <ng-container *ngIf="!first">
+              <span class="breadcrumb-separator"><ignt-icon name="chevron-right" variant="light" size="sm" aria-hidden="true" /></span>
+              <button
+                type="button"
+                class="breadcrumb-item"
+                [class.breadcrumb-item--disabled]="breadcrumb.isCurrentLevel"
+                (click)="navigateToBreadcrumb(breadcrumb)"
+                [disabled]="breadcrumb.isCurrentLevel"
+                data-testid="oss-breadcrumb-item"
+              >
+                {{ breadcrumb.name }}
+              </button>
+            </ng-container>
+          </ng-container>
+        </div>
+      </ng-container>
+    </div>
+    <div class="oss-hierarchy-tiles__container">
+      <div class="oss-hierarchy-tiles__slides-wrapper" [style.transform]="slideTransform()" [class.is-animating]="isAnimating()">
+        <ng-container *ngFor="let page of allPages(); trackBy: trackByIndex">
+          <div class="oss-hierarchy-tiles__slide oss-hierarchy-tiles__grid">
+            <ng-container *ngFor="let tileData of page; trackBy: trackByTileId">
+              <app-oss-tile
+                [id]="tileData.id"
+                [name]="tileData.name"
+                [type]="tileData.type"
+                [category]="tileData.category"
+                [customColor]="tileColorOf(tileData)"
+                [itemKey]="tileRenderKey(tileData)"
+                [price]="tileData.session?.ticketPrice ?? null"
+                [locale]="locale"
+                [unitsAvailable]="getTileUnitsAvailable(tileData.session?.availableTickets)"
+                [isOutOfStock]="isTileOutOfStock(tileData.session?.availableTickets)"
+                [isUnavailable]="isSessionTileUnavailable(tileData)"
+                [variant]="OssTileVariant.LARGE"
+                [attr.data-tile-id]="tileData.id"
+                [attr.data-tile-type]="tileData.type"
+                (add)="handleTileAdd($event)"
+              >
+              </app-oss-tile>
+            </ng-container>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+  <!-- Pagination -->
+  <div
+    class="oss-hierarchy-tiles__pagination"
+    [class.oss-hierarchy-tiles__pagination--placeholder]="totalPages() <= 1"
+    [attr.aria-hidden]="totalPages() > 1 ? null : true"
+  >
+    <app-page-dot-indicator
+      [totalPages]="totalPages()"
+      [currentPageIndex]="currentPageIndex()"
+      (pageSelected)="onPageSelected($event)"
+    ></app-page-dot-indicator>
+  </div>
+</div>
+
+<ng-template #mobileBreadcrumb>
+  <ng-container *ngIf="breadcrumbs() as breadcrumbItems">
+    <button
+      *ngIf="breadcrumbItems.length > 1"
+      ignt-icon-button
+      [size]="'small'"
+      [sentiment]="'secondary'"
+      [icon]="['fas', 'arrow-left']"
+      type="button"
+      (click)="navigateBack()"
+      data-testid="oss-breadcrumb-back"
+    ></button>
+
+    <span class="breadcrumb-item breadcrumb-item--disabled" data-testid="oss-breadcrumb-item">
+      {{ breadcrumbItems[breadcrumbItems.length - 1].name }}
+    </span>
+  </ng-container>
+</ng-template>

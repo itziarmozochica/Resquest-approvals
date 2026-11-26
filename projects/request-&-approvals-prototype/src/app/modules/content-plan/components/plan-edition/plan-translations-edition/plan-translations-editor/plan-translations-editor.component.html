@@ -1,0 +1,505 @@
+<section class="plan-translations-editor" data-testid="plan-translations-editor">
+  <header class="plan-translations-editor__top-bar">
+    <button class="plan-translations-editor__back-button" data-testid="plan-translations-editor-back" type="button" (click)="onBackClick()">
+      <ignt-icon name="angle-left" variant="light" class="plan-translations-editor__back-icon" aria-hidden="true"></ignt-icon>
+      {{ 'planEdition.translationsEdition.backToTranslations' | translate }}
+    </button>
+    <ignt-button
+      variant="primary"
+      size="large"
+      class="plan-translations-editor__save-button"
+      data-testid="plan-translations-editor-save"
+      [label]="'planEdition.translationsEdition.saveChanges' | translate"
+      [disabled]="!isSaveEnabled() || isSavePending()"
+      (click)="onSaveClick()"
+    ></ignt-button>
+  </header>
+
+  <div class="plan-translations-editor__language-row">
+    <div class="plan-translations-editor__language-column plan-translations-editor__language-column--source">
+      <ignt-button-dropdown
+        class="plan-translations-editor__language-dropdown"
+        data-testid="plan-translations-editor-source-language"
+        [options]="sourceOptions()"
+        [sentiment]="'secondary'"
+        [variant]="'default'"
+        [size]="'large'"
+        [fill]="true"
+        (optionClick)="onSourceSelected($event)"
+      >
+        <span class="plan-translations-editor__source-pill">
+          <span class="plan-translations-editor__source-name">{{ selectedSourceDisplay() }}</span>
+          @if (selectedSourceLanguage()?.isDefault && selectedSourceChannelId() === null) {
+            <ignt-tag
+              class="plan-translations-editor__source-default-badge"
+              data-testid="plan-translations-editor-source-default-badge"
+              sentiment="sharp"
+              variant="solid"
+            >
+              {{ 'planEdition.translationsEdition.defaultBadge' | translate }}
+            </ignt-tag>
+          }
+        </span>
+      </ignt-button-dropdown>
+    </div>
+
+    <div class="plan-translations-editor__language-column plan-translations-editor__language-column--target">
+      <div class="plan-translations-editor__target" data-testid="plan-translations-editor-target-language">
+        <span class="plan-translations-editor__target-name">{{ selectedTargetLanguageDisplay() }}</span>
+        @if (totalCount() > 0) {
+          <app-translation-field-count-badge
+            class="plan-translations-editor__target-count"
+            testId="plan-translations-editor-target-count"
+            [totalCount]="totalCount()"
+            [translatedCount]="translatedCount()"
+            [showScopeStatusIcon]="true"
+          ></app-translation-field-count-badge>
+        }
+      </div>
+    </div>
+  </div>
+
+  @if (isAiEnabled()) {
+    <div class="plan-translations-editor__ai-toolbar">
+      <span
+        class="plan-translations-editor__translate-all"
+        igntTooltip
+        tooltipPlacement="top"
+        [tooltipLabel]="'planEdition.translationsEdition.ai.translateAllTooltip' | translate"
+      >
+        <ignt-button
+          data-testid="plan-translations-editor-translate-all"
+          variant="tertiary"
+          size="small"
+          [label]="'planEdition.translationsEdition.ai.translateWithAi' | translate"
+          [leadingIcon]="{ name: 'sparkles', variant: 'solid' }"
+          [disabled]="!isTranslateAllEnabled()"
+          (click)="onTranslateAllClick()"
+        ></ignt-button>
+      </span>
+    </div>
+  }
+
+  <ignt-accordion class="plan-translations-editor__section" variant="plain" data-testid="plan-translations-editor-event-section">
+    <ignt-accordion-item [expanded]="isContentExpanded()" (expandedChange)="toggleContentExpansion()">
+      <span igntAccordionTitle>{{ 'planEdition.translationsEdition.eventContentTitle' | translate }}</span>
+      <ng-container igntAccordionTrailing>
+        @if (eventTotalCount() > 0) {
+          <app-translation-field-count-badge
+            testId="plan-translations-editor-event-section-count"
+            [totalCount]="eventTotalCount()"
+            [translatedCount]="eventTranslatedCount()"
+            [showScopeStatusIcon]="true"
+          ></app-translation-field-count-badge>
+        }
+      </ng-container>
+
+      <ng-template igntAccordionBody>
+        <div class="plan-translations-editor__fields">
+          <div class="plan-translations-editor__field" [class.plan-translations-editor__field--ai]="isAiEnabled()">
+            <div class="plan-translations-editor__field-column plan-translations-editor__field-column--readonly">
+              <app-translation-text-field
+                [label]="'planEdition.translationsEdition.titleLabel' | translate"
+                [value]="sourceName()"
+                [readonly]="true"
+                [required]="true"
+                type="input"
+              ></app-translation-text-field>
+            </div>
+            <div class="plan-translations-editor__field-column plan-translations-editor__field-column--editable">
+              <app-translation-text-field
+                [label]="'planEdition.translationsEdition.titleLabel' | translate"
+                [value]="editedName()"
+                [placeholder]="'planEdition.translationsEdition.titlePlaceholder' | translate"
+                [required]="true"
+                [readonly]="!canSaveScope()"
+                type="input"
+                [status]="nameFieldStatus()"
+                [trailIcon]="isAiEnabled() ? sparkleIcon : null"
+                [trailIconAriaLabel]="'planEdition.translationsEdition.ai.sparkleAriaLabel' | translate"
+                [isTrailIconDisabled]="isSparkleDisabled('name')"
+                [isTrailIconLoading]="isSparkleLoading('name')"
+                [showRating]="showAiRating('name')"
+                [rating]="aiRating('name')"
+                [rateLabel]="'planEdition.translationsEdition.ai.rateThisTranslation' | translate"
+                [thumbsUpAriaLabel]="'planEdition.translationsEdition.ai.thumbsUpAriaLabel' | translate"
+                [thumbsDownAriaLabel]="'planEdition.translationsEdition.ai.thumbsDownAriaLabel' | translate"
+                (valueChange)="onNameChange($event)"
+                (rated)="onAiRated('name', $event)"
+                (trailIconClicked)="onSparkleClick('name')"
+              ></app-translation-text-field>
+            </div>
+          </div>
+
+          @if (isDescriptionSchemaLoading()) {
+            <div class="plan-translations-editor__description-blocks-loading" data-testid="plan-translations-editor-description-loading">
+              <ignt-icon class="loader" name="spinner" variant="solid" size="display" [spin]="true" aria-hidden="true"></ignt-icon>
+            </div>
+          } @else if (hasDescriptionBlocks()) {
+            <div class="plan-translations-editor__description-blocks" data-testid="plan-translations-editor-description-blocks">
+              <div class="plan-translations-editor__description-blocks-header">
+                <span class="plan-translations-editor__description-blocks-label">
+                  {{ 'planEdition.translationsEdition.descriptionLabel' | translate }}<span> *</span>
+                </span>
+                @if (descriptionComponentCounts().total > 0) {
+                  <app-translation-field-count-badge
+                    testId="plan-translations-editor-description-count"
+                    [totalCount]="descriptionComponentCounts().total"
+                    [translatedCount]="descriptionComponentCounts().translated"
+                    [showScopeStatusIcon]="true"
+                  ></app-translation-field-count-badge>
+                }
+              </div>
+              @if (descriptionInherited()) {
+                <ignt-alert
+                  class="plan-translations-editor__inherited-hint"
+                  data-testid="plan-translations-editor-inherited-hint"
+                  sentiment="info"
+                  [description]="'planEdition.translationsEdition.inheritedFromBaseSchema' | translate"
+                ></ignt-alert>
+              }
+              <app-description-translation
+                [baseSchema]="contentSchema()"
+                [translationOverlay]="descriptionOverlay()"
+                [statusByCode]="effectiveDescriptionStatusByCode()"
+                [readOnly]="isOriginalScope() || descriptionInherited() || !canSaveScope()"
+                [showStatus]="!isOriginalScope()"
+                [hideOriginal]="selectedLanguageIsBase()"
+                [uploadFileCallback]="uploadFileCallback"
+                (fieldChange)="onDescriptionFieldChange($event)"
+                (validate)="onDescriptionValidate($event)"
+              ></app-description-translation>
+            </div>
+          } @else if (!hasComponentsDescription()) {
+            <div class="plan-translations-editor__field" data-testid="plan-translations-editor-description-rich-text-fallback">
+              <div class="plan-translations-editor__field-column plan-translations-editor__field-column--readonly">
+                <app-translation-text-field
+                  [label]="'planEdition.translationsEdition.descriptionLabel' | translate"
+                  [htmlContent]="sourceDescription()"
+                  [readonly]="true"
+                  [required]="true"
+                  type="html"
+                ></app-translation-text-field>
+              </div>
+              <div class="plan-translations-editor__field-column plan-translations-editor__field-column--editable">
+                <app-translation-text-field
+                  [label]="'planEdition.translationsEdition.descriptionLabel' | translate"
+                  [value]="editedDescription()"
+                  [required]="true"
+                  [readonly]="!canSaveScope()"
+                  type="rich-text"
+                  [preserveWhitespace]="true"
+                  [blockElement]="'p'"
+                  [status]="descriptionFieldStatus()"
+                  [uploadFileCallback]="uploadFileCallback"
+                  [trailIcon]="isAiEnabled() ? sparkleIcon : null"
+                  [trailIconAriaLabel]="'planEdition.translationsEdition.ai.sparkleAriaLabel' | translate"
+                  [isTrailIconDisabled]="isSparkleDisabled('description')"
+                  [isTrailIconLoading]="isSparkleLoading('description')"
+                  [showRating]="showAiRating('description')"
+                  [rating]="aiRating('description')"
+                  [rateLabel]="'planEdition.translationsEdition.ai.rateThisTranslation' | translate"
+                  [thumbsUpAriaLabel]="'planEdition.translationsEdition.ai.thumbsUpAriaLabel' | translate"
+                  [thumbsDownAriaLabel]="'planEdition.translationsEdition.ai.thumbsDownAriaLabel' | translate"
+                  (valueChange)="onDescriptionChange($event)"
+                  (rated)="onAiRated('description', $event)"
+                  (trailIconClicked)="onSparkleClick('description')"
+                ></app-translation-text-field>
+              </div>
+            </div>
+          }
+
+          @if (canManageLabelFormatTranslations()) {
+            <div class="plan-translations-editor__field" [class.plan-translations-editor__field--ai]="isAiEnabled()">
+              <div class="plan-translations-editor__field-column plan-translations-editor__field-column--readonly">
+                <app-translation-text-field
+                  [label]="'planEdition.translationsEdition.labelFormatLabel' | translate"
+                  [tooltip]="'planEdition.translationsEdition.labelFormatTooltip' | translate"
+                  [value]="sourceLabelFormat()"
+                  [readonly]="true"
+                  [required]="false"
+                  type="input"
+                ></app-translation-text-field>
+              </div>
+              <div class="plan-translations-editor__field-column plan-translations-editor__field-column--editable">
+                <app-translation-text-field
+                  [label]="'planEdition.translationsEdition.labelFormatLabel' | translate"
+                  [tooltip]="'planEdition.translationsEdition.labelFormatTooltip' | translate"
+                  [value]="editedLabelFormat()"
+                  [placeholder]="'planEdition.translationsEdition.labelFormatPlaceholder' | translate"
+                  [required]="false"
+                  [readonly]="!canSaveScope()"
+                  type="input"
+                  [status]="labelFormatFieldStatus()"
+                  [trailIcon]="isAiEnabled() ? sparkleIcon : null"
+                  [trailIconAriaLabel]="'planEdition.translationsEdition.ai.sparkleAriaLabel' | translate"
+                  [isTrailIconDisabled]="isSparkleDisabled('labelFormat')"
+                  [isTrailIconLoading]="isSparkleLoading('labelFormat')"
+                  [showRating]="showAiRating('labelFormat')"
+                  [rating]="aiRating('labelFormat')"
+                  [rateLabel]="'planEdition.translationsEdition.ai.rateThisTranslation' | translate"
+                  [thumbsUpAriaLabel]="'planEdition.translationsEdition.ai.thumbsUpAriaLabel' | translate"
+                  [thumbsDownAriaLabel]="'planEdition.translationsEdition.ai.thumbsDownAriaLabel' | translate"
+                  (valueChange)="onLabelFormatChange($event)"
+                  (rated)="onAiRated('labelFormat', $event)"
+                  (trailIconClicked)="onSparkleClick('labelFormat')"
+                ></app-translation-text-field>
+              </div>
+            </div>
+          }
+
+          <div
+            class="plan-translations-editor__field"
+            data-testid="plan-translations-editor-short-description-field"
+            [class.plan-translations-editor__field--ai]="isAiEnabled()"
+          >
+            <div class="plan-translations-editor__field-column plan-translations-editor__field-column--readonly">
+              <app-translation-text-field
+                [label]="'planEdition.translationsEdition.shortDescriptionLabel' | translate"
+                [value]="sourceShortDescription()"
+                [readonly]="true"
+                type="input"
+              ></app-translation-text-field>
+            </div>
+            <div class="plan-translations-editor__field-column plan-translations-editor__field-column--editable">
+              <app-translation-text-field
+                [label]="'planEdition.translationsEdition.shortDescriptionLabel' | translate"
+                [value]="editedShortDescription()"
+                [placeholder]="'planEdition.translationsEdition.shortDescriptionPlaceholder' | translate"
+                [readonly]="!canSaveScope()"
+                type="input"
+                [status]="shortDescriptionFieldStatus()"
+                [trailIcon]="isAiEnabled() ? sparkleIcon : null"
+                [trailIconAriaLabel]="'planEdition.translationsEdition.ai.sparkleAriaLabel' | translate"
+                [isTrailIconDisabled]="isSparkleDisabled('shortDescription')"
+                [isTrailIconLoading]="isSparkleLoading('shortDescription')"
+                [showRating]="showAiRating('shortDescription')"
+                [rating]="aiRating('shortDescription')"
+                [rateLabel]="'planEdition.translationsEdition.ai.rateThisTranslation' | translate"
+                [thumbsUpAriaLabel]="'planEdition.translationsEdition.ai.thumbsUpAriaLabel' | translate"
+                [thumbsDownAriaLabel]="'planEdition.translationsEdition.ai.thumbsDownAriaLabel' | translate"
+                (valueChange)="onShortDescriptionChange($event)"
+                (rated)="onAiRated('shortDescription', $event)"
+                (trailIconClicked)="onSparkleClick('shortDescription')"
+              ></app-translation-text-field>
+            </div>
+          </div>
+        </div>
+      </ng-template>
+    </ignt-accordion-item>
+  </ignt-accordion>
+
+  @if (editedSessionTypes().length > 0) {
+    <ignt-accordion class="plan-translations-editor__section" variant="plain" data-testid="plan-translations-editor-ticket-types-section">
+      <ignt-accordion-item [expanded]="isTicketTypesExpanded()" (expandedChange)="toggleTicketTypesExpansion()">
+        <span igntAccordionTitle>{{ 'planEdition.translationsEdition.ticketTypesTitle' | translate }}</span>
+        <ng-container igntAccordionTrailing>
+          @if (ticketTypesTotalCount() > 0) {
+            <app-translation-field-count-badge
+              testId="plan-translations-editor-ticket-types-section-count"
+              [totalCount]="ticketTypesTotalCount()"
+              [translatedCount]="ticketTypesTranslatedCount()"
+              [showScopeStatusIcon]="true"
+            ></app-translation-field-count-badge>
+          }
+        </ng-container>
+
+        <ng-template igntAccordionBody>
+          <div class="plan-translations-editor__fields">
+            @for (entry of visibleSessionTypes(); track entry.sessionType.entityId) {
+              <ignt-accordion variant="card">
+                <ignt-accordion-item
+                  [expanded]="entry.sessionType.isExpanded"
+                  (expandedChange)="toggleSessionTypeExpansion(entry.sessionType.entityId)"
+                >
+                  <span igntAccordionTitle>
+                    {{
+                      entry.sessionType.sourceLabel ||
+                        entry.sessionType.displayName ||
+                        ('planEdition.translationsEdition.sessionTypeDisplayNameFallback' | translate)
+                    }}
+                  </span>
+
+                  <ng-template igntAccordionBody>
+                    <div class="plan-translations-editor__session-type-body">
+                      <div class="plan-translations-editor__field" [class.plan-translations-editor__field--ai]="isAiEnabled()">
+                        <div class="plan-translations-editor__field-column plan-translations-editor__field-column--readonly">
+                          <app-translation-text-field
+                            [label]="'planEdition.translationsEdition.sessionTypeLabelLabel' | translate"
+                            [value]="entry.sessionType.sourceLabel"
+                            [readonly]="true"
+                            [required]="true"
+                            type="input"
+                          ></app-translation-text-field>
+                        </div>
+                        <div class="plan-translations-editor__field-column plan-translations-editor__field-column--editable">
+                          <app-translation-text-field
+                            [label]="'planEdition.translationsEdition.sessionTypeLabelLabel' | translate"
+                            [value]="entry.sessionType.label"
+                            [placeholder]="'planEdition.translationsEdition.sessionTypeLabelPlaceholder' | translate"
+                            [required]="true"
+                            [readonly]="!canSaveScope()"
+                            type="input"
+                            [status]="getSessionTypeLabelStatus(entry.sessionType.entityId)"
+                            [trailIcon]="isAiEnabled() ? sparkleIcon : null"
+                            [trailIconAriaLabel]="'planEdition.translationsEdition.ai.sparkleAriaLabel' | translate"
+                            [isTrailIconDisabled]="entry.aiFields.label.disabled"
+                            [isTrailIconLoading]="entry.aiFields.label.loading"
+                            [showRating]="entry.aiFields.label.showRating"
+                            [rating]="entry.aiFields.label.rating"
+                            [rateLabel]="'planEdition.translationsEdition.ai.rateThisTranslation' | translate"
+                            [thumbsUpAriaLabel]="'planEdition.translationsEdition.ai.thumbsUpAriaLabel' | translate"
+                            [thumbsDownAriaLabel]="'planEdition.translationsEdition.ai.thumbsDownAriaLabel' | translate"
+                            (valueChange)="onSessionTypeLabelChange(entry.sessionType.entityId, $event)"
+                            (rated)="onAiRated(entry.aiFields.label.key, $event)"
+                            (trailIconClicked)="onSparkleClick(entry.aiFields.label.key)"
+                          ></app-translation-text-field>
+                        </div>
+                      </div>
+
+                      <div class="plan-translations-editor__field" [class.plan-translations-editor__field--ai]="isAiEnabled()">
+                        <div class="plan-translations-editor__field-column plan-translations-editor__field-column--readonly">
+                          <app-translation-text-field
+                            [label]="'planEdition.translationsEdition.sessionTypeDetailsLabel' | translate"
+                            [htmlContent]="entry.sessionType.sourceDetails"
+                            [readonly]="true"
+                            [required]="false"
+                            type="html"
+                          ></app-translation-text-field>
+                        </div>
+                        <div class="plan-translations-editor__field-column plan-translations-editor__field-column--editable">
+                          <app-translation-text-field
+                            [label]="'planEdition.translationsEdition.sessionTypeDetailsLabel' | translate"
+                            [value]="entry.sessionType.details"
+                            [required]="false"
+                            [readonly]="!canSaveScope()"
+                            type="rich-text"
+                            [preserveWhitespace]="true"
+                            [blockElement]="'p'"
+                            [status]="getSessionTypeDetailsStatus(entry.sessionType.entityId)"
+                            [uploadFileCallback]="uploadFileCallback"
+                            [trailIcon]="isAiEnabled() ? sparkleIcon : null"
+                            [trailIconAriaLabel]="'planEdition.translationsEdition.ai.sparkleAriaLabel' | translate"
+                            [isTrailIconDisabled]="entry.aiFields.details.disabled"
+                            [isTrailIconLoading]="entry.aiFields.details.loading"
+                            [showRating]="entry.aiFields.details.showRating"
+                            [rating]="entry.aiFields.details.rating"
+                            [rateLabel]="'planEdition.translationsEdition.ai.rateThisTranslation' | translate"
+                            [thumbsUpAriaLabel]="'planEdition.translationsEdition.ai.thumbsUpAriaLabel' | translate"
+                            [thumbsDownAriaLabel]="'planEdition.translationsEdition.ai.thumbsDownAriaLabel' | translate"
+                            (valueChange)="onSessionTypeDetailsChange(entry.sessionType.entityId, $event)"
+                            (rated)="onAiRated(entry.aiFields.details.key, $event)"
+                            (trailIconClicked)="onSparkleClick(entry.aiFields.details.key)"
+                          ></app-translation-text-field>
+                        </div>
+                      </div>
+
+                      <div class="plan-translations-editor__field" [class.plan-translations-editor__field--ai]="isAiEnabled()">
+                        <div class="plan-translations-editor__field-column plan-translations-editor__field-column--readonly">
+                          <app-translation-text-field
+                            [label]="'planEdition.translationsEdition.sessionTypeInstructionsLabel' | translate"
+                            [htmlContent]="entry.sessionType.sourceInstructions"
+                            [readonly]="true"
+                            [required]="false"
+                            type="html"
+                          ></app-translation-text-field>
+                        </div>
+                        <div class="plan-translations-editor__field-column plan-translations-editor__field-column--editable">
+                          <app-translation-text-field
+                            [label]="'planEdition.translationsEdition.sessionTypeInstructionsLabel' | translate"
+                            [value]="entry.sessionType.instructions"
+                            [required]="false"
+                            [readonly]="!canSaveScope()"
+                            type="rich-text"
+                            [preserveWhitespace]="true"
+                            [blockElement]="'p'"
+                            [status]="getSessionTypeInstructionsStatus(entry.sessionType.entityId)"
+                            [uploadFileCallback]="uploadFileCallback"
+                            [trailIcon]="isAiEnabled() ? sparkleIcon : null"
+                            [trailIconAriaLabel]="'planEdition.translationsEdition.ai.sparkleAriaLabel' | translate"
+                            [isTrailIconDisabled]="entry.aiFields.instructions.disabled"
+                            [isTrailIconLoading]="entry.aiFields.instructions.loading"
+                            [showRating]="entry.aiFields.instructions.showRating"
+                            [rating]="entry.aiFields.instructions.rating"
+                            [rateLabel]="'planEdition.translationsEdition.ai.rateThisTranslation' | translate"
+                            [thumbsUpAriaLabel]="'planEdition.translationsEdition.ai.thumbsUpAriaLabel' | translate"
+                            [thumbsDownAriaLabel]="'planEdition.translationsEdition.ai.thumbsDownAriaLabel' | translate"
+                            (valueChange)="onSessionTypeInstructionsChange(entry.sessionType.entityId, $event)"
+                            (rated)="onAiRated(entry.aiFields.instructions.key, $event)"
+                            (trailIconClicked)="onSparkleClick(entry.aiFields.instructions.key)"
+                          ></app-translation-text-field>
+                          @if (editedSessionTypes().length > 1 && canSaveScope()) {
+                            <div class="plan-translations-editor__apply-to-all">
+                              <ignt-button
+                                class="plan-translations-editor__apply-to-all-button"
+                                data-testid="plan-translations-editor-apply-to-all-ticket-types"
+                                variant="tertiary"
+                                size="small"
+                                [label]="'planEdition.translationsEdition.applyToAllTicketTypes' | translate"
+                                [disabled]="!isSessionTypeInstructionsPopulated(entry.sessionType.entityId)"
+                                (click)="onApplyInstructionsToAllClick(entry.sessionType.entityId, entry.sessionType.instructions)"
+                              ></ignt-button>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </ng-template>
+                </ignt-accordion-item>
+              </ignt-accordion>
+            }
+          </div>
+        </ng-template>
+      </ignt-accordion-item>
+    </ignt-accordion>
+  }
+
+  @if (isTermsAndConditionsSectionVisible()) {
+    <ignt-accordion class="plan-translations-editor__section" variant="plain" data-testid="plan-translations-editor-terms-section">
+      <ignt-accordion-item [expanded]="isTermsAndConditionsExpanded()" (expandedChange)="toggleTermsAndConditionsExpansion()">
+        <span igntAccordionTitle>{{ 'planEdition.translationsEdition.termsAndConditionsSectionTitle' | translate }}</span>
+
+        <ng-template igntAccordionBody>
+          <div class="plan-translations-editor__fields">
+            <div class="plan-translations-editor__field" [class.plan-translations-editor__field--ai]="isAiEnabled()">
+              <div class="plan-translations-editor__field-column plan-translations-editor__field-column--readonly">
+                <app-translation-text-field
+                  [label]="'planEdition.translationsEdition.termsAndConditionsFieldLabel' | translate"
+                  [htmlContent]="sourceTermsAndConditionsHtml()"
+                  [readonly]="true"
+                  [required]="false"
+                  type="html"
+                ></app-translation-text-field>
+              </div>
+              <div class="plan-translations-editor__field-column plan-translations-editor__field-column--editable">
+                <app-translation-text-field
+                  [label]="'planEdition.translationsEdition.termsAndConditionsFieldLabel' | translate"
+                  [value]="editedTermsAndConditionsHtml()"
+                  [placeholder]="'planEdition.translationsEdition.termsAndConditionsPlaceholder' | translate"
+                  [required]="false"
+                  [readonly]="isTermsAndConditionsFieldReadonly()"
+                  type="rich-text"
+                  [preserveWhitespace]="true"
+                  [status]="termsFieldStatus()"
+                  [uploadFileCallback]="uploadFileCallback"
+                  [trailIcon]="isAiEnabled() ? sparkleIcon : null"
+                  [trailIconAriaLabel]="'planEdition.translationsEdition.ai.sparkleAriaLabel' | translate"
+                  [isTrailIconDisabled]="isSparkleDisabled('mandatoryPurchaseTerms')"
+                  [isTrailIconLoading]="isSparkleLoading('mandatoryPurchaseTerms')"
+                  [showRating]="showAiRating('mandatoryPurchaseTerms')"
+                  [rating]="aiRating('mandatoryPurchaseTerms')"
+                  [rateLabel]="'planEdition.translationsEdition.ai.rateThisTranslation' | translate"
+                  [thumbsUpAriaLabel]="'planEdition.translationsEdition.ai.thumbsUpAriaLabel' | translate"
+                  [thumbsDownAriaLabel]="'planEdition.translationsEdition.ai.thumbsDownAriaLabel' | translate"
+                  (valueChange)="onTermsAndConditionsChange($event)"
+                  (rated)="onAiRated('mandatoryPurchaseTerms', $event)"
+                  (trailIconClicked)="onSparkleClick('mandatoryPurchaseTerms')"
+                ></app-translation-text-field>
+              </div>
+            </div>
+          </div>
+        </ng-template>
+      </ignt-accordion-item>
+    </ignt-accordion>
+  }
+</section>

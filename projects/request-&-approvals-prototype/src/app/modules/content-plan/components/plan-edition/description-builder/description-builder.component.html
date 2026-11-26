@@ -1,0 +1,217 @@
+<div class="builder" (click)="deselectAll()">
+  <!-- Palette -->
+  <aside class="palette">
+    <div class="palette-title">{{ 'planEdition.contentEdition.builder.components' | translate }}</div>
+    <div class="palette-sub">{{ 'planEdition.contentEdition.builder.dragToAdd' | translate }}</div>
+    <div
+      class="palette-list"
+      cdkDropList
+      id="palette-list"
+      [cdkDropListConnectedTo]="['canvas-list']"
+      [cdkDropListData]="paletteItems"
+      [cdkDropListDisabled]="disabled()"
+      cdkDropListSortingDisabled
+    >
+      @for (type of PALETTE_ORDER; track type) {
+        <div
+          class="palette-item"
+          cdkDrag
+          [cdkDragData]="type"
+          [cdkDragDisabled]="disabled()"
+          (cdkDragStarted)="onPaletteDragStarted()"
+          (cdkDragEnded)="onPaletteDragEnded()"
+        >
+          <span class="ms material-symbols-outlined">{{ COMPONENT_TYPES[type].icon }}</span>
+          <span class="palette-item-label">{{ COMPONENT_TYPES[type].labelKey | translate }}</span>
+          <div *cdkDragPlaceholder class="palette-drag-ghost">
+            <span class="ms material-symbols-outlined">{{ COMPONENT_TYPES[type].icon }}</span>
+            {{ COMPONENT_TYPES[type].labelKey | translate }}
+          </div>
+          <div *cdkDragPreview class="palette-drag-preview">
+            <span class="ms material-symbols-outlined">{{ COMPONENT_TYPES[type].icon }}</span>
+            {{ COMPONENT_TYPES[type].labelKey | translate }}
+          </div>
+        </div>
+      }
+    </div>
+  </aside>
+
+  <!-- Canvas -->
+  <section class="canvas-wrap" #canvasWrap>
+    <div class="canvas-header">
+      <span class="canvas-header-label">{{ 'planEdition.contentEdition.builder.canvasHeader' | translate }}</span>
+      <div class="canvas-header-right">
+        <ng-content select="[canvasHeaderAction]" />
+        @if (blocks().length > 0) {
+          <span class="canvas-header-count">
+            {{
+              (blocks().length === 1
+                ? 'planEdition.contentEdition.builder.blockCount'
+                : 'planEdition.contentEdition.builder.blockCountPlural'
+              ) | translate: { count: blocks().length }
+            }}
+          </span>
+        }
+      </div>
+    </div>
+    <div #canvasScroll class="canvas-scroll">
+      <div
+        class="canvas"
+        [class.canvas--has-selection]="selectedId()"
+        cdkDropList
+        id="canvas-list"
+        [cdkDropListConnectedTo]="['palette-list', 'delete-zone-list']"
+        [cdkDropListData]="blocks()"
+        (cdkDropListDropped)="onPreviewDrop($event)"
+        (cdkDropListEntered)="onPreviewDragEntered()"
+        (cdkDropListExited)="onPreviewDragExited()"
+      >
+        @for (block of blocks(); track block.id) {
+          <div
+            class="block-wrapper"
+            [class.block-wrapper--selected]="selectedId() === block.id"
+            [class.block-wrapper--locked]="disabled()"
+            [attr.data-block-id]="block.id"
+            cdkDrag
+            [cdkDragData]="block"
+            [cdkDragDisabled]="disabled()"
+            (mousedown)="onBlockMouseDown()"
+            (click)="selectBlock(block.id, $event)"
+            (cdkDragStarted)="onBlockDragStarted(block.id)"
+            (cdkDragEnded)="onBlockDragEnded()"
+          >
+            <app-db-block-content
+              [block]="block"
+              [showPlaceholders]="true"
+              (propsChange)="updateProps(block.id, $event)"
+            ></app-db-block-content>
+
+            <div *cdkDragPlaceholder class="block-drag-placeholder"></div>
+          </div>
+        }
+
+        <div
+          class="canvas-add"
+          [class.canvas-add--centered]="blocks().length === 0"
+          [class.canvas-add--hidden]="isDragging() || isPaletteDragging() || isCanvasReceiving()"
+        >
+          @if (!disabled()) {
+            <button
+              type="button"
+              class="canvas-add__button"
+              data-testid="canvas-add-button"
+              [attr.aria-label]="'planEdition.contentEdition.builder.addComponent' | translate"
+              [attr.aria-expanded]="addMenuOpen()"
+              (click)="toggleAddMenu($event)"
+            >
+              <span class="ms material-symbols-outlined">add</span>
+            </button>
+          }
+          @if (blocks().length === 0) {
+            <span class="canvas-add__text">{{ 'planEdition.contentEdition.builder.canvasEmpty' | translate }}</span>
+          }
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Floating delete target — fixed, centered over preview panel, only shown while dragging -->
+  <div
+    #deleteZone
+    class="delete-zone"
+    [class.delete-zone--visible]="isDragging()"
+    [class.delete-zone--hovering]="isDeleteZoneHovered()"
+    [class.delete-zone--ready]="deleteZoneReady()"
+    [style.left]="deleteZoneLeft()"
+    cdkDropList
+    id="delete-zone-list"
+    [cdkDropListData]="[]"
+    cdkDropListSortingDisabled
+    (cdkDropListDropped)="onDropToDelete($event)"
+    (cdkDropListEntered)="onDeleteZoneEntered()"
+    (cdkDropListExited)="onDeleteZoneExited()"
+    (pointerenter)="onDeleteZonePointerEnter()"
+    (pointerleave)="onDeleteZonePointerLeave()"
+  >
+    <svg class="delete-zone__ring" viewBox="0 0 64 64" aria-hidden="true">
+      <circle class="delete-zone__ring-circle" cx="32" cy="32" r="28" />
+    </svg>
+    <span class="ms material-symbols-outlined">delete</span>
+  </div>
+
+  <!-- Properties panel: inline side panel on wide viewports, bottom sheet on narrow.
+       The two cases use the same `<app-db-properties-panel>` component, just
+       wrapped differently. Layout decisions (visibility of palette, single vs
+       three columns) are CSS-driven via media queries; the sheet's rendering
+       is template-driven so we don't pay for a hidden DOM tree on wide
+       viewports. -->
+  @if (!isNarrowViewport()) {
+    <app-db-properties-panel
+      class="properties-inline"
+      [block]="selectedBlock()"
+      [uploadImageCallback]="uploadImageCallback()"
+      [disabled]="disabled()"
+      [highlightMissingMandatory]="highlightMissingMandatory()"
+      (propsChange)="selectedBlock() && updateProps(selectedBlock()!.id, $event)"
+      (deleteBlock)="selectedBlock() && deleteBlock(selectedBlock()!.id)"
+    ></app-db-properties-panel>
+  }
+
+  @if (isNarrowViewport()) {
+    <div class="properties-sheet-backdrop" [class.properties-sheet-backdrop--open]="selectedBlock() !== null" (click)="deselectAll()"></div>
+    <div class="properties-sheet" [class.properties-sheet--open]="selectedBlock() !== null" (click)="$event.stopPropagation()">
+      <div class="properties-sheet__handle-row">
+        <span class="properties-sheet__handle" aria-hidden="true"></span>
+      </div>
+      <div class="properties-sheet__header">
+        <button type="button" class="properties-sheet__close" [attr.aria-label]="'common.close' | translate" (click)="deselectAll()">
+          <span class="ms material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <app-db-properties-panel
+        [block]="sheetBlock()"
+        [uploadImageCallback]="uploadImageCallback()"
+        [disabled]="disabled()"
+        [highlightMissingMandatory]="highlightMissingMandatory()"
+        (propsChange)="selectedBlock() && updateProps(selectedBlock()!.id, $event)"
+        (deleteBlock)="selectedBlock() && deleteBlock(selectedBlock()!.id)"
+      ></app-db-properties-panel>
+    </div>
+  }
+
+  <!-- Add-component picker — floating modal centered over the entire view.
+       Rendered at the builder root so it overlays everything; backdrop click
+       falls through to the builder's `deselectAll()` handler, which closes it.
+       Both backdrop and menu stay in the DOM with `--open` toggled, so the
+       enter AND exit directions can animate via CSS transitions (matches the
+       `properties-sheet` pattern above). -->
+  <div
+    class="add-menu-backdrop"
+    [class.add-menu-backdrop--open]="addMenuOpen()"
+    data-testid="canvas-add-menu-backdrop"
+    [attr.aria-hidden]="!addMenuOpen()"
+  ></div>
+  <div
+    class="add-menu"
+    [class.add-menu--open]="addMenuOpen()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-hidden]="!addMenuOpen()"
+    [style.left.px]="addMenuAnchorX()"
+    (click)="$event.stopPropagation()"
+  >
+    @for (type of PALETTE_ORDER; track type) {
+      <button
+        type="button"
+        class="add-menu__item"
+        role="menuitem"
+        [attr.data-testid]="'canvas-add-menu-item-' + type"
+        [attr.tabindex]="addMenuOpen() ? 0 : -1"
+        (click)="addBlockByType(type, $event)"
+      >
+        <span class="ms material-symbols-outlined">{{ COMPONENT_TYPES[type].icon }}</span>
+        <span>{{ COMPONENT_TYPES[type].labelKey | translate }}</span>
+      </button>
+    }
+  </div>
+</div>

@@ -1,0 +1,131 @@
+<div class="ir-stepref" [attr.data-testid]="testId">
+  @if (nestingBlocked) {
+    <p class="ir-stepref__nesting" [attr.data-testid]="testId + '-nesting'">
+      {{ 'informationRequests.question.stepperRef.nestingBlocked' | translate }}
+    </p>
+  } @else if (!template) {
+    <p class="ir-stepref__missing" [attr.data-testid]="testId + '-missing'">
+      {{ 'informationRequests.question.stepperRef.templateUnavailable' | translate }}
+    </p>
+  } @else {
+    <header class="ir-stepref__head">
+      <h4 class="ir-stepref__title">{{ template.label }}</h4>
+    </header>
+
+    @if (instances().length === 0) {
+      <p class="ir-stepref__empty" [attr.data-testid]="testId + '-empty'">
+        {{ 'informationRequests.question.stepperRef.empty' | translate }}
+      </p>
+    } @else {
+      <ul class="ir-stepref__list" [attr.data-testid]="testId + '-list'">
+        @for (instance of instances(); track instance.instanceId; let i = $index) {
+          <li class="ir-stepref__item">
+            <span class="ir-stepref__item-label">{{ instanceLabel(instance, i) }}</span>
+            @if (!readOnly) {
+              <button
+                type="button"
+                igntButton
+                sentiment="tertiary"
+                size="small"
+                (click)="startEditInstance(instance.instanceId)"
+                [attr.data-testid]="testId + '-edit-' + instance.instanceId"
+              >
+                {{ 'informationRequests.question.stepperRef.edit' | translate }}
+              </button>
+              <button
+                type="button"
+                igntButton
+                variant="danger"
+                sentiment="tertiary"
+                size="small"
+                (click)="removeInstance(instance.instanceId)"
+                [attr.data-testid]="testId + '-remove-' + instance.instanceId"
+              >
+                {{ 'informationRequests.question.stepperRef.remove' | translate }}
+              </button>
+            }
+          </li>
+        }
+      </ul>
+    }
+
+    @if (!readOnly && !editingInstanceId() && (isMultiInstance() || instances().length === 0)) {
+      <button type="button" igntButton sentiment="secondary" (click)="startAddInstance()" [attr.data-testid]="testId + '-add'">
+        {{ 'informationRequests.question.stepperRef.add' | translate }}
+      </button>
+    }
+
+    @if (editingInstanceId(); as editingId) {
+      <section class="ir-stepref__wizard" [formGroup]="wizardForm" [attr.data-testid]="testId + '-wizard'">
+        @if (draftRestored()) {
+          <ignt-alert
+            showCloseButton
+            [attr.data-testid]="testId + '-draft-restored'"
+            [description]="'informationRequests.question.stepperRef.wizard.restoredBanner' | translate"
+            (closeAlert)="discardDraftBanner()"
+          />
+        }
+
+        <ignt-stepper
+          class="ir-stepref__stepper"
+          [steps]="stepperSteps()"
+          [currentStep]="currentStep()"
+          [allowStepSelection]="false"
+          [hideContent]="true"
+        ></ignt-stepper>
+
+        @if (steps()[currentStep()]; as activeStep) {
+          <div class="ir-stepref__step-body" [attr.data-testid]="testId + '-step-' + activeStep.index">
+            @for (question of activeStep.questions; track question.id) {
+              <ng-container *ngTemplateOutlet="innerQuestionTpl; context: { $implicit: question }" />
+            }
+          </div>
+        }
+
+        <footer class="ir-stepref__wizard-foot">
+          <button type="button" igntButton sentiment="secondary" (click)="cancelWizard()" [attr.data-testid]="testId + '-cancel'">
+            {{ 'informationRequests.question.stepperRef.wizard.cancel' | translate }}
+          </button>
+          @if (currentStep() > 0) {
+            <button type="button" igntButton sentiment="tertiary" (click)="goPrevious()" [attr.data-testid]="testId + '-prev'">
+              {{ 'informationRequests.question.stepperRef.wizard.previous' | translate }}
+            </button>
+          }
+          @if (currentStep() < steps().length - 1) {
+            <button
+              type="button"
+              igntButton
+              sentiment="primary"
+              (click)="goNext()"
+              [disabled]="!canAdvance()"
+              [attr.data-testid]="testId + '-next'"
+            >
+              {{ 'informationRequests.question.stepperRef.wizard.next' | translate }}
+            </button>
+          } @else {
+            <button
+              type="button"
+              igntButton
+              sentiment="primary"
+              (click)="saveWizard()"
+              [disabled]="!canFinish()"
+              [attr.data-testid]="testId + '-done'"
+            >
+              {{ 'informationRequests.question.stepperRef.wizard.done' | translate }}
+            </button>
+          }
+        </footer>
+      </section>
+    }
+  }
+</div>
+
+<ng-template #innerQuestionTpl let-question>
+  <app-information-request-question
+    [question]="question"
+    [control]="controlFor(question.id)"
+    [siblingAnswers]="wizardAnswers()"
+    [referencedStepperTemplates]="wizardReferencedTemplates"
+    (siblingAnswerChange)="onInnerAnswer($event.questionId, $event.value)"
+  />
+</ng-template>

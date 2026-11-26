@@ -1,0 +1,93 @@
+<div class="fever-contact-picker">
+  <input
+    type="text"
+    class="fever-contact-picker__search"
+    [formControl]="searchControl"
+    [attr.disabled]="disabled() ? '' : null"
+    [placeholder]="'alertConfigForm.feverPicker.searchPlaceholder' | translate"
+    data-testid="fever-contact-picker-search"
+  />
+
+  @if (loading()) {
+    <p class="fever-contact-picker__hint" data-testid="fever-contact-picker-loading">
+      {{ 'alertConfigForm.feverPicker.loading' | translate }}
+    </p>
+  } @else if (!searched()) {
+    <p class="fever-contact-picker__hint">
+      {{ 'alertConfigForm.feverPicker.hint' | translate: { count: minSearchLength } }}
+    </p>
+  } @else if (results().length === 0) {
+    <p class="fever-contact-picker__hint" data-testid="fever-contact-picker-empty">
+      {{ 'alertConfigForm.feverPicker.noResults' | translate: { term: searchControl.value.trim() } }}
+    </p>
+    @if (canAddTyped()) {
+      <button
+        type="button"
+        class="fever-contact-picker__add"
+        [disabled]="disabled()"
+        (click)="addTyped()"
+        data-testid="fever-contact-picker-add-typed"
+      >
+        {{ 'alertConfigForm.feverPicker.addTyped' | translate: { email: term().trim() } }}
+      </button>
+    }
+  } @else {
+    <ul class="fever-contact-picker__results" data-testid="fever-contact-picker-results">
+      @for (row of results(); track row.emailNorm) {
+        <li class="fever-contact-picker__row">
+          <label class="fever-contact-picker__identity">
+            <input
+              type="checkbox"
+              [checked]="isAdded(row) || isSelected(row)"
+              [disabled]="disabled() || isAdded(row)"
+              (change)="toggle(row)"
+              [attr.data-testid]="'fever-contact-picker-select-' + row.emailNorm"
+            />
+            <span class="fever-contact-picker__email">{{ row.emailDisplay }}</span>
+          </label>
+          @if (isAdded(row)) {
+            <span class="fever-contact-picker__added" data-testid="fever-contact-picker-added">
+              {{ 'alertConfigForm.feverPicker.added' | translate }}
+            </span>
+          }
+        </li>
+      }
+    </ul>
+
+    <button
+      type="button"
+      class="fever-contact-picker__add"
+      [disabled]="disabled() || selectedCount() === 0"
+      (click)="addSelected()"
+      data-testid="fever-contact-picker-add"
+    >
+      {{ 'alertConfigForm.feverPicker.addSelected' | translate: { count: selectedCount() } }}
+    </button>
+
+    @if (totalPages() > 1) {
+      <div class="fever-contact-picker__pager">
+        <button
+          type="button"
+          class="fever-contact-picker__page-btn"
+          [disabled]="page() <= 1"
+          (click)="prevPage()"
+          data-testid="fever-contact-picker-prev"
+        >
+          {{ 'alertConfigForm.feverPicker.prev' | translate }}
+        </button>
+        <span class="fever-contact-picker__page-info" data-testid="fever-contact-picker-page">
+          {{ 'alertConfigForm.feverPicker.page' | translate: { page: page(), pages: totalPages() } }}
+        </span>
+        <button
+          type="button"
+          class="fever-contact-picker__page-btn"
+          [disabled]="page() >= totalPages()"
+          (click)="nextPage()"
+          data-testid="fever-contact-picker-next"
+        >
+          {{ 'alertConfigForm.feverPicker.next' | translate }}
+        </button>
+      </div>
+    }
+  }
+</div>

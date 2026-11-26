@@ -1,0 +1,136 @@
+<app-page-title [title]="'menu.reservations' | translate" class="new-design"></app-page-title>
+<app-search-bar
+  (searchEmitter)="loadNewSearch($event)"
+  [mandatoryFilters]="mandatoryFilters"
+  [showVenue]="true"
+  [showChannels]="true"
+  [distributorPartners]="distributorPartners()"
+  [selectedDistributorPartner]="selectedDistributorPartner()"
+  [searchOnChange]="searchOnChange"
+>
+</app-search-bar>
+<div class="main-wrapper">
+  <div class="wrapper-card wrapper-card--elevation-100">
+    @if (!isMobile()) {
+      <div class="reservations-list__actions-toolbar" data-testid="reservations-actions-toolbar">
+        <h2 class="reservations-list__actions-toolbar-title">
+          {{ 'reservations.actionsToolbar.title' | translate }}
+        </h2>
+        <div class="reservations-list__actions-toolbar-buttons">
+          <ng-container *ngTemplateOutlet="downloadDropdown"></ng-container>
+          @if (makeReservationVisible()) {
+            <ng-container *ngTemplateOutlet="makeReservationCta"></ng-container>
+          }
+        </div>
+      </div>
+    }
+    <div class="reservations-list">
+      <div class="reservations-list__header" data-testid="reservations-header">
+        <div class="reservations-list__filters">
+          <app-reservations-filters [hiddenSearch]="true" [loading]="isLoading"></app-reservations-filters>
+          @if (isMobile()) {
+            <ng-container *ngTemplateOutlet="downloadDropdown"></ng-container>
+          }
+        </div>
+      </div>
+      <ng-container *ngIf="isMobile(); else showTable">
+        <div class="reservations-list__cards" #reservationCardList>
+          <ng-container *ngFor="let reservation of reservations; trackBy: trackByReservationId">
+            <app-reservation-card
+              [reservation]="reservation"
+              [timezone]="timezone"
+              [hiddenBusiness]="true"
+              (viewReservationDetailsClicked)="viewReservationDetails($event)"
+              (reservationCancelled)="reservationCancelled($event)"
+            ></app-reservation-card>
+          </ng-container>
+        </div>
+      </ng-container>
+      <ng-template #showTable>
+        <app-reservations-table
+          #reservationsTable
+          data-testid="reservations-list-table"
+          class="reservations"
+          [reservations]="reservations"
+          [hiddenBusiness]="true"
+          [hiddenOrderDetails]="true"
+          [timezone]="timezone"
+          [isLoading]="isLoading"
+          [isGettingDeliveryNote]="isPrinting"
+          [dateFilters]="filters?.selectedDateRange"
+          (viewReservationDetailsClicked)="viewReservationDetails($event)"
+          (reservationExpired)="reservationExpired($event)"
+        ></app-reservations-table>
+      </ng-template>
+      <div data-testid="reservations-list-loading" *ngIf="isLoading" class="reservations-list__spinner">
+        <ignt-icon class="loader" name="spinner" variant="solid" size="display" [spin]="true" aria-hidden="true"></ignt-icon>
+      </div>
+      @if (awaitingPartner) {
+        <div data-testid="reservations-list-awaiting-partner" class="reservations-list__no-results">
+          <ignt-icon class="icon-empty" name="receipt" variant="regular"></ignt-icon>
+          <div>{{ 'reservations.awaitingPartner.title' | translate }}</div>
+          <div>{{ 'reservations.awaitingPartner.description' | translate }}</div>
+        </div>
+      }
+      <div
+        data-testid="reservations-list-no-results"
+        class="reservations-list__no-results"
+        *ngIf="!awaitingPartner && reservations?.length === 0 && !isLoading && !hasError"
+      >
+        <ignt-icon class="icon-empty" name="receipt" variant="regular"></ignt-icon>
+        <div>{{ 'reservations.noResults' | translate }}</div>
+      </div>
+      <div data-testid="reservations-list-error" class="reservations-list-error" *ngIf="hasError">
+        <span class="reservations-list__error-text">
+          <ignt-icon class="reservation-list__error-icon" name="exclamation-triangle" variant="light"></ignt-icon>
+          {{ 'errors.generic' | translate }}
+        </span>
+        <button data-testid="reservations-list-retry" class="reservations-list__repeat-button" (click)="retrySearch()">
+          <ignt-icon name="repeat" variant="solid"></ignt-icon>
+          {{ 'reservations.retryButton' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+@if (isMobile() && makeReservationVisible()) {
+  <bottom-slider [buttonsTemplate]="makeReservationCta"></bottom-slider>
+}
+
+<ng-template #makeReservationCta>
+  <ignt-button
+    #makeReservationTooltip="igntTooltip"
+    class="reservations-list__make-reservation"
+    data-testid="make-reservation-button"
+    igntTooltip
+    [disabled]="makeReservationDisabled()"
+    [label]="'reservations.makeReservation.label' | translate"
+    [tooltipDisabled]="!makeReservationDisabled()"
+    [tooltipLabel]="makeReservationTooltipKey() | translate"
+    (click)="makeReservation()"
+    (pointerdown)="revealRefusalOnTouch($event, makeReservationTooltip)"
+  ></ignt-button>
+</ng-template>
+
+<ng-template #downloadDropdown>
+  <ignt-button-dropdown
+    sentiment="secondary"
+    [size]="isMobile() ? 'medium' : 'large'"
+    align="right"
+    [hoverEffect]="true"
+    [leadingIcon]="isMobile() ? ['far', 'file-download'] : null"
+    [options]="downloadFormatOptions"
+    [loading]="loadingDownloadReservations"
+    [disabled]="!ableToExport || loadingDownloadReservations"
+    (optionClick)="onDownloadFormatClick($event)"
+    data-testid="reservation-export-button"
+    igntTooltip
+    [tooltipLabel]="
+      (exceedsExportCap ? 'reservations.tooManyResults' : 'common.download')
+        | translate: { max: reservationsService.maxReservationsToPrint }
+    "
+    [tooltipDisabled]="reservations.length === 0"
+  >
+    {{ 'common.download' | translate }}
+  </ignt-button-dropdown>
+</ng-template>

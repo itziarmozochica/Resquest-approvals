@@ -1,0 +1,165 @@
+<ng-template #headerTooltipTemplate let-text="text">
+  <div class="seating-report-table__tooltip">{{ text }}</div>
+</ng-template>
+
+<table class="seating-report-table" [class.seating-report-table--issued-expanded]="isIssuedExpanded()">
+  <colgroup>
+    <col class="seating-report-table__col--name" />
+    @if (isIssuedExpanded()) {
+      <col class="seating-report-table__col--numeric" />
+      <col class="seating-report-table__col--numeric" />
+    } @else {
+      <col class="seating-report-table__col--numeric" />
+    }
+    <col class="seating-report-table__col--numeric" />
+    <col class="seating-report-table__col--numeric" />
+    <col class="seating-report-table__col--numeric" />
+    <col class="seating-report-table__col--numeric" />
+    <col class="seating-report-table__col--numeric" />
+    <col class="seating-report-table__col--numeric" />
+    <col class="seating-report-table__col--action" />
+  </colgroup>
+
+  <thead class="seating-report-table__thead">
+    <tr class="seating-report-table__header">
+      <th class="seating-report-table__header-cell seating-report-table__header-cell--name">
+        @if (timeSlotDateTime() && timeZone()) {
+          <span class="seating-report-table__timeslot-date">{{
+            timeSlotDateTime()! | momentDate: 'EEEE, d MMMM y - h:mm a' : timeZone()!
+          }}</span>
+        }
+      </th>
+      @if (isIssuedExpanded()) {
+        <th
+          class="seating-report-table__header-cell seating-report-table__header-cell--numeric seating-report-table__header-cell--highlighted"
+        >
+          <span
+            class="seating-report-table__header-label seating-report-table__header-label--has-tooltip"
+            [appTemplatedTooltip]="headerTooltipTemplate"
+            [appTemplatedTooltipContext]="{ text: ('sessions.seating.table.header.tooltip.booked' | translate) }"
+            >{{ 'sessions.seating.table.header.booked' | translate }}</span
+          >
+          <span class="seating-report-table__header-value">{{ totalMetrics().booked }}</span>
+        </th>
+        <th
+          (click)="toggleIssuedExpanded(false)"
+          class="seating-report-table__header-cell seating-report-table__header-cell--numeric seating-report-table__header-cell--highlighted seating-report-table__header-cell--clickable"
+        >
+          <span
+            class="seating-report-table__header-label seating-report-table__header-label--has-tooltip"
+            [appTemplatedTooltip]="headerTooltipTemplate"
+            [appTemplatedTooltipContext]="{ text: ('sessions.seating.table.header.tooltip.reserved' | translate) }"
+            >{{ 'sessions.seating.table.header.reserved' | translate }}
+            <fa-icon class="seating-report-table__toggle-icon" [icon]="['fas', 'minus-circle']"></fa-icon
+          ></span>
+          <span class="seating-report-table__header-value">{{ totalMetrics().reserved }}</span>
+        </th>
+      } @else {
+        <th
+          (click)="toggleIssuedExpanded(true)"
+          class="seating-report-table__header-cell seating-report-table__header-cell--numeric seating-report-table__header-cell--clickable"
+        >
+          <span
+            class="seating-report-table__header-label seating-report-table__header-label--has-tooltip"
+            [appTemplatedTooltip]="headerTooltipTemplate"
+            [appTemplatedTooltipContext]="{ text: ('sessions.seating.table.header.tooltip.issued' | translate) }"
+            >{{ 'sessions.seating.table.header.issued' | translate }}
+            <fa-icon class="seating-report-table__toggle-icon" [icon]="['fas', 'plus-circle']"></fa-icon
+          ></span>
+          <span class="seating-report-table__header-value">{{ totalMetrics().issued }}</span>
+        </th>
+      }
+      <th class="seating-report-table__header-cell seating-report-table__header-cell--numeric">
+        <span
+          class="seating-report-table__header-label seating-report-table__header-label--has-tooltip"
+          [appTemplatedTooltip]="headerTooltipTemplate"
+          [appTemplatedTooltipContext]="{ text: ('sessions.seating.table.header.tooltip.tempHeld' | translate) }"
+          >{{ 'sessions.seating.table.header.tempHeld' | translate }}</span
+        >
+        <span class="seating-report-table__header-value">{{ totalMetrics().tempHeld }}</span>
+      </th>
+      <th class="seating-report-table__header-cell seating-report-table__header-cell--numeric">
+        <span
+          class="seating-report-table__header-label seating-report-table__header-label--has-tooltip"
+          [appTemplatedTooltip]="headerTooltipTemplate"
+          [appTemplatedTooltipContext]="{ text: ('sessions.seating.table.header.tooltip.free' | translate) }"
+          >{{ 'sessions.seating.table.header.free' | translate }}</span
+        >
+        <span class="seating-report-table__header-value">{{ totalMetrics().free }}</span>
+      </th>
+      <th class="seating-report-table__header-cell seating-report-table__header-cell--numeric">
+        <span
+          class="seating-report-table__header-label seating-report-table__header-label--has-tooltip"
+          [appTemplatedTooltip]="headerTooltipTemplate"
+          [appTemplatedTooltipContext]="{ text: ('sessions.seating.table.header.tooltip.notForSale' | translate) }"
+          >{{ 'sessions.seating.table.header.notForSale' | translate }}</span
+        >
+        <span class="seating-report-table__header-value">{{ totalMetrics().notForSale }}</span>
+      </th>
+      <th class="seating-report-table__header-cell seating-report-table__header-cell--numeric">
+        <span
+          class="seating-report-table__header-label seating-report-table__header-label--has-tooltip"
+          [appTemplatedTooltip]="headerTooltipTemplate"
+          [appTemplatedTooltipContext]="{ text: ('sessions.seating.table.header.tooltip.totalCapacity' | translate) }"
+          >{{ 'sessions.seating.table.header.totalCapacity' | translate }}</span
+        >
+        <span class="seating-report-table__header-value">{{ totalMetrics().totalCapacity }}</span>
+      </th>
+      <th class="seating-report-table__header-cell seating-report-table__header-cell--numeric">
+        <span
+          class="seating-report-table__header-label seating-report-table__header-label--has-tooltip"
+          [appTemplatedTooltip]="headerTooltipTemplate"
+          [appTemplatedTooltipContext]="{ text: ('sessions.seating.table.header.tooltip.sellableOcc' | translate) }"
+          >{{ 'sessions.seating.table.header.sellableOcc' | translate }}</span
+        >
+        <span class="seating-report-table__header-value">{{ totalMetrics().sellableOcc | number: '1.1-1' }}%</span>
+      </th>
+      <th class="seating-report-table__header-cell seating-report-table__header-cell--numeric">
+        <span
+          class="seating-report-table__header-label seating-report-table__header-label--has-tooltip"
+          [appTemplatedTooltip]="headerTooltipTemplate"
+          [appTemplatedTooltipContext]="{ text: ('sessions.seating.table.header.tooltip.totalOcc' | translate) }"
+          >{{ 'sessions.seating.table.header.totalOcc' | translate }}</span
+        >
+        <span class="seating-report-table__header-value">{{ totalMetrics().totalOcc | number: '1.1-1' }}%</span>
+      </th>
+      <th class="seating-report-table__header-cell seating-report-table__header-cell--action">
+        <button class="seating-report-table__seat-btn" type="button" (click)="onTimeslotIconClick()">
+          <fa-icon [icon]="['fas', 'loveseat']" class="seating-report-table__seat-icon"></fa-icon>
+        </button>
+      </th>
+    </tr>
+  </thead>
+
+  <tbody class="seating-report-table__spacer">
+    <tr>
+      <td [attr.colspan]="isIssuedExpanded() ? 10 : 9" class="seating-report-table__spacer-cell"></td>
+    </tr>
+  </tbody>
+
+  @for (row of rows(); track row.id) {
+    <tbody class="seating-report-table__body">
+      <ng-container *ngTemplateOutlet="rowTemplate; context: { $implicit: row, level: 0 }"></ng-container>
+    </tbody>
+  }
+</table>
+
+<ng-template #rowTemplate let-row let-level="level">
+  <tr
+    appSeatingReportTableRow
+    [row]="row"
+    [indentLevel]="level"
+    [isIssuedExpanded]="isIssuedExpanded()"
+    (seatIconClick)="onRowIconClick(row)"
+    #rowComponent
+  ></tr>
+  @if (row.children?.length && rowComponent.isExpanded()) {
+    <ng-container *ngTemplateOutlet="rowsTemplate; context: { $implicit: row.children, level: level + 1 }"></ng-container>
+  }
+</ng-template>
+
+<ng-template #rowsTemplate let-rows let-level="level">
+  @for (row of rows; track row.id) {
+    <ng-container *ngTemplateOutlet="rowTemplate; context: { $implicit: row, level }"></ng-container>
+  }
+</ng-template>

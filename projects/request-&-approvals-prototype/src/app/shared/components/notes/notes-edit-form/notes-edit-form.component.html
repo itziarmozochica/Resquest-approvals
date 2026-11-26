@@ -1,0 +1,139 @@
+<div class="lateral-slider-body__wrapper common-session-edit">
+  @if (mode === NoteEditFormMode.Update) {
+    <div class="common-session-edit__header">
+      <div class="common-session-edit__header-date">
+        <div class="common-session-edit__header-date--updated">
+          <div class="title-row">
+            <div class="title">{{ 'boxOffice.order.notes.lastUpdate' | translate }}</div>
+          </div>
+          <div class="user-section">
+            <div class="user-section-inner">
+              <div class="user-info-row">
+                <fa-icon [icon]="['fal', 'user-circle']" class="user-icon"></fa-icon>
+                <span class="note-username">{{ note?.username || '-' }}</span>
+              </div>
+              @if (note?.modified_at) {
+                <div class="date-row">
+                  <fa-icon [icon]="['fal', 'calendar']" class="date-icon"></fa-icon>
+                  <div class="note-date">{{ note.modified_at | momentDate: 'd MMM, HH:mm' }}</div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (formLoaded) {
+    <form [formGroup]="formGroup" class="common-session-edit__form">
+      @if (availableAudiences().length > 0) {
+        <div class="note-form__item">
+          <div class="form-group">
+            <span id="notes-audience-label" class="form-label">{{ 'boxOffice.order.notes.audienceLabel' | translate }}</span>
+
+            <div class="note-form__audiences" role="radiogroup" aria-labelledby="notes-audience-label" data-testid="notes-audience">
+              @for (option of availableAudiences(); track option) {
+                <ignt-radio
+                  name="notes-audience"
+                  [label]="audienceLabelKey[option] | translate"
+                  [checked]="option === audience()"
+                  [value]="option"
+                  [dataTestId]="'notes-audience-' + option"
+                  (change)="onAudienceSelect(option)"
+                />
+              }
+            </div>
+          </div>
+        </div>
+      }
+      <div class="note-form__item">
+        <div class="form-group" [class.form-group--error]="getControlError(formGroup.get('title'))">
+          <label for="title" class="form-label">{{ 'boxOffice.order.notes.titlePlaceholder' | translate }}</label>
+
+          <input
+            id="title"
+            data-testid="notes-title"
+            class="form-input"
+            type="text"
+            min="0"
+            maxlength="50"
+            [formControl]="formGroup.get('title')"
+            [placeholder]="'boxOffice.order.notes.titlePlaceholder' | translate"
+          />
+        </div>
+        <ng-container *ngTemplateOutlet="validationErrors; context: { error: getControlError(formGroup.get('title')) }"></ng-container>
+      </div>
+      <div class="note-form__item">
+        <div class="form-group" [class.form-group--error]="getControlError(formGroup.get('message'))">
+          <label for="message" class="form-label">{{ 'boxOffice.order.notes.descriptionPlaceholder' | translate }}</label>
+
+          <textarea
+            id="message"
+            data-testid="notes-message"
+            class="form-input"
+            type="text"
+            rows="8"
+            [attr.maxlength]="messageMaxLength()"
+            [formControl]="formGroup.get('message')"
+            [placeholder]="'boxOffice.order.notes.descriptionPlaceholder' | translate"
+          >
+          </textarea>
+        </div>
+        <ng-container *ngTemplateOutlet="validationErrors; context: { error: getControlError(formGroup.get('message')) }"></ng-container>
+      </div>
+    </form>
+  }
+
+  <ng-content select="[append-only-extra]"></ng-content>
+</div>
+
+@if (hasSaveError()) {
+  <div class="note-form__info-message">
+    <ignt-alert sentiment="danger" [description]="'boxOffice.order.notes.saveError' | translate" data-testid="notes-save-error-alert" />
+  </div>
+}
+
+@if (isCustomerAudience()) {
+  <div class="note-form__info-message">
+    <ignt-alert [description]="'boxOffice.order.notes.customerInfoMessage' | translate" data-testid="notes-customer-alert" />
+  </div>
+} @else if (showValidationAppMessage) {
+  <div class="note-form__info-message">
+    <ignt-alert [description]="'boxOffice.order.notes.infoMessage' | translate" data-testid="notes-validation-app-alert" />
+  </div>
+}
+
+<div class="lateral-slider-body__footer" [class.lateral-slider-body__footer--append-only]="isAppendOnlyMode()">
+  @switch (mode) {
+    @case (NoteEditFormMode.Create) {
+      <button data-testid="notes-cancel-button" class="button button--secondary button--large" (click)="cancel()">
+        {{ 'boxOffice.order.notes.closeButton' | translate }}
+      </button>
+    }
+    @case (NoteEditFormMode.Update) {
+      <button data-testid="notes-delete-button" class="button button--danger-tertiary button--large" (click)="delete()">
+        {{ 'boxOffice.order.notes.deleteButton' | translate }}
+      </button>
+    }
+  }
+
+  <button class="button button--primary button--large" data-testid="notes-save-button" (click)="save()">
+    {{ 'boxOffice.order.notes.saveButton' | translate }}
+  </button>
+</div>
+
+<ng-template #validationErrors let-error="error">
+  @if (error) {
+    <div class="form-error">
+      <fa-icon class="form-error--icon" [icon]="['fas', 'exclamation-circle']"></fa-icon>
+      @switch (error) {
+        @case ('maxlength') {
+          <span class="form-error--message" data-testid="error-max-value-field">
+            {{ 'form.error.maxLength' | translate: { value: '50' } }}
+          </span>
+        }
+      }
+    </div>
+  }
+</ng-template>

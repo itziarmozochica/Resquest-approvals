@@ -1,0 +1,77 @@
+<div class="assignment">
+  <span class="assignment__description" translate>
+    {{ 'boxOffice.settings.actions.onsiteSetup.paymentConfiguration.description' }}
+  </span>
+  @if (loadFailed()) {
+    <span class="assignment__error" data-testid="payment-configuration-load-error" translate>
+      {{ 'boxOffice.settings.actions.onsiteSetup.paymentConfiguration.error' }}
+    </span>
+  }
+  <app-filter-select
+    data-testid="payment-configuration-select"
+    [options]="configurationOptions()"
+    [allowEmpty]="true"
+    [allowAll]="false"
+    [emptyLabel]="'boxOffice.settings.actions.onsiteSetup.paymentConfiguration.none' | translate"
+    [preloadedOption]="selectedConfigurationOption()"
+    (selected)="selectConfiguration($event)"
+  >
+  </app-filter-select>
+  @if (showPaymentConfigurationsTabLink()) {
+    <div class="assignment__empty-state" data-testid="payment-configuration-empty-state">
+      <ignt-button
+        data-testid="payment-configuration-empty-state-link"
+        variant="tertiary"
+        sentiment="brand"
+        size="small"
+        [label]="'boxOffice.settings.actions.onsiteSetup.paymentConfiguration.emptyStateLink' | translate"
+        (click)="goToPaymentConfigurations()"
+      ></ignt-button>
+    </div>
+  }
+  @if (configurationRequiredError()) {
+    <span class="assignment__error" data-testid="payment-configuration-required-error" translate>
+      {{ 'boxOffice.settings.actions.onsiteSetup.paymentConfiguration.required' }}
+    </span>
+  }
+  @if (selectedConfigurationId() !== null && terminalsLoadFailed()) {
+    <span class="assignment__error" data-testid="payment-configuration-terminals-load-error" translate>
+      {{ 'boxOffice.settings.actions.onsiteSetup.paymentConfiguration.terminals.loadError' }}
+    </span>
+  }
+  @if (selectedConfigurationId() !== null && selectedConfigurationIsIntegrated() && !terminalsLoading()) {
+    @if (terminalOptions().length > 0) {
+      <div class="assignment__terminals-header" data-testid="payment-configuration-terminals-toggle" (click)="toggleTerminalsExpanded()">
+        <span class="assignment__terminals-label" translate>
+          {{ 'boxOffice.settings.actions.onsiteSetup.paymentConfiguration.terminals.label' }}
+        </span>
+        <ignt-icon
+          class="assignment__terminals-chevron"
+          name="caret-down"
+          variant="solid"
+          aria-hidden="true"
+          [class.assignment__terminals-chevron--expanded]="terminalsExpanded()"
+          [fixedWidth]="true"
+        ></ignt-icon>
+      </div>
+      @if (terminalsExpanded()) {
+        <div class="assignment__terminal-list" data-testid="payment-configuration-terminal-list">
+          @for (terminal of terminalOptions(); track terminal.id) {
+            <ignt-checkbox
+              class="assignment__terminal-checkbox"
+              [checked]="isTerminalSelected(terminal.id)"
+              [label]="terminal.title"
+              [dataTestId]="'payment-configuration-terminal-' + terminal.id"
+              (change)="toggleTerminal(terminal.id)"
+            ></ignt-checkbox>
+          }
+        </div>
+      }
+      @if (terminalSelectionRequiredError()) {
+        <span class="assignment__error" data-testid="payment-configuration-terminal-required-error" translate>
+          {{ 'boxOffice.settings.actions.onsiteSetup.paymentConfiguration.terminals.required' }}
+        </span>
+      }
+    }
+  }
+</div>

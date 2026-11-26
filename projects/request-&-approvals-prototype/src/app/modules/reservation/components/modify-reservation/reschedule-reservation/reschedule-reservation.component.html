@@ -1,0 +1,104 @@
+<div class="reschedule-reservation">
+  <div class="reschedule-reservation__header">
+    <button
+      ignt-icon-button
+      sentiment="secondary"
+      size="small"
+      [icon]="['far', 'chevron-left']"
+      class="reschedule-reservation__header__back"
+      data-testid="reschedule-reservation__back"
+      [attr.aria-label]="'reservations.modify.rescheduleBack' | translate"
+      (click)="onBack()"
+    ></button>
+    <div class="reschedule-reservation__header__titles">
+      <h2 class="reschedule-reservation__header__title" data-testid="reschedule-reservation__title">
+        {{ 'reservations.modify.reschedule' | translate }}
+      </h2>
+      <p class="reschedule-reservation__header__subtitle" data-testid="reschedule-reservation__subtitle">
+        {{ 'reservations.modify.rescheduleSubtitle' | translate }}
+      </p>
+    </div>
+  </div>
+
+  @if (group(); as rescheduleGroup) {
+    <div class="reschedule-reservation__summary" data-testid="reschedule-reservation__summary">
+      <p class="reschedule-reservation__summary__tickets">
+        {{ 'reservations.modify.rescheduleSummaryPrefix' | translate }}
+        <button
+          type="button"
+          class="reschedule-reservation__summary__tickets__count"
+          data-testid="reschedule-reservation__ticket-count"
+          (click)="onOpenTicketsDialog()"
+        >
+          {{ ticketsLabelKey() | translate: { count: ticketCount() } }}
+        </button>
+      </p>
+
+      <div class="reschedule-reservation__summary__route">
+        <p class="reschedule-reservation__summary__route__from">
+          <span class="reschedule-reservation__summary__route__prefix">
+            {{ 'reservations.modify.rescheduleSummaryFrom' | translate }}
+          </span>
+          <span class="reschedule-reservation__summary__route__date" data-testid="reschedule-reservation__original-date">
+            {{ rescheduleGroup.startDate | momentDate: rescheduleDateFormat : rescheduleGroup.timezone : locale }}
+          </span>
+        </p>
+
+        <ignt-icon
+          class="reschedule-reservation__summary__route__arrow"
+          name="arrow-right-long"
+          variant="regular"
+          size="caption"
+          aria-hidden="true"
+        />
+
+        <p class="reschedule-reservation__summary__route__to">
+          <span class="reschedule-reservation__summary__route__prefix">
+            {{ 'reservations.modify.rescheduleSummaryTo' | translate }}
+          </span>
+          @if (selectedDestinationDate(); as destinationDate) {
+            <span class="reschedule-reservation__summary__route__date" data-testid="reschedule-reservation__destination-date">
+              {{ destinationDate | momentDate: rescheduleDateFormat : rescheduleGroup.timezone : locale }}
+            </span>
+          } @else {
+            <span class="reschedule-reservation__summary__route__placeholder" data-testid="reschedule-reservation__destination-placeholder">
+              {{ 'reservations.modify.rescheduleSummaryToPlaceholder' | translate }}
+            </span>
+          }
+        </p>
+      </div>
+    </div>
+
+    <div class="reschedule-reservation__selector box-office-content__content-card" data-testid="reschedule-reservation__date-selector-card">
+      <box-office-date-selector
+        data-testid="reschedule-reservation__date-selector"
+        (displayedSessionTypeChange)="onDisplayedSessionTypeChange($event)"
+        (handleShowAvailabilityFromDateChange)="onAvailabilityFromDateChange($event)"
+        (selectedSessionChange)="onSelectedSessionChange($event)"
+        [displayedSessionType]="displayedSessionType()"
+        [excludeNextHours]="excludeNextHours()"
+        [hideDates]="!shouldShowDateSelector()"
+        [loading]="loading()"
+        [locale]="locale"
+        [regularSessionAvailabilitySummaryByDate]="filteredRegularSessionAvailabilitySummary()"
+        [selectedAvailabilityFromDate]="selectedAvailabilityFromDate()"
+        [selectedSession]="selectedSession()"
+        [sessionSelectorType]="sessionSelectorType()"
+        [ticketTypes]="ticketTypesBySessionType()"
+        [timezone]="timezone()"
+      ></box-office-date-selector>
+      @if (!hasAvailabilityDates()) {
+        <ignt-alert
+          class="box-office-content__error"
+          [description]="'boxOffice.noSessionsAvailableForDate' | translate"
+          data-testid="reschedule-reservation__no-dates-alert"
+        ></ignt-alert>
+      }
+      @if (loading()) {
+        <div class="box-office-content__spinner" data-testid="reschedule-reservation__loading-spinner">
+          <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'3x'"></fa-icon>
+        </div>
+      }
+    </div>
+  }
+</div>

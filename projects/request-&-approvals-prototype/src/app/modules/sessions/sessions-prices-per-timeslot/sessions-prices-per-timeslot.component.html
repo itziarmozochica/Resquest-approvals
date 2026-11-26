@@ -1,0 +1,132 @@
+<ng-container *ngIf="filters?.selectedPlan && filters?.selectedPlace; else noFiltersSelected">
+  <ng-container *ngIf="isEditingLimitedByADP$ | async">
+    <ignt-alert
+      data-testid="price-editing-disabled-banner"
+      sentiment="danger"
+      [title]="'sessions.dynamicPricing.disabledPriceEditingWarningTitle' | translate"
+      [description]="'sessions.dynamicPricing.disabledPriceEditingWarningDescription' | translate"
+    ></ignt-alert>
+  </ng-container>
+  <ng-container *ngIf="pricingPromotions.length > 0">
+    <ignt-alert
+      data-testid="promotions-active-banner"
+      sentiment="danger"
+      [title]="'sessions.pricesPerTimeslot.promotionsActiveBannerTitle' | translate"
+      [description]="getPromotionsMessage()"
+    ></ignt-alert>
+  </ng-container>
+
+  <div class="content-wrapper">
+    <div class="date-selector-wrapper">
+      <date-selector-generic
+        *ngIf="sessionsList"
+        [sessionsList]="sessionsList"
+        [timezone]="filters.timezone"
+        [initialSelectedDay]="initialSelectedDay"
+        [initialSelectedTime]="initialSelectedTime"
+        (daySelected)="onDaySelected($event)"
+        (sessionSelected)="onSessionSelected($event.id, $event.startsAt, $any($event).tier)"
+      ></date-selector-generic>
+    </div>
+
+    <div class="main-view">
+      <ng-container *ngIf="selectedTimeSlot; else sessionNotSelected">
+        <span>{{
+          (isEditEnabled
+            ? 'sessions.pricesPerTimeslot.introductionMessage'
+            : 'sessions.pricesPerTimeslot.introductionMessageEditingDisabled'
+          ) | translate
+        }}</span>
+        <div class="title-row">
+          <div class="selected-session-title">
+            <span data-testid="title-with-selected-timeslot">{{ formattedTimeSlotStartAt }}</span>
+            <ignt-tag
+              *ngIf="selectedTimeSlot.tier"
+              data-testid="tier-tag"
+              [sentiment]="sentimentTag[selectedTimeSlot.tier.color]"
+              [variant]="'outline'"
+            >
+              {{ selectedTimeSlot.tier.name }}
+            </ignt-tag>
+          </div>
+          <button
+            data-testid="toggle-all-groups-button"
+            [disabled]="!timeSlotPricesResponse"
+            igntButton
+            sentiment="secondary"
+            (click)="onClickToggleGroupsButton()"
+          >
+            {{
+              (groupsFoldStatus === 'allExpanded'
+                ? 'sessions.pricesPerTimeslot.toggleGroupsButton.closeAll'
+                : 'sessions.pricesPerTimeslot.toggleGroupsButton.expandAll'
+              ) | translate
+            }}
+          </button>
+        </div>
+        <app-sessions-prices-per-timeslot-table
+          *ngIf="timeSlotPricesResponse && !isPricesLoading"
+          [channels]="timeSlotPricesResponse.channels"
+          [priceLists]="timeSlotPricesResponse.priceLists"
+          [pricingPromotions]="timeSlotPricesResponse.pricingPromotions"
+          [sessionTypeGroups]="timeSlotPricesResponse.sessionTypeGroups"
+          [ungroupedSessions]="timeSlotPricesResponse.ungroupedSessions"
+          [sessionsByGroup]="timeSlotPricesResponse.sessionsByGroup"
+          [groupsFoldStatus]="groupsFoldStatus"
+          [isSessionPast]="isSessionPast"
+          [isEditingLimitedByADP]="isEditingLimitedByADP$ | async"
+          (groupsFoldStatusChange)="onGroupsFoldStatusChange($event)"
+          (priceSelected)="onPriceSelected($event)"
+          (restoreGroupPricesClicked)="onRestoreGroupPricesClicked($event)"
+        ></app-sessions-prices-per-timeslot-table>
+
+        <div *ngIf="isPricesLoading" class="spinner-container">
+          <ignt-icon aria-hidden="true" name="spinner" size="display" variant="solid" [spin]="true" />
+        </div>
+      </ng-container>
+    </div>
+  </div>
+</ng-container>
+
+<app-lateral-slider
+  data-testid="edit-price-lateral-slider"
+  [contentTemplate]="editPriceForm"
+  [showDetails]="showEditPriceModal"
+  [title]="'sessions.pricesPerTimeslot.editForm.title' | translate"
+  (closeSlider)="onCloseEditPriceModal()"
+></app-lateral-slider>
+
+<ng-template #editPriceForm>
+  <app-price-per-channel-item-form
+    data-testid="price-per-channel-item-form"
+    *ngIf="selectedPricePerChannel"
+    [item]="selectedPricePerChannel.channelPrice"
+    [sessionTypeId]="selectedPricePerChannel.session.sessionType.id"
+    [planSessionTypes]="planSessionTypes$ | async"
+    (saveClicked)="onSavePrice($event)"
+    (removeOverrideClicked)="promptRestorePriceOverrides(selectedPricePerChannel.channelPrice.id)"
+    [hasPromotions]="pricingPromotions.length > 0"
+  >
+    <app-price-override-summary
+      *ngIf="selectedPricePerChannel"
+      [title]="formattedTimeSlotStartAt"
+      [channel]="selectedPricePerChannel.channel.name"
+      [sessionType]="selectedPricePerChannel.session.sessionType.label"
+      [group]="selectedPricePerChannel.groupName"
+      [priceList]="selectedPricePerChannel.priceListName"
+    >
+    </app-price-override-summary>
+  </app-price-per-channel-item-form>
+</ng-template>
+
+<ng-template #sessionNotSelected>
+  <div class="main-view__no-selected" data-testid="no-session-selected-view">
+    <span>{{ 'sessions.pricesPerTimeslot.noSessionSelected' | translate }}</span>
+  </div>
+</ng-template>
+
+<ng-template #noFiltersSelected>
+  <div class="main-view__no-selected" data-testid="no-filters-selected-view">
+    <span>{{ 'sessions.pricesPerTimeslot.noFiltersSelected' | translate }}</span>
+  </div>
+</ng-template>

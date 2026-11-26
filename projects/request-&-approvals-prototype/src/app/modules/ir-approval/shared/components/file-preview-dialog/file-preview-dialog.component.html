@@ -1,0 +1,87 @@
+@if (file(); as f) {
+  <div class="file-preview" data-testid="file-preview-dialog">
+    <div class="file-preview__backdrop" (click)="close()"></div>
+    <div class="file-preview__panel" role="dialog" aria-modal="true">
+      <header class="file-preview__header">
+        <span class="file-preview__name" [title]="f.originalName">{{ f.originalName }}</span>
+        <span class="file-preview__actions">
+          @if (f.webViewLink) {
+            <a class="file-preview__open" [href]="f.webViewLink" target="_blank" rel="noopener noreferrer">
+              {{ 'filePreview.openInDrive' | translate }}
+            </a>
+          }
+          <button
+            type="button"
+            ignt-icon-button
+            variant="sharp"
+            sentiment="tertiary"
+            size="small"
+            [icon]="['fas', 'times']"
+            (click)="close()"
+            [attr.aria-label]="'filePreview.close' | translate"
+            data-testid="file-preview-close"
+          ></button>
+        </span>
+      </header>
+      <div class="file-preview__body">
+        @switch (kind()) {
+          @case ('image') {
+            <img class="file-preview__image" [src]="imageUrl()" [alt]="f.originalName" />
+          }
+          @case ('video') {
+            <video
+              #player
+              class="file-preview__video"
+              [src]="mediaUrl()"
+              controls
+              playsinline
+              [attr.aria-label]="f.originalName"
+              (error)="onMediaError(player)"
+              (loadedmetadata)="onMediaLoaded(player)"
+              data-testid="file-preview-video"
+            ></video>
+            @if (playbackFailed()) {
+              <p class="file-preview__error" role="alert" data-testid="file-preview-play-error">
+                {{ 'filePreview.playError' | translate }}
+              </p>
+            }
+          }
+          @case ('audio') {
+            <audio
+              #player
+              class="file-preview__audio"
+              [src]="mediaUrl()"
+              controls
+              [attr.aria-label]="f.originalName"
+              (error)="onMediaError(player)"
+              (loadedmetadata)="onMediaLoaded(player)"
+              data-testid="file-preview-audio"
+            ></audio>
+            @if (playbackFailed()) {
+              <p class="file-preview__error" role="alert" data-testid="file-preview-play-error">
+                {{ 'filePreview.playError' | translate }}
+              </p>
+            }
+          }
+          @case ('other') {
+            <div class="file-preview__fallback">
+              <p>{{ 'filePreview.noInlinePreview' | translate }}</p>
+              <a class="file-preview__fallback-link" [href]="f.webViewLink" target="_blank" rel="noopener noreferrer">
+                {{ 'filePreview.openInNewTab' | translate }}
+              </a>
+            </div>
+          }
+          @default {
+            <iframe
+              class="file-preview__frame"
+              [src]="embedUrl()"
+              [title]="f.originalName"
+              referrerpolicy="no-referrer"
+              data-testid="file-preview-frame"
+            ></iframe>
+          }
+        }
+      </div>
+    </div>
+  </div>
+}

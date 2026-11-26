@@ -1,0 +1,51 @@
+<div class="ir-sheet-link" [attr.data-testid]="testId">
+  @if (canAdd()) {
+    <div class="ir-sheet-link__add">
+      <input
+        type="url"
+        class="form-control ir-sheet-link__input"
+        [ngModel]="draft()"
+        (ngModelChange)="onDraftChange($event)"
+        [disabled]="loading()"
+        [placeholder]="'informationRequests.question.sheetLink.placeholder' | translate"
+        (keydown.enter)="add(); $event.preventDefault()"
+        [attr.data-testid]="testId + '-input'"
+      />
+      <ignt-button
+        variant="secondary"
+        size="small"
+        [label]="(loading() ? 'informationRequests.question.sheetLink.checking' : 'informationRequests.question.sheetLink.add') | translate"
+        [disabled]="loading() || !draft().trim().length"
+        (click)="add()"
+        [attr.data-testid]="testId + '-add'"
+      />
+    </div>
+
+    @if (errorKey(); as key) {
+      <p class="ir-sheet-link__error" [attr.data-testid]="testId + '-error'">
+        @if (key === 'accessDenied' && errorAccount()) {
+          {{ 'informationRequests.question.sheetLink.errors.accessDeniedAccount' | translate: { account: errorAccount() } }}
+        } @else {
+          {{ 'informationRequests.question.sheetLink.errors.' + key | translate }}
+        }
+      </p>
+    }
+  }
+
+  @for (sheet of sheets; track sheet.driveFileId) {
+    <div class="ir-sheet-link__entry" data-testid="ir-sheet-link-entry">
+      <div class="ir-sheet-link__entry-head">
+        <a [href]="sheet.webViewLink" target="_blank" rel="noopener noreferrer">{{ sheet.originalName }}</a>
+        <ignt-button
+          variant="tertiary"
+          size="small"
+          [label]="'informationRequests.question.file.remove' | translate"
+          [disabled]="disabled"
+          (click)="remove(sheet.driveFileId)"
+          [attr.data-testid]="testId + '-remove-' + sheet.driveFileId"
+        />
+      </div>
+      <app-sheet-preview-table [rows]="previewFor(sheet.driveFileId)" [testId]="testId + '-preview-' + sheet.driveFileId" />
+    </div>
+  }
+</div>

@@ -1,0 +1,191 @@
+<div
+  class="immersive-field"
+  data-testid="immersive-field"
+  [class.immersive-field--dirty]="view().dirty"
+  [class.immersive-field--enum]="view().kind === 'enum'"
+  [class.immersive-field--number]="view().kind === 'number'"
+>
+  @if (view().isSwitchable) {
+    <div class="immersive-field__switch-row" data-testid="immersive-field-switch-row">
+      <ignt-toggle [checked]="isSwitchOn()" [id]="switchId()" (change)="onSwitchToggleChange($event)" />
+      <div class="immersive-field__toggle-header">
+        <label class="immersive-field__toggle-label" [attr.for]="switchId()">{{ view().labelKey | translate }}</label>
+        @if (isSwitchOn()) {
+          <ng-container [ngTemplateOutlet]="fieldStatus" />
+        }
+      </div>
+      @if (isSwitchOn()) {
+        <div class="immersive-field__switch-input">
+          <label class="visually-hidden" [attr.for]="view().inputId">{{ view().labelKey | translate }}</label>
+          @if (view().kind === 'token') {
+            <div class="immersive-field__token-row">
+              <ng-container [ngTemplateOutlet]="tokenInput" />
+              <ng-container [ngTemplateOutlet]="translationsTrigger" />
+            </div>
+          } @else {
+            <ng-container [ngTemplateOutlet]="mediaInput" />
+          }
+        </div>
+      }
+    </div>
+  } @else if (view().kind === 'boolean') {
+    <div class="immersive-field__toggle-row">
+      <ignt-toggle [checked]="view().checked" [id]="view().inputId" (change)="onToggleChange($event)" />
+      <label class="immersive-field__toggle-label" [attr.for]="view().inputId">
+        {{ view().labelKey | translate }}
+      </label>
+    </div>
+  } @else {
+    <div class="immersive-field__head">
+      <label
+        class="immersive-field__label"
+        [attr.for]="view().richText ? null : view().inputId"
+        [attr.id]="view().richText ? labelId() : null"
+      >
+        {{ view().labelKey | translate }}
+        <ng-container [ngTemplateOutlet]="fieldStatus" />
+      </label>
+      <ng-container [ngTemplateOutlet]="translationsTrigger" />
+    </div>
+
+    @switch (view().kind) {
+      @case ('enum') {
+        <ignt-button-dropdown
+          #dropdown
+          align="left"
+          class="immersive-field__enum-dropdown"
+          [options]="view().enumOptions"
+          sentiment="secondary"
+          size="small"
+          (optionClick)="valueChange.emit($event); dropdown.close()"
+        >
+          {{ view().enumLabel }}
+        </ignt-button-dropdown>
+      }
+      @case ('token') {
+        <ng-container [ngTemplateOutlet]="tokenInput" />
+      }
+      @default {
+        <ng-container [ngTemplateOutlet]="mediaInput" />
+      }
+    }
+  }
+
+  <ng-template #fieldStatus>
+    @if (view().gap && !view().media?.errorKey) {
+      <ignt-icon
+        class="immersive-field__gap-icon"
+        data-testid="immersive-field-gap"
+        name="exclamation-triangle"
+        size="base"
+        variant="solid"
+        aria-hidden="true"
+      />
+    }
+    @if (view().showBaseHint) {
+      <span
+        class="immersive-field__hint"
+        data-testid="immersive-field-base-hint"
+        igntTooltip
+        [tooltipLabel]="view().baseHint"
+        tooltipPlacement="top"
+      >
+        <ignt-icon class="immersive-field__hint-icon" name="info-circle" size="base" variant="solid" aria-hidden="true" />
+      </span>
+    }
+  </ng-template>
+
+  <ng-template #translationsTrigger>
+    @if (view().translationGap; as gap) {
+      <!-- Colour carries the state; the count and the aria-label carry it for everyone else. -->
+      <ignt-button
+        class="immersive-field__translations"
+        data-testid="immersive-field-translations"
+        igntTooltip
+        sentiment="neutral"
+        size="small"
+        tooltipPlacement="top"
+        variant="tertiary"
+        [ariaLabel]="translationsLabel(gap) | translate: gap"
+        [class.immersive-field__translations--none]="gap.total > 0 && gap.missing === gap.total"
+        [class.immersive-field__translations--partial]="gap.missing > 0 && gap.missing < gap.total"
+        [label]="translationsBadge(gap)"
+        [leadingIcon]="{ name: 'language', variant: 'light' }"
+        [tooltipLabel]="translationsLabel(gap) | translate: gap"
+        (click)="openTranslations.emit(view())"
+      />
+    }
+  </ng-template>
+
+  <ng-template #tokenInput>
+    @if (view().isLiteral && !view().multiline) {
+      <ignt-input-field
+        class="immersive-field__token-input"
+        [helperText]="view().helperKey | translate"
+        [id]="view().inputId"
+        label=""
+        [ngModel]="view().text"
+        (ngModelChange)="onTextChange($event)"
+      />
+    } @else if (view().richText) {
+      <app-immersive-markdown-editor
+        class="immersive-field__token-input"
+        [labelledBy]="labelId()"
+        [placeholder]="view().placeholderKey | translate"
+        [ngModel]="view().text"
+        (ngModelChange)="onTextChange($event)"
+      />
+      @if (view().isLiteral) {
+        <span class="immersive-field__helper" data-testid="immersive-field-helper">{{ view().helperKey | translate }}</span>
+      }
+    } @else if (view().multiline) {
+      <ignt-textarea-field
+        class="immersive-field__token-input"
+        [helperText]="view().isLiteral ? (view().helperKey | translate) : ''"
+        [id]="view().inputId"
+        label=""
+        [placeholder]="view().placeholderKey | translate"
+        resize="vertical"
+        [rows]="2"
+        [ngModel]="view().text"
+        (ngModelChange)="onTextChange($event)"
+      />
+    } @else {
+      <ignt-input-field
+        class="immersive-field__token-input"
+        [id]="view().inputId"
+        label=""
+        [placeholder]="view().placeholderKey | translate"
+        [ngModel]="view().text"
+        (ngModelChange)="onTextChange($event)"
+      />
+    }
+  </ng-template>
+
+  <ng-template #mediaInput>
+    <div class="immersive-field__media-input" [attr.data-media-status]="view().media?.status ?? null">
+      <ignt-input-field
+        [helperText]="view().helperKey | translate"
+        [id]="view().inputId"
+        label=""
+        [placeholder]="view().placeholderKey | translate"
+        [trailIcon]="mediaTrailIcon(view().media)"
+        [trailIconAriaLabel]="mediaTrailIconAriaLabel(view()) | translate"
+        [type]="view().inputType"
+        [ngModel]="view().text"
+        (ngModelChange)="onTextChange($event)"
+        (trailIconClicked)="onMediaTrailIconClicked(view())"
+      />
+      @if (mediaStatusIcon(view().media); as statusIcon) {
+        <span class="immersive-field__media-status" data-testid="immersive-field-media-status" aria-hidden="true">
+          <ignt-icon [name]="statusIcon" size="sm" variant="solid" />
+        </span>
+      }
+    </div>
+    @if (view().media?.errorKey; as errorKey) {
+      <span class="immersive-field__media-error" data-testid="immersive-field-media-error" aria-live="polite">{{
+        errorKey | translate
+      }}</span>
+    }
+  </ng-template>
+</div>

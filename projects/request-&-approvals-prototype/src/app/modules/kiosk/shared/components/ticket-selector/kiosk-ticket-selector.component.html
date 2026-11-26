@@ -1,0 +1,255 @@
+<div class="content">
+  <div class="content__title" data-testid="ticketing-step-title">
+    {{ titleKey | translate }}
+  </div>
+  <app-kiosk-ticket-selector-level
+    *ngIf="hasExplodePipe"
+    [ticketTypes]="ticketTypesForLevelComponent"
+    [ticketTypeCounterBySessionId]="ticketTypeCounterBySessionId"
+    [ticketTypeCounterBySessionType]="ticketTypeCounterBySessionType"
+    [hideSingleItemExplodePipeLevels]="hideSingleItemExplodePipeLevels()"
+    (selectedLevel)="selectedLevel($event)"
+  >
+  </app-kiosk-ticket-selector-level>
+  <form class="ticket-type__form" *ngIf="selectedTicketTypes.length > 0" [formGroup]="ticketsFormGroup">
+    <div data-testid="ticketing-unhidden-section" class="ticket-type__wrapper">
+      <ng-container
+        *ngFor="let ticketType of unhiddenSectionTicketTypes; trackBy: trackByFn"
+        [ngTemplateOutlet]="ticketTypeSelector"
+        [ngTemplateOutletContext]="{ ticketType: ticketType }"
+      ></ng-container>
+      <ng-container
+        *ngFor="let ticketType of unhiddenAddonSectionTicketTypes; trackBy: trackByFn"
+        [ngTemplateOutlet]="ticketTypeSelector"
+        [ngTemplateOutletContext]="{ ticketType: ticketType }"
+      ></ng-container>
+    </div>
+  </form>
+</div>
+
+<ng-template #ticketTypeSelector let-ticketType="ticketType">
+  <div class="ticket-type" [class.ticket-type--add-on]="ticketType.isAddon" data-testid="ticket-type-container">
+    <div class="ticket-type__container">
+      <div class="ticket-type__selector" [ngClass]="{ 'ticket-type__selector--add-on': ticketType.isAddon }">
+        <div class="ticket-type__details" [class.ticket-type__details--disabled]="isDecreaseDisabled(ticketType)">
+          @if (ticketType.isAddon && ticketType.image) {
+            <img class="ticket-type__image" [src]="ticketType.image" [alt]="ticketType.name" />
+          }
+          <div class="ticket-type__info">
+            <div
+              class="ticket-type__label"
+              data-testid="ticket-type-label"
+              [class.ticket-type__label--sold-out]="displayLabelAsSoldOut(ticketType)"
+            >
+              @if (ticketType.isAddon && !ticketType.image) {
+                <div class="ticket-type__add-on-icon" [class.ticket-type__add-on-icon--centered]="showTicketAvailabilityInfo">
+                  <img src="assets/images/icons/fa-grid-2-plus.svg" alt="Addon" width="15" height="15" />
+                </div>
+              }
+              {{ ticketType.getDisplayName(hasExplodePipe) }}
+
+              <ng-container
+                *ngIf="showTicketAvailabilityInfo"
+                [ngTemplateOutlet]="ticketInfoTemplate"
+                [ngTemplateOutletContext]="{
+                  availableTickets: ticketType.availableTickets,
+                  minimumTickets: ticketType.minimum,
+                  isAddon: ticketType.isAddon,
+                }"
+              >
+              </ng-container>
+              <ng-container
+                *ngIf="showReservationRestriction"
+                [ngTemplateOutlet]="ticketRestrictionTemplate"
+                [ngTemplateOutletContext]="{ reservationRestriction: ticketType.reservationRestriction }"
+              >
+              </ng-container>
+            </div>
+            <div class="ticket-type__price-container">
+              <div
+                class="ticket-type__price--desktop"
+                data-testid="ticket-type-price-desktop"
+                *ngIf="showPrices"
+                [class.ticket-type__price--desktop--sold-out]="displayLabelAsSoldOut(ticketType)"
+              >
+                <div class="ticket-type__price--inline">
+                  <span
+                    *ngIf="ticketType.strikethroughPrice !== undefined; else simplePrice"
+                    [innerHTML]="
+                      'kiosk.ticketing.ticket_selector.price_label_with_original'
+                        | translate
+                          : {
+                              originalPrice:
+                                ticketType.strikethroughPrice.amount | kioskCurrency: ticketType.strikethroughPrice.currency : locale(),
+                              currentPrice: ticketType.price
+                                ? (ticketType.price.amount | kioskCurrency: ticketType.price.currency : locale())
+                                : '',
+                            }
+                    "
+                    data-testid="ticket-type-price-with-original"
+                  ></span>
+
+                  <ng-template #simplePrice>
+                    <span
+                      [innerHTML]="
+                        'kiosk.ticketing.ticket_selector.price_label'
+                          | translate
+                            : {
+                                price: ticketType.price
+                                  ? (ticketType.price.amount | kioskCurrency: ticketType.price.currency : locale())
+                                  : '',
+                              }
+                      "
+                      data-testid="ticket-type-price-simple"
+                    ></span>
+                  </ng-template>
+                </div>
+              </div>
+              <div
+                class="ticket-type__fee-info"
+                *ngIf="ticketType.surchargePerTicket?.amount > 0"
+                [class.ticket-type__fee-info--sold-out]="displayLabelAsSoldOut(ticketType)"
+              >
+                +
+                {{
+                  (ticketType.surchargePerTicket?.amount | kioskCurrency: ticketType.surchargePerTicket?.currency : locale()) +
+                    ' ' +
+                    ('boxOffice.cart.bookingFeePerTicket' | translate)
+                }}
+              </div>
+              @if (ticketType.details) {
+                <div class="ticket-type__addon-info">
+                  @if (isTicketDetailsCollapsible(ticketType.sessionId)) {
+                    <button
+                      type="button"
+                      class="ticket-type__addon-info__toggle"
+                      (click)="toggleTicketDetailsExpanded(ticketType.sessionId)"
+                      data-fzk="ticket-type-details-toggle"
+                      data-testid="ticket-type-details-toggle"
+                    >
+                      <span class="ticket-type__addon-info__toggle-label">
+                        {{ (isTicketDetailsExpanded(ticketType.sessionId) ? 'common.seeLess' : 'common.seeMore') | translate }}
+                      </span>
+                      <ignt-icon
+                        class="ticket-type__addon-info__toggle-icon"
+                        [fixedWidth]="true"
+                        [name]="isTicketDetailsExpanded(ticketType.sessionId) ? 'minus' : 'plus'"
+                        variant="light"
+                      ></ignt-icon>
+                    </button>
+                  }
+                  <div
+                    #ticketDetailsText
+                    class="ticket-type__addon-info__text"
+                    [class.ticket-type__addon-info__text--clamped]="!isTicketDetailsExpanded(ticketType.sessionId)"
+                    [attr.data-session-id]="ticketType.sessionId"
+                    [innerHTML]="ticketType.details"
+                  ></div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="ticket-type__separator" [class.ticket-type__separator--disabled]="isDecreaseDisabled(ticketType)"></div>
+
+        <div class="ticket-type__counter revamp" [class.ticket-type__counter--disabled]="isDecreaseDisabled(ticketType)">
+          <div class="ticket-type__counter-wrapper">
+            <ignt-icon
+              class="ticket-type__icon"
+              data-testid="ticket-type-icon"
+              [class.ticket-type__icon--disabled]="isDecreaseDisabled(ticketType)"
+              [fixedWidth]="true"
+              [name]="getDecreaseIconName(ticketType)"
+              variant="light"
+              (click)="decreaseTicketCounter(ticketType)"
+            >
+            </ignt-icon>
+            <input
+              [ngClass]="getControlClass(getFormControlByName(ticketType.sessionId))"
+              placeholder="0"
+              data-testid="ticket-type-input"
+              class="ticket-type__input"
+              [name]="ticketType.sessionId.toString()"
+              [formControl]="getFormControlByName(ticketType.sessionId)"
+              inputmode="numeric"
+              (ngModelChange)="inputCounterChange($event, ticketType)"
+              (beforeinput)="preventInvalidCharacters($event)"
+              [class.ticket-type__input--sold-out]="displayLabelAsSoldOut(ticketType)"
+            />
+            <ignt-icon
+              class="ticket-type__icon"
+              data-fzk="ticket-type-icon-plus"
+              [class.ticket-type__icon--disabled]="isIncreaseDisabled(ticketType.sessionId, ticketType[maxLimitField])"
+              [fixedWidth]="true"
+              name="plus"
+              variant="light"
+              (click)="increaseTicketCounter(ticketType)"
+            >
+            </ignt-icon>
+          </div>
+          <ng-container
+            *ngIf="getControlError(getFormControlByName(ticketType.sessionId))"
+            [ngTemplateOutlet]="validationErrors"
+            [ngTemplateOutletContext]="{
+              error: getControlError(getFormControlByName(ticketType.sessionId)),
+              min: ticketType.minimum,
+              max: ticketType[maxLimitField],
+            }"
+          >
+          </ng-container>
+        </div>
+      </div>
+    </div>
+    <div
+      class="ticket-type__disclaimer"
+      *ngIf="!isAddonWithoutEntryWarningHidden && (ticketType | isAddonWithoutEntryTicketsSelected: ticketsFormGroup : ticketTypes)"
+    >
+      {{ 'boxOffice.addOnWarning' | translate }}
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #ticketInfoTemplate let-availableTickets="availableTickets" let-minimumTickets="minimumTickets" let-isAddon="isAddon">
+  <span
+    class="ticket-type__ticket-info"
+    data-testid="info-ticket-type"
+    [class.ticket-type__ticket-info--empty]="!availableTickets || availableTickets < minimumTickets"
+    [class.ticket-type__ticket-info--add-on]="isAddon"
+  >
+    <ng-container *ngIf="availableTickets">
+      <span class="ticket-type__available-label" data-testid="available-ticket-type-label">
+        {{ 'boxOffice.availableTickets' | translate: { availableTickets: availableTickets } }}
+      </span>
+      <span *ngIf="minimumTickets > 1" class="ticket-type__minimum-label" data-testid="minimum-ticket-type-label">
+        {{ 'boxOffice.minimumTickets' | translate: { minimumTickets: minimumTickets } }}
+      </span>
+    </ng-container>
+    <ignt-tag *ngIf="!availableTickets" data-testid="ticket-type-sold-out-badge" [sentiment]="'disable'" [variant]="'solid'">
+      {{ 'boxOffice.soldOutBadge' | translate }}
+    </ignt-tag>
+  </span>
+</ng-template>
+
+<ng-template #ticketRestrictionTemplate let-reservationRestriction="reservationRestriction">
+  <span class="ticket-type-restriction" data-testid="restriction-ticket-type">
+    <ng-container *ngIf="reservationRestriction === reservationRestrictionEnum.NOT_ALLOWED">
+      <ignt-icon name="info-circle" variant="solid" class="ticket-type-restriction__icon"></ignt-icon>
+      <span class="ticket-type-restriction__label" data-testid="ticket-type-restriction__label">
+        {{ 'boxOffice.reservationRestriction' | translate: { reservationRestriction: reservationRestriction } }}
+      </span>
+    </ng-container>
+  </span>
+</ng-template>
+
+<ng-template #validationErrors let-error="error" let-min="min" let-max="max">
+  <div class="form-error" [ngSwitch]="error">
+    <ignt-icon class="form-error--icon" name="exclamation-circle" variant="solid"></ignt-icon>
+    <span class="form-error--message" *ngSwitchCase="'max'" data-testid="ticket-type-max-error">
+      {{ 'boxOffice.inputErrors.maximum' | translate: { maximum: max } }}
+    </span>
+    <span class="form-error--message" *ngSwitchCase="'min'" data-testid="ticket-type-min-error">
+      {{ 'boxOffice.inputErrors.minimum' | translate: { minimum: min } }}
+    </span>
+  </div>
+</ng-template>

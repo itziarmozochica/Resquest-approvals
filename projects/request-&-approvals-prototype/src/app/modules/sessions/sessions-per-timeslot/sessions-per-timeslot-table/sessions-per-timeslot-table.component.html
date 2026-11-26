@@ -1,0 +1,127 @@
+<ng-template #sessionsPerTimeslotBody>
+  <ng-container *ngIf="foldedGroup">
+    <ng-container *ngTemplateOutlet="groupedSessions"></ng-container>
+    <ng-container *ngTemplateOutlet="ungroupedSessions"></ng-container>
+  </ng-container>
+</ng-template>
+
+<ng-template #ungroupedSessions>
+  <tbody *ngIf="unrestrictedGroup" class="sessions-per-timeslot-table-content-body-group" data-testid="ungrouped-sessions">
+    <ng-container *ngFor="let session of sessions?.sessionsWithoutCodePool; trackBy: trackSession">
+      <tr
+        class="sessions-per-timeslot-table-content-body-group__row"
+        [attr.data-scrollanchor]="'session-card-' + session?.id"
+        appSessionsPerTimeslotSessionRow
+        #sessionRow="sessionsPerTimeslotSessionRow"
+        data-testid="session-row"
+        [rowInput]="session"
+        [groupIndex]="foldedGroup.get(unrestrictedGroup.id).groupIndex"
+        [groupData]="
+          !session.ignoreTimeSlotCapacity && this.capacityPool && this.capacityPool.availableUnits < this.unrestrictedGroup.availableTickets
+            ? foldedGroup.get(unrestrictedGroup.id).groupData.timeSlot
+            : foldedGroup.get(unrestrictedGroup.id).groupData.capacityGroup
+        "
+        [sharedData]="sharedData"
+        [isFolded]="foldedGroup.get(unrestrictedGroup.id).isFolded"
+        [isStopped]="session.isSoldOut"
+        [isBlockedColumnVisible]="isBlockedColumnVisible"
+        [isPricesColumnVisible]="isPricesColumnVisible"
+        [isIgnoringTimeSlotCapacity]="displayIgnoreCapacityHint && someSessionsIgnoreTimeSlotCapacity && session.ignoreTimeSlotCapacity"
+        [isSoldExpanded]="isSoldExpanded"
+        [canEditSession]="canEditSession()"
+        (editElement)="this.editElement.emit($event)"
+      ></tr>
+
+      <tr
+        *ngFor="let sessionSalesSummary of session.sessionSalesSummaries ?? []"
+        class="sessions-per-timeslot-table-content-body-group__row"
+        appSessionsPerTimeslotPackRow
+        data-testid="pack-row"
+        [rowInput]="session"
+        [sessionSalesData]="sessionSalesSummary"
+        [groupIndex]="foldedGroup.get(unrestrictedGroup.id).groupIndex"
+        [isFolded]="foldedGroup.get(unrestrictedGroup.id).isFolded || sessionRow.isPackFolded"
+        [isPricesColumnVisible]="isPricesColumnVisible"
+        [isSoldExpanded]="isSoldExpanded"
+        [canEditSession]="canEditSession()"
+      ></tr>
+    </ng-container>
+  </tbody>
+  <tr class="sessions-per-timeslot-table-content-body-group__spacer">
+    <td [attr.colspan]="numCols"></td>
+  </tr>
+</ng-template>
+
+<ng-template #groupedSessions>
+  <ng-container *ngFor="let sessionWithCodePool of sessions?.sessionsWithCodePool; trackBy: trackCodePool">
+    <tbody class="sessions-per-timeslot-table-content-body-group" data-testid="grouped-sessions">
+      <tr
+        class="sessions-per-timeslot-table-content-body-group__row sessions-per-timeslot-table-content-body-group__row--capacity"
+        [attr.data-scrollanchor]="'codepool-card-' + sessionWithCodePool.pool.id"
+        appSessionsPerTimeslotCapacityGroupRow
+        data-testid="capacity-group-row"
+        [rowInput]="sessionWithCodePool.pool"
+        [children]="sessionWithCodePool.sessions"
+        [groupData]="
+          this.capacityPool && this.capacityPool?.availableUnits < sessionWithCodePool.pool.availableTickets
+            ? foldedGroup.get(sessionWithCodePool.pool.id).groupData.timeSlot
+            : null
+        "
+        [groupIndex]="foldedGroup.get(sessionWithCodePool.pool.id).groupIndex + (startingGroupCount ?? 0)"
+        [isBlockedColumnVisible]="isBlockedColumnVisible"
+        [isFolded]="foldedGroup.get(sessionWithCodePool.pool.id).isFolded"
+        [isStopped]="sessionWithCodePool.pool.isCancelled"
+        [isPricesColumnVisible]="isPricesColumnVisible"
+        [isSoldExpanded]="isSoldExpanded"
+        [displayIgnoreCapacityHint]="displayIgnoreCapacityHint"
+        [canEditSession]="canEditSession()"
+        (editElement)="this.editElement.emit($event)"
+        (click)="toggleGroupFolding(sessionWithCodePool.pool.id)"
+      ></tr>
+      <ng-container *ngFor="let session of sessionWithCodePool.sessions; trackBy: trackSession">
+        <tr
+          class="sessions-per-timeslot-table-content-body-group__row"
+          [attr.data-scrollanchor]="'session-card-' + session?.id"
+          appSessionsPerTimeslotSessionRow
+          #sessionRow="sessionsPerTimeslotSessionRow"
+          data-testid="session-row"
+          [rowInput]="session"
+          [groupIndex]="foldedGroup.get(sessionWithCodePool.pool.id).groupIndex + (startingGroupCount ?? 0)"
+          [groupData]="
+            !session.ignoreTimeSlotCapacity &&
+            this.capacityPool &&
+            this.capacityPool?.availableUnits < sessionWithCodePool.pool.availableTickets
+              ? foldedGroup.get(sessionWithCodePool.pool.id).groupData.timeSlot
+              : foldedGroup.get(sessionWithCodePool.pool.id).groupData.capacityGroup
+          "
+          [sharedData]="sharedData"
+          [isBlockedColumnVisible]="isBlockedColumnVisible"
+          [isFolded]="foldedGroup.get(sessionWithCodePool.pool.id).isFolded"
+          [isStopped]="sessionWithCodePool.pool.isCancelled || session.isSoldOut"
+          [isPricesColumnVisible]="isPricesColumnVisible"
+          [isIgnoringTimeSlotCapacity]="displayIgnoreCapacityHint && someSessionsIgnoreTimeSlotCapacity && session.ignoreTimeSlotCapacity"
+          [isSoldExpanded]="isSoldExpanded"
+          [canEditSession]="canEditSession()"
+          (editElement)="this.editElement.emit($event)"
+        ></tr>
+
+        <tr
+          *ngFor="let sessionSalesSummary of session.sessionSalesSummaries ?? []"
+          class="sessions-per-timeslot-table-content-body-group__row"
+          appSessionsPerTimeslotPackRow
+          data-testid="pack-row"
+          [rowInput]="session"
+          [sessionSalesData]="sessionSalesSummary"
+          [groupIndex]="foldedGroup.get(sessionWithCodePool.pool.id).groupIndex + (startingGroupCount ?? 0)"
+          [isFolded]="foldedGroup.get(sessionWithCodePool.pool.id).isFolded || sessionRow.isPackFolded"
+          [isPricesColumnVisible]="isPricesColumnVisible"
+          [isSoldExpanded]="isSoldExpanded"
+          [canEditSession]="canEditSession()"
+        ></tr>
+      </ng-container>
+    </tbody>
+    <tr class="sessions-per-timeslot-table-content-body-group__spacer">
+      <td [attr.colspan]="numCols"></td>
+    </tr>
+  </ng-container>
+</ng-template>

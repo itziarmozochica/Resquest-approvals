@@ -1,0 +1,143 @@
+<button
+  type="button"
+  data-testid="item-tile"
+  class="tile"
+  (click)="addUnit($event)"
+  [disabled]="isOutOfStock || isUnavailable"
+  [class.tile--disabled]="isOutOfStock || isUnavailable"
+  [class.tile--large]="variant === OssTileVariant.LARGE"
+  [class.tile--parent]="type === OssTileType.PARENT"
+  [class.tile--session]="category === OSSTileCategory.SESSION"
+  [class.tile--addon]="category === OSSTileCategory.ADDON"
+  [class.tile--product]="category === OSSTileCategory.PRODUCT"
+  [class.tile--food_and_beverage]="category === OSSTileCategory.FOOD_AND_BEVERAGE"
+  [class.tile--membership]="category === OSSTileCategory.MEMBERSHIP"
+  #tileButton
+>
+  <span
+    class="tile__ripple"
+    [class.tile__ripple--active]="isRippleActive() && !isClickIndicator()"
+    [class.tile__ripple--click-indicator]="isRippleActive() && isClickIndicator()"
+    [style.--ripple-x]="rippleX()"
+    [style.--ripple-y]="rippleY()"
+    #ripple
+  ></span>
+  <div class="tile__main">
+    <div class="tile__top-content">
+      <div class="tile__name" [title]="name" [attr.data-testid]="'item-tile-name'">
+        {{ name }}
+        @if (showWarning()) {
+          <ignt-icon
+            class="tile__override-warning-icon"
+            aria-hidden="true"
+            name="exclamation-triangle"
+            variant="solid"
+            data-testid="override-warning-icon"
+          />
+        }
+      </div>
+      <ng-container *ngTemplateOutlet="topContentSecondRow"></ng-container>
+    </div>
+    <ng-container *ngIf="!isOutOfStock && !isUnavailable">
+      <div class="tile__bottom-content">
+        <div class="tile__bottom-lead-content">
+          <ng-container *ngTemplateOutlet="bottomLeadContent"></ng-container>
+        </div>
+        <div class="tile__bottom-trail-content">
+          <ng-container *ngTemplateOutlet="timeslotContent"></ng-container>
+          <ng-container *ngTemplateOutlet="categoryIcon"></ng-container>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</button>
+
+<ng-template #topContentSecondRow>
+  <ng-container *ngIf="(!isOutOfStock && !isUnavailable) || type === OssTileType.PARENT; else statusContent">
+    <div class="tile__top-content-second-row">
+      <ng-container *ngIf="planName">
+        <div class="tile__plan" [title]="planName">{{ planName }}</div>
+      </ng-container>
+      <ng-container *ngIf="explodePipeName">
+        <div class="tile__explode-pipe" [title]="explodePipeName">{{ explodePipeName }}</div>
+      </ng-container>
+    </div>
+  </ng-container>
+</ng-template>
+
+<ng-template #statusContent>
+  <ignt-tag sentiment="disable" data-testid="item-tile-status">
+    <ng-container *ngIf="isUnavailable">
+      {{ 'oneStopShop.tile.unavailable' | translate }}
+    </ng-container>
+    <ng-container *ngIf="isOutOfStock">
+      {{ 'oneStopShop.tile.outOfStock' | translate }}
+    </ng-container>
+  </ignt-tag>
+</ng-template>
+
+<ng-template #bottomLeadContent>
+  <ng-container *ngIf="price && locale && type !== OssTileType.PARENT">
+    @if (priceWithDiscount()) {
+      <ignt-tag class="tile__member-discount" sentiment="warning" variant="outline" data-testid="item-tile-member-discount">
+        {{ 'boxOffice.memberships.discounts.label' | translate }}
+      </ignt-tag>
+    }
+    <div class="tile__price">
+      @if (priceWithDiscount()) {
+        <s class="tile__price--without-discount" data-testid="item-tile-price-without-discount">
+          <span class="visually-hidden">{{ 'boxOffice.memberships.discounts.originalPrice' | translate }}</span>
+          {{ price.amount | currency: price.currency : 'symbol-narrow' : null : locale }}
+        </s>
+      }
+      @let displayedPrice = priceWithDiscount() ?? price;
+      <span [class.tile__price--with-discount]="priceWithDiscount() !== null" data-testid="item-tile-price">
+        {{ displayedPrice.amount | currency: displayedPrice.currency : 'symbol-narrow' : null : locale }}
+      </span>
+      @if (isHidden) {
+        <ignt-tag sentiment="disable" data-testid="item-tile-hidden-status">
+          {{ 'boxOffice.hiddenTicketBadge' | translate }}
+        </ignt-tag>
+      }
+    </div>
+  </ng-container>
+  <ng-container *ngIf="unitsAvailable !== null">
+    <div class="tile__units-available" data-testid="item-tile-units-available">
+      {{ unitsAvailable + ' ' + ('common.available' | translate | lowercase) }}
+    </div>
+  </ng-container>
+</ng-template>
+
+<ng-template #timeslotContent>
+  <ng-container *ngIf="timeslot && timezone && locale">
+    <div class="tile__time-slot-text">{{ timeslot | date: 'hh:mm' : timezone : locale }}</div>
+    <div class="tile__time-slot-icon"><ignt-icon name="clock" variant="light" size="lg" aria-hidden="true" /></div>
+  </ng-container>
+</ng-template>
+
+<ng-template #categoryIcon>
+  <div *ngIf="shouldShowTileIcon()" class="tile__category-icon">
+    <ng-container [ngSwitch]="category">
+      <ng-container *ngSwitchCase="OSSTileCategory.SESSION">
+        <ignt-icon name="ticket-alt" variant="light" size="base" aria-hidden="true" />
+      </ng-container>
+      <ng-container *ngSwitchCase="OSSTileCategory.ADDON">
+        <ignt-icon name="cart-plus" variant="light" size="base" aria-hidden="true" />
+      </ng-container>
+      <ng-container *ngSwitchCase="OSSTileCategory.FOOD_AND_BEVERAGE">
+        <ignt-icon name="utensils" variant="light" size="base" aria-hidden="true" />
+      </ng-container>
+      <ng-container *ngSwitchCase="OSSTileCategory.PRODUCT">
+        <ng-container *ngIf="type === OssTileType.PARENT; else regularProductIcon">
+          <ignt-icon name="boxes" variant="light" size="base" aria-hidden="true" />
+        </ng-container>
+        <ng-template #regularProductIcon>
+          <ignt-icon name="gift" variant="light" size="base" aria-hidden="true" />
+        </ng-template>
+      </ng-container>
+      <ng-container *ngSwitchCase="OSSTileCategory.MEMBERSHIP">
+        <ignt-icon name="address-card" variant="light" size="base" aria-hidden="true" />
+      </ng-container>
+    </ng-container>
+  </div>
+</ng-template>

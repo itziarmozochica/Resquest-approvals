@@ -1,0 +1,67 @@
+<div class="editor-item editor-item--number">
+  <div class="editor-item__row">
+    <div class="editor-item__content">
+      <div class="editor-item-number__header">
+        <label class="editor-item__label" [attr.for]="sliderInputId()">
+          {{ 'whitelabelEditor.items.' + item().key | translate }}
+        </label>
+        <span class="editor-item-number__value-label">{{ displayWithUnit() }}</span>
+      </div>
+      @if (item().key | editorItemHint; as hint) {
+        <p class="editor-item__hint">{{ hint }}</p>
+      }
+      @if (isStructuredValue()) {
+        <p class="editor-item__hint" data-testid="editor-item-number-structured">
+          {{ 'whitelabelEditor.textItem.structured' | translate }}
+        </p>
+      } @else if (!hasRange()) {
+        <ignt-input-field
+          label=""
+          type="number"
+          data-testid="editor-item-number-input"
+          [id]="sliderInputId()"
+          [ngModel]="displayValue()"
+          (ngModelChange)="onValueChanged($event)"
+        />
+      } @else {
+        <input
+          type="range"
+          class="editor-item-number__slider"
+          [id]="sliderInputId()"
+          [min]="constraints()?.min ?? 0"
+          [max]="constraints()?.max ?? 100"
+          [step]="constraints()?.step ?? 1"
+          [value]="displayValue()"
+          [attr.aria-valuetext]="displayWithUnit()"
+          (input)="onSliderChange($event)"
+        />
+      }
+      @if (!isStructuredValue() && hasEdits() && !isCurrentValueValid()) {
+        <span class="editor-item-number__error">{{
+          'whitelabelEditor.errors.numberOutOfRange' | translate: { max: constraints()?.max, min: constraints()?.min }
+        }}</span>
+      }
+    </div>
+  </div>
+
+  @if (canUnset() || hasEdits()) {
+    <div class="editor-item__footer">
+      @if (hasEdits()) {
+        <span class="editor-item__status editor-item__status--pending">{{ 'whitelabelEditor.unsavedChanges' | translate }}</span>
+      }
+      @if (canUnset()) {
+        <ignt-button
+          variant="tertiary"
+          sentiment="neutral"
+          size="small"
+          data-testid="editor-item-number-unset"
+          [label]="'whitelabelEditor.reset' | translate"
+          (click)="onUnset()"
+        />
+      }
+      @if (hasEdits()) {
+        <ignt-button variant="tertiary" sentiment="neutral" size="small" [label]="'common.undo' | translate" (click)="onUndoPending()" />
+      }
+    </div>
+  }
+</div>

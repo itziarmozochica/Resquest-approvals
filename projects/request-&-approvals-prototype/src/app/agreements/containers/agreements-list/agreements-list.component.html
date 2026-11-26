@@ -1,0 +1,158 @@
+<section class="main-wrapper" aria-label="Agreement templates">
+  <header class="agreements-list__header">
+    <div class="agreements-list__header-text">
+      <span class="agreements-list__section">Agreements</span>
+      <h1 class="agreements-list__title" data-testid="agreements-header-title">Agreement Templates</h1>
+    </div>
+    <div class="agreements-list__header-actions">
+      <ignt-button
+        label="Create agreement"
+        [leadingIcon]="createIcon"
+        data-testid="agreements-create-button"
+        (click)="onCreateAgreement()"
+      />
+    </div>
+  </header>
+
+  <div class="wrapper-card wrapper-card--elevation-100">
+    <div class="agreements-list" [attr.aria-busy]="isLoading()" aria-live="polite">
+      @if (!isLoading() && hasError()) {
+        <div class="agreements-list__empty" data-testid="agreements-error">
+          <p>We couldn't load your agreements. Please try again.</p>
+          <ignt-button data-testid="agreements-retry" label="Retry" (click)="retry()" />
+        </div>
+      } @else if (!isLoading() && agreementCount() === 0) {
+        <div class="agreements-list__empty" data-testid="agreements-empty">
+          Create your first agreement to start collecting legally required acceptances from attendees.
+        </div>
+      } @else if (showAgreementsTable()) {
+        <ignt-table
+          class="agreements-list__table"
+          [data]="filteredAgreements()"
+          [filterConfig]="tableFilterConfig()"
+          [hasPagination]="true"
+          [interactiveRows]="true"
+          [isLoading]="isLoading()"
+          [pageSize]="tablePageSize"
+          [searchConfig]="tableSearchConfig()"
+          (filterClearAll)="onFilterClearAll()"
+          (filterClosed)="onTableFilterClosed()"
+          (filterPillRemoved)="onFilterPillRemoved($event)"
+          (rowInteraction)="onRowInteraction($event)"
+          (searchChanged)="onTableSearchChanged($event)"
+        >
+          <ignt-table-column key="name" header="Agreement" columnType="primary">
+            <ng-template [igntTableColumnTemplateType]="tableColumnTypeSample()" let-item="item">
+              <div class="agreements-list__cell-main">{{ item.name }}</div>
+            </ng-template>
+          </ignt-table-column>
+
+          <ignt-table-column key="status" header="Status">
+            <ng-template [igntTableColumnTemplateType]="tableColumnTypeSample()" let-item="item">
+              <ignt-tag [sentiment]="statusTag(item.status).sentiment" variant="solid">
+                {{ statusTag(item.status).label }}
+              </ignt-tag>
+            </ng-template>
+          </ignt-table-column>
+
+          <ignt-table-column key="agreementType" header="Type">
+            <ng-template [igntTableColumnTemplateType]="tableColumnTypeSample()" let-item="item">
+              <span class="agreements-list__type">
+                <span class="agreements-list__dot" [style.background]="agreementTypeMeta[item.agreementType].color"></span>
+                {{ agreementTypeMeta[item.agreementType].label }}
+              </span>
+            </ng-template>
+          </ignt-table-column>
+
+          <ignt-table-column key="updatedAt" header="Updated">
+            <ng-template [igntTableColumnTemplateType]="tableColumnTypeSample()" let-item="item">
+              <span class="agreements-list__muted agreements-list__tnum">{{ formatDate(item.updatedAt) }}</span>
+            </ng-template>
+          </ignt-table-column>
+
+          <ignt-table-column align="center" header="Actions" columnType="action" [width]="120">
+            <ng-template [igntTableColumnTemplateType]="tableColumnTypeSample()" let-item="item">
+              @if (rowActions(item).length > 0) {
+                <div class="agreements-list__cell-actions__inner" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+                  <ignt-button-dropdown
+                    #rowMenu
+                    class="agreements-list__cell-actions"
+                    [align]="'right'"
+                    [autoWidth]="true"
+                    [leadingIcon]="['fas', 'ellipsis-v']"
+                    [options]="rowActions(item)"
+                    [sentiment]="'tertiary'"
+                    [size]="'small'"
+                    [trailingIconClosed]="null"
+                    [trailingIconOpened]="null"
+                    data-testid="agreements-row-actions"
+                    (openedChange)="onRowMenuOpenedChange($event, rowMenu)"
+                    (optionClick)="onRowDropdownOptionClick($event, item)"
+                  >
+                    <span class="visually-hidden">Actions for {{ item.name }}</span>
+                  </ignt-button-dropdown>
+                </div>
+              }
+            </ng-template>
+          </ignt-table-column>
+        </ignt-table>
+      }
+    </div>
+  </div>
+</section>
+
+<ng-template #filtersPanelTpl>
+  <div class="agreements-filters-panel">
+    <ignt-dialog-header>Filters</ignt-dialog-header>
+    <ignt-dialog-content>
+      <div class="agreements-filters-panel__stack" role="group" aria-label="Agreement filters">
+        <app-multi-select
+          class="field"
+          [displayInPlaceMaximum]="2"
+          [options]="filterOptions().statuses"
+          placeholder="Any status"
+          [selectedOptions]="draftColumnFilters().statuses"
+          (selected)="onDraftFilterChange('statuses', $event)"
+          data-testid="agreements-filter-status"
+        ></app-multi-select>
+        <app-multi-select
+          class="field"
+          [displayInPlaceMaximum]="2"
+          [options]="filterOptions().types"
+          placeholder="Any type"
+          [selectedOptions]="draftColumnFilters().types"
+          (selected)="onDraftFilterChange('types', $event)"
+          data-testid="agreements-filter-type"
+        ></app-multi-select>
+        <app-multi-select
+          class="field"
+          [displayInPlaceMaximum]="1"
+          [maxSelectedOptions]="1"
+          [options]="filterOptions().updated"
+          placeholder="Any date"
+          [selectedOptions]="draftColumnFilters().updated"
+          (selected)="onDraftSingleFilterChange('updated', $event)"
+          data-testid="agreements-filter-updated"
+        ></app-multi-select>
+      </div>
+    </ignt-dialog-content>
+    <ignt-dialog-footer class="agreements-filters-panel__footer" hideCancelButton>
+      <ignt-button
+        class="agreements-filters-panel__clear"
+        variant="tertiary"
+        sentiment="neutral"
+        label="Reset filters"
+        [disabled]="activeDraftFilterCount() === 0"
+        data-testid="agreements-filters-clear"
+        (click)="clearDraftFilters()"
+      />
+      <ignt-button
+        class="agreements-filters-panel__apply"
+        [label]="'Apply filters (' + draftFilteredCount() + ')'"
+        data-testid="agreements-filters-apply"
+        igntDialogClose
+        (click)="applyDraftFilters()"
+      />
+    </ignt-dialog-footer>
+  </div>
+</ng-template>

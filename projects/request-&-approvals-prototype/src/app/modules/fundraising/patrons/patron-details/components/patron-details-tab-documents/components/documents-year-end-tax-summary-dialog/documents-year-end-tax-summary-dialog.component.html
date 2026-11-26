@@ -1,0 +1,105 @@
+<ignt-dialog-header>
+  {{ 'fundraising.patronDetails.documents.yearEndDialog.title' | translate }}
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="documents-year-end-tax-summary-dialog" data-testid="documents-year-end-tax-summary-dialog">
+    <div class="documents-year-end-tax-summary-dialog__field">
+      <label class="documents-year-end-tax-summary-dialog__label">
+        {{ 'fundraising.patronDetails.documents.yearEndDialog.taxYear' | translate }}
+      </label>
+      <app-multi-select
+        class="documents-year-end-tax-summary-dialog__selector"
+        [options]="taxYearOptions()"
+        [selectedOptions]="selectedTaxYear()"
+        [placeholder]="'fundraising.patronDetails.documents.yearEndDialog.yearPlaceholder' | translate"
+        [searchPlaceholder]="'common.selectsPlaceholder' | translate"
+        [maxSelectedOptions]="1"
+        [displayInPlaceMaximum]="1"
+        (selected)="onTaxYearChange($event)"
+        data-testid="documents-year-end-tax-year-select"
+      ></app-multi-select>
+    </div>
+
+    @if (summary(); as summaryData) {
+      <div class="documents-year-end-tax-summary-dialog__summary" data-testid="documents-year-end-tax-summary-content">
+        <div class="documents-year-end-tax-summary-dialog__org">
+          <p class="documents-year-end-tax-summary-dialog__org-name">{{ summaryData.organizationName }}</p>
+          <p class="documents-year-end-tax-summary-dialog__org-meta">
+            {{
+              'fundraising.patronDetails.documents.yearEndDialog.orgMeta'
+                | translate: { ein: summaryData.organizationEin, address: summaryData.organizationAddress }
+            }}
+          </p>
+        </div>
+
+        <ignt-divider [margin]="false"></ignt-divider>
+
+        <div class="documents-year-end-tax-summary-dialog__recipient">
+          <p class="documents-year-end-tax-summary-dialog__recipient-label">
+            {{ 'fundraising.patronDetails.documents.yearEndDialog.taxSummaryFor' | translate }}
+          </p>
+          <p class="documents-year-end-tax-summary-dialog__recipient-value">
+            {{
+              'fundraising.patronDetails.documents.yearEndDialog.recipientLine'
+                | translate: { name: summaryData.recipientName, address: summaryData.recipientAddress }
+            }}
+          </p>
+        </div>
+
+        <ignt-divider [margin]="false"></ignt-divider>
+
+        <ul class="documents-year-end-tax-summary-dialog__line-items">
+          @for (item of summaryData.lineItems; track item.description + item.date) {
+            <li class="documents-year-end-tax-summary-dialog__line-item">
+              <span>
+                {{
+                  'fundraising.patronDetails.documents.yearEndDialog.lineItem'
+                    | translate: { description: item.description, date: (item.date | date: 'mediumDate') }
+                }}
+              </span>
+              <span>{{ item.amount | currency: 'USD' }}</span>
+            </li>
+          }
+        </ul>
+
+        <ignt-divider [margin]="false"></ignt-divider>
+
+        <div class="documents-year-end-tax-summary-dialog__totals">
+          <span>{{ 'fundraising.patronDetails.documents.yearEndDialog.totalTaxDeductible' | translate }}</span>
+          <span class="documents-year-end-tax-summary-dialog__totals-value">
+            {{
+              'fundraising.patronDetails.documents.yearEndDialog.totalsValue'
+                | translate
+                  : {
+                      total: (summaryData.total | currency: 'USD'),
+                      taxDeductible: (summaryData.taxDeductibleTotal | currency: 'USD'),
+                    }
+            }}
+          </span>
+        </div>
+
+        <p class="documents-year-end-tax-summary-dialog__disclaimer">{{ summaryData.disclaimer }}</p>
+      </div>
+    }
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer [hideCancelButton]="true">
+  <ignt-button
+    variant="tertiary"
+    sentiment="brand"
+    [label]="'common.cancel' | translate"
+    (click)="onCancel()"
+    data-testid="documents-year-end-cancel"
+  ></ignt-button>
+  <ignt-button
+    variant="primary"
+    sentiment="brand"
+    [label]="'fundraising.patronDetails.documents.yearEndDialog.downloadPdf' | translate"
+    (click)="onDownload()"
+    [disabled]="!summary()"
+    [loading]="isDownloading()"
+    data-testid="documents-year-end-download"
+  ></ignt-button>
+</ignt-dialog-footer>

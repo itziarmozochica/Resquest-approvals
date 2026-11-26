@@ -1,0 +1,42 @@
+<div class="kiosk-promotions" *ngIf="promotions().length > 0">
+  <ng-container *ngIf="isLoadingPromotion()">
+    <ng-container [ngTemplateOutlet]="loadingSkeleton"></ng-container>
+  </ng-container>
+
+  <ng-container *ngIf="discount === null && !isLoadingPromotion() && showPromotionsButton()">
+    <button class="kiosk-promotions__btn button button--large button--secondary" (click)="openPromotions()">
+      <ignt-icon class="kiosk-promotions__btn__icon" name="plus-circle" variant="light"></ignt-icon>
+      {{ 'kiosk.promotions.addPromotion' | translate }}
+    </button>
+    <p *ngIf="showPromotionsError()" class="kiosk-promotions__error-message">
+      {{ 'kiosk.promotions.invalidPromotion' | translate }}
+    </p>
+  </ng-container>
+
+  <div class="kiosk-promotions__applied" *ngIf="discount !== null && !isLoadingPromotion() && !showPromotionsButton()">
+    <div class="kiosk-promotions__badge">
+      <ignt-icon class="kiosk-promotions__badge__icon" name="badge-percent" variant="solid"></ignt-icon>
+      <div class="kiosk-promotions__badge__info">
+        <div class="applied">
+          <span>{{ 'kiosk.promotions.promotionApplied' | translate }}</span>
+        </div>
+        <div class="discount">
+          -<ng-container *ngTemplateOutlet="cartMoney; context: { money: discount, locale: locale() }"></ng-container>
+        </div>
+      </div>
+    </div>
+    <button class="kiosk-promotions__apply-btn button button--large button--secondary" (click)="removePromotions()">
+      {{ 'kiosk.promotions.removePromotion' | translate }}
+    </button>
+  </div>
+</div>
+
+<ng-template #cartMoney let-locale="locale" let-money="money">
+  {{ money ? (money.amount | kioskCurrency: money.currency : locale) : '-' }}
+</ng-template>
+
+<ng-template #loadingSkeleton>
+  <div class="loading-skeleton">
+    <ignt-skeleton [type]="'item'" [animation]="true" [height]="40" [numElements]="2" [isBordered]="true"></ignt-skeleton>
+  </div>
+</ng-template>

@@ -1,0 +1,54 @@
+/// The two columns shared by the stats row and the filters row above the checks table.
+///
+/// "Filter by status" sits above the search and check-type pills; "Overview" above nothing, because
+/// the controls belong with the status cards they narrow, not with the read-only metrics.
+///
+/// The rows are separate sibling components, so they cannot align by each sizing itself: the content
+/// differs — four stat cards against two controls, two stat cards against nothing — and the two
+/// rows land in different places. The page holds one grid instead, and both components render into
+/// it with `display: contents`, making these genuinely shared tracks. Nothing is pinned, so the
+/// overview column stays the width its own content asks for.
+
+/// Gutter between the columns, and the inset the left column reserves for the stats divider.
+$column-gap: 2rem;
+
+/// Space between the stats row and the filters row, and between the columns once they stack.
+$row-gap: 1.5rem;
+
+/// Below this the columns stack, and alignment stops being a question.
+$two-column-min-width: 992px;
+
+/// The grid itself. Belongs to the page, which owns the element both rows render into.
+@mixin grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: $row-gap;
+  align-items: start;
+
+  @media (min-width: $two-column-min-width) {
+    // `max-content` is what sizes the overview column: whatever its cards ask for, exactly as it
+    // asked when it was a `flex: 0 0 auto` item. `minmax(0, 1fr)` takes the rest and, like the
+    // `min-width: 0` it replaces, may shrink below its own content.
+    grid-template-columns: minmax(0, 1fr) max-content;
+    column-gap: $column-gap;
+  }
+}
+
+/// Anything sitting in the left column. The inset is the space the stats divider occupies, so
+/// content in both rows stops at the same edge.
+@mixin left-column {
+  grid-column: 1;
+
+  @media (min-width: $two-column-min-width) {
+    padding-inline-end: $column-gap;
+  }
+}
+
+/// Anything sitting in the right column.
+@mixin right-column {
+  grid-column: 1;
+
+  @media (min-width: $two-column-min-width) {
+    grid-column: 2;
+  }
+}

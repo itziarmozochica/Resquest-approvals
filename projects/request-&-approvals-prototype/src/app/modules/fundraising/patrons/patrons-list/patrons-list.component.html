@@ -1,0 +1,156 @@
+<section class="main-wrapper" [attr.aria-label]="'menu.fundraisingPatrons' | translateTerminology">
+  <app-fundraising-page-title
+    [section]="'menu.guestProfiles' | translateTerminology"
+    [title]="'menu.fundraisingPatrons' | translateTerminology"
+  >
+    @if (onboardingView() === 'table') {
+      @if (canExport) {
+        <ignt-button
+          variant="secondary"
+          size="large"
+          data-testid="patrons-list-export-button"
+          [label]="'fundraising.patrons.exportButton' | translate"
+          [disabled]="(totalPatronsCount() ?? 0) === 0"
+          (click)="toggleModalExport()"
+        />
+      }
+      @if (canCreatePatron) {
+        <ignt-button
+          variant="primary"
+          size="large"
+          data-testid="patrons-list-create-button"
+          [label]="'fundraising.patrons.createButton' | translateTerminology"
+          (click)="openCreatePatronDialog()"
+        />
+      }
+    }
+  </app-fundraising-page-title>
+
+  @switch (onboardingView()) {
+    @case ('loading') {}
+    @case ('table') {
+      <ng-container [ngTemplateOutlet]="patronsList"></ng-container>
+    }
+    @default {
+      <ng-container [ngTemplateOutlet]="onboardingScreen"></ng-container>
+    }
+  }
+</section>
+
+<ng-template #patronsList>
+  <div class="patrons-list" [attr.aria-busy]="isLoading()" aria-live="polite" data-testid="patrons-list-table">
+    <app-patrons-list-table
+      [filterConfig]="filterConfig()"
+      [isLoading]="isLoading()"
+      [pageIndex]="tablePageIndex()"
+      [pageSize]="pageSize"
+      [patrons]="patrons()"
+      [rowActions]="rowActions()"
+      [searchConfig]="searchConfig()"
+      [sorting]="tableSorting()"
+      [totalCount]="totalPatronsCount() ?? 0"
+      (filterClosed)="onFilterClosed()"
+      (giftOfficerClick)="onGiftOfficerClick($event)"
+      (pageIndexChange)="onTablePageIndexChange($event)"
+      (rowActionClick)="onDropdownOptionClick($event.value, $event.patron)"
+      (searchChanged)="onSearchChanged($event)"
+      (sortingChange)="onSortingChange($event)"
+    ></app-patrons-list-table>
+  </div>
+</ng-template>
+
+<ng-template #onboardingScreen>
+  <div class="create-patron-disclaimer" [attr.data-state]="onboardingView()" data-testid="patrons-list-onboarding-screen">
+    @switch (onboardingView()) {
+      @case ('failed') {
+        <ignt-icon
+          class="create-patron-disclaimer__icon create-patron-disclaimer__icon--danger"
+          name="exclamation-circle"
+          variant="solid"
+          size="h2"
+          aria-hidden="true"
+        />
+      }
+      @case ('pending') {
+        <ignt-icon class="create-patron-disclaimer__icon" name="spinner" variant="solid" size="h2" [spin]="true" aria-hidden="true" />
+      }
+    }
+    <div role="status" aria-live="polite">
+      @switch (onboardingView()) {
+        @case ('failed') {
+          <h4 class="create-patron-disclaimer__title" data-testid="patrons-list-onboarding-title">
+            {{ 'fundraising.patrons.onboarding.failed.title' | translateTerminology }}
+          </h4>
+          <p class="create-patron-disclaimer__description" data-testid="patrons-list-onboarding-description">
+            {{ 'fundraising.patrons.onboarding.failed.description' | translateTerminology }}
+          </p>
+        }
+        @case ('pending') {
+          <h4 class="create-patron-disclaimer__title" data-testid="patrons-list-onboarding-title">
+            {{ 'fundraising.patrons.onboarding.pending.title' | translate }}
+          </h4>
+          <p class="create-patron-disclaimer__description" data-testid="patrons-list-onboarding-description">
+            {{ 'fundraising.patrons.onboarding.pending.description' | translate }}
+          </p>
+        }
+        @default {
+          <h4 class="create-patron-disclaimer__title" data-testid="patrons-list-onboarding-title">
+            {{ 'fundraising.patrons.onboarding.empty.title' | translateTerminology }}
+          </h4>
+          <p class="create-patron-disclaimer__description" data-testid="patrons-list-onboarding-description">
+            {{ 'fundraising.patrons.onboarding.empty.description' | translateTerminology }}
+          </p>
+        }
+      }
+    </div>
+    <div class="create-patron-disclaimer__actions">
+      @if (onboardingView() === 'pending') {
+        <ignt-button
+          variant="primary"
+          [label]="'fundraising.patrons.onboarding.pending.refreshButton' | translate"
+          [loading]="isLoadingOnboarding()"
+          (click)="refreshOnboarding()"
+          data-testid="patrons-list-onboarding-refresh-button"
+        ></ignt-button>
+      } @else {
+        <ignt-button
+          variant="primary"
+          [label]="
+            (onboardingView() === 'failed'
+              ? 'fundraising.patrons.onboarding.failed.retryButton'
+              : 'fundraising.patrons.onboarding.empty.importButton'
+            ) | translateTerminology
+          "
+          [loading]="isLoadingOnboarding()"
+          (click)="openImportGuestsDialog()"
+          data-testid="patrons-list-empty-state-import-button"
+        ></ignt-button>
+      }
+    </div>
+  </div>
+</ng-template>
+
+<app-patron-activity-dialog
+  [patron]="selectedPatronForActivity()"
+  [isVisible]="isOpenModalActivity()"
+  (activityCreated)="onActivityCreated($event)"
+  (closed)="toggleModalActivity()"
+></app-patron-activity-dialog>
+
+<app-patron-update-managedby-dialog
+  [patron]="selectedPatronForManagedBy()"
+  [isVisible]="isOpenModalManagedBy()"
+  (closed)="toggleModalManagedBy()"
+  (managedByUpdated)="onManagedByUpdated($event)"
+></app-patron-update-managedby-dialog>
+
+<app-patrons-list-export-dialog
+  [isVisible]="isOpenModalExport()"
+  [isLoadingExport]="isLoadingExport()"
+  [patronAggregationDtos]="patronAggregationDtos()"
+  [totalRecords]="totalPatronsCount() ?? 0"
+  (closed)="toggleModalExport()"
+  (submitted)="onExportSubmitted($event)"
+></app-patrons-list-export-dialog>
+
+<app-confirmation-dialog />

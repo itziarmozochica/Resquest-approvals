@@ -1,0 +1,159 @@
+<div class="whitelabel-fonts">
+  <div class="whitelabel-fonts__filters">
+    <div class="whitelabel-fonts__filter">
+      <label class="whitelabel-fonts__label" for="whitelabel-fonts-scope">
+        {{ 'whitelabelFonts.scope.label' | translate }}
+      </label>
+      <select
+        id="whitelabel-fonts-scope"
+        class="whitelabel-fonts__select"
+        [value]="scopeFilter()"
+        (change)="onScopeFilterChange($event)"
+        data-testid="whitelabel-fonts-scope"
+      >
+        @for (opt of scopeFilterOptions; track opt.value) {
+          <option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="whitelabel-fonts__filter">
+      <label class="whitelabel-fonts__label" for="whitelabel-fonts-usage">
+        {{ 'whitelabelFonts.filter.label' | translate }}
+      </label>
+      <select
+        id="whitelabel-fonts-usage"
+        class="whitelabel-fonts__select"
+        [value]="usageFilter()"
+        (change)="onUsageFilterChange($event)"
+        data-testid="whitelabel-fonts-usage"
+      >
+        @for (opt of usageFilterOptions; track opt.value) {
+          <option [value]="opt.value">{{ opt.labelKey | translate }}</option>
+        }
+      </select>
+    </div>
+
+    @if (!selectable()) {
+      <div class="whitelabel-fonts__actions">
+        <button
+          type="button"
+          igntButton
+          sentiment="primary"
+          size="small"
+          [leadingIcon]="['fal', 'upload']"
+          (click)="onUploadClick()"
+          data-testid="whitelabel-fonts-upload"
+        >
+          {{ 'whitelabelFonts.uploadNew' | translate }}
+        </button>
+      </div>
+    }
+  </div>
+
+  <div class="whitelabel-fonts__scroll" [class.whitelabel-fonts__scroll--bounded]="selectable()">
+    @if (loading() || loadingCss() || showSearchingState()) {
+      <div class="whitelabel-fonts__loader" aria-busy="true">
+        <ignt-icon aria-hidden="true" name="spinner" variant="solid" size="h4" [spin]="true" />
+      </div>
+    } @else if (showEmptyState()) {
+      <p class="whitelabel-fonts__empty">{{ 'whitelabelFonts.empty' | translate }}</p>
+    } @else {
+      <div class="whitelabel-fonts__grid" [attr.role]="selectable() ? 'listbox' : 'list'">
+        @for (font of filteredFonts(); track font.key) {
+          <article
+            class="whitelabel-fonts__card"
+            [attr.role]="selectable() ? 'option' : 'listitem'"
+            [class.whitelabel-fonts__card--selectable]="selectable()"
+            [class.whitelabel-fonts__card--selected]="selectable() && selectedFontKey() === font.key"
+            [attr.tabindex]="selectable() ? 0 : null"
+            [attr.aria-selected]="selectable() ? selectedFontKey() === font.key : null"
+            [attr.aria-label]="selectable() ? ('whitelabelFonts.selectFont' | translate) + ': ' + font.familyName : null"
+            (click)="onCardClick(font)"
+            (keydown.enter)="onCardClick(font)"
+            (keydown.space)="$event.preventDefault(); onCardClick(font)"
+          >
+            <header class="whitelabel-fonts__card-header">
+              <p class="whitelabel-fonts__family" [style]="renderFontPreviewStyle(font)" [title]="font.familyName">
+                {{ font.familyName }}
+              </p>
+            </header>
+            <div class="whitelabel-fonts__badges">
+              @if (font.origins.includes('uploaded-asset')) {
+                <ignt-tag sentiment="accent" variant="outline">{{ 'whitelabelFonts.origin.uploaded' | translate }}</ignt-tag>
+              }
+              @if (font.origins.includes('google-import')) {
+                <ignt-tag sentiment="info" variant="outline">{{ 'whitelabelFonts.origin.google' | translate }}</ignt-tag>
+              }
+              @if (font.origins.includes('css-face')) {
+                <ignt-tag sentiment="sharp" variant="outline">{{ 'whitelabelFonts.origin.inCss' | translate }}</ignt-tag>
+              }
+              @if (font.scope === 'shared') {
+                <ignt-tag sentiment="info" variant="outline">{{ 'whitelabelFonts.scopeBadge.shared' | translate }}</ignt-tag>
+              } @else if (font.scope === 'whitelabel') {
+                <ignt-tag sentiment="accent" variant="outline">{{ 'whitelabelFonts.scopeBadge.whitelabel' | translate }}</ignt-tag>
+              }
+              @if (isInUse(font)) {
+                <ignt-tag sentiment="warning" variant="outline" data-testid="whitelabel-fonts-in-use">
+                  {{ 'whitelabelFonts.inUse' | translate }}
+                </ignt-tag>
+              }
+            </div>
+            <div class="whitelabel-fonts__card-footer">
+              <button
+                type="button"
+                ignt-icon-button
+                size="small"
+                sentiment="tertiary"
+                class="whitelabel-fonts__info"
+                [icon]="['fal', 'circle-info']"
+                [attr.title]="'whitelabelFonts.info' | translate"
+                [attr.aria-label]="'whitelabelFonts.info' | translate"
+                (click)="$event.stopPropagation(); onInfo(font)"
+                data-testid="whitelabel-fonts-info"
+              ></button>
+              @if (copiedKey() === font.key) {
+                <span class="whitelabel-fonts__copied" aria-hidden="true">{{ 'whitelabelFonts.copied' | translate }}</span>
+              }
+              @if (canCopyUrl(font)) {
+                <button
+                  type="button"
+                  ignt-icon-button
+                  size="small"
+                  sentiment="tertiary"
+                  class="whitelabel-fonts__copy"
+                  [class.whitelabel-fonts__copy--copied]="copiedKey() === font.key"
+                  [icon]="copiedKey() === font.key ? ['fas', 'check'] : ['fal', 'copy']"
+                  [attr.title]="(copiedKey() === font.key ? 'whitelabelFonts.copied' : 'whitelabelFonts.copyUrl') | translate"
+                  [attr.aria-label]="(copiedKey() === font.key ? 'whitelabelFonts.copied' : 'whitelabelFonts.copyUrl') | translate"
+                  (click)="$event.stopPropagation(); copyUrl(font)"
+                ></button>
+              }
+              @if (canDelete(font)) {
+                <button
+                  type="button"
+                  ignt-icon-button
+                  size="small"
+                  sentiment="tertiary"
+                  [icon]="['fal', 'trash']"
+                  [attr.title]="'whitelabelFonts.delete' | translate"
+                  [attr.aria-label]="'whitelabelFonts.delete' | translate"
+                  (click)="$event.stopPropagation(); onDelete(font)"
+                  data-testid="whitelabel-fonts-delete"
+                ></button>
+              }
+            </div>
+          </article>
+        }
+      </div>
+    }
+
+    @if (loadingMore() && filteredFonts().length > 0) {
+      <div class="whitelabel-fonts__loader whitelabel-fonts__loader--more" aria-busy="true">
+        <ignt-icon aria-hidden="true" name="spinner" variant="solid" size="caption" [spin]="true" />
+      </div>
+    }
+
+    <div class="whitelabel-fonts__sentinel" aria-hidden="true"></div>
+  </div>
+</div>

@@ -1,0 +1,239 @@
+<div class="quick-setup-preview-step" data-testid="create-event-quick-setup-preview-step">
+  <div class="quick-setup-preview-step__layout">
+    <div class="quick-setup-preview-step__main" data-testid="create-event-quick-setup-preview-main">
+      <div class="quick-setup-preview-step__heading">
+        <h3 class="quick-setup-preview-step__title">
+          {{ 'createEvent.quickSetupWizard.step4.title' | translate }}
+        </h3>
+        <p class="quick-setup-preview-step__helper">
+          {{ 'createEvent.quickSetupWizard.step4.helper' | translate }}
+        </p>
+      </div>
+
+      <section class="quick-setup-preview-step__summary-card" data-testid="create-event-quick-setup-preview-summary">
+        <div class="quick-setup-preview-step__event">
+          @if (previewData().coverImageUrl; as coverImageUrl) {
+            <img
+              alt=""
+              class="quick-setup-preview-step__cover"
+              data-testid="create-event-quick-setup-preview-cover"
+              [src]="coverImageUrl"
+            />
+          }
+
+          <div class="quick-setup-preview-step__event-copy">
+            <h4 class="quick-setup-preview-step__event-name">{{ previewData().eventName }}</h4>
+
+            <ul class="quick-setup-preview-step__summary-list">
+              <li class="quick-setup-preview-step__summary-item">
+                <ignt-icon name="map-marker-alt" size="sm" variant="light" aria-hidden="true" />
+                <span>{{ previewData().venueLabel }}</span>
+              </li>
+              @for (schedule of previewData().schedules; track $index) {
+                @if (previewData().schedules.length > 1) {
+                  <li class="quick-setup-preview-step__summary-item quick-setup-preview-step__summary-item--schedule-name">
+                    <ignt-icon name="calendar" size="sm" variant="light" aria-hidden="true" />
+                    <span>{{ schedule.name }}</span>
+                  </li>
+                }
+                <li class="quick-setup-preview-step__summary-item">
+                  <ignt-icon name="calendar" size="sm" variant="light" aria-hidden="true" />
+                  <span>{{ schedule.datesLabel }}</span>
+                </li>
+                <li class="quick-setup-preview-step__summary-item">
+                  <ignt-icon name="clock" size="sm" variant="light" aria-hidden="true" />
+                  <span>{{ schedule.timesLabel }}</span>
+                </li>
+                @if (schedule.excludedDatesLabel; as excludedDates) {
+                  <li class="quick-setup-preview-step__summary-item">
+                    <ignt-icon name="times" size="sm" variant="light" aria-hidden="true" />
+                    <span>{{ 'createEvent.quickSetupWizard.step4.excludedDates' | translate: { dates: excludedDates } }}</span>
+                  </li>
+                }
+              }
+            </ul>
+          </div>
+        </div>
+
+        <div class="quick-setup-preview-step__inventory" data-testid="create-event-quick-setup-preview-tickets-panel">
+          <div class="quick-setup-preview-step__inventory-grid quick-setup-preview-step__inventory-grid--header">
+            <span>{{ 'createEvent.quickSetupWizard.step4.capacityGroup' | translate }}</span>
+            <span>{{ 'createEvent.quickSetupWizard.step4.columns.price' | translate }}</span>
+            <span>{{ 'createEvent.quickSetupWizard.step4.columns.maxCapacity' | translate }}</span>
+          </div>
+
+          @for (group of previewData().groups; track group.id) {
+            <div
+              class="quick-setup-preview-step__inventory-grid quick-setup-preview-step__inventory-grid--group"
+              [attr.data-testid]="'create-event-quick-setup-preview-group-' + $index"
+            >
+              <span class="quick-setup-preview-step__inventory-group-name">{{ group.name }}</span>
+              <span class="quick-setup-preview-step__inventory-empty-value">--</span>
+              @if (group.maxCapacity !== null) {
+                <span class="quick-setup-preview-step__inventory-group-capacity">{{ group.maxCapacity }}</span>
+              } @else {
+                <span class="quick-setup-preview-step__inventory-empty-value">--</span>
+              }
+            </div>
+
+            <div class="quick-setup-preview-step__inventory-spacer" aria-hidden="true"></div>
+
+            @for (ticket of group.tickets; track ticket.id) {
+              <ng-container *ngTemplateOutlet="ticketRowTemplate; context: { $implicit: ticket }" />
+            }
+          }
+
+          @if (previewData().ungroupedTickets.length > 0) {
+            <div
+              class="quick-setup-preview-step__inventory-grid quick-setup-preview-step__inventory-grid--group"
+              data-testid="create-event-quick-setup-preview-ungrouped"
+            >
+              <span class="quick-setup-preview-step__inventory-group-name">
+                {{ 'createEvent.quickSetupWizard.step4.ungroupedTickets' | translate }}
+              </span>
+              <span class="quick-setup-preview-step__inventory-empty-value">--</span>
+              <span class="quick-setup-preview-step__inventory-empty-value">--</span>
+            </div>
+
+            <div class="quick-setup-preview-step__inventory-spacer" aria-hidden="true"></div>
+
+            @for (ticket of previewData().ungroupedTickets; track ticket.id) {
+              <ng-container *ngTemplateOutlet="ticketRowTemplate; context: { $implicit: ticket }" />
+            }
+          }
+        </div>
+
+        @if (previewData().addOns.length > 0) {
+          <div class="quick-setup-preview-step__inventory" data-testid="create-event-quick-setup-preview-addons-panel">
+            <div class="quick-setup-preview-step__inventory-grid quick-setup-preview-step__inventory-grid--header">
+              <span aria-hidden="true"></span>
+              <span>{{ 'createEvent.quickSetupWizard.step4.columns.price' | translate }}</span>
+              <span>{{ 'createEvent.quickSetupWizard.step4.columns.maxCapacity' | translate }}</span>
+            </div>
+
+            <div class="quick-setup-preview-step__inventory-grid quick-setup-preview-step__inventory-grid--group">
+              <span class="quick-setup-preview-step__inventory-group-name">
+                {{ 'createEvent.quickSetupWizard.step4.addOns' | translate }}
+              </span>
+              <span class="quick-setup-preview-step__inventory-empty-value">--</span>
+              <span class="quick-setup-preview-step__inventory-empty-value">--</span>
+            </div>
+
+            <div class="quick-setup-preview-step__inventory-spacer" aria-hidden="true"></div>
+
+            @for (addOn of previewData().addOns; track addOn.id) {
+              <div class="quick-setup-preview-step__inventory-grid quick-setup-preview-step__inventory-grid--item">
+                <span class="quick-setup-preview-step__inventory-item-name">
+                  <ignt-icon name="cart-plus" size="sm" variant="light" aria-hidden="true" />
+                  {{ addOn.name }}
+                </span>
+                <span class="quick-setup-preview-step__inventory-item-value">{{ addOn.price }}</span>
+                @if (addOn.maxCapacity !== null) {
+                  <span class="quick-setup-preview-step__inventory-item-value">{{ addOn.maxCapacity }}</span>
+                } @else {
+                  <span class="quick-setup-preview-step__inventory-empty-value">--</span>
+                }
+              </div>
+            }
+          </div>
+        }
+      </section>
+
+      <section class="quick-setup-preview-step__default-settings" data-testid="create-event-quick-setup-preview-default-settings">
+        <div class="quick-setup-preview-step__default-settings-heading">
+          <h4 class="quick-setup-preview-step__default-settings-title">
+            {{ 'createEvent.quickSetupWizard.step4.defaultSettings.title' | translate }}
+          </h4>
+          <p class="quick-setup-preview-step__default-settings-helper">
+            {{ 'createEvent.quickSetupWizard.step4.defaultSettings.helper' | translate }}
+          </p>
+        </div>
+
+        <div class="quick-setup-preview-step__default-settings-columns">
+          <div class="quick-setup-preview-step__default-settings-column">
+            <p class="quick-setup-preview-step__default-settings-group-title">
+              {{ 'createEvent.quickSetupWizard.step4.defaultSettings.general' | translate }}
+            </p>
+            <dl class="quick-setup-preview-step__default-settings-list">
+              <div class="quick-setup-preview-step__default-settings-item">
+                <dt>{{ 'createEvent.quickSetupWizard.step4.defaultSettings.language' | translate }}</dt>
+                <dd>{{ previewData().planLanguageLabel }}</dd>
+              </div>
+              <div class="quick-setup-preview-step__default-settings-item quick-setup-preview-step__default-settings-item--stacked-value">
+                <dt>{{ 'createEvent.quickSetupWizard.step4.defaultSettings.salesWindow' | translate }}</dt>
+                <dd>
+                  <span>{{ 'createEvent.quickSetupWizard.step4.defaultSettings.salesWindowStart' | translate }}</span>
+                  <span>{{ 'createEvent.quickSetupWizard.step4.defaultSettings.salesWindowExpiration' | translate }}</span>
+                </dd>
+              </div>
+              <div class="quick-setup-preview-step__default-settings-item">
+                <dt>{{ 'createEvent.quickSetupWizard.step4.defaultSettings.tax' | translate }}</dt>
+                <dd>{{ 'createEvent.quickSetupWizard.step4.defaultSettings.taxIncluded' | translate }}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div class="quick-setup-preview-step__default-settings-divider" aria-hidden="true"></div>
+
+          <div class="quick-setup-preview-step__default-settings-column">
+            <p class="quick-setup-preview-step__default-settings-group-title">
+              {{ 'createEvent.quickSetupWizard.step4.defaultSettings.validation' | translate }}
+            </p>
+            <dl class="quick-setup-preview-step__default-settings-list">
+              <div class="quick-setup-preview-step__default-settings-item">
+                <dt>{{ 'createEvent.quickSetupWizard.step4.defaultSettings.method' | translate }}</dt>
+                <dd>{{ previewData().validationMethodLabel }}</dd>
+              </div>
+              <div class="quick-setup-preview-step__default-settings-item">
+                <dt>{{ 'createEvent.quickSetupWizard.step4.defaultSettings.window' | translate }}</dt>
+                <dd>{{ 'createEvent.quickSetupWizard.step4.defaultSettings.windowStandard' | translate }}</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="quick-setup-preview-step__feedback" data-testid="create-event-quick-setup-preview-feedback">
+      <label
+        class="quick-setup-preview-step__feedback-label"
+        data-testid="create-event-quick-setup-review-feedback-label"
+        for="create-event-quick-setup-review-feedback"
+      >
+        {{ 'createEvent.quickSetupWizard.step4.feedback.label' | translate }}
+      </label>
+      <p class="quick-setup-preview-step__feedback-helper" data-testid="create-event-quick-setup-review-feedback-helper">
+        {{ 'createEvent.quickSetupWizard.step4.feedback.helper' | translate }}
+      </p>
+      <ignt-textarea-field
+        class="quick-setup-preview-step__feedback-input"
+        data-testid="create-event-quick-setup-review-feedback"
+        label=""
+        resize="vertical"
+        [id]="feedbackFieldId"
+        [maxlength]="feedbackMaxLength"
+        [rows]="4"
+        [ngModel]="feedback()"
+        (ngModelChange)="onFeedbackChange($event)"
+      />
+      <p class="quick-setup-preview-step__feedback-counter" data-testid="create-event-quick-setup-review-feedback-counter">
+        {{ feedback().length }}/{{ feedbackMaxLength }}
+      </p>
+    </section>
+  </div>
+</div>
+
+<ng-template #ticketRowTemplate let-ticket>
+  <div class="quick-setup-preview-step__inventory-grid quick-setup-preview-step__inventory-grid--item">
+    <span class="quick-setup-preview-step__inventory-item-name">
+      <ignt-icon name="ticket" size="sm" variant="light" aria-hidden="true" />
+      {{ ticket.name }}
+    </span>
+    <span class="quick-setup-preview-step__inventory-item-value">{{ ticket.price }}</span>
+    @if (ticket.maxCapacity !== null) {
+      <span class="quick-setup-preview-step__inventory-item-value">{{ ticket.maxCapacity }}</span>
+    } @else {
+      <span class="quick-setup-preview-step__inventory-empty-value">--</span>
+    }
+  </div>
+</ng-template>

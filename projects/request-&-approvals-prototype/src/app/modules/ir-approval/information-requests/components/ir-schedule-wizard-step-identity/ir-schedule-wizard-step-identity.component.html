@@ -1,0 +1,75 @@
+<div class="schedule-step" data-testid="schedule-step-identity">
+  <label class="schedule-step__label" for="band-name">{{ 'informationRequests.schedule.identity.name' | translate }}</label>
+  <input
+    id="band-name"
+    type="text"
+    class="form-control"
+    [class.schedule-step__invalid]="nameInvalid()"
+    [value]="band().name"
+    (input)="setName($any($event.target).value)"
+    [attr.placeholder]="'informationRequests.schedule.identity.namePlaceholder' | translate"
+    data-testid="schedule-step-identity-name"
+  />
+
+  <h4 class="schedule-step__subtitle">{{ 'informationRequests.schedule.identity.periods' | translate }}</h4>
+  <app-ir-date-range-calendar
+    [minYmd]="minDate"
+    [disabledYmds]="usedYmds()"
+    [selectedYmds]="ownPeriodYmds()"
+    (rangeSelected)="addSegmentFromRange($event)"
+  />
+  @for (segment of segments(); track $index) {
+    @if (segment.start && segment.end) {
+      <div class="schedule-step__segment" data-testid="schedule-step-identity-segment">
+        <span class="schedule-step__period">{{ segment.start }} – {{ segment.end }}</span>
+        <button
+          type="button"
+          class="schedule-step__remove"
+          (click)="removeSegment($index)"
+          data-testid="schedule-step-identity-remove-segment"
+        >
+          {{ 'informationRequests.schedule.remove' | translate }}
+        </button>
+      </div>
+    }
+  }
+
+  <h4 class="schedule-step__subtitle">{{ 'informationRequests.schedule.identity.excluded' | translate }}</h4>
+  @if (!ownPeriodYmds().length) {
+    <p class="schedule-step__hint" data-testid="schedule-step-identity-excluded-needs-period">
+      {{ 'informationRequests.schedule.identity.excludedNeedsPeriod' | translate }}
+    </p>
+  } @else if (showExclusionCalendar()) {
+    <app-ir-date-range-calendar
+      [minYmd]="minDate"
+      [allowedYmds]="ownPeriodYmds()"
+      [selectedYmds]="excludedDays()"
+      (rangeSelected)="addExcludedRangeFromCalendar($event)"
+    />
+  } @else {
+    <button type="button" class="schedule-step__add" (click)="revealExclusionCalendar()" data-testid="schedule-step-identity-add-excluded">
+      {{ 'informationRequests.schedule.identity.addExcluded' | translate }}
+    </button>
+  }
+  @for (range of excludedRanges(); track $index) {
+    @if (range.start && range.end) {
+      <div class="schedule-step__segment" data-testid="schedule-step-identity-excluded-row">
+        <span class="schedule-step__period">
+          @if (isSingleDay(range)) {
+            {{ range.start }}
+          } @else {
+            {{ range.start }} – {{ range.end }}
+          }
+        </span>
+        <button
+          type="button"
+          class="schedule-step__remove"
+          (click)="removeExcludedRange($index)"
+          data-testid="schedule-step-identity-remove-excluded"
+        >
+          {{ 'informationRequests.schedule.remove' | translate }}
+        </button>
+      </div>
+    }
+  }
+</div>

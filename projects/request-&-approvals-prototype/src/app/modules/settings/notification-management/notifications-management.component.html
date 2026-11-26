@@ -1,0 +1,90 @@
+<section class="main-wrapper notification-management" [attr.aria-label]="'notificationSetting.title' | translate">
+  <div class="notification-management__title">
+    <span class="notification-management__section">{{ 'menu.settings' | translate }}</span>
+    <h1 class="notification-management__heading" data-testid="page-title">{{ 'notificationSetting.title' | translate }}</h1>
+  </div>
+
+  @if (isLoaded()) {
+    <form class="notification-management__form" data-testid="notification-management-form" [formGroup]="form">
+      <div class="notification-management__block notification-management__block--events">
+        <h2 class="notification-management__block-title">{{ 'notificationSetting.events.title' | translate }}</h2>
+
+        <ul class="notification-management__options">
+          @for (option of options; track option.id) {
+            @if (option.staffOnly) {
+              <ng-container *permissionBased="staffPermission">
+                <li class="notification-option" [attr.data-testid]="'notification-management-' + option.id + '-checkbox'">
+                  <ignt-tag class="notification-option__tag" sentiment="info" variant="outline">
+                    {{ 'notificationSetting.staffOnly' | translate }}
+                  </ignt-tag>
+                  <ignt-switch
+                    [attr.data-testid]="'notification-management-' + option.id"
+                    [description]="option.descriptionKey | translate"
+                    [formControlName]="option.controlName"
+                    [label]="option.labelKey | translate"
+                  />
+                </li>
+              </ng-container>
+            } @else {
+              <li class="notification-option" [attr.data-testid]="'notification-management-' + option.id + '-checkbox'">
+                <ignt-switch
+                  [attr.data-testid]="'notification-management-' + option.id"
+                  [description]="option.descriptionKey | translate"
+                  [formControlName]="option.controlName"
+                  [label]="option.labelKey | translate"
+                />
+              </li>
+            }
+          }
+        </ul>
+      </div>
+
+      <div class="notification-management__block notification-management__block--recipients">
+        <header class="notification-management__block-header">
+          <h2 class="notification-management__block-title">{{ 'notificationSetting.recipients.title' | translate }}</h2>
+          <p class="notification-management__block-description">{{ 'notificationSetting.recipients.description' | translate }}</p>
+        </header>
+
+        <app-contacts-input id="contacts" formControlName="contacts"></app-contacts-input>
+
+        <p class="notification-management__recipient-count" data-testid="notification-management-recipient-count">
+          {{ recipientCountKey() | translate: { count: recipientCount() } }}
+        </p>
+
+        @if (isMissingRecipients()) {
+          <ignt-alert
+            sentiment="warning"
+            data-testid="notification-management-missing-recipients"
+            [description]="'notificationSetting.recipients.missingWarning' | translate"
+          />
+        }
+      </div>
+
+      <div class="notification-management__actions">
+        <ignt-button
+          data-testid="notification-management-discard-button"
+          sentiment="neutral"
+          variant="secondary"
+          [disabled]="!canSave()"
+          [label]="'common.discard' | translate"
+          (click)="discardChanges()"
+        />
+        <ignt-button
+          data-testid="notification-management-save-button"
+          [disabled]="!canSave()"
+          [label]="'common.saveChanges' | translate"
+          [loading]="isSaving()"
+          (click)="saveChanges()"
+        />
+      </div>
+    </form>
+
+    <div class="notification-management__help-topic" appHideWrapperOnHelpTopicClose>
+      <app-help-topic-banner
+        [message]="'helpTopics.notifications.message' | translate"
+        [ctaLabel]="'helpTopics.generic.cta.label' | translate"
+        [ctaLink]="'helpTopics.notifications.cta.href' | translate"
+      ></app-help-topic-banner>
+    </div>
+  }
+</section>

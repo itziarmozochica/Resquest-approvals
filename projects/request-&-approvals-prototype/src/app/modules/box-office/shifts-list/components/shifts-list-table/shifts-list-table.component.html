@@ -1,0 +1,178 @@
+<ignt-table
+  class="shifts-list-table"
+  data-testid="shifts-list-table-content"
+  [data]="rows()"
+  [getRowId]="getRowId"
+  [interactiveRows]="true"
+  [isLoading]="isLoading()"
+  (rowInteraction)="onRowInteraction($event)"
+>
+  @if (displayCashierColumn) {
+    <ignt-table-column key="userName" columnType="primary" [header]="'boxOffice.shiftsList.table.cashier' | translate" [width]="208">
+      <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+        <span class="shifts-list-table__user" data-testid="shifts-list-table-user">
+          <span>{{ item.userName }}</span>
+          <span class="shifts-list-table__email">{{ item.userEmail }}</span>
+        </span>
+      </ng-template>
+    </ignt-table-column>
+  }
+
+  <ignt-table-column
+    key="shiftStart"
+    [columnType]="displayCashierColumn ? 'secondary' : 'primary'"
+    [header]="'boxOffice.shiftsList.table.shiftStart' | translate"
+  >
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      <span data-testid="shifts-list-table-shift-start">
+        <span
+          class="shifts-list-table__marked"
+          data-testid="shifts-list-table-orange-dot"
+          [title]="item.comment ? ('boxOffice.shiftsList.table.cashierComment' | translate) : null"
+          [class.orange-dot]="item.comment"
+        >
+          <ng-container [ngTemplateOutlet]="formatDate" [ngTemplateOutletContext]="{ $implicit: item.shiftStart }" />
+        </span>
+        @if (item.comment) {
+          <span class="visually-hidden">{{ 'boxOffice.shiftsList.table.cashierComment' | translate }}</span>
+        }
+      </span>
+    </ng-template>
+  </ignt-table-column>
+
+  <ignt-table-column key="shiftEnd" columnType="secondary" [header]="'boxOffice.shiftsList.table.shiftEnd' | translate">
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      <span data-testid="shifts-list-table-shift-end">
+        @if (item.shiftEnd) {
+          <ng-container [ngTemplateOutlet]="formatDate" [ngTemplateOutletContext]="{ $implicit: item.shiftEnd }" />
+        } @else {
+          {{ 'boxOffice.shiftsList.table.onGoing' | translate }}
+        }
+      </span>
+    </ng-template>
+  </ignt-table-column>
+
+  @if (showOnsiteSetupColumn()) {
+    <ignt-table-column key="onsiteSetupName" [header]="'boxOffice.shiftsList.table.onsiteSetupName' | translate">
+      <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+        <span data-testid="shifts-list-table-onsite-setup-name">{{ item.onsiteSetupName }}</span>
+      </ng-template>
+    </ignt-table-column>
+  }
+
+  @if (showCashRegisterColumn()) {
+    <ignt-table-column key="cashRegisterNames" [header]="'boxOffice.shiftsList.table.cashRegisterNames' | translate">
+      <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+        <span data-testid="shifts-list-table-cash-register-names">{{ item.cashRegisterNames }}</span>
+      </ng-template>
+    </ignt-table-column>
+  }
+
+  <ignt-table-column key="ticketsSold" align="right" [header]="'boxOffice.shiftsList.table.ticketsSold' | translate">
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      <span data-testid="shifts-list-table-tickets-sold">
+        @if (item.shiftEnd) {
+          {{ item.ticketsSold }}
+        } @else {
+          --
+        }
+      </span>
+    </ng-template>
+  </ignt-table-column>
+
+  <ignt-table-column key="cardAmount" align="right" [header]="'boxOffice.shiftsList.table.cardCollect' | translate">
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      <span data-testid="shifts-list-table-card-playment">
+        <ng-container [ngTemplateOutlet]="closedMoney" [ngTemplateOutletContext]="{ $implicit: item.cardAmount, row: item }" />
+      </span>
+    </ng-template>
+  </ignt-table-column>
+
+  <ignt-table-column key="cashAmount" align="right" [header]="'boxOffice.shiftsList.table.cashCollect' | translate">
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      <span data-testid="shifts-list-table-cash-playment">
+        <ng-container [ngTemplateOutlet]="closedMoney" [ngTemplateOutletContext]="{ $implicit: item.cashAmount, row: item }" />
+      </span>
+    </ng-template>
+  </ignt-table-column>
+
+  @if (showQrCodeColumn) {
+    <ignt-table-column key="qrCodeAmount" align="right" [header]="'boxOffice.shiftsList.table.qrCodeCollect' | translate">
+      <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+        <span data-testid="shifts-list-table-qr-code-payment">
+          <ng-container [ngTemplateOutlet]="closedMoney" [ngTemplateOutletContext]="{ $implicit: item.qrCodeAmount, row: item }" />
+        </span>
+      </ng-template>
+    </ignt-table-column>
+  }
+
+  @if (showIcCardColumn) {
+    <ignt-table-column key="icCardAmount" align="right" [header]="'boxOffice.shiftsList.table.icCardCollect' | translate">
+      <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+        <span data-testid="shifts-list-table-ic-card-payment">
+          <ng-container [ngTemplateOutlet]="closedMoney" [ngTemplateOutletContext]="{ $implicit: item.icCardAmount, row: item }" />
+        </span>
+      </ng-template>
+    </ignt-table-column>
+  }
+
+  <ignt-table-column key="otherAmount" align="right" [header]="'boxOffice.shiftsList.table.otherCollect' | translate">
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      <span data-testid="shifts-list-table-other-playment">
+        <ng-container [ngTemplateOutlet]="closedMoney" [ngTemplateOutletContext]="{ $implicit: item.otherAmount, row: item }" />
+      </span>
+    </ng-template>
+  </ignt-table-column>
+
+  <ignt-table-column key="totalAmount" columnType="secondary" align="right" [header]="'boxOffice.shiftsList.table.totalAmount' | translate">
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      <span data-testid="shifts-list-table-total-playment">
+        <span
+          class="shifts-list-table__marked"
+          data-testid="shifts-list-table-red-dot"
+          [title]="item.hasCashIncidence ? ('boxOffice.shiftsList.table.cashIncidence' | translate) : null"
+          [class.red-dot]="item.hasCashIncidence"
+        >
+          <ng-container [ngTemplateOutlet]="closedMoney" [ngTemplateOutletContext]="{ $implicit: item.totalAmount, row: item }" />
+        </span>
+        @if (item.hasCashIncidence) {
+          <span class="visually-hidden">{{ 'boxOffice.shiftsList.table.cashIncidence' | translate }}</span>
+        }
+      </span>
+    </ng-template>
+  </ignt-table-column>
+
+  @if (showCustomerSatisfaction) {
+    <ignt-table-column key="shiftSurveySatisfaction" align="right" [header]="'boxOffice.shiftsList.table.customerSatisfaction' | translate">
+      <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+        <span data-testid="shifts-list-table-customer-satisfaction">
+          @if (item.shiftSurveySatisfaction !== null) {
+            <span class="shifts-list-table__survey">
+              <img src="assets/images/survey/smiling-face.svg" width="16" height="16" alt="" />
+              {{ item.shiftSurveySatisfaction }}%
+            </span>
+          } @else {
+            --
+          }
+        </span>
+      </ng-template>
+    </ignt-table-column>
+  }
+</ignt-table>
+
+<ng-template #formatDate let-date>
+  <span class="shifts-list-table__date">
+    <span>{{ date | momentDate: 'yyyy-MM-dd' : timezone() }}</span>
+    <span>{{ date | momentDate: 'HH:mm' : timezone() }}</span>
+  </span>
+</ng-template>
+
+<ng-template #closedMoney let-money let-row="row">
+  @if (row.shiftEnd) {
+    <span class="shifts-list-table__money">
+      {{ money ? (money.amount | currency: money.currency : 'symbol-narrow' : undefined : locale) : '-' }}
+    </span>
+  } @else {
+    --
+  }
+</ng-template>

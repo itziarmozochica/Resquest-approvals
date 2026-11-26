@@ -1,0 +1,324 @@
+@let item = row();
+@let prefix = fieldIdPrefix();
+@let rowIndex = index();
+<div
+  class="quick-setup-inventory-row"
+  [class.quick-setup-inventory-row--add-on]="!isTicket()"
+  [class.quick-setup-inventory-row--ticket]="isTicket()"
+  [formGroup]="item"
+  [attr.data-testid]="prefix + '-row-' + rowIndex"
+>
+  <div class="quick-setup-inventory-row__header" [class.quick-setup-inventory-row__header--without-price]="isPricesByTier()">
+    @if (isDraggable()) {
+      <span
+        class="quick-setup-inventory-row__drag-handle"
+        cdkDragHandle
+        [attr.aria-label]="'createEvent.quickSetupWizard.step2.dragTicket' | translate"
+        [attr.data-testid]="prefix + '-drag-handle-' + rowIndex"
+      >
+        <ignt-icon name="grip-vertical" variant="solid" aria-hidden="true" />
+      </span>
+    } @else {
+      <ignt-icon class="quick-setup-inventory-row__icon" [name]="isTicket() ? 'ticket' : 'cart-plus'" variant="light" aria-hidden="true" />
+    }
+
+    <ignt-input-field
+      class="quick-setup-inventory-row__field quick-setup-inventory-row__field--name"
+      data-scroll-field
+      [id]="prefix + '-name-' + rowIndex"
+      formControlName="name"
+      type="text"
+      [label]="'createEvent.quickSetupWizard.step2.nameLabel' | translate"
+      [placeholder]="'createEvent.quickSetupWizard.step2.ticketNamePlaceholder' | translate"
+      [customFormErrors]="[
+        { type: 'required', message: 'form.error.required' | translate },
+        { type: 'nameDuplicated', message: 'form.error.duplicatedName' | translate: nameErrorParams() },
+      ]"
+      [attr.data-testid]="prefix + '-name-input-' + rowIndex"
+    />
+
+    <div class="quick-setup-inventory-row__field quick-setup-inventory-row__field--product-type" data-scroll-field>
+      <ignt-typeahead
+        [clean]="productTypeClean$"
+        [editable]="true"
+        [fieldLabel]="'createEvent.quickSetupWizard.step2.productTypePlaceholder' | translate"
+        [options]="productTypeOptions()"
+        [selectedOption]="productTypeOption()"
+        [attr.data-testid]="prefix + '-product-type-' + rowIndex"
+        (selected)="onProductTypeSelected($event)"
+        (userInteraction)="onProductTypeBlurred($event)"
+      />
+      @if (isProductTypeMissing()) {
+        <ignt-field-error [showError]="true" [attr.data-testid]="prefix + '-product-type-error-' + rowIndex">
+          {{ 'form.error.required' | translate }}
+        </ignt-field-error>
+      }
+    </div>
+
+    @if (!isPricesByTier()) {
+      <ignt-input-field
+        class="quick-setup-inventory-row__field quick-setup-inventory-row__field--price"
+        data-scroll-field
+        [id]="prefix + '-price-' + rowIndex"
+        formControlName="price"
+        type="number"
+        [minValue]="0"
+        [label]="priceLabels().price"
+        [customFormErrors]="[
+          { type: 'required', message: 'form.error.required' | translate },
+          { type: 'min', message: 'form.error.greaterThanOrEqualZero' | translate },
+        ]"
+        [attr.data-testid]="prefix + '-price-input-' + rowIndex"
+      />
+    }
+
+    <ignt-input-field
+      class="quick-setup-inventory-row__field quick-setup-inventory-row__field--capacity"
+      data-scroll-field
+      [id]="prefix + '-capacity-' + rowIndex"
+      formControlName="maxCapacity"
+      type="number"
+      [label]="
+        (isTicket() ? 'createEvent.quickSetupWizard.step2.ticketCapacityPlaceholder' : 'createEvent.quickSetupWizard.step2.stockLabel')
+          | translate
+      "
+      [placeholder]="isTicket() ? ('createEvent.quickSetupWizard.step2.ticketCapacityOptional' | translate) : ''"
+      [customFormErrors]="[
+        { type: 'required', message: 'form.error.required' | translate },
+        { type: 'min', message: 'form.error.greaterThanZero' | translate },
+      ]"
+      [attr.data-testid]="prefix + '-capacity-input-' + rowIndex"
+    />
+
+    <button
+      type="button"
+      ignt-icon-button
+      sentiment="tertiary"
+      size="medium"
+      class="quick-setup-inventory-row__delete-button"
+      [icon]="['fas', 'trash']"
+      [disabled]="!canDelete()"
+      [attr.aria-label]="
+        (isTicket() ? 'createEvent.quickSetupWizard.step2.deleteTicket' : 'createEvent.quickSetupWizard.step2.deleteAddOn')
+          | translate: deleteLabelParams()
+      "
+      [attr.data-testid]="prefix + '-delete-' + rowIndex"
+      (click)="deleted.emit()"
+    ></button>
+  </div>
+
+  @if (isPricesByTier()) {
+    <div class="quick-setup-inventory-row__tier-prices-block">
+      <div class="quick-setup-inventory-row__tier-prices" [attr.data-testid]="prefix + '-tier-prices-' + rowIndex">
+        <span class="quick-setup-inventory-row__tier-prices-label">
+          {{ 'createEvent.quickSetupWizard.step2.pricesByTier' | translate }}
+        </span>
+        <div class="quick-setup-inventory-row__tier-price quick-setup-inventory-row__tier-price--valley">
+          <span class="quick-setup-inventory-row__tier-price-bar" aria-hidden="true"></span>
+          <ignt-input-field
+            class="quick-setup-inventory-row__tier-price-field"
+            data-scroll-field
+            [id]="prefix + '-valley-' + rowIndex"
+            formControlName="valleyPrice"
+            type="number"
+            [minValue]="0"
+            [label]="priceLabels().valleyPrice"
+            [customFormErrors]="[{ type: 'min', message: 'form.error.greaterThanOrEqualZero' | translate }]"
+            [attr.data-testid]="prefix + '-valley-input-' + rowIndex"
+          />
+        </div>
+        <div class="quick-setup-inventory-row__tier-price quick-setup-inventory-row__tier-price--normal">
+          <span class="quick-setup-inventory-row__tier-price-bar" aria-hidden="true"></span>
+          <ignt-input-field
+            class="quick-setup-inventory-row__tier-price-field"
+            data-scroll-field
+            [id]="prefix + '-normal-' + rowIndex"
+            formControlName="normalPrice"
+            type="number"
+            [minValue]="0"
+            [label]="priceLabels().normalPrice"
+            [customFormErrors]="[{ type: 'min', message: 'form.error.greaterThanOrEqualZero' | translate }]"
+            [attr.data-testid]="prefix + '-normal-input-' + rowIndex"
+          />
+        </div>
+        <div class="quick-setup-inventory-row__tier-price quick-setup-inventory-row__tier-price--peak">
+          <span class="quick-setup-inventory-row__tier-price-bar" aria-hidden="true"></span>
+          <ignt-input-field
+            class="quick-setup-inventory-row__tier-price-field"
+            data-scroll-field
+            [id]="prefix + '-peak-' + rowIndex"
+            formControlName="peakPrice"
+            type="number"
+            [minValue]="0"
+            [label]="priceLabels().peakPrice"
+            [customFormErrors]="[{ type: 'min', message: 'form.error.greaterThanOrEqualZero' | translate }]"
+            [attr.data-testid]="prefix + '-peak-input-' + rowIndex"
+          />
+        </div>
+      </div>
+      @if (hasTierPricesInsufficientError()) {
+        <ignt-field-error [showError]="true" [attr.data-testid]="prefix + '-tier-prices-error-' + rowIndex">
+          {{ 'createEvent.quickSetupWizard.step2.tierPricesInsufficient' | translate }}
+        </ignt-field-error>
+      }
+    </div>
+  }
+
+  <a
+    igntLink
+    role="button"
+    class="quick-setup-inventory-row__optional-settings"
+    sentiment="primary"
+    size="small"
+    [attr.aria-expanded]="isOptionsExpanded()"
+    [trailingIcon]="isOptionsExpanded() ? ['fal', 'chevron-up'] : ['fal', 'chevron-down']"
+    [attr.data-testid]="prefix + '-optional-settings-' + rowIndex"
+    (click)="toggleOptions(); $event.preventDefault()"
+  >
+    {{
+      (isTicket() ? 'createEvent.quickSetupWizard.step2.moreTicketOptions' : 'createEvent.quickSetupWizard.step2.moreAddOnOptions')
+        | translate
+    }}
+  </a>
+
+  @if (isOptionsExpanded()) {
+    <div class="quick-setup-inventory-row__optional-panel" [attr.data-testid]="prefix + '-optional-panel-' + rowIndex">
+      <div class="quick-setup-inventory-row__optional-block">
+        <div class="quick-setup-inventory-row__optional-heading">
+          <span>{{ 'createEvent.quickSetupWizard.step2.instructionsTitle' | translate }}</span>
+          <ignt-icon
+            name="circle-info"
+            variant="light"
+            aria-hidden="true"
+            igntTooltip
+            [tooltipLabel]="
+              (isTicket()
+                ? 'createEvent.quickSetupWizard.step2.instructionsTooltip'
+                : 'createEvent.quickSetupWizard.step2.instructionsTooltipAddOn'
+              ) | translate
+            "
+            tooltipPlacement="top"
+          />
+        </div>
+        <ignt-rich-text-editor
+          formControlName="instructions"
+          [features]="instructionsEditorFeatures"
+          [placeholder]="'inventory.ticketTypes.form.fields.instructions.placeholder' | translate"
+          [attr.data-testid]="prefix + '-instructions-' + rowIndex"
+        />
+      </div>
+
+      <div class="quick-setup-inventory-row__optional-block">
+        <div class="quick-setup-inventory-row__optional-heading">
+          <span>{{ 'createEvent.quickSetupWizard.step2.detailsTitle' | translate }}</span>
+          <ignt-icon
+            name="circle-info"
+            variant="light"
+            aria-hidden="true"
+            igntTooltip
+            [tooltipLabel]="
+              (isTicket() ? 'createEvent.quickSetupWizard.step2.detailsTooltip' : 'createEvent.quickSetupWizard.step2.detailsTooltipAddOn')
+                | translate
+            "
+            tooltipPlacement="top"
+          />
+        </div>
+        <ignt-rich-text-editor
+          formControlName="details"
+          [features]="instructionsEditorFeatures"
+          [placeholder]="'createEvent.quickSetupWizard.step2.detailsPlaceholder' | translate"
+          [attr.data-testid]="prefix + '-details-' + rowIndex"
+        />
+      </div>
+
+      <div class="quick-setup-inventory-row__optional-footer">
+        @if (isTicket()) {
+          <div class="quick-setup-inventory-row__optional-block">
+            <div class="quick-setup-inventory-row__optional-heading">
+              <span>{{ 'createEvent.quickSetupWizard.step2.ticketsAllowedTitle' | translate }}</span>
+              <ignt-icon
+                name="circle-info"
+                variant="light"
+                aria-hidden="true"
+                igntTooltip
+                [tooltipLabel]="'createEvent.quickSetupWizard.step2.ticketsAllowedTooltip' | translate"
+                tooltipPlacement="top"
+              />
+            </div>
+            <div class="quick-setup-inventory-row__optional-limits">
+              <ignt-input-field
+                data-scroll-field
+                [id]="prefix + '-min-sell-' + rowIndex"
+                formControlName="minToSell"
+                type="number"
+                [label]="'createEvent.quickSetupWizard.step2.minToSell' | translate"
+                [customFormErrors]="[{ type: 'min', message: 'form.error.greaterThanZero' | translate }]"
+                [attr.data-testid]="prefix + '-min-sell-' + rowIndex"
+              />
+              <ignt-input-field
+                data-scroll-field
+                [id]="prefix + '-max-sell-' + rowIndex"
+                formControlName="maxToSell"
+                type="number"
+                [label]="'createEvent.quickSetupWizard.step2.maxToSell' | translate"
+                [customFormErrors]="[{ type: 'min', message: 'form.error.greaterThanZero' | translate }]"
+                [attr.data-testid]="prefix + '-max-sell-' + rowIndex"
+              />
+            </div>
+            @if (ticketsAllowedErrorKey(); as errorKey) {
+              <ignt-field-error [showError]="true" [attr.data-testid]="prefix + '-tickets-allowed-error-' + rowIndex">
+                {{ errorKey | translate }}
+              </ignt-field-error>
+            }
+          </div>
+        }
+
+        <div class="quick-setup-inventory-row__optional-block quick-setup-inventory-row__optional-block--rules">
+          <div class="quick-setup-inventory-row__optional-heading">
+            <span>{{ 'createEvent.quickSetupWizard.step2.conditionalRulesTitle' | translate }}</span>
+            <ignt-icon
+              name="circle-info"
+              variant="light"
+              aria-hidden="true"
+              igntTooltip
+              [tooltipLabel]="
+                (isTicket()
+                  ? 'createEvent.quickSetupWizard.step2.conditionalRulesTooltip'
+                  : 'createEvent.quickSetupWizard.step2.conditionalRulesTooltipAddOn'
+                ) | translate
+              "
+              tooltipPlacement="top"
+            />
+          </div>
+          <ignt-typeahead
+            [clean]="selectionRuleClean$"
+            [editable]="true"
+            [fieldLabel]="'createEvent.quickSetupWizard.step2.conditionalRulesTitle' | translate"
+            [options]="selectionRuleOptions()"
+            [selectedOption]="selectionRuleOption()"
+            [attr.data-testid]="prefix + '-selection-rule-' + rowIndex"
+            (selected)="onSelectionRuleSelected($event)"
+            (userInteraction)="onSelectionRuleBlurred($event)"
+          />
+          @if (isNeedsSessionTypeSelected()) {
+            <app-multi-select
+              [fieldLabel]="'createEvent.quickSetupWizard.step2.neededTicketPlaceholder' | translate"
+              [helpText]="'createEvent.quickSetupWizard.step2.neededTicketsHelp' | translate"
+              [isSelectAllVisible]="true"
+              [options]="neededSessionTypeOptions()"
+              [selectedOptions]="selectedNeededSessionTypeOptions()"
+              [selectedSummaryText]="neededSessionTypesSummary()"
+              [attr.data-testid]="prefix + '-needed-session-types-' + rowIndex"
+              (selected)="onNeededSessionTypesSelected($event)"
+            />
+            @if (isNeededTicketMissing()) {
+              <ignt-field-error [showError]="true" [attr.data-testid]="prefix + '-needed-session-type-error-' + rowIndex">
+                {{ 'createEvent.quickSetupWizard.step2.neededTicketRequired' | translate }}
+              </ignt-field-error>
+            }
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

@@ -1,0 +1,91 @@
+<ignt-dialog-header>
+  @if (isBulk) {
+    {{ 'leads.bulkAssign.title' | translate: { count: leadCount } }}
+  } @else {
+    {{ (isReassignment ? 'leads.reassign.title' : 'leads.assign.title') | translate }}
+  }
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="lead-assign-dialog">
+    <p class="lead-assign-dialog__description" data-testid="lead-assign-description">
+      @if (isBulk) {
+        {{ 'leads.bulkAssign.description' | translate: { count: leadCount } }}
+      } @else {
+        {{ 'leads.assign.description' | translate: { guest: guestName } }}
+      }
+    </p>
+
+    @if (committedOwner() === null) {
+      <!-- Server-driven lookup like the create dialog's owner field: typing re-queries IAM, scrolling
+           to the bottom loads the next page, the refresh trigger re-renders the open popup once a
+           page lands. -->
+      <ignt-typeahead
+        data-testid="lead-assign-owner"
+        container="body"
+        [isInDialog]="true"
+        [collapseOnClick]="true"
+        [fieldLabel]="('leads.assign.owner' | translate) + ' *'"
+        [emptyLabel]="'common.selectsPlaceholder' | translate"
+        [options]="ownerOptions()"
+        [minSearchLength]="1"
+        [refreshOnlyWhenOpen]="true"
+        [refreshTrigger]="ownerRefreshTrigger$"
+        [selectedOption]="selectedOwner()"
+        (inputInteraction)="onOwnerSearchChange($event)"
+        (scrollToEnd)="onOwnerScrollEnd()"
+        (selected)="onOwnerSelected($event)"
+      />
+    } @else {
+      <!-- Bulk retries must hit the same owner the first run used, so the picker is locked once a run starts. -->
+      <p class="lead-assign-dialog__committed-owner" data-testid="lead-assign-committed-owner">
+        {{ 'leads.bulkAssign.assigningTo' | translate: { owner: committedOwner()!.name } }}
+      </p>
+    }
+
+    @if (isBulk && isSubmitting()) {
+      <p class="lead-assign-dialog__progress" data-testid="lead-assign-progress" role="status" [attr.data-total]="pendingLeads().length">
+        {{ 'leads.bulkAssign.progress' | translate: { total: pendingLeads().length } }}
+      </p>
+    }
+
+    @if (failures().length > 0 && !isSubmitting()) {
+      <p class="lead-assign-dialog__error" data-testid="lead-assign-partial-summary" role="alert">
+        {{
+          'leads.bulkAssign.partialSummary' | translate: { assigned: assignedLeadIds().length, failed: failures().length, total: leadCount }
+        }}
+      </p>
+      <ul class="lead-assign-dialog__failures" data-testid="lead-assign-failures">
+        @for (failure of failures(); track failure.lead.id) {
+          <li class="lead-assign-dialog__failure" data-testid="lead-assign-failure">
+            <span class="lead-assign-dialog__failure-guest">{{ failure.lead.guestFullName || failure.lead.guestEmail }}</span>
+            <span class="lead-assign-dialog__failure-message" data-testid="lead-assign-failure-message">{{
+              failure.message | translate
+            }}</span>
+          </li>
+        }
+      </ul>
+    }
+
+    @if (errorMessage()) {
+      <p class="lead-assign-dialog__error" data-testid="lead-assign-error" role="alert">{{ errorMessage()! | translate }}</p>
+    }
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer [hideCancelButton]="true">
+  <ignt-button
+    data-testid="lead-assign-cancel"
+    variant="secondary"
+    [label]="'common.cancel' | translate"
+    [disabled]="isSubmitting()"
+    (click)="onCancel()"
+  />
+  <ignt-button
+    data-testid="modal-accept-button"
+    [label]="submitLabelKey() | translate: { count: pendingLeads().length }"
+    [disabled]="isSubmitDisabled()"
+    [loading]="isSubmitting()"
+    (click)="onSubmit()"
+  />
+</ignt-dialog-footer>

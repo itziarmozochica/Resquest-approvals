@@ -1,0 +1,141 @@
+@if (!isLoading() && activities().length === 0) {
+  <div class="activities-tab__empty-page">
+    <div class="activities-tab__empty-page__content">
+      <h1 class="activities-tab__empty-page__title">{{ 'assetsHubs.detail.activities.emptyPage.title' | translate }}</h1>
+      <p class="activities-tab__empty-page__definition">{{ 'assetsHubs.detail.activities.emptyPage.definition' | translate }}</p>
+      @if (canManageHub() && !canAddActivity()) {
+        <p class="activities-tab__empty-page__hint">{{ 'assetsHubs.detail.activities.emptyPage.missingAssetsHint' | translate }}</p>
+      }
+    </div>
+    @if (canManageHub()) {
+      @if (canAddActivity()) {
+        <ignt-button
+          variant="primary"
+          size="large"
+          data-testid="add-activity-button"
+          [label]="'assetsHubs.detail.activities.emptyPage.addActivity' | translate"
+          (click)="onAddActivity()"
+        ></ignt-button>
+      } @else {
+        <ignt-button
+          variant="primary"
+          size="large"
+          data-testid="go-to-assets-button"
+          [label]="'assetsHubs.detail.activities.emptyPage.goToAssets' | translate"
+          (click)="tabRequested.emit(AssetsHubDetailTab.assets)"
+        ></ignt-button>
+      }
+    }
+  </div>
+} @else {
+  <div class="activities-tab__header">
+    <p class="hub-tab__description" translate>assetsHubs.detail.activities.description</p>
+    @if (canManageHub()) {
+      <ignt-button
+        igntTooltip
+        variant="primary"
+        size="large"
+        data-testid="add-activity-button"
+        [label]="'assetsHubs.detail.actions.addActivity' | translate"
+        [disabled]="!canAddActivity()"
+        [tooltipDisabled]="canAddActivity()"
+        [tooltipLabel]="'assetsHubs.detail.activities.emptyPage.missingAssetsHint' | translate"
+        (click)="onAddActivity()"
+      ></ignt-button>
+    }
+  </div>
+  <ignt-table
+    data-testid="activities-table"
+    [data]="rows()"
+    [hasServerSideSorting]="true"
+    [interactiveRows]="true"
+    [isLoading]="isLoading()"
+    [sorting]="sorting()"
+    (rowInteraction)="onActivityRowInteraction($event)"
+    (sortingChange)="onSortingChange($event)"
+  >
+    <ignt-table-column key="name" columnType="primary" [header]="'assetsHubs.detail.activities.name' | translate" [sortable]="true">
+      <ng-template [igntTableColumnTemplateType]="rows()[0]" let-item="item">
+        <div class="activities-tab__cell-name">
+          <span class="activities-tab__cell-name-title activities-tab__activity-name">{{ item.name }}</span>
+          @if (item.description) {
+            <span class="activities-tab__cell-subtitle">{{ item.description }}</span>
+          }
+        </div>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column columnType="secondary" [header]="'assetsHubs.detail.activities.durationType' | translate">
+      <ng-template [igntTableColumnTemplateType]="rows()[0]" let-item="item">{{ item.durationTypeLabel }}</ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column
+      key="durationMinutes"
+      columnType="secondary"
+      [header]="'assetsHubs.detail.activities.durationMinutes' | translate"
+      [sortable]="true"
+    ></ignt-table-column>
+
+    <ignt-table-column columnType="secondary" [header]="'assetsHubs.detail.activities.startTimes' | translate">
+      <ng-template [igntTableColumnTemplateType]="rows()[0]" let-item="item">{{ item.startTimesLabel }}</ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column columnType="secondary" [header]="'assetsHubs.detail.activities.startDelay' | translate">
+      <ng-template [igntTableColumnTemplateType]="rows()[0]" let-item="item">{{ item.startDelayLabel }}</ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column columnType="secondary" [header]="'assetsHubs.detail.activities.largeBookings' | translate">
+      <ng-template [igntTableColumnTemplateType]="rows()[0]" let-item="item">{{ item.largeBookingsLabel }}</ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column columnType="secondary" [header]="'assetsHubs.detail.activities.exclusiveHire' | translate">
+      <ng-template [igntTableColumnTemplateType]="rows()[0]" let-item="item">{{ item.exclusiveHireLabel }}</ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column
+      key="assetsCount"
+      columnType="secondary"
+      [header]="'assetsHubs.detail.activities.assets' | translate"
+      [sortable]="true"
+    ></ignt-table-column>
+
+    @if (canManageHub()) {
+      <ignt-table-column columnType="action" [header]="'assetsHubs.detail.activities.actions' | translate">
+        <ng-template [igntTableColumnTemplateType]="rows()[0]" let-item="item">
+          <button
+            ignt-icon-button
+            type="button"
+            sentiment="tertiary"
+            size="small"
+            [icon]="['fas', 'ellipsis-v']"
+            [attr.aria-label]="'assetsHubs.detail.activities.actions' | translate"
+            [igntMenuTriggerFor]="activityActionsMenu"
+            (click)="$event.stopPropagation()"
+            (keydown)="$event.stopPropagation()"
+            data-testid="activity-actions-dropdown"
+          ></button>
+
+          <ng-template #activityActionsMenu>
+            <ignt-menu>
+              <ignt-menu-item
+                value="duplicate"
+                [label]="'assetsHubs.detail.actionsDuplicate' | translate"
+                (triggered)="onActivityActionClick(item, 'duplicate')"
+              >
+                <ignt-icon name="clone" variant="light"></ignt-icon>
+              </ignt-menu-item>
+              <ignt-menu-item
+                value="delete"
+                sentiment="danger"
+                [label]="'assetsHubs.detail.actionsDelete' | translate"
+                (triggered)="onActivityActionClick(item, 'delete')"
+              >
+                <ignt-icon name="trash-alt" variant="light"></ignt-icon>
+              </ignt-menu-item>
+            </ignt-menu>
+          </ng-template>
+        </ng-template>
+      </ignt-table-column>
+    }
+  </ignt-table>
+}

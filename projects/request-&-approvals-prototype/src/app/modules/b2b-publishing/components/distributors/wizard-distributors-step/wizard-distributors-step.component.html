@@ -1,0 +1,85 @@
+<div class="wizard-distributors-step">
+  @if (isLoading() && visibleDistributors().length === 0) {
+    <div class="wizard-distributors-step__loading" aria-busy="true" aria-live="polite" data-testid="group-wizard-distributors-loading">
+      <span class="wizard-distributors-step__message">{{ 'distributors.groups.wizard.distributors.loading' | translate }}</span>
+      <ignt-skeleton type="list" [animation]="true" [numElements]="4" />
+    </div>
+  } @else if (hasError()) {
+    <div class="wizard-distributors-step__failure" role="alert" data-testid="group-wizard-distributors-error">
+      <p class="wizard-distributors-step__message">{{ 'distributors.groups.wizard.distributors.error' | translate }}</p>
+      <ignt-button
+        data-testid="group-wizard-distributors-retry"
+        variant="secondary"
+        [label]="'distributors.groups.wizard.distributors.retry' | translate"
+        (click)="retried.emit()"
+      />
+    </div>
+  } @else if (visibleDistributors().length === 0 && !isSearching() && !isLoading()) {
+    <p class="wizard-distributors-step__message" data-testid="group-wizard-distributors-empty">
+      {{ 'distributors.groups.wizard.distributors.none' | translate }}
+    </p>
+  } @else {
+    <ignt-table
+      data-testid="group-wizard-distributors-list"
+      layout="table"
+      [data]="visibleDistributors()"
+      [hasFullWidthSearch]="true"
+      [hasServerSidePagination]="true"
+      [isLoading]="isLoading()"
+      [pageIndex]="pageIndex()"
+      [pageSize]="pageSize"
+      [searchConfig]="searchConfig()"
+      [totalRowCount]="totalDistributors()"
+      (paginationChange)="pageChanged.emit($event.pageIndex)"
+      (searchChanged)="searchChanged.emit($event)"
+    >
+      <ignt-table-column [header]="''" [width]="48">
+        <ng-template igntTableHeaderTemplate>
+          @if (visibleDistributors().length) {
+            <ignt-checkbox
+              dataTestId="group-wizard-distributors-select-all"
+              [ariaLabel]="'distributors.groups.wizard.distributors.selectAll' | translate"
+              [checked]="areAllSelected()"
+              (change)="allToggled.emit(!areAllSelected())"
+            />
+          }
+        </ng-template>
+        <ng-template [igntTableColumnTemplateType]="distributorSample" let-item="item">
+          <ignt-checkbox
+            [ariaLabel]="item.name"
+            [checked]="isSelected(item)"
+            [dataTestId]="'group-wizard-distributor-checkbox-' + item.distributorId"
+            (change)="toggled.emit(item.distributorId)"
+          />
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column
+        key="name"
+        columnType="primary"
+        [header]="'distributors.groups.wizard.distributors.columns.distributor' | translate"
+      >
+        <ng-template [igntTableColumnTemplateType]="distributorSample" let-item="item">
+          <span class="wizard-distributors-step__text" [attr.data-testid]="'group-wizard-distributor-' + item.distributorId">
+            <span class="wizard-distributors-step__name">{{ item.name }}</span>
+            <span class="wizard-distributors-step__email">{{ item.email }}</span>
+          </span>
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column
+        key="groupName"
+        align="right"
+        columnType="secondary"
+        [header]="'distributors.groups.wizard.distributors.columns.currentGroup' | translate"
+        [width]="180"
+      >
+        <ng-template [igntTableColumnTemplateType]="distributorSample" let-item="item">
+          <span class="wizard-distributors-step__group" [attr.data-testid]="'group-wizard-distributor-group-' + item.distributorId">
+            {{ item.groupName || ('distributors.groups.wizard.distributors.defaultGroup' | translate) }}
+          </span>
+        </ng-template>
+      </ignt-table-column>
+    </ignt-table>
+  }
+</div>

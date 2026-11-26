@@ -1,0 +1,267 @@
+<ignt-wrapper-card class="plan-detail" [elevation]="showShadow ? 1 : 0">
+  <header class="plan-detail__header plan-detail-header">
+    <ng-container *ngIf="plan !== null">
+      <img class="plan-detail-header__img" alt="{{ plan.name }} - Cover image" src="{{ plan.pictureURL }}" width="48" height="48" />
+      <div class="plan-detail-header__info">
+        <div class="plan-detail-header__name" data-testid="box-office-plan-title">{{ plan.name }}</div>
+        <div class="plan-detail-header__supporting-text" *ngIf="plan.firstPlace" data-testid="box-office-plan-place">
+          <fa-icon [fixedWidth]="true" [icon]="['far', 'map-marker-alt']"></fa-icon>
+          <span>
+            <ng-container *ngIf="venue()">
+              <ng-container *ngTemplateOutlet="venueName; context: { city: venue()?.city?.name, address: venue()?.address }"></ng-container>
+            </ng-container>
+            <ng-container *ngIf="!venue()">
+              <ng-container
+                *ngTemplateOutlet="
+                  venueName;
+                  context: {
+                    city: plan.firstPlace.cityName,
+                    address: plan.hasMultiplePlaces ? ('listPlan.multipleVenues' | translate) : plan.firstPlace.addressName,
+                  }
+                "
+              ></ng-container>
+            </ng-container>
+            <ng-template #venueName let-city="city" let-address="address">
+              {{ city | cityTranslate }} -
+              {{ address }}
+            </ng-template>
+          </span>
+        </div>
+        <div class="plan-detail-header__supporting-text" *ngIf="plan.isTimeless()">
+          <fa-icon [fixedWidth]="true" [icon]="['far', 'history']"></fa-icon>
+          <span>{{ 'listPlan.timeless' | translate }}</span>
+        </div>
+        <div class="plan-detail-header__supporting-text" *ngIf="plan.isWaitlist()">
+          <fa-icon [fixedWidth]="true" [icon]="['far', 'clipboard-list']"></fa-icon>
+          <span>{{ 'listPlan.waitlist' | translate }}</span>
+        </div>
+      </div>
+    </ng-container>
+    <ng-container *ngIf="hasSettings()">
+      <div class="plan-detail-header__settings" data-testid="box-office-plan-settings-icon" (click)="toggleSettings()">
+        <fa-icon class="plan-detail-header__settings--icon" [fixedWidth]="true" [icon]="['fas', 'cog']"></fa-icon>
+      </div>
+    </ng-container>
+  </header>
+  <ng-container *ngIf="isMobile(); else planDetailDesktopSettingsContent"></ng-container>
+</ignt-wrapper-card>
+
+<ng-template #planDetailDesktopSettingsContent>
+  <ng-container *ngIf="showSettings">
+    <ng-container *ngIf="hasSetupConfig()">
+      <div class="item-card item-card--action wrapper wrapper--align-center" (click)="showOnsiteSetupModal.emit()">
+        <div class="item-card__content cell cell--fill">
+          <div class="item-card__label">{{ 'boxOffice.setup.detail.label' | translate }}</div>
+          <div class="item-card__supporting-text">
+            {{ selectedOnsiteSetup?.name === 'default' ? ('boxOffice.setup.default' | translate) : selectedOnsiteSetup?.name }}
+          </div>
+        </div>
+        <div class="item-card__trail-icon">
+          <fa-icon [icon]="['fal', 'angle-right']" [fixedWidth]="true"></fa-icon>
+        </div>
+      </div>
+    </ng-container>
+    <ng-container *ngIf="hasPaymentConfig()">
+      <div
+        class="item-card item-card--action wrapper wrapper--align-center"
+        *ngIf="paymentConfiguration?.squareConfiguration && !isMobilePOS"
+      >
+        <div class="item-card__content cell cell--fill">
+          <div class="item-card__label">{{ 'boxOffice.square.configuration' | translate }}</div>
+          <div class="item-card__supporting-text">
+            <div class="item-card__icon">
+              <fa-icon [fixedWidth]="true" [icon]="['fal', 'credit-card-front']"></fa-icon>
+              <span class="item-card__icon-badge" *ngIf="!paymentDeviceSelected"></span>
+            </div>
+            <a (click)="toggleConnectSquare()" data-testid="box-office-square" href="javascript:;">
+              {{ (paymentDeviceSelected ? 'square.disconnect.mainButton' : 'square.connect.mainButton') | translate }}
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="item-card item-card--action wrapper wrapper--align-center" *ngIf="paymentConfiguration?.adyenConfiguration">
+        <label class="field" [class.field--danger]="deviceSelectionInvalid">
+          <select
+            #adyenSelect
+            class="field__select"
+            [(ngModel)]="paymentDeviceSelected"
+            (ngModelChange)="selectAdyenDeviceId($event)"
+            [disabled]="isMobilePOS"
+          >
+            <option [value]="" [selected]="!paymentDeviceSelected">
+              {{ 'boxOffice.adyen.emptyOption' | translate }}
+            </option>
+            <option
+              *ngFor="let id of paymentConfiguration?.adyenConfiguration?.devicesIds"
+              [value]="id"
+              [selected]="paymentDeviceSelected === id"
+            >
+              {{ id }}
+            </option>
+          </select>
+          <span class="field__label">{{ 'boxOffice.adyen.configuration' | translate }}</span>
+          <fa-icon [fixedWidth]="true" class="field__icon field__icon--trail" [icon]="['fal', 'chevron-down']"></fa-icon>
+          <span class="field__helper field__helper--danger" data-testid="device-selection-error" *ngIf="deviceSelectionInvalid">
+            <fa-icon [icon]="['fas', 'exclamation-circle']"></fa-icon>
+            {{ 'boxOffice.cardDisabledNoDevice' | translate }}
+          </span>
+        </label>
+      </div>
+      <div
+        class="item-card item-card--action wrapper wrapper--align-center"
+        *ngIf="paymentConfiguration?.razorpayConfiguration && !isMobilePOS"
+      >
+        <label class="field" [class.field--danger]="deviceSelectionInvalid">
+          <select
+            #razorpaySelect
+            class="field__select"
+            [(ngModel)]="paymentDeviceSelected"
+            (ngModelChange)="selectRazorpayDeviceId($event)"
+          >
+            <option [value]="" [selected]="!paymentDeviceSelected">
+              {{ 'boxOffice.razorpay.emptyOption' | translate }}
+            </option>
+            <option
+              *ngFor="let id of paymentConfiguration?.razorpayConfiguration?.devicesIds"
+              [value]="id"
+              [selected]="paymentDeviceSelected === id"
+            >
+              {{ id }}
+            </option>
+          </select>
+          <span class="field__label">{{ 'boxOffice.razorpay.configuration' | translate }}</span>
+          <fa-icon [fixedWidth]="true" class="field__icon field__icon--trail" [icon]="['fal', 'chevron-down']"></fa-icon>
+          <span class="field__helper field__helper--danger" data-testid="device-selection-error" *ngIf="deviceSelectionInvalid">
+            <fa-icon [icon]="['fas', 'exclamation-circle']"></fa-icon>
+            {{ 'boxOffice.cardDisabledNoDevice' | translate }}
+          </span>
+        </label>
+      </div>
+      <div class="item-card item-card--action wrapper wrapper--align-center" *ngIf="paymentConfiguration?.payhereConfiguration">
+        <label class="field" [class.field--danger]="deviceSelectionInvalid">
+          <select #payhereSelect class="field__select" [(ngModel)]="paymentDeviceSelected" (ngModelChange)="selectPayhereDeviceId($event)">
+            <option [value]="" [selected]="!paymentDeviceSelected">
+              {{ 'boxOffice.paymentDevice.emptyOption' | translate }}
+            </option>
+            <option
+              *ngFor="let id of paymentConfiguration.payhereConfiguration.devicesIds"
+              [value]="id"
+              [selected]="paymentDeviceSelected === id"
+            >
+              {{ id }}
+            </option>
+          </select>
+          <span class="field__label">{{ 'boxOffice.paymentDevice.configuration' | translate }}</span>
+          <fa-icon [fixedWidth]="true" class="field__icon field__icon--trail" [icon]="['fal', 'chevron-down']"></fa-icon>
+          <span class="field__helper field__helper--danger" data-testid="device-selection-error" *ngIf="deviceSelectionInvalid">
+            <fa-icon [icon]="['fas', 'exclamation-circle']"></fa-icon>
+            {{ 'boxOffice.cardDisabledNoDevice' | translate }}
+          </span>
+        </label>
+      </div>
+    </ng-container>
+    <ng-container *ngIf="hasPriceViewerConfig()">
+      <app-price-viewer></app-price-viewer>
+    </ng-container>
+  </ng-container>
+</ng-template>
+
+<ng-template #planDetailMobileSettingsContent>
+  <ng-container *ngIf="hasSetupConfig()">
+    <div class="item-card item-card--action wrapper wrapper--align-center" (click)="showOnsiteSetupModal.emit()">
+      <fa-icon [icon]="['fal', 'ticket-alt']" [fixedWidth]="true"></fa-icon>
+      <div class="item-card__content cell cell--fill">
+        <div class="item-card__label">{{ 'boxOffice.setup.detail.label' | translate }}</div>
+        <div class="item-card__supporting-text">
+          {{ selectedOnsiteSetup?.name === 'default' ? ('boxOffice.setup.default' | translate) : selectedOnsiteSetup?.name }}
+        </div>
+      </div>
+      <div class="item-card__trail-icon">
+        <fa-icon [icon]="['fal', 'angle-right']" [fixedWidth]="true"></fa-icon>
+      </div>
+    </div>
+  </ng-container>
+  <ng-container *ngIf="hasPaymentConfig()">
+    <div class="item-card item-card--action wrapper wrapper--align-center" *ngIf="paymentConfiguration?.squareConfiguration">
+      <fa-icon [icon]="['fal', 'credit-card-front']" [fixedWidth]="true"></fa-icon>
+      <div class="item-card__content cell cell--fill">
+        <div class="item-card__label">{{ 'boxOffice.square.configuration' | translate }}</div>
+        <div class="item-card__supporting-text">
+          <div class="item-card__icon">
+            <span class="item-card__icon-badge" *ngIf="!paymentDeviceSelected"></span>
+          </div>
+          <a (click)="toggleConnectSquare()" data-testid="box-office-square" href="javascript:;">
+            {{ (paymentDeviceSelected ? 'square.disconnect.mainButton' : 'square.connect.mainButton') | translate }}
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="item-card item-card--action wrapper wrapper--align-center" *ngIf="paymentConfiguration?.adyenConfiguration">
+      <fa-icon [icon]="['fal', 'credit-card-front']" [fixedWidth]="true"></fa-icon>
+      <label class="field" [class.field--danger]="deviceSelectionInvalid">
+        <select
+          class="field__select"
+          [(ngModel)]="paymentDeviceSelected"
+          (ngModelChange)="selectAdyenDeviceId($event)"
+          [disabled]="isMobilePOS"
+        >
+          <option [value]="" [selected]="!paymentDeviceSelected">
+            {{ 'boxOffice.adyen.emptyOption' | translate }}
+          </option>
+          <option
+            *ngFor="let id of paymentConfiguration?.adyenConfiguration?.devicesIds"
+            [value]="id"
+            [selected]="paymentDeviceSelected === id"
+          >
+            {{ id }}
+          </option>
+        </select>
+        <span class="field__label">{{ 'boxOffice.adyen.configuration' | translate }}</span>
+        <fa-icon class="field__icon field__icon--trail" [icon]="['fal', 'angle-right']" [fixedWidth]="true"></fa-icon>
+        <span class="field__helper field__helper--danger" data-testid="device-selection-error" *ngIf="deviceSelectionInvalid">
+          <fa-icon [icon]="['fas', 'exclamation-circle']"></fa-icon>
+          {{ 'boxOffice.cardDisabledNoDevice' | translate }}
+        </span>
+      </label>
+    </div>
+    <div class="item-card item-card--action wrapper wrapper--align-center" *ngIf="paymentConfiguration?.razorpayConfiguration">
+      <fa-icon [icon]="['fal', 'credit-card-front']" [fixedWidth]="true"></fa-icon>
+      <label class="field" [class.field--danger]="deviceSelectionInvalid">
+        <select
+          class="field__select"
+          [(ngModel)]="paymentDeviceSelected"
+          (ngModelChange)="selectRazorpayDeviceId($event)"
+          [disabled]="isMobilePOS"
+        >
+          <option [value]="" [selected]="!paymentDeviceSelected">
+            {{ 'boxOffice.razorpay.emptyOption' | translate }}
+          </option>
+          <option
+            *ngFor="let id of paymentConfiguration?.razorpayConfiguration?.devicesIds"
+            [value]="id"
+            [selected]="paymentDeviceSelected === id"
+          >
+            {{ id }}
+          </option>
+        </select>
+        <span class="field__label">{{ 'boxOffice.razorpay.configuration' | translate }}</span>
+        <fa-icon class="field__icon field__icon--trail" [icon]="['fal', 'angle-right']" [fixedWidth]="true"></fa-icon>
+        <span class="field__helper field__helper--danger" data-testid="device-selection-error" *ngIf="deviceSelectionInvalid">
+          <fa-icon [icon]="['fas', 'exclamation-circle']"></fa-icon>
+          {{ 'boxOffice.cardDisabledNoDevice' | translate }}
+        </span>
+      </label>
+    </div>
+  </ng-container>
+  <ng-container *ngIf="hasPriceViewerConfig()">
+    <app-price-viewer></app-price-viewer>
+  </ng-container>
+</ng-template>
+
+<app-lateral-slider
+  [showDetails]="showSettingsMobile"
+  [contentTemplate]="planDetailMobileSettingsContent"
+  [title]="plan?.name"
+  (closeSlider)="showSettingsMobile = false"
+>
+</app-lateral-slider>

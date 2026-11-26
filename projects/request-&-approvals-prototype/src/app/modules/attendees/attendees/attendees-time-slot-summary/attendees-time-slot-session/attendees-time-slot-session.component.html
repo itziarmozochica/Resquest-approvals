@@ -1,0 +1,98 @@
+<tr class="table-groupable__body-row table-groupable__body-row--group-header group-header" [class.group-header--sticky]="!isCollapsed">
+  <td class="icon-cell">
+    <span
+      *ngIf="(sessionSummary?.rows ?? 0) > 0"
+      (click)="toggleGroup()"
+      class="toggle-control icon-button icon-button--medium documents-drop-down__button"
+      data-testid="attendees-session-summary-toggle-group"
+    >
+      <fa-icon [icon]="['fas', isCollapsed ? 'chevron-down' : 'chevron-up']"></fa-icon>
+    </span>
+  </td>
+  <td class="table-groupable__body-cell">
+    <div class="session-name" data-testid="attendees-session-summary-label">
+      {{ sessionSummary?.label }}
+    </div>
+  </td>
+  <td *ngIf="canViewOrders" class="table-groupable__body-cell order-cell"></td>
+  <td class="table-groupable__body-cell session-number-value">
+    <span class="valid-tickets" data-testid="attendees-session-summary-validated-count">
+      {{ sessionSummary?.validated?.validatedCount }}
+    </span>
+  </td>
+  <td class="table-groupable__body-cell session-number-value">
+    <span class="sold-tickets" data-testid="attendees-session-summary-ticket-count">
+      {{ sessionSummary?.validated?.ticketCount }}
+    </span>
+  </td>
+  <td class="icon-cell">
+    <app-attendees-download-document-dropdown
+      *ngIf="(sessionSummary?.rows ?? 0) > 0"
+      data-testid="attendees-time-slot-summary-header-document-dropdown"
+      [sessionId]="sessionSummary.id"
+      [packSessionId]="sessionSummary.packSessionId"
+      [enableDateRangeSelector]="false"
+      [attendeesCount]="sessionSummary.rows"
+      [isDisabled]="false"
+      [downloadType]="downloadType"
+      [zIndex]="1060"
+    >
+    </app-attendees-download-document-dropdown>
+  </td>
+</tr>
+
+<ng-container *ngIf="!isCollapsed">
+  <tr
+    #rows
+    *ngFor="let attendee of attendees; let i = index; trackBy: trackByIdFn"
+    [class.table-groupable__body-row--group-header]="i < attendees.length - 1"
+    data-testid="attendees-session-summary-attendee"
+    class="session-attendee-row"
+  >
+    <td colspan="2" class="table-groupable__body-cell">
+      <div class="session-attendee">
+        <div class="session-attendee__name" data-testid="group-title">
+          <span data-testid="attendees-session-summary-attendee-name"> {{ attendee?.getName() }} </span>
+          <span *ngIf="attendee?.isGuest" data-testid="attendees-session-summary-attendee-is-guess" class="tag guess-tag">
+            {{ 'attendees.timeSlotSummary.guest' | translate }}
+          </span>
+        </div>
+        <ul *ngIf="attendee?.seats?.length" data-testid="attendees-session-summary-attendee-seats" class="session-attendee__seats">
+          <li *ngFor="let seat of attendee?.seats" class="session-attendee__seat">
+            {{ seat }}
+          </li>
+        </ul>
+        <a
+          *ngIf="canViewOrders"
+          routerLink="/validation"
+          [queryParams]="{ type: 'order', id: attendee.orderId }"
+          data-testid="attendees-session-summary-attendee-order-id-mobile"
+          class="order-link session-attendee__order-link"
+        >
+          R{{ attendee.orderId }}
+        </a>
+      </div>
+    </td>
+    <td
+      *ngIf="canViewOrders"
+      data-testid="attendees-session-summary-attendee-order-id"
+      class="table-groupable__body-cell session-number-value order-cell"
+    >
+      <a routerLink="/validation" [queryParams]="{ type: 'order', id: attendee.orderId }" class="order-link"> R{{ attendee.orderId }} </a>
+    </td>
+    <td data-testid="attendees-session-summary-attendee-validated" class="table-groupable__body-cell session-number-value valid-tickets">
+      {{ attendee?.numValidated }}
+    </td>
+    <td data-testid="attendees-session-summary-attendee-tickets" class="table-groupable__body-cell session-number-value sold-tickets">
+      {{ attendee?.numTickets }}
+    </td>
+    <td class="table-groupable__body-cell"></td>
+  </tr>
+  <tr *ngIf="isLoading">
+    <td [attr.colspan]="canViewOrders ? 6 : 5">
+      <div data-testid="attendees-session-summary-spinner" #spinner class="spinner">
+        <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'3x'"></fa-icon>
+      </div>
+    </td>
+  </tr>
+</ng-container>

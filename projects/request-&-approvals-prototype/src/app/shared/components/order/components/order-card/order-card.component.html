@@ -1,0 +1,634 @@
+<div [class.order--collapsed]="isCollapsed" [class.order--separate-header]="separateHeaderCard()" class="order">
+  @if (order.id === FAKE_IDS.FAKE_ORDER_ID) {
+    <div class="third-party_code_warning">
+      <h4>⚠ This is an external code. Ticket information may be inconsistent.</h4>
+    </div>
+  }
+  <div class="order__header-card">
+    @if (order.id !== FAKE_IDS.FAKE_ORDER_ID) {
+      <app-order-header
+        [showTags]="showTags()"
+        [showExternalReservationId]="showExternalReservationId()"
+        class="order__header"
+        (action)="ticketAction($event)"
+        (isCollapsed)="isCollapsed = $event"
+        (navigateToBoxOfficeUpgrade)="onNavigateToBoxOfficeUpgrade()"
+        [viewOrder]="order"
+        [planNamesDisplay]="planNamesDisplay()"
+        [hiddenCancellation]="hiddenCancellation"
+        [cancellationPartnerId]="cancellationPartnerId"
+        [hiddenValidation]="hiddenValidation"
+        [actionResolved]="ticketAction$ | async"
+        [showPrintReceipt]="showPrintReceipt"
+        [isEpsonReceiptPrinter]="isEpsonReceiptPrinter()"
+        [isFiscalReprintEnabled]="isFiscalReprintEnabled"
+        [isReprintingFiscalReceipt]="isReprintingFiscalReceipt"
+        [hasReschedule]="hasReschedule"
+        [hiddenReschedule]="hiddenReschedule() || isEntitlementOrder"
+        [rescheduleEvaluationOrder]="hasGroupedOrders ? activeOrderForRescheduleEvaluation : undefined"
+        [hasGroupedOrders]="hasGroupedOrders"
+        [isEntitlementOrder]="isEntitlementOrder"
+        [isValidatingAll]="isValidatingAll()"
+        [orderHistoryRecordsCount]="perTabOrder?.userCancellationRecords?.length ?? 0"
+        [orderPartnerId]="orderPartnerId"
+        [channelType]="order.channelType"
+        [ticketSelection]="ticketSelection"
+        [activeTabOrder]="headerActiveTabOrder"
+        [showValidatedCount]="!separateHeaderCard()"
+      />
+    }
+  </div>
+  @if (separateHeaderCard()) {
+    <div class="order__header-tiles">
+      <ng-container *ngTemplateOutlet="notesTemplate" />
+    </div>
+    <div class="order__body order__body--tabbed">
+      <ignt-tabs class="order__tabs" [keepAlive]="true">
+        <ignt-tabs-item [label]="'validateTicketsNew.orderTabs.tickets' | translate">
+          <ng-container *ngTemplateOutlet="ticketsTemplate" />
+        </ignt-tabs-item>
+        <ignt-tabs-item [label]="'validateTicketsNew.orderTabs.purchaseInformation' | translate">
+          <div class="order__purchase-information" data-testid="order-purchase-information">
+            <ng-container *ngTemplateOutlet="orderDetailTemplate" />
+          </div>
+        </ignt-tabs-item>
+      </ignt-tabs>
+    </div>
+    <div class="order__header-others">
+      <ng-container *ngTemplateOutlet="otherInformationTemplate" />
+    </div>
+  } @else {
+    <div class="order__body">
+      <div class="order__detail">
+        <ng-container *ngTemplateOutlet="notesTemplate" />
+        <ng-container *ngTemplateOutlet="orderDetailTemplate" />
+        <ng-container *ngTemplateOutlet="otherInformationTemplate" />
+      </div>
+      <ng-container *ngTemplateOutlet="ticketsTemplate" />
+    </div>
+  }
+</div>
+
+<ng-template #notesTemplate>
+  <app-notes
+    *permissionBased="'can_view_validation'"
+    [note]="perTabOrder?.note ?? null"
+    [customerNotesOrderId]="showCustomerNotes() ? (perTabOrder?.id ?? null) : null"
+    [isCollapsed]="notesCollapsed()"
+    [hideNoteDetails$]="hideNoteDetailsSubject"
+    [showErrorSubject]="showErrorSubject"
+    [showValidationAppMessage]="true"
+    [tileLayout]="separateHeaderCard()"
+    (noteUpdated)="updatedNote($event)"
+    (deleteNote)="deleteNote()"
+  ></app-notes>
+</ng-template>
+
+<ng-template #orderDetailTemplate>
+  <app-order-detail
+    [cart]="purchaseInfoOrder?.cart"
+    [cartMergesSeveralOrders]="cartMergesSeveralOrders"
+    [depositCart]="depositCart"
+    [order]="purchaseInfoOrder"
+    [orderId]="purchaseInfoOrder?.id"
+    [orderPartnerId]="orderPartnerId ?? null"
+    [hasReschedule]="hasReschedule"
+    [paymentNotes]="purchaseInfoOrder?.paymentNote?.message"
+    [paymentCardNumberLast4Digits]="purchaseInfoOrder?.paymentCardNumberLast4Digits"
+    [planNamesByPlanId]="planNamesByPlanId()"
+    [showPlanNames]="showPlanNames()"
+    [purchaseInformationLayout]="separateHeaderCard()"
+  ></app-order-detail>
+</ng-template>
+
+<ng-template #otherInformationTemplate>
+  @if (activityJourney; as journey) {
+    <app-order-journey class="order__journey" [journey]="journey"></app-order-journey>
+  }
+  <app-order-covered-by-fever-refund
+    [isSuperuser]="isSuperuser"
+    [locale]="locale"
+    [order]="perTabOrder"
+  ></app-order-covered-by-fever-refund>
+  <app-order-tax-document-list
+    *permissionBased="'can_view_order_tax_documents'"
+    [businessId]="businessId"
+    [orderPartnerId]="orderPartnerId"
+    [orderId]="perTabOrder?.id"
+    [orderCountryCode]="orderCountryCode"
+    [reservationId]="perTabOrder?.reservationId"
+    [tileLayout]="separateHeaderCard()"
+  ></app-order-tax-document-list>
+  @if (perTabOrder?.id; as orderId) {
+    <ng-container *permissionBased="'can_view_validation'">
+      <ng-container *permissionBased="'can_view_booking_question_answers'">
+        @if (canOpenOrderResponses) {
+          @if (separateHeaderCard()) {
+            <app-order-section-tile [title]="'validateTicketsNew.orderBookingQuestions.title' | translate">
+              <app-order-responses-link [orderId]="orderId" />
+            </app-order-section-tile>
+          } @else {
+            <div class="order__detail order__booking-questions">
+              <h3 class="order__booking-questions-title">{{ 'validateTicketsNew.orderBookingQuestions.title' | translate }}</h3>
+              <app-order-responses-link [orderId]="orderId" />
+            </div>
+          }
+        }
+      </ng-container>
+    </ng-container>
+  }
+  @if (showAgreements()) {
+    <app-order-agreements
+      data-testid="order-card-agreements"
+      [hasReleaseConditions]="hasReleaseConditions"
+      [orderId]="perTabOrder?.id ?? null"
+      [orderPartnerId]="orderPartnerId ?? null"
+      [tileLayout]="separateHeaderCard()"
+      (ticketUpdated)="refreshOrder()"
+    ></app-order-agreements>
+  }
+</ng-template>
+
+<ng-template #ticketsTemplate>
+  <div class="order__tickets-column">
+    @if (depositCart?.deposit; as deposit) {
+      @if ((isCancelledOrderStatus(order?.status) || depositReservationStatus === 'cancelled') && deposit.status !== 'refunded') {
+        <app-deposit-status-badge
+          class="order__deposit-badge"
+          [deposit]="deposit"
+          [currency]="depositCart?.total?.currency ?? null"
+          [isInReservationDetails]="true"
+          [showRefundButton]="showDepositRefundButton"
+          [reservationStatus]="depositReservationStatus ?? undefined"
+          [reservationId]="reservationId"
+          [onRefund]="onDepositRefund ?? undefined"
+        />
+      }
+    }
+    @if (order.pendingModification; as pendingModification) {
+      <app-order-pending-modification
+        [locale]="locale"
+        [pendingModification]="pendingModification"
+        [timezone]="order.cart?.timezone"
+        (refreshRequested)="refreshOrder()"
+      />
+    }
+    @if (separateHeaderCard()) {
+      <div class="order__tickets-summary" data-testid="order-tickets-header">
+        <div class="order__tickets-summary__row">
+          <span class="order__tickets-summary__heading">
+            <span class="order__tickets-summary__title">{{ 'cancellation.ticketsTitle' | translate }}</span>
+            @if (visitGroup(); as visitGroup) {
+              @if (groupedOrderTabs.length === 0) {
+                @for (label of getLabelsForDatetime(visitGroup.datetimeKey); track label.type) {
+                  <app-validation-label [label]="label.type" [attr.data-testid]="'tickets-summary-label-' + label.type" />
+                }
+              }
+            }
+          </span>
+          @if (!hiddenValidation && !isEntitlementOrder && validatedCount(); as count) {
+            <app-validated-count
+              class="order__tickets-summary__validated"
+              [total]="count.total"
+              [validated]="count.validated"
+              data-testid="order-tickets-validated-count"
+            />
+          }
+        </div>
+        @if (canSelectAll() || visitDate()) {
+          <div class="order__tickets-summary__row">
+            @if (canSelectAll()) {
+              <ng-container *ngTemplateOutlet="selectAllTemplate" />
+            }
+            @if (visitDate(); as visitDate) {
+              <span class="order__tickets-summary__visit-date" data-testid="order-tickets-visit-date">
+                {{ visitDate | momentDate: 'EEE' : visitTimezone() }}, {{ visitDate | momentDate: 'mediumDate' : visitTimezone() }} |
+                {{ visitDate | momentDate: 'shortTime' : visitTimezone() }}
+              </span>
+            }
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="order__tickets-header" data-testid="order-tickets-header">
+        <span class="order__tickets-header__title">{{ 'cancellation.ticketsTitle' | translate }}</span>
+        @if (ticketSelection.selectableKeys().size > 0 && !isEntitlementOrder) {
+          <ng-container *ngTemplateOutlet="selectAllTemplate" />
+        }
+      </div>
+    }
+    @if (groupedOrdersLoading()) {
+      <div class="order__grouped-orders-loading" data-testid="grouped-orders-loading">
+        <ignt-icon class="loader" name="spinner" variant="solid" size="display" [spin]="true" aria-hidden="true" />
+      </div>
+    } @else if (groupedOrderTabs.length > 0) {
+      <nav
+        ngbNav
+        #attractionsTabs="ngbNav"
+        [activeId]="activeTabId"
+        (activeIdChange)="onActiveTabChanged($event)"
+        class="order__attractions-tabs nav-tabs"
+        data-testid="grouped-orders-tabs"
+      >
+        @for (tab of groupedOrderTabs; track tab.order.id; let idx = $index) {
+          <ng-container [ngbNavItem]="idx">
+            <button ngbNavLink [attr.data-testid]="'grouped-order-tab-' + idx">
+              {{ tab.order.catalogPlan?.name ?? tab.order.planName }}
+            </button>
+          </ng-container>
+        }
+      </nav>
+      <div
+        class="order__session-list"
+        [class.order__session-list--single-date]="
+          separateHeaderCard() && (groupedOrderTabs[activeTabId]?.ticketSessionGroups ?? []).length === 1
+        "
+        [attr.data-testid]="'grouped-order-session-list-' + activeTabId"
+      >
+        @if (groupedOrderTabs[activeTabId]?.order?.entitlementsInfo?.status === 'pending_to_schedule') {
+          <div
+            class="order__session-datetime-header"
+            data-testid="session-datetime-header"
+            role="heading"
+            aria-level="3"
+            [attr.aria-label]="'validation.pendingToSchedule.needsScheduling' | translate"
+          >
+            <div class="order__pending-schedule" data-testid="pending-to-schedule-info">
+              <span class="order__pending-schedule__title">
+                {{ 'validation.pendingToSchedule.needsScheduling' | translate }}
+              </span>
+              <span class="order__pending-schedule__subtitle">
+                {{
+                  'validation.pendingToSchedule.daysLeft' | translate: { days: getDaysLeftToSchedule(groupedOrderTabs[activeTabId]?.order) }
+                }}
+              </span>
+            </div>
+            @if (canShowEntitlementRescheduleButton(groupedOrderTabs[activeTabId]?.order)) {
+              <div class="order__session-datetime-header__actions">
+                <button
+                  igntButton
+                  sentiment="secondary"
+                  size="small"
+                  [leadingIcon]="['fas', 'calendar-day']"
+                  (click)="rescheduleEntitlementOrder(groupedOrderTabs[activeTabId]?.order)"
+                  data-testid="entitlement-schedule-button"
+                >
+                  {{ 'validation.entitlement.scheduleButton' | translate }}
+                </button>
+              </div>
+            }
+          </div>
+          @if (aggregatedSessionForPendingSchedule(); as aggregatedSession) {
+            <app-order-tickets
+              #tickets
+              class="order__session"
+              [orderId]="perTabOrder?.id ?? null"
+              [orderBookingAnswers]="bookingAnswersForDisplay"
+              [ticketsAndProducts]="groupedOrderTabs[activeTabId]?.order?.ticketsAndProducts"
+              [allowSplitPack]="groupedOrderTabs[activeTabId]?.order?.allowSplitPack"
+              [searchedQRCode]="searchedQRCode"
+              [showsCoveredByFeverAsInactive]="showsCoveredByFeverAsInactive"
+              [session]="aggregatedSession"
+              [hiddenValidation]="hiddenValidation"
+              [pendingToSchedule]="true"
+              [ticketSelection]="ticketSelection"
+              [showReferencePrice]="showTicketsReferencePrice()"
+              [orderDetailLayout]="separateHeaderCard()"
+            >
+            </app-order-tickets>
+          }
+        } @else {
+          @for (
+            ticketGroup of groupedOrderTabs[activeTabId]?.ticketSessionGroups ?? [];
+            track ticketGroup.datetimeKey;
+            let first = $first
+          ) {
+            <div
+              class="order__session-datetime-header"
+              [class.order__session-datetime-header--timeless]="!ticketGroup.showDate"
+              data-testid="session-datetime-header"
+              role="heading"
+              aria-level="3"
+              [attr.aria-label]="
+                ticketGroup.showDate
+                  ? 'Session date and time: ' +
+                    (ticketGroup.datetimeKey | momentDate: 'd MMM yyyy hh:mm a' : groupedOrderTabs[activeTabId]?.order?.cart?.timezone)
+                  : null
+              "
+            >
+              @if (ticketGroup.showDate) {
+                <span class="order__session-datetime-header__date">
+                  {{ ticketGroup.datetimeKey | momentDate: 'd MMM yyyy hh:mm a' : groupedOrderTabs[activeTabId]?.order?.cart?.timezone }}
+                </span>
+              }
+              @if (first) {
+                <ng-container *ngTemplateOutlet="groupedAttractionHeaderActions" />
+              }
+            </div>
+
+            @for (sessionWithTransfer of ticketGroup.sessions; track sessionWithTransfer.session.orderListKey) {
+              <app-order-tickets
+                #tickets
+                class="order__session"
+                [attr.data-ticketId]="sessionWithTransfer.session?.ticketId"
+                [orderId]="perTabOrder?.id ?? null"
+                [orderBookingAnswers]="bookingAnswersForDisplay"
+                [ticketsAndProducts]="groupedOrderTabs[activeTabId]?.order?.ticketsAndProducts"
+                [allowSplitPack]="groupedOrderTabs[activeTabId]?.order?.allowSplitPack"
+                [searchedQRCode]="searchedQRCode"
+                [showsCoveredByFeverAsInactive]="showsCoveredByFeverAsInactive"
+                [session]="sessionWithTransfer.session"
+                [transfers]="sessionWithTransfer.transfers"
+                [isCollapsed]="sessionWithTransfer.isCollapsed"
+                [hiddenValidation]="hiddenValidation"
+                (isCollapsedChange)="toggleSessionIsCollapse($event, sessionWithTransfer)"
+                (action)="ticketAction($event)"
+                [actionResolvedEvent]="ticketAction$"
+                [ticketSelection]="ticketSelection"
+                [showReferencePrice]="showTicketsReferencePrice()"
+                [orderDetailLayout]="separateHeaderCard()"
+              >
+              </app-order-tickets>
+            }
+          } @empty {
+            @if (groupedOrderTabs[activeTabId]?.productSessionsWithTransfers?.length) {
+              <div
+                class="order__session-datetime-header order__session-datetime-header--timeless"
+                data-testid="session-datetime-header"
+                role="heading"
+                aria-level="3"
+              >
+                <ng-container *ngTemplateOutlet="groupedAttractionHeaderActions" />
+              </div>
+            }
+          }
+          @if (groupedOrderTabs[activeTabId]?.productSessionsWithTransfers?.length) {
+            <div class="order__tickets-header order__tickets-header--products" data-testid="order-products-header">
+              <span class="order__tickets-header__title">{{ 'boxOffice.cart.sectionProductsTitle' | translate }}</span>
+            </div>
+            @for (
+              sessionWithTransfer of groupedOrderTabs[activeTabId]?.productSessionsWithTransfers ?? [];
+              track sessionWithTransfer.session.orderListKey
+            ) {
+              <app-order-tickets
+                #tickets
+                class="order__session"
+                [attr.data-ticketId]="sessionWithTransfer.session?.ticketId"
+                [orderId]="perTabOrder?.id ?? null"
+                [orderBookingAnswers]="bookingAnswersForDisplay"
+                [ticketsAndProducts]="groupedOrderTabs[activeTabId]?.order?.ticketsAndProducts"
+                [allowSplitPack]="groupedOrderTabs[activeTabId]?.order?.allowSplitPack"
+                [searchedQRCode]="searchedQRCode"
+                [showsCoveredByFeverAsInactive]="showsCoveredByFeverAsInactive"
+                [session]="sessionWithTransfer.session"
+                [transfers]="sessionWithTransfer.transfers"
+                [isCollapsed]="sessionWithTransfer.isCollapsed"
+                [hiddenValidation]="hiddenValidation"
+                (isCollapsedChange)="toggleSessionIsCollapse($event, sessionWithTransfer)"
+                (action)="ticketAction($event)"
+                [actionResolvedEvent]="ticketAction$"
+                [ticketSelection]="ticketSelection"
+                [showReferencePrice]="showTicketsReferencePrice()"
+                [orderDetailLayout]="separateHeaderCard()"
+              >
+              </app-order-tickets>
+            }
+          }
+        }
+        <app-order-pos-tabs [order]="perTabOrder" [orderDetailLayout]="separateHeaderCard()" data-testid="order-card-pos-tabs" />
+      </div>
+    } @else {
+      <div class="order__session-list" [class.order__session-list--single-date]="separateHeaderCard() && ticketSessionGroups.length === 1">
+        @if (isEntitlementOrder && order.entitlementsInfo?.status === 'pending_to_schedule') {
+          <div
+            class="order__session-datetime-header"
+            data-testid="session-datetime-header"
+            role="heading"
+            aria-level="3"
+            [attr.aria-label]="'validation.pendingToSchedule.needsScheduling' | translate"
+          >
+            <div class="order__pending-schedule" data-testid="pending-to-schedule-info">
+              <span class="order__pending-schedule__title">
+                {{ 'validation.pendingToSchedule.needsScheduling' | translate }}
+              </span>
+              <span class="order__pending-schedule__subtitle">
+                {{ 'validation.pendingToSchedule.daysLeft' | translate: { days: getDaysLeftToSchedule(order) } }}
+              </span>
+            </div>
+            @if (canShowEntitlementRescheduleButton(order)) {
+              <div class="order__session-datetime-header__actions">
+                <button
+                  igntButton
+                  sentiment="secondary"
+                  size="small"
+                  [leadingIcon]="['fas', 'calendar-day']"
+                  (click)="rescheduleEntitlementOrder(order)"
+                  data-testid="entitlement-schedule-button"
+                >
+                  {{ 'validation.entitlement.scheduleButton' | translate }}
+                </button>
+              </div>
+            }
+          </div>
+          @if (aggregatedSessionForLegacyPendingSchedule; as aggregatedSession) {
+            <app-order-tickets
+              #tickets
+              class="order__session"
+              [ticketsAndProducts]="order.ticketsAndProducts"
+              [allowSplitPack]="order.allowSplitPack"
+              [searchedQRCode]="searchedQRCode"
+              [showsCoveredByFeverAsInactive]="showsCoveredByFeverAsInactive"
+              [orderId]="perTabOrder?.id ?? null"
+              [orderBookingAnswers]="bookingAnswersForDisplay"
+              [session]="aggregatedSession"
+              [hiddenValidation]="hiddenValidation"
+              [pendingToSchedule]="true"
+              [ticketSelection]="ticketSelection"
+              [showReferencePrice]="showTicketsReferencePrice()"
+              [orderDetailLayout]="separateHeaderCard()"
+            >
+            </app-order-tickets>
+          }
+        } @else {
+          @if (isEntitlementOrder && canShowEntitlementRescheduleButton(order)) {
+            <div
+              class="order__session-datetime-header order__session-datetime-header--timeless"
+              data-testid="session-datetime-header"
+              role="heading"
+              aria-level="3"
+            >
+              <div class="order__session-datetime-header__actions">
+                <button
+                  igntButton
+                  sentiment="secondary"
+                  size="small"
+                  [leadingIcon]="['fas', 'calendar-day']"
+                  (click)="rescheduleEntitlementOrder(order)"
+                  data-testid="entitlement-reschedule-button"
+                >
+                  {{ 'validation.entitlement.rescheduleButton' | translate }}
+                </button>
+              </div>
+            </div>
+          }
+          @for (ticketGroup of ticketSessionGroups; track ticketGroup.datetimeKey) {
+            <div
+              class="order__session-datetime-header"
+              [class.order__session-datetime-header--timeless]="!ticketGroup.showDate"
+              data-testid="session-datetime-header"
+              role="heading"
+              aria-level="3"
+              [attr.aria-label]="
+                ticketGroup.showDate
+                  ? 'Session date and time: ' + (ticketGroup.datetimeKey | momentDate: 'd MMM yyyy hh:mm a' : order.cart?.timezone)
+                  : null
+              "
+            >
+              @if (ticketGroup.showDate) {
+                <span class="order__session-datetime-header__date">
+                  {{ ticketGroup.datetimeKey | momentDate: 'd MMM yyyy hh:mm a' : order.cart?.timezone }}
+                </span>
+              }
+              <span class="order__session-datetime-header__labels">
+                @for (label of getLabelsForDatetime(ticketGroup.datetimeKey); track label.type) {
+                  <app-validation-label [label]="label.type" [attr.data-testid]="'session-datetime-label-' + label.type">
+                  </app-validation-label>
+                }
+              </span>
+            </div>
+
+            @for (sessionWithTransfer of ticketGroup.sessions; track sessionWithTransfer.session.orderListKey) {
+              <app-order-tickets
+                #tickets
+                class="order__session"
+                [attr.data-ticketId]="sessionWithTransfer.session?.ticketId"
+                [ticketsAndProducts]="order.ticketsAndProducts"
+                [allowSplitPack]="order.allowSplitPack"
+                [searchedQRCode]="searchedQRCode"
+                [showsCoveredByFeverAsInactive]="showsCoveredByFeverAsInactive"
+                [orderId]="perTabOrder?.id ?? null"
+                [orderBookingAnswers]="bookingAnswersForDisplay"
+                [session]="sessionWithTransfer.session"
+                [transfers]="sessionWithTransfer.transfers"
+                [isCollapsed]="sessionWithTransfer.isCollapsed"
+                [hiddenValidation]="hiddenValidation"
+                (isCollapsedChange)="toggleSessionIsCollapse($event, sessionWithTransfer)"
+                (action)="ticketAction($event)"
+                [actionResolvedEvent]="ticketAction$"
+                [ticketSelection]="ticketSelection"
+                [showReferencePrice]="showTicketsReferencePrice()"
+                [orderDetailLayout]="separateHeaderCard()"
+              >
+              </app-order-tickets>
+            }
+          }
+          @if (productSessionsWithTransfers.length) {
+            <div class="order__tickets-header order__tickets-header--products" data-testid="order-products-header">
+              <span class="order__tickets-header__title">{{ 'boxOffice.cart.sectionProductsTitle' | translate }}</span>
+            </div>
+            @for (sessionWithTransfer of productSessionsWithTransfers; track sessionWithTransfer.session.orderListKey) {
+              <app-order-tickets
+                #tickets
+                class="order__session"
+                [attr.data-ticketId]="sessionWithTransfer.session?.ticketId"
+                [ticketsAndProducts]="order.ticketsAndProducts"
+                [allowSplitPack]="order.allowSplitPack"
+                [searchedQRCode]="searchedQRCode"
+                [showsCoveredByFeverAsInactive]="showsCoveredByFeverAsInactive"
+                [orderId]="perTabOrder?.id ?? null"
+                [orderBookingAnswers]="bookingAnswersForDisplay"
+                [session]="sessionWithTransfer.session"
+                [transfers]="sessionWithTransfer.transfers"
+                [isCollapsed]="sessionWithTransfer.isCollapsed"
+                [hiddenValidation]="hiddenValidation"
+                (isCollapsedChange)="toggleSessionIsCollapse($event, sessionWithTransfer)"
+                (action)="ticketAction($event)"
+                [actionResolvedEvent]="ticketAction$"
+                [ticketSelection]="ticketSelection"
+                [showReferencePrice]="showTicketsReferencePrice()"
+                [orderDetailLayout]="separateHeaderCard()"
+              >
+              </app-order-tickets>
+            }
+          }
+        }
+        <app-order-pos-tabs [order]="perTabOrder" [orderDetailLayout]="separateHeaderCard()" data-testid="order-card-pos-tabs" />
+      </div>
+    }
+  </div>
+</ng-template>
+
+<app-lateral-slider
+  [showDetails]="isOrderHistoryVisible"
+  [contentTemplate]="orderHistoryPanel"
+  [titleTemplate]="orderHistoryTitleTemplate"
+  (closeSlider)="hideOrderHistory()"
+/>
+
+<ng-template #selectAllTemplate>
+  <div class="order__tickets-header__select-all" data-testid="order-tickets-select-all-wrapper">
+    <label [attr.for]="'order-tickets-select-all-' + order?.id">
+      {{ 'cancellation.selectAllTickets' | translate }}
+    </label>
+    <input
+      type="checkbox"
+      [id]="'order-tickets-select-all-' + order?.id"
+      [checked]="ticketSelection.isAllSelected()"
+      [indeterminate]="ticketSelection.isIndeterminate()"
+      (change)="ticketSelection.toggleAll()"
+      data-testid="order-tickets-select-all-checkbox"
+    />
+  </div>
+</ng-template>
+
+<ng-template #groupedAttractionHeaderActions>
+  <div class="order__session-datetime-header__actions">
+    <button
+      igntButton
+      sentiment="secondary"
+      size="small"
+      [leadingIcon]="['fas', 'print']"
+      (click)="printAllAttractionTickets()"
+      data-testid="print-all-attraction-tickets"
+    >
+      {{ 'cancellation.printAllAttractionTickets' | translate }}
+    </button>
+    @if (canShowEntitlementRescheduleButton(groupedOrderTabs[activeTabId]?.order)) {
+      <button
+        igntButton
+        sentiment="secondary"
+        size="small"
+        [leadingIcon]="['fas', 'calendar-day']"
+        (click)="rescheduleEntitlementOrder(groupedOrderTabs[activeTabId]?.order)"
+        data-testid="entitlement-reschedule-button"
+      >
+        {{ 'validation.entitlement.rescheduleButton' | translate }}
+      </button>
+    }
+  </div>
+</ng-template>
+
+<ng-template #orderHistoryTitleTemplate>
+  {{ 'validateTicketsNew.orderHistory.title' | translate: { orderId: perTabOrder?.externalId } }}
+</ng-template>
+
+<ng-template #orderHistoryPanel>
+  <app-order-history-panel
+    [isSuperuser]="isSuperuser"
+    [orderId]="perTabOrder?.id"
+    [userCancellationRecords]="perTabOrder?.userCancellationRecords ?? []"
+    [originalPurchaser]="perTabOrder?.user?.email"
+    [deposit]="perTabOrder?.cart?.deposit ?? depositCart?.deposit ?? null"
+  ></app-order-history-panel>
+</ng-template>
+
+<ng-template #cancellingModal>
+  <div class="cancelling-modal">
+    <div class="loading-modal__header" data-testid="cancelling-modal-header">
+      {{ 'validateTicketsNew.orderCancellationModal.cancellingModalTitle' | translate }}
+    </div>
+    <div class="spinner">
+      <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'4x'"></fa-icon>
+    </div>
+  </div>
+</ng-template>

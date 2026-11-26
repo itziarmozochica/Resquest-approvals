@@ -1,0 +1,146 @@
+<div class="ir-sched" [attr.data-testid]="testId">
+  <div class="ir-sched__grid">
+    <!-- Calendar -->
+    <section class="ir-sched__calendar" [attr.data-testid]="testId + '-calendar'">
+      <header class="ir-sched__cal-head">
+        <button
+          igntButton
+          sentiment="secondary"
+          size="small"
+          type="button"
+          [disabled]="readOnly"
+          (click)="prevMonth()"
+          [attr.aria-label]="'Previous month'"
+          [attr.data-testid]="testId + '-prev'"
+        >
+          ‹
+        </button>
+        <h5 class="ir-sched__month">{{ monthLabel() }}</h5>
+        <button
+          igntButton
+          sentiment="secondary"
+          size="small"
+          type="button"
+          [disabled]="readOnly"
+          (click)="nextMonth()"
+          [attr.aria-label]="'Next month'"
+          [attr.data-testid]="testId + '-next'"
+        >
+          ›
+        </button>
+      </header>
+
+      <div class="ir-sched__weekdays" aria-hidden="true">
+        @for (label of weekdayHeaders; track label) {
+          <span>{{ label }}</span>
+        }
+      </div>
+
+      @for (week of weeks(); track $index) {
+        <div class="ir-sched__week">
+          @for (cell of week; track trackCell($index, cell)) {
+            <button
+              type="button"
+              class="ir-sched__day"
+              [class.is-out]="!cell.inMonth"
+              [class.is-range]="cell.inRange"
+              [class.is-excluded]="cell.excluded"
+              [class.is-start]="cell.isStart"
+              [class.is-end]="cell.isEnd"
+              [disabled]="readOnly"
+              (click)="onDayClick(cell.ymd)"
+              [attr.data-testid]="testId + '-day-' + cell.ymd"
+            >
+              {{ cell.day }}
+            </button>
+          }
+        </div>
+      }
+      <p class="ir-sched__hint">
+        {{ 'informationRequests.question.eventSchedule.calendarHint' | translate }}
+      </p>
+    </section>
+
+    <!-- Times + per-weekday demand -->
+    <section class="ir-sched__config" [attr.data-testid]="testId + '-config'">
+      <h5>{{ 'informationRequests.question.eventSchedule.timesTitle' | translate }}</h5>
+      <div class="ir-sched__times">
+        <label class="ir-sched__time">
+          <span>{{ 'informationRequests.question.eventSchedule.doorsOpen' | translate }}</span>
+          <input
+            type="time"
+            class="form-control"
+            [disabled]="readOnly"
+            [value]="doorsOpen()"
+            (input)="onTime('doorsOpen', $any($event.target).value)"
+            [attr.data-testid]="testId + '-doors'"
+          />
+        </label>
+        <label class="ir-sched__time">
+          <span>{{ 'informationRequests.question.eventSchedule.showStart' | translate }}</span>
+          <input
+            type="time"
+            class="form-control"
+            [disabled]="readOnly"
+            [value]="showStart()"
+            (input)="onTime('showStart', $any($event.target).value)"
+            [attr.data-testid]="testId + '-show-start'"
+          />
+        </label>
+        <label class="ir-sched__time">
+          <span>{{ 'informationRequests.question.eventSchedule.showEnd' | translate }}</span>
+          <input
+            type="time"
+            class="form-control"
+            [disabled]="readOnly"
+            [value]="showEnd()"
+            (input)="onTime('showEnd', $any($event.target).value)"
+            [attr.data-testid]="testId + '-show-end'"
+          />
+        </label>
+      </div>
+
+      <h5>{{ 'informationRequests.question.eventSchedule.demandTitle' | translate }}</h5>
+      @if (products.length === 0) {
+        <p class="ir-sched__empty">{{ 'informationRequests.question.eventSchedule.noProducts' | translate }}</p>
+      } @else if (activeDows().length === 0) {
+        <p class="ir-sched__empty">{{ 'informationRequests.question.eventSchedule.noRange' | translate }}</p>
+      } @else {
+        <div class="ir-sched__demand-scroll">
+          <table class="ir-sched__demand" [attr.data-testid]="testId + '-demand'">
+            <thead>
+              <tr>
+                <th scope="col">{{ 'informationRequests.question.eventSchedule.weekday' | translate }}</th>
+                @for (product of products; track product.id) {
+                  <th scope="col">{{ product.name }}</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (dow of activeDows(); track dow) {
+                <tr>
+                  <th scope="row">{{ weekdayLabel(dow) }}</th>
+                  @for (product of products; track product.id) {
+                    <td>
+                      <select
+                        class="form-select"
+                        [disabled]="readOnly"
+                        [value]="tierFor(dow, product.id)"
+                        (change)="setTier(dow, product.id, $any($event.target).value)"
+                        [attr.data-testid]="testId + '-tier-' + dow + '-' + product.id"
+                      >
+                        @for (tier of tierOptions; track tier) {
+                          <option [value]="tier">{{ tier }}</option>
+                        }
+                      </select>
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  </div>
+</div>

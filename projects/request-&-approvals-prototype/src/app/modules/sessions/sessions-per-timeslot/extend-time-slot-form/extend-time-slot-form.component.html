@@ -1,0 +1,157 @@
+<div class="replicate-session-settings-form">
+  <form [formGroup]="formGroup">
+    <div class="timeslot-summary" *ngIf="timeslot?.startsAt as startAtDate">
+      <span class="title">{{ 'sessions.extendTimeSlotForm.summaryTitle' | translate }}</span>
+      <span>{{ startAtDate | momentDate: 'EEEE dd MMMM, yyyy' : timezone | titlecase }}</span>
+      <span>{{ startAtDate | momentDate: 'h:mm a' : timezone | uppercase }}</span>
+    </div>
+    @if (originRecentlyCreated) {
+      <div class="mb-3">
+        <ignt-alert
+          sentiment="warning"
+          [description]="'sessions.extendTimeSlotPreview.alerts.recentTimeSlotNoPriceRecommendations' | translate"
+        ></ignt-alert>
+      </div>
+    }
+    <div class="dates" formArrayName="selectedDates">
+      <h5 class="title">{{ 'sessions.extendTimeSlotForm.selectDatesTitle' | translate }}</h5>
+      <p class="description">{{ 'sessions.extendTimeSlotForm.selectDatesDescription' | translate }}</p>
+      <ng-container *ngFor="let selectedDate of selectedDates.controls; let index = index; trackBy: trackByIndex">
+        <div class="dates-row">
+          <ng-container
+            *ngTemplateOutlet="
+              datePicker;
+              context: {
+                control: selectedDate,
+                label: 'sessions.pricing.newListForm.activationPeriod.endDate' | translate,
+                dataTestId: 'selected-date-' + index,
+                dateLabel: 'sessions.extendTimeSlotForm.dateLabel' | translate,
+                timeLabel: 'sessions.extendTimeSlotForm.timeLabel' | translate,
+              }
+            "
+          ></ng-container>
+          <ignt-icon
+            *ngIf="selectedDates.length > 1"
+            class="trash-icon-active"
+            name="trash-alt"
+            variant="light"
+            (click)="removeSelectedDate(index)"
+          ></ignt-icon>
+          <ignt-icon *ngIf="selectedDates.length === 1" class="trash-icon-disabled" name="trash-alt" variant="light"></ignt-icon>
+        </div>
+        <div class="form-error" *ngIf="selectedDate.errors?.dateInThePast && selectedDate.dirty">
+          <ignt-icon name="exclamation-circle" variant="solid" class="form-error--icon"></ignt-icon>
+          {{ 'sessions.extendTimeSlotForm.dateInThePastError' | translate }}
+        </div>
+      </ng-container>
+      <span class="add-dates-btn" data-testid="add-dates-button" (click)="addDateFormControl()"
+        >{{ 'sessions.extendTimeSlotForm.addSelectedDate' | translate }}
+        <ignt-icon name="plus-circle" variant="solid" class="placeholder__more-icon"></ignt-icon
+      ></span>
+    </div>
+    <div class="visibility">
+      <h5 class="title">{{ 'sessions.extendTimeSlotForm.visibilityTitle' | translate }}</h5>
+      <p class="description" [innerHTML]="'sessions.extendTimeSlotForm.visibilityDescription' | translate"></p>
+      <div class="radio-selector">
+        <label
+          *ngFor="
+            let radioOption of [
+              { translateKey: 'current', value: null },
+              { translateKey: 'visible', value: true },
+              { translateKey: 'hidden', value: false },
+            ]
+          "
+        >
+          <input
+            [attr.data-testid]="'visibility-radio-' + radioOption.translateKey"
+            type="radio"
+            [value]="radioOption.value"
+            formControlName="visibility"
+          />
+          {{ 'sessions.extendTimeSlotForm.visibilityOptions.' + radioOption.translateKey | translate }}
+        </label>
+      </div>
+    </div>
+
+    <div class="gross-margin" *ngIf="shouldRenderExceptedGrossMarginInput">
+      <h5 class="title">{{ 'sessions.extendTimeSlotForm.grossMarginTitle' | translate }}</h5>
+      <label class="cell field">
+        <input
+          class="field__input"
+          data-testid="expected-gross-margin-input"
+          formControlName="expectedGrossMargin"
+          appAutoformatNumericInput
+          min="0"
+          max="100"
+          suffixText=" %"
+          [decimalPlaces]="2"
+          [placeHolderValue]="'sessions.extendTimeSlotForm.grossMarginInputPlaceholder' | translate"
+        />
+        <span class="field__label">{{ 'sessions.extendTimeSlotForm.grossMarginInputTitle' | translate }}</span>
+      </label>
+    </div>
+
+    <div class="lateral-slider-body__footer">
+      <ignt-button
+        variant="tertiary"
+        [label]="'sessions.extendTimeSlotForm.back' | translate"
+        data-testid="extend-time-slot-cancel-button"
+        (click)="onCancel()"
+      />
+
+      <ignt-button
+        [label]="'sessions.extendTimeSlotForm.confirm' | translate"
+        data-testid="extend-time-slot-save-button"
+        [disabled]="!this.formGroup.valid"
+        (click)="onSave()"
+      />
+    </div>
+
+    <ng-template
+      #switchTemplate
+      let-min="min"
+      let-max="max"
+      let-fieldName="fieldName"
+      let-iconName="iconName"
+      let-iconVariant="iconVariant"
+      let-checked="checked"
+      let-unchecked="unchecked"
+    >
+      <div class="form-group form-switch-group">
+        <ignt-icon class="form-icon" [name]="iconName" [variant]="iconVariant"></ignt-icon>
+        <div>
+          <label [for]="fieldName" class="form-label" translate>{{ 'sessions.sessionsPerTimeslot.edition.field.' + fieldName }} </label>
+          <div class="form-value">
+            <span [class.form-value--checked]="!formGroup.get(fieldName).value" translate>{{ unchecked }}</span> /
+            <span [class.form-value--checked]="formGroup.get(fieldName).value" translate>{{ checked }}</span>
+          </div>
+        </div>
+        <div class="form-check form-switch form-switch-lg" data-testid="replicate-session-settings-switch-button">
+          <input
+            [formControlName]="fieldName"
+            data-testid="visibility-checkbox"
+            [checked]="formGroup.get(fieldName).value"
+            type="checkbox"
+            class="form-check-input"
+            [id]="'replicate-session-settings-switch-' + fieldName"
+          />
+          <label class="form-check-label" [for]="'replicate-session-settings-switch-' + fieldName"></label>
+        </div>
+      </div>
+    </ng-template>
+
+    <ng-template #datePicker let-dateLabel="dateLabel" let-timeLabel="timeLabel" let-dataTestId="dataTestId" let-control="control">
+      <app-date-time-form-control
+        class="field-datetime"
+        [formControl]="control"
+        [minDate]="minStartDate"
+        [maxDate]="maxStartDate"
+        [dateLabel]="dateLabel"
+        [timeLabel]="timeLabel"
+        [attr.data-testid]="dataTestId"
+        [timezone]="timezone"
+        [required]="true"
+      ></app-date-time-form-control>
+    </ng-template>
+  </form>
+</div>

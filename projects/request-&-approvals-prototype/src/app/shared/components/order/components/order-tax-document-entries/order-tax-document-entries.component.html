@@ -1,0 +1,75 @@
+@if (taxDocuments(); as documents) {
+  @for (row of rows(); track row.taxDocument.id) {
+    <div class="order-tax-document-list__item" data-testid="order-tax-document-item">
+      <ignt-icon class="order-tax-document-list__item--icon" name="file-invoice-dollar" variant="light" size="h4" aria-hidden="true" />
+      <div class="order-tax-document-list__item--info">
+        <div class="order-tax-document-list__item--title" data-testid="order-tax-document-title">{{ row.labelKey | translate }}</div>
+        <div class="order-tax-document-list__item--supplier">
+          {{ row.taxDocument.supplierBusinessName }} ({{ row.taxDocument.supplierTaxId }})
+        </div>
+        @if (row.showComponent) {
+          <div class="order-tax-document-list__item--component" data-testid="order-tax-document-component">
+            {{ 'validateTicketsNew.orderTaxDocumentList.componentLabel' | translate }}:
+            {{ 'validateTicketsNew.orderTaxDocumentList.component.' + row.taxDocument.component | translate }}
+          </div>
+        }
+      </div>
+      <ignt-button
+        class="order-tax-document-list__item--download"
+        data-testid="order-tax-document-download"
+        size="small"
+        variant="secondary"
+        [label]="'common.download' | translate"
+        (click)="download.emit(row.taxDocument)"
+      />
+    </div>
+  }
+
+  @if (documents.length === 0) {
+    <div class="empty-placeholder" data-testid="empty-order-tax-document-list-placeholder">
+      <ignt-icon class="empty-placeholder__icon" name="exclamation-circle" variant="light" size="display" aria-hidden="true" />
+      <p class="empty-placeholder__text">{{ 'validateTicketsNew.orderTaxDocumentList.empty' | translate }}</p>
+    </div>
+  }
+
+  @if (showFullInvoiceRequest()) {
+    <div *permissionBased="'can_request_full_invoice'">
+      <hr class="order-tax-document-list__divider" />
+      @switch (requestStatus()) {
+        @case (nominativeRequestStatus.Pending) {
+          <div class="order-tax-document-list__footer">
+            <ignt-alert [description]="'invoicing.fullInvoice.pendingMessage' | translate" sentiment="info" />
+          </div>
+        }
+        @case (nominativeRequestStatus.Error) {
+          <div class="order-tax-document-list__footer">
+            <ignt-alert [description]="'invoicing.fullInvoice.statusError' | translate" sentiment="danger" />
+          </div>
+        }
+        @default {
+          <div class="order-tax-document-list__footer">
+            @if (requestStatus() === nominativeRequestStatus.Failed) {
+              <ignt-alert [description]="'invoicing.fullInvoice.failedMessage' | translate" sentiment="danger" />
+            }
+            <ignt-button
+              id="request-full-invoice-button"
+              sentiment="neutral"
+              size="small"
+              variant="secondary"
+              [label]="requestButtonLabelKey() | translate"
+              (click)="requestFullInvoice.emit()"
+            />
+            @if (requestStatus() === nominativeRequestStatus.Completed) {
+              <ignt-alert [description]="'invoicing.fullInvoice.info.correctiveNotice' | translate" sentiment="info" />
+            }
+          </div>
+        }
+      }
+    </div>
+  }
+} @else if (hasError()) {
+  <div data-testid="order-tax-document-list-error" class="empty-error">
+    <ignt-icon class="empty-error__icon" name="exclamation-circle" variant="light" size="display" aria-hidden="true" />
+    <p class="empty-error__text">{{ 'validateTicketsNew.orderTaxDocumentList.error' | translate }}</p>
+  </div>
+}

@@ -1,0 +1,82 @@
+<ignt-expansion-panel class="order-responses-section" variant="borderless" chevronPosition="start" [isCollapsed]="false">
+  <div class="order-responses-section__heading" expansion-panel-title>
+    <div class="order-responses-section__titles">
+      <span class="order-responses-section__title">{{ titleKey | translate }}</span>
+      <span class="order-responses-section__subtitle">{{ subtitleKey | translate }}</span>
+    </div>
+    @if (section().hasQuestions && editable()) {
+      <ignt-button
+        class="order-responses-section__edit"
+        htmlType="button"
+        variant="secondary"
+        size="small"
+        data-testid="edit-form"
+        [label]="'orderResponses.actions.edit' | translate"
+        [leadingIcon]="editIcon"
+        [disabled]="editDisabled() || section().hasUnsavableImage"
+        (click)="onEdit($event)"
+      />
+    }
+  </div>
+
+  <div class="order-responses-section__frequencies">
+    @for (group of section().frequencies; track group.frequency) {
+      <ignt-list-item
+        class="order-responses-section__frequency"
+        [title]="frequencyLabelKey(group.frequency) | translate"
+        [description]="frequencyDescriptionKey(group.frequency) | translate"
+        [leadingIcon]="frequencyIcon(group.frequency)"
+      >
+        <div class="order-responses-section__entries">
+          @if (group.frequency === frequencies.PER_ORDER) {
+            @for (entry of group.entries; track entry.key) {
+              <ng-container *ngTemplateOutlet="answerFor; context: { entry: entry }" />
+            } @empty {
+              <span class="order-responses-section__empty" data-testid="section-empty">{{
+                'orderResponses.emptySection' | translate
+              }}</span>
+            }
+          } @else {
+            @for (ticket of group.tickets; track ticket.ticketIndex) {
+              <div class="order-responses-section__ticket" [attr.id]="anchorTickets() ? 'ticket-' + ticket.ticketIndex : null">
+                <span class="order-responses-section__ticket-label">
+                  {{ 'orderResponses.ticket' | translate: { index: ticket.ticketIndex } }}
+                </span>
+                @for (entry of ticket.entries; track entry.key) {
+                  <ng-container *ngTemplateOutlet="answerFor; context: { entry: entry }" />
+                }
+              </div>
+            } @empty {
+              <span class="order-responses-section__empty" data-testid="section-empty">{{
+                'orderResponses.emptySection' | translate
+              }}</span>
+            }
+          }
+        </div>
+      </ignt-list-item>
+    }
+  </div>
+</ignt-expansion-panel>
+
+<ng-template #answerFor let-entry="entry">
+  @if (editing() && controlFor(entry); as control) {
+    <app-question-answer
+      [question]="entry.question"
+      [file]="entry.answer?.file ?? null"
+      [formControl]="control"
+      [clearable]="canClear(entry)"
+      [editing]="true"
+      [label]="entry.position + '. ' + entry.question.title"
+      [optional]="!entry.required"
+    />
+  } @else {
+    <app-question-answer
+      [question]="entry.question"
+      [file]="entry.answer?.file ?? null"
+      [value]="answerValue(entry)"
+      [editing]="editing()"
+      [label]="entry.position + '. ' + entry.question.title"
+      [optional]="!entry.required"
+    />
+  }
+</ng-template>

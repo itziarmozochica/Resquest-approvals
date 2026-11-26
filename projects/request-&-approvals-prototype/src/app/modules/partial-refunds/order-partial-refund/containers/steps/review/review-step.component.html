@@ -1,0 +1,79 @@
+<div
+  class="review-step"
+  [class.review-step--updating]="preview().isLoading"
+  [attr.aria-busy]="preview().isLoading"
+  data-testid="order-partial-refund-review-step"
+>
+  <section class="review-step__card wrapper-card">
+    <h3 class="review-step__section-title">{{ 'orders.bulkPartialRefunds.reviewConfirm.choices.title' | translate }}</h3>
+
+    <app-partial-refund-choices
+      [currencies]="currencies()"
+      [includeSurcharge]="includeSurcharge()"
+      [mode]="mode()"
+      [reason]="reason()"
+      [selectionLabel]="'orders.bulkPartialRefunds.counts.tickets' | translate: { count: selectedTicketCount() }"
+      [value]="value()"
+    />
+  </section>
+
+  @if (includesPriorRefund()) {
+    <ignt-alert
+      data-testid="order-partial-refund-review-prior-refund"
+      sentiment="warning"
+      [description]="'orders.partialRefund.review.doubleRefund.detail' | translate"
+      [title]="'orders.partialRefund.review.doubleRefund.title' | translate"
+    />
+  }
+
+  @if (preview().error !== null) {
+    <ignt-alert
+      data-testid="order-partial-refund-review-error"
+      sentiment="danger"
+      [description]="'orders.partialRefund.review.error.description' | translate"
+      [title]="'orders.bulkPartialRefunds.defineRefund.summary.error.title' | translate"
+    />
+  } @else if (preview().data !== null) {
+    @if (reviewSection(); as section) {
+      <section class="review-step__card review-step__figures wrapper-card">
+        <h3 class="review-step__section-title">{{ 'orders.partialRefund.review.table.title' | translate }}</h3>
+
+        <app-scroll-shadow
+          class="review-step__table-scroll"
+          data-testid="order-partial-refund-review-table"
+          [axis]="scrollShadowAxes.Block"
+        >
+          <app-partial-refund-rows-table
+            [includeSurcharge]="previewedIncludeSurcharge()"
+            [perTicket]="isReviewPerTicket()"
+            [section]="section"
+          />
+        </app-scroll-shadow>
+      </section>
+    }
+
+    @if (rejections().length > 0) {
+      <section class="review-step__card review-step__figures wrapper-card" data-testid="order-partial-refund-review-excluded">
+        <h3 class="review-step__section-title">{{ 'orders.partialRefund.review.excluded.title' | translate }}</h3>
+
+        <ul class="review-step__rejections">
+          @for (rejection of rejections(); track rejection.code) {
+            <li data-testid="order-partial-refund-review-rejection">{{ rejection.reason }}</li>
+          }
+        </ul>
+      </section>
+    }
+
+    <div class="review-step__total" data-testid="order-partial-refund-review-total">
+      <span class="review-step__total-label">{{ 'orders.bulkPartialRefunds.reviewConfirm.confirm.total' | translate }}</span>
+      <span class="review-step__total-amount" data-testid="order-partial-refund-review-total-amount">{{ totalLabel() }}</span>
+    </div>
+
+    <ignt-alert
+      data-testid="order-partial-refund-review-cannot-undo"
+      sentiment="danger"
+      [description]="'orders.partialRefund.review.cannotUndoDetail' | translate: { amount: totalLabel() }"
+      [title]="'orders.bulkPartialRefunds.reviewConfirm.confirm.cannotUndo' | translate"
+    />
+  }
+</div>

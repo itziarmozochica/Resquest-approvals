@@ -1,0 +1,550 @@
+<ignt-dialog-header data-testid="create-uptime-check-modal-title">
+  <div class="create-uptime-check-modal__header">
+    <button
+      type="button"
+      class="create-uptime-check-modal__back-button"
+      data-testid="create-uptime-check-back-button"
+      [disabled]="submitting()"
+      (click)="onBack()"
+    >
+      &larr; {{ settingsI18n + '.back' | translate }}
+    </button>
+    <span class="create-uptime-check-modal__title">{{ modalTitle | translate }}</span>
+    <span class="create-uptime-check-modal__header-spacer" aria-hidden="true"></span>
+  </div>
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="create-uptime-check-modal">
+    @if (!isView && genericErrors().length > 0) {
+      <ignt-alert sentiment="danger" [showCloseButton]="false" data-testid="create-uptime-check-generic-errors">
+        @for (error of genericErrors(); track error) {
+          <p>{{ error }}</p>
+        }
+      </ignt-alert>
+    }
+
+    @if (preservedAssertions().length > 0) {
+      <ignt-alert sentiment="info" [showCloseButton]="false" data-testid="create-uptime-check-preserved-assertions-hint">
+        <span>{{ preservedAssertionsHintKey | translate: { count: preservedAssertions().length } }}</span>
+      </ignt-alert>
+    }
+
+    <form [formGroup]="form" class="create-uptime-check-modal__form" (ngSubmit)="onSubmit()">
+      <div class="create-uptime-check-modal__field">
+        <label class="create-uptime-check-modal__label" for="check-name">{{ settingsI18n + '.nameLabel' | translate }}</label>
+        <input
+          #checkNameInput
+          id="check-name"
+          type="text"
+          class="create-uptime-check-modal__input"
+          formControlName="name"
+          [placeholder]="settingsI18n + '.namePlaceholder' | translate"
+          data-testid="create-uptime-check-name-input"
+        />
+        @if (form.controls.name.touched && form.controls.name.errors) {
+          <small class="create-uptime-check-modal__error" data-testid="create-uptime-check-name-error">
+            @if (form.controls.name.errors['required']) {
+              {{ settingsI18n + '.nameRequired' | translate }}
+            } @else if (form.controls.name.errors['maxlength']) {
+              Max 255 characters.
+            } @else if (form.controls.name.errors['serverError']) {
+              {{ form.controls.name.errors['serverError'] }}
+            }
+          </small>
+        }
+      </div>
+
+      <div class="create-uptime-check-modal__host-path-row">
+        <div class="create-uptime-check-modal__field">
+          <label class="create-uptime-check-modal__label" for="check-host">{{ settingsI18n + '.hostLabel' | translate }}</label>
+
+          @if (hostsLoading()) {
+            <ignt-skeleton
+              type="paragraph"
+              [numElements]="1"
+              [animation]="true"
+              data-testid="create-uptime-check-host-skeleton"
+            ></ignt-skeleton>
+          } @else if (hostsFetchError()) {
+            <ignt-alert sentiment="danger" [showCloseButton]="false" data-testid="create-uptime-check-host-fetch-error">
+              <span>{{ settingsI18n + '.hostFetchError' | translate }}</span>
+              <ignt-button
+                variant="tertiary"
+                data-testid="create-uptime-check-retry-button"
+                [label]="settingsI18n + '.retry' | translate"
+                (click)="onRetryFetchHosts()"
+              />
+            </ignt-alert>
+          } @else if (hosts().length === 0) {
+            <small class="create-uptime-check-modal__error" data-testid="create-uptime-check-no-hosts-error">
+              {{ settingsI18n + '.noHostsError' | translate }}
+            </small>
+          } @else if (hosts().length === 1) {
+            <span class="create-uptime-check-modal__host-label" data-testid="create-uptime-check-host-single">{{ hosts()[0].host }}</span>
+          } @else {
+            <select
+              id="check-host"
+              class="create-uptime-check-modal__select"
+              formControlName="host"
+              data-testid="create-uptime-check-host-select"
+            >
+              <option value="" disabled>{{ settingsI18n + '.hostLabel' | translate }}</option>
+              @for (host of hosts(); track host.id) {
+                <option [value]="host.id">{{ host.host }}</option>
+              }
+            </select>
+          }
+        </div>
+
+        <div class="create-uptime-check-modal__field">
+          <label class="create-uptime-check-modal__label" for="check-path">{{ settingsI18n + '.pathLabel' | translate }}</label>
+          <input
+            id="check-path"
+            type="text"
+            class="create-uptime-check-modal__input"
+            formControlName="path"
+            [placeholder]="settingsI18n + '.pathPlaceholder' | translate"
+            data-testid="create-uptime-check-path-input"
+          />
+          @if (form.controls.path.touched && form.controls.path.errors) {
+            <small class="create-uptime-check-modal__error" data-testid="create-uptime-check-path-error">
+              @if (form.controls.path.errors['serverError']) {
+                {{ form.controls.path.errors['serverError'] }}
+              }
+            </small>
+          }
+        </div>
+      </div>
+
+      @if (urlPreview()) {
+        <div class="create-uptime-check-modal__url-preview" data-testid="create-uptime-check-url-preview">
+          <label class="create-uptime-check-modal__label">{{ settingsI18n + '.urlPreviewLabel' | translate }}</label>
+          <span class="create-uptime-check-modal__url-value">{{ urlPreview() }}</span>
+        </div>
+      }
+
+      <div class="create-uptime-check-modal__settings" data-testid="create-uptime-check-settings">
+        <div class="create-uptime-check-modal__settings-grid">
+          <div class="create-uptime-check-modal__field">
+            <label class="create-uptime-check-modal__label" for="check-interval">{{ settingsI18n + '.intervalLabel' | translate }}</label>
+            <select
+              id="check-interval"
+              class="create-uptime-check-modal__select"
+              formControlName="intervalSeconds"
+              data-testid="create-uptime-check-interval-select"
+            >
+              @for (opt of intervalOptions; track opt.value) {
+                <option [value]="opt.value">{{ settingsI18n + '.intervals.' + opt.labelKey | translate: opt.labelParams }}</option>
+              }
+            </select>
+            @if (form.controls.intervalSeconds.touched && form.controls.intervalSeconds.errors) {
+              <small class="create-uptime-check-modal__error" data-testid="create-uptime-check-interval-error">
+                @if (form.controls.intervalSeconds.errors['serverError']) {
+                  {{ form.controls.intervalSeconds.errors['serverError'] }}
+                }
+              </small>
+            }
+          </div>
+
+          <div class="create-uptime-check-modal__field">
+            <label class="create-uptime-check-modal__label" for="check-timeout">{{ settingsI18n + '.timeoutLabel' | translate }}</label>
+            <select
+              id="check-timeout"
+              class="create-uptime-check-modal__select"
+              formControlName="timeoutMs"
+              data-testid="create-uptime-check-timeout-select"
+            >
+              @for (opt of timeoutOptions; track opt.value) {
+                <option [value]="opt.value">{{ settingsI18n + '.timeouts.' + opt.labelKey | translate: opt.labelParams }}</option>
+              }
+            </select>
+            @if (form.controls.timeoutMs.touched && form.controls.timeoutMs.errors) {
+              <small class="create-uptime-check-modal__error" data-testid="create-uptime-check-timeout-error">
+                @if (form.controls.timeoutMs.errors['serverError']) {
+                  {{ form.controls.timeoutMs.errors['serverError'] }}
+                }
+              </small>
+            }
+          </div>
+        </div>
+
+        <div class="create-uptime-check-modal__field create-uptime-check-modal__field--checkbox">
+          <label class="create-uptime-check-modal__checkbox-label">
+            <input type="checkbox" formControlName="enabled" data-testid="create-uptime-check-enabled-checkbox" />
+            <span>{{ settingsI18n + '.enabledLabel' | translate }}</span>
+          </label>
+        </div>
+      </div>
+
+      <app-synthetic-check-alerting-form #alertingForm [form]="form.controls.alerting" prefix="create-uptime-check-alerting" />
+
+      @if (form.errors?.['noAssertions']) {
+        <small class="create-uptime-check-modal__error" data-testid="create-uptime-check-no-assertions-error">
+          {{ i18n + '.noAssertionsError' | translate }}
+        </small>
+      }
+
+      <details class="create-uptime-check-modal__section" data-testid="create-uptime-check-extra-config-section">
+        <summary class="create-uptime-check-modal__section-summary">
+          {{ i18n + '.extraConfig.title' | translate }}
+          <span class="create-uptime-check-modal__section-optional">({{ i18n + '.extraConfig.optional' | translate }})</span>
+        </summary>
+
+        <div class="create-uptime-check-modal__section-body">
+          @if (statusCodeOptional()) {
+            <div class="create-uptime-check-modal__field create-uptime-check-modal__field--checkbox">
+              <ignt-checkbox
+                formControlName="statusCodeEnabled"
+                dataTestId="create-uptime-check-status-code-enabled-checkbox"
+                [label]="i18n + '.statusCode.enableLabel' | translate"
+              ></ignt-checkbox>
+            </div>
+          }
+
+          @if (statusCodeEnabled()) {
+            <div class="create-uptime-check-modal__field" data-testid="create-uptime-check-status-code-section">
+              <label class="create-uptime-check-modal__label" for="check-status-code">
+                {{ i18n + '.statusCode.expectedLabel' | translate }}
+              </label>
+              <input
+                id="check-status-code"
+                type="number"
+                min="100"
+                max="599"
+                class="create-uptime-check-modal__input"
+                formControlName="expectedStatusCode"
+                data-testid="create-uptime-check-status-code-input"
+              />
+              @if (form.controls.expectedStatusCode.touched && form.controls.expectedStatusCode.errors) {
+                <small class="create-uptime-check-modal__error" data-testid="create-uptime-check-status-code-error">
+                  @if (form.controls.expectedStatusCode.errors['required']) {
+                    {{ i18n + '.statusCode.requiredError' | translate }}
+                  } @else if (form.controls.expectedStatusCode.errors['min'] || form.controls.expectedStatusCode.errors['max']) {
+                    {{ i18n + '.statusCode.rangeError' | translate }}
+                  } @else if (form.controls.expectedStatusCode.errors['serverError']) {
+                    {{ form.controls.expectedStatusCode.errors['serverError'] }}
+                  }
+                </small>
+              }
+            </div>
+          }
+
+          <div class="create-uptime-check-modal__subsection" data-testid="create-uptime-check-ssl-section">
+            <div class="create-uptime-check-modal__field create-uptime-check-modal__field--checkbox">
+              <label class="create-uptime-check-modal__checkbox-label">
+                <input type="checkbox" formControlName="sslCertEnabled" data-testid="create-uptime-check-ssl-enabled-checkbox" />
+                <span>{{ i18n + '.sslCert.title' | translate }}</span>
+                <span class="create-uptime-check-modal__section-optional">({{ i18n + '.sslCert.optional' | translate }})</span>
+              </label>
+            </div>
+
+            @if (form.controls.sslCertEnabled.value) {
+              <div class="create-uptime-check-modal__field">
+                <label class="create-uptime-check-modal__label" for="check-ssl-days">{{ i18n + '.sslCert.daysLabel' | translate }}</label>
+                <div class="create-uptime-check-modal__ssl-days">
+                  <input
+                    id="check-ssl-days"
+                    type="number"
+                    min="0"
+                    class="create-uptime-check-modal__input"
+                    formControlName="sslCertExpiryDays"
+                    [placeholder]="i18n + '.sslCert.daysPlaceholder' | translate"
+                    data-testid="create-uptime-check-ssl-days-input"
+                  />
+                  <span class="create-uptime-check-modal__ssl-days-suffix">{{ i18n + '.sslCert.daysSuffix' | translate }}</span>
+                </div>
+                @if (
+                  form.controls.sslCertExpiryDays.touched &&
+                  (form.controls.sslCertExpiryDays.errors || form.errors?.['sslCertDaysRequired'])
+                ) {
+                  <small class="create-uptime-check-modal__error" data-testid="create-uptime-check-ssl-days-error">
+                    @if (form.errors?.['sslCertDaysRequired']) {
+                      {{ i18n + '.sslCert.daysRequired' | translate }}
+                    } @else if (form.controls.sslCertExpiryDays.errors?.['min']) {
+                      {{ i18n + '.sslCert.daysMin' | translate }}
+                    }
+                  </small>
+                }
+              </div>
+            }
+          </div>
+
+          <div class="create-uptime-check-modal__subsection" data-testid="create-uptime-check-auth-section">
+            <span class="create-uptime-check-modal__subsection-title">
+              {{ i18n + '.auth.title' | translate }}
+              <span class="create-uptime-check-modal__section-optional">({{ i18n + '.auth.optional' | translate }})</span>
+            </span>
+
+            <div class="create-uptime-check-modal__host-path-row">
+              <div class="create-uptime-check-modal__field">
+                <label class="create-uptime-check-modal__label" for="check-auth-username">{{
+                  i18n + '.auth.usernameLabel' | translate
+                }}</label>
+                <input
+                  id="check-auth-username"
+                  type="text"
+                  autocomplete="off"
+                  class="create-uptime-check-modal__input"
+                  formControlName="basicAuthUsername"
+                  [placeholder]="i18n + '.auth.usernamePlaceholder' | translate"
+                  data-testid="create-uptime-check-auth-username-input"
+                />
+                @if (form.controls.basicAuthUsername.touched && form.controls.basicAuthUsername.errors) {
+                  <small class="create-uptime-check-modal__error" data-testid="create-uptime-check-auth-username-error">
+                    @if (form.controls.basicAuthUsername.errors['maxlength']) {
+                      {{ i18n + '.auth.usernameMaxLength' | translate }}
+                    } @else if (form.controls.basicAuthUsername.errors['serverError']) {
+                      {{ form.controls.basicAuthUsername.errors['serverError'] }}
+                    }
+                  </small>
+                }
+                @if (form.errors?.['authPair']?.usernameMissing && form.controls.basicAuthUsername.touched) {
+                  <small class="create-uptime-check-modal__error" data-testid="create-uptime-check-auth-username-pair-error">
+                    {{ i18n + '.auth.usernameRequired' | translate }}
+                  </small>
+                }
+              </div>
+
+              <div class="create-uptime-check-modal__field">
+                <label class="create-uptime-check-modal__label" for="check-auth-password">{{
+                  i18n + '.auth.passwordLabel' | translate
+                }}</label>
+                <input
+                  id="check-auth-password"
+                  type="password"
+                  autocomplete="new-password"
+                  class="create-uptime-check-modal__input"
+                  formControlName="basicAuthPassword"
+                  [placeholder]="
+                    (passwordAlreadySet() ? i18n + '.auth.passwordSetPlaceholder' : i18n + '.auth.passwordPlaceholder') | translate
+                  "
+                  data-testid="create-uptime-check-auth-password-input"
+                />
+                @if (form.controls.basicAuthPassword.touched && form.controls.basicAuthPassword.errors) {
+                  <small class="create-uptime-check-modal__error" data-testid="create-uptime-check-auth-password-error">
+                    @if (form.controls.basicAuthPassword.errors['maxlength']) {
+                      {{ i18n + '.auth.passwordMaxLength' | translate }}
+                    } @else if (form.controls.basicAuthPassword.errors['serverError']) {
+                      {{ form.controls.basicAuthPassword.errors['serverError'] }}
+                    }
+                  </small>
+                }
+                @if (form.errors?.['authPair']?.passwordMissing && form.controls.basicAuthPassword.touched) {
+                  <small class="create-uptime-check-modal__error" data-testid="create-uptime-check-auth-password-pair-error">
+                    {{ i18n + '.auth.passwordRequired' | translate }}
+                  </small>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="create-uptime-check-modal__subsection" data-testid="create-uptime-check-post-data-section">
+            <span class="create-uptime-check-modal__subsection-title">
+              {{ i18n + '.postData.title' | translate }}
+              <span class="create-uptime-check-modal__section-optional">({{ i18n + '.postData.optional' | translate }})</span>
+            </span>
+
+            <div class="create-uptime-check-modal__field">
+              <textarea
+                id="check-post-data"
+                rows="4"
+                class="create-uptime-check-modal__input create-uptime-check-modal__textarea"
+                formControlName="postData"
+                [placeholder]="i18n + '.postData.placeholder' | translate"
+                data-testid="create-uptime-check-post-data-input"
+              ></textarea>
+              @if (form.controls.postData.touched && form.controls.postData.errors) {
+                <small class="create-uptime-check-modal__error" data-testid="create-uptime-check-post-data-error">
+                  @if (form.controls.postData.errors['maxlength']) {
+                    {{ i18n + '.postData.maxLength' | translate }}
+                  } @else if (form.controls.postData.errors['serverError']) {
+                    {{ form.controls.postData.errors['serverError'] }}
+                  }
+                </small>
+              }
+            </div>
+          </div>
+
+          <div class="create-uptime-check-modal__subsection" data-testid="create-uptime-check-body-assertion-section">
+            <span class="create-uptime-check-modal__subsection-title">
+              {{ i18n + '.bodyAssertion.label' | translate }}
+              <span class="create-uptime-check-modal__section-optional">({{ i18n + '.bodyAssertion.optional' | translate }})</span>
+            </span>
+
+            <div class="create-uptime-check-modal__field">
+              <select
+                id="check-body-assertion-operator"
+                class="create-uptime-check-modal__select"
+                formControlName="bodyAssertionOperator"
+                data-testid="create-uptime-check-body-assertion-operator-select"
+              >
+                <option value="contains">{{ i18n + '.bodyAssertion.contains' | translate }}</option>
+                <option value="not_contains">{{ i18n + '.bodyAssertion.notContains' | translate }}</option>
+              </select>
+            </div>
+
+            <div class="create-uptime-check-modal__field">
+              <textarea
+                id="check-body-assertion-value"
+                rows="3"
+                class="create-uptime-check-modal__input create-uptime-check-modal__textarea"
+                formControlName="bodyAssertionValue"
+                [placeholder]="i18n + '.bodyAssertion.placeholder' | translate"
+                data-testid="create-uptime-check-body-assertion-value-input"
+              ></textarea>
+              @if (form.controls.bodyAssertionValue.touched && form.controls.bodyAssertionValue.errors) {
+                <small class="create-uptime-check-modal__error" data-testid="create-uptime-check-body-assertion-value-error">
+                  @if (form.controls.bodyAssertionValue.errors['maxlength']) {
+                    {{ i18n + '.bodyAssertion.maxLength' | translate }}
+                  }
+                </small>
+              }
+            </div>
+          </div>
+
+          <div class="create-uptime-check-modal__subsection" data-testid="create-uptime-check-headers-section">
+            <span class="create-uptime-check-modal__subsection-title">
+              {{ i18n + '.headers.title' | translate }}
+              <span class="create-uptime-check-modal__section-optional">({{ i18n + '.headers.optional' | translate }})</span>
+            </span>
+
+            @for (row of form.controls.headers.controls; track row; let index = $index) {
+              <div
+                class="create-uptime-check-modal__header-row"
+                [formGroup]="row"
+                [attr.data-testid]="'create-uptime-check-header-row-' + index"
+              >
+                <div class="create-uptime-check-modal__field">
+                  <label class="create-uptime-check-modal__label" [for]="'check-header-key-' + index">
+                    {{ i18n + '.headers.keyLabel' | translate }}
+                  </label>
+                  <input
+                    [id]="'check-header-key-' + index"
+                    type="text"
+                    class="create-uptime-check-modal__input"
+                    formControlName="key"
+                    [placeholder]="i18n + '.headers.keyPlaceholder' | translate"
+                    [attr.data-testid]="'create-uptime-check-header-key-input-' + index"
+                  />
+                  @if (row.controls.key.touched && row.controls.key.errors) {
+                    <small class="create-uptime-check-modal__error" [attr.data-testid]="'create-uptime-check-header-key-error-' + index">
+                      @if (row.controls.key.errors['required']) {
+                        {{ i18n + '.headers.keyRequired' | translate }}
+                      } @else if (row.controls.key.errors['maxlength']) {
+                        {{ i18n + '.headers.keyMaxLength' | translate }}
+                      }
+                    </small>
+                  }
+                </div>
+
+                <div class="create-uptime-check-modal__field">
+                  <label class="create-uptime-check-modal__label" [for]="'check-header-value-' + index">
+                    {{ i18n + '.headers.valueLabel' | translate }}
+                  </label>
+                  <input
+                    [id]="'check-header-value-' + index"
+                    type="text"
+                    class="create-uptime-check-modal__input"
+                    formControlName="value"
+                    [placeholder]="i18n + '.headers.valuePlaceholder' | translate"
+                    [attr.data-testid]="'create-uptime-check-header-value-input-' + index"
+                  />
+                  @if (row.controls.value.touched && row.controls.value.errors) {
+                    <small class="create-uptime-check-modal__error" [attr.data-testid]="'create-uptime-check-header-value-error-' + index">
+                      @if (row.controls.value.errors['required']) {
+                        {{ i18n + '.headers.valueRequired' | translate }}
+                      } @else if (row.controls.value.errors['maxlength']) {
+                        {{ i18n + '.headers.valueMaxLength' | translate }}
+                      }
+                    </small>
+                  }
+                </div>
+
+                @if (!isView) {
+                  <button
+                    type="button"
+                    class="create-uptime-check-modal__header-remove"
+                    [attr.aria-label]="i18n + '.headers.remove' | translate"
+                    [attr.data-testid]="'create-uptime-check-header-remove-' + index"
+                    (click)="onRemoveHeader(index)"
+                  >
+                    ×
+                  </button>
+                }
+              </div>
+            }
+
+            @if (!isView) {
+              <ignt-button
+                variant="tertiary"
+                data-testid="create-uptime-check-add-header-button"
+                [disabled]="form.controls.headers.length >= maxHeaderRows"
+                [label]="i18n + '.headers.add' | translate"
+                (click)="onAddHeader()"
+              />
+            }
+          </div>
+        </div>
+      </details>
+    </form>
+
+    @if (isView) {
+      <app-synthetic-check-latest-result
+        [latestResult]="latestResult()"
+        [latestResultUnavailable]="latestResultUnavailable()"
+        [retryingLatestResult]="retryingLatestResult()"
+        (retryLatestResult)="onRetryLatestResult()"
+      />
+    }
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer [hideCancelButton]="true">
+  @if (isView) {
+    @if (canEdit) {
+      <ignt-button
+        variant="tertiary"
+        data-testid="create-uptime-check-edit-button"
+        [label]="detailsI18n + '.edit' | translate"
+        (click)="onStartEdit()"
+      />
+    }
+    <ignt-button
+      variant="primary"
+      data-testid="create-uptime-check-close-button"
+      [label]="detailsI18n + '.close' | translate"
+      (click)="onClose()"
+    />
+  } @else if (isEdit) {
+    <ignt-button
+      variant="tertiary"
+      data-testid="create-uptime-check-cancel-button"
+      [label]="settingsI18n + '.cancel' | translate"
+      (click)="onCancel()"
+    />
+    <ignt-button
+      variant="primary"
+      data-testid="create-uptime-check-submit-button"
+      [disabled]="(form.invalid && form.touched) || hosts().length === 0 || hostsLoading() || hostsFetchError()"
+      [label]="settingsI18n + '.save' | translate"
+      [loading]="submitting()"
+      (click)="onSubmit()"
+    />
+  } @else {
+    <ignt-button
+      variant="tertiary"
+      data-testid="create-uptime-check-cancel-button"
+      [label]="settingsI18n + '.cancel' | translate"
+      (click)="onCancel()"
+    />
+    <ignt-button
+      variant="primary"
+      data-testid="create-uptime-check-submit-button"
+      [disabled]="(form.invalid && form.touched) || hosts().length === 0 || hostsLoading() || hostsFetchError()"
+      [label]="settingsI18n + '.create' | translate"
+      [loading]="submitting()"
+      (click)="onSubmit()"
+    />
+  }
+</ignt-dialog-footer>

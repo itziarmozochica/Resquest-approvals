@@ -1,0 +1,224 @@
+<app-page-title [title]="'depositSettings.title' | translate" class="new-design" />
+<app-search-bar [disabled]="true" />
+
+<form [formGroup]="depositSettingsForm" (ngSubmit)="onSubmit()" class="deposit-settings">
+  <div class="main-wrapper">
+    @if (isLoading()) {
+      <div class="loading-spinner">
+        <ignt-icon class="loader" name="spinner" variant="solid" [spin]="true" size="h1"></ignt-icon>
+      </div>
+    }
+
+    @if (!isLoading()) {
+      <div class="wrapper-card wrapper-card--elevation-100">
+        <h3 class="deposit-settings__title">
+          {{ (isEditMode ? 'depositSettings.form.titleEdit' : 'depositSettings.form.titleCreate') | translate }}
+        </h3>
+        <p class="deposit-settings__subtle">{{ 'depositSettings.form.description' | translate }}</p>
+
+        <div class="deposit-settings__row">
+          <div class="channel-selector-column">
+            <div class="channel-selector-container">
+              <div class="form-label">{{ 'depositSettings.form.selectChannel' | translate }}</div>
+              <p class="helper-paragraph deposit-settings__subtle">{{ 'depositSettings.form.selectChannelInfo' | translate }}</p>
+
+              <ignt-typeahead
+                [options]="channelOptions"
+                [customPopupClass]="'dropdown-menu--on-sidebar'"
+                [fieldLabel]="'depositSettings.form.channel' | translate"
+                [emptyLabel]="'common.selectsPlaceholder' | translate"
+                [disabled]="isEditMode"
+                [error]="(depositSettingsForm.get('channel')?.invalid && depositSettingsForm.get('channel')?.touched) ?? false"
+                [preloadedOption]="initialChannelOption"
+                (selected)="selectOption(depositSettingsForm.controls['channel'], $event)"
+              />
+              @if (depositSettingsForm.get('channel')?.touched && depositSettingsForm.get('channel')?.hasError('required')) {
+                <ignt-field-error [formControlValue]="depositSettingsForm.get('channel')" errorName="required">
+                  {{ 'form.error.required' | translate }}
+                </ignt-field-error>
+              }
+            </div>
+          </div>
+
+          <div class="deposit-settings-container">
+            <div>
+              <p class="form-label">{{ 'depositSettings.form.amountSettings' | translate }}</p>
+              <p class="helper-paragraph deposit-settings__subtle">{{ 'depositSettings.form.amountSettingsInfo' | translate }}</p>
+              @if (taxDisclaimerKey()) {
+                <div class="tax-disclaimer">
+                  <ignt-alert
+                    sentiment="info"
+                    [description]="taxDisclaimerKey()! | translate: { location: disclaimerLocation() }"
+                    data-testid="tax-disclaimer-alert"
+                  />
+                  @if (maxDepositGuidance()) {
+                    <p class="helper-paragraph deposit-settings__subtle" data-testid="max-deposit-guidance">{{ maxDepositGuidance() }}</p>
+                  }
+                </div>
+              }
+              <div class="two-column-row">
+                <div>
+                  <ignt-typeahead
+                    [options]="depositSettingsTypeOptions"
+                    [fieldLabel]="'depositSettings.form.type' | translate"
+                    [emptyLabel]="'common.selectsPlaceholder' | translate"
+                    [error]="(depositSettingsForm.get('type')?.invalid && depositSettingsForm.get('type')?.touched) ?? false"
+                    [preloadedOption]="initialTypeOption"
+                    (selected)="selectOption(depositSettingsForm.controls['type'], $event)"
+                  />
+                  @if (depositSettingsForm.get('type')?.touched && depositSettingsForm.get('type')?.hasError('required')) {
+                    <ignt-field-error [formControlValue]="depositSettingsForm.get('type')" errorName="required">
+                      {{ 'form.error.required' | translate }}
+                    </ignt-field-error>
+                  }
+                </div>
+
+                <label class="field">
+                  <input
+                    appAutoformatNumericInput
+                    formControlName="amount"
+                    class="field__input"
+                    [class.has-error]="depositSettingsForm.get('amount')?.invalid && depositSettingsForm.get('amount')?.touched"
+                    [currency]="depositSettingsForm.get('type')?.value === 'fixed' ? planCurrencyOrDefault : undefined"
+                    [suffixText]="depositSettingsForm.get('type')?.value === 'percentage' ? ' %' : ''"
+                    [decimalPlaces]="depositSettingsForm.get('type')?.value === 'percentage' ? 0 : 2"
+                    type="text"
+                    autocomplete="off"
+                    min="0"
+                    (blur)="setZeroIfEmpty(depositSettingsForm.get('amount')!)"
+                  />
+                  <span class="field__label">{{ 'depositSettings.form.amount' | translate }}</span>
+                  @if (depositSettingsForm.get('amount')?.touched && depositSettingsForm.get('amount')?.hasError('required')) {
+                    <ignt-field-error [formControlValue]="depositSettingsForm.get('amount')" errorName="required">
+                      {{ 'form.error.required' | translate }}
+                    </ignt-field-error>
+                  }
+                  @if (depositSettingsForm.get('amount')?.touched && depositSettingsForm.get('amount')?.hasError('min')) {
+                    <ignt-field-error [formControlValue]="depositSettingsForm.get('amount')" errorName="min">
+                      {{ 'form.error.greaterThanZero' | translate }}
+                    </ignt-field-error>
+                  }
+                  @if (depositSettingsForm.get('amount')?.touched && depositSettingsForm.get('amount')?.hasError('max')) {
+                    <ignt-field-error [formControlValue]="depositSettingsForm.get('amount')" errorName="max">
+                      {{ 'form.error.maxValue' | translate: { value: amountMaxValueLabel } }}
+                    </ignt-field-error>
+                  }
+                </label>
+              </div>
+            </div>
+
+            @if (depositSettingsForm.get('type')?.value === 'fixed' && showFixedAmountWarning) {
+              <div class="fixed-amount-warning">
+                <ignt-alert
+                  sentiment="warning"
+                  [title]="'depositSettings.form.fixedAmountWarning.title' | translate"
+                  [description]="'depositSettings.form.fixedAmountWarning.description' | translate"
+                  data-testid="fixed-amount-warning-alert"
+                />
+              </div>
+            }
+
+            <div>
+              <p class="form-label">{{ 'depositSettings.form.expirationLimit.label' | translate }}</p>
+              <p class="helper-paragraph deposit-settings__subtle">{{ 'depositSettings.form.expirationLimit.helper' | translate }}</p>
+              <ignt-input-field
+                formControlName="paymentWindowHours"
+                type="number"
+                [label]="'depositSettings.form.expirationLimit.label' | translate"
+                [placeholder]="'depositSettings.form.expirationLimit.placeholder' | translate"
+                [customFormErrors]="[
+                  { type: 'required', message: 'form.error.required' | translate },
+                  { type: 'min', message: 'form.error.greaterThanZero' | translate },
+                  { type: 'max', message: 'form.error.maxValue' | translate: { value: 168 } },
+                ]"
+              />
+            </div>
+
+            @if (areRulesAvailable()) {
+              <div formGroupName="rules" data-testid="deposit-rules-section">
+                <p class="form-label">{{ 'depositSettings.form.rules.label' | translate }}</p>
+                <p class="helper-paragraph deposit-settings__subtle">{{ 'depositSettings.form.rules.helper' | translate }}</p>
+
+                <div class="two-column-row">
+                  <ignt-input-field
+                    formControlName="ticketCountMin"
+                    type="number"
+                    [label]="'depositSettings.form.rules.ticketCount.label' | translate"
+                    [placeholder]="'depositSettings.form.rules.noThreshold' | translate"
+                    [customFormErrors]="[
+                      { type: 'min', message: 'form.error.greaterThanZero' | translate },
+                      { type: 'integer', message: 'depositSettings.form.rules.errors.wholeTickets' | translate },
+                    ]"
+                  />
+                  <ignt-input-field
+                    formControlName="cartTotalMin"
+                    type="number"
+                    [label]="'depositSettings.form.rules.cartTotal.label' | translate: { currency: planCurrencyOrDefault }"
+                    [placeholder]="'depositSettings.form.rules.noThreshold' | translate"
+                    [customFormErrors]="[
+                      { type: 'min', message: 'form.error.greaterThanZero' | translate },
+                      { type: 'maxDecimals', message: 'depositSettings.form.rules.errors.maxDecimals' | translate },
+                    ]"
+                  />
+                </div>
+              </div>
+            }
+
+            <div>
+              <p class="form-label">
+                {{ 'depositSettings.form.termsAndConditions' | translate }}
+              </p>
+              <p class="helper-paragraph deposit-settings__subtle">{{ 'depositSettings.form.termsAndConditionsHelper' | translate }}</p>
+              <ignt-input-field
+                formControlName="termsAndConditionsUrl"
+                [label]="'depositSettings.form.termsAndConditionsLabel' | translate"
+                [placeholder]="'depositSettings.form.termsAndConditionsPlaceholder' | translate"
+                [customFormErrors]="[
+                  {
+                    type: 'required',
+                    message: 'form.error.required' | translate,
+                  },
+                ]"
+              />
+            </div>
+
+            <div>
+              <div class="additional-message-toggle-container">
+                <div>
+                  <p class="form-label">
+                    {{ 'depositSettings.form.additionalMessage' | translate }}
+                  </p>
+                  <p class="helper-paragraph deposit-settings__subtle">{{ 'depositSettings.form.additionalMessageInfo' | translate }}</p>
+                </div>
+                <ignt-toggle
+                  [checked]="isWarningMessageShown()"
+                  [id]="'additional-message-toggle'"
+                  (change)="onWarningMessageShowChange()"
+                />
+              </div>
+              @if (isWarningMessageShown()) {
+                <ignt-textarea-field
+                  class="additional-message-textarea"
+                  formControlName="warningMessage"
+                  [label]="'depositSettings.form.additionalMessage' | translate"
+                  [helperText]="'depositSettings.form.additionalMessageHelper' | translate"
+                  [rows]="4"
+                  [maxlength]="500"
+                />
+              }
+            </div>
+
+            <div class="deposit-settings__submit">
+              <button igntButton sentiment="secondary" type="button" (click)="onCancel()">
+                {{ 'common.cancel' | translate }}
+              </button>
+              <button igntButton [disabled]="isLoading()" [loading]="isLoading()" type="submit">
+                {{ (isEditMode ? 'common.save' : 'common.create') | translate }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</form>

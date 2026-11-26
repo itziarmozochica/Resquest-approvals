@@ -1,0 +1,314 @@
+<div class="event-customer-questions">
+  <p class="event-customer-questions__description">
+    {{ (canAssign ? 'customerQuestions.descriptionEdit' : 'customerQuestions.description') | translate }}
+  </p>
+
+  @if (loading()) {
+    <ignt-skeleton type="paragraph" [numElements]="4" animation />
+  } @else {
+    <div cdkDropListGroup>
+      @for (whenSection of whenSections(); track whenSection.when) {
+        <ignt-expansion-panel
+          class="event-customer-questions__when-panel"
+          variant="borderless"
+          chevronPosition="start"
+          [isCollapsed]="false"
+        >
+          <div class="event-customer-questions__when-header" expansion-panel-title>
+            <span class="event-customer-questions__when-title">{{ whenTitleKey(whenSection) | translate }}</span>
+            <span class="event-customer-questions__when-description">{{ whenSubtitleKey(whenSection) | translate }}</span>
+          </div>
+          <div class="event-customer-questions__frequency-row">
+            @for (frequencySection of whenSection.frequencies; track frequencySection.frequency) {
+              <ignt-list-item
+                class="event-customer-questions__frequency-card"
+                [title]="frequencyLabelKey(frequencySection) | translate"
+                [description]="frequencyDescriptionKey(frequencySection) | translate"
+                [leadingIcon]="frequencyIcon(frequencySection)"
+              >
+                <div
+                  class="event-customer-questions__frequency-content"
+                  cdkDropList
+                  [cdkDropListData]="frequencySection.key"
+                  (cdkDropListDropped)="onDrop($event, frequencySection.key)"
+                >
+                  @for (view of frequencySection.items; track view.node.type === 'leaf' ? view.node.leaf.id : view.node.cluster.id) {
+                    <div class="event-customer-questions__node" cdkDrag [cdkDragDisabled]="!view.node.draggable || panelOpen()">
+                      @if (view.node.type === 'leaf') {
+                        <div
+                          class="event-customer-questions__row"
+                          data-testid="customer-question-row"
+                          [class.event-customer-questions__row--interactive]="
+                            view.node.leaf.value.viewable || view.node.leaf.value.editable
+                          "
+                          [class.event-customer-questions__row--selected]="isSelected(view.node.leaf.value)"
+                          [attr.data-selected]="isSelected(view.node.leaf.value) ? '' : null"
+                          [attr.role]="view.node.leaf.value.viewable || view.node.leaf.value.editable ? 'button' : null"
+                          [attr.tabindex]="view.node.leaf.value.viewable || view.node.leaf.value.editable ? 0 : null"
+                          (click)="onQuestionClick(view.node.leaf.value)"
+                          (keydown.enter)="onQuestionClick(view.node.leaf.value)"
+                        >
+                          @if (view.node.draggable) {
+                            <button
+                              ignt-icon-button
+                              cdkDragHandle
+                              sentiment="tertiary"
+                              size="small"
+                              [icon]="['fas', 'grip-vertical']"
+                              [attr.aria-label]="'customerQuestions.actions.reorder' | translate"
+                              (click)="$event.stopPropagation()"
+                              (keydown)="$event.stopPropagation()"
+                            ></button>
+                          }
+                          <ng-container *ngTemplateOutlet="questionContent; context: { view: view.node.leaf.value, number: view.order }" />
+                          @if (view.node.leaf.value.editable || canViewResponses(view.node.leaf.value)) {
+                            <ng-container
+                              *ngTemplateOutlet="
+                                looseActions;
+                                context: {
+                                  key: frequencySection.key,
+                                  nodeId: view.node.leaf.id,
+                                  leaf: view.node.leaf,
+                                  view: view.node.leaf.value,
+                                }
+                              "
+                            />
+                          }
+                        </div>
+                      } @else {
+                        <div class="event-customer-questions__group">
+                          <div class="event-customer-questions__group-header">
+                            @if (view.node.draggable) {
+                              <button
+                                ignt-icon-button
+                                cdkDragHandle
+                                sentiment="tertiary"
+                                size="small"
+                                [icon]="['fas', 'grip-vertical']"
+                                [attr.aria-label]="'customerQuestions.actions.reorder' | translate"
+                              ></button>
+                            }
+                            <div class="event-customer-questions__group-info">
+                              <span class="event-customer-questions__group-name">
+                                {{ 'customerQuestions.group' | translate }} {{ view.groupNumber }}
+                              </span>
+                              <span class="event-customer-questions__group-hint">
+                                {{ 'customerQuestions.groupHint' | translate: { count: view.node.cluster.leaves.length } }}
+                              </span>
+                            </div>
+                            @if (canAssign) {
+                              <button
+                                ignt-icon-button
+                                sentiment="tertiary"
+                                size="small"
+                                [icon]="['fas', 'trash']"
+                                [disabled]="panelOpen()"
+                                [attr.aria-label]="'customerQuestions.actions.removeGroup' | translate"
+                                (click)="onRemoveGroup(frequencySection.key, view.node.cluster.id)"
+                              ></button>
+                            }
+                          </div>
+
+                          <div class="event-customer-questions__group-questions">
+                            @if (view.node.cluster.leaves.length === 0) {
+                              <p class="event-customer-questions__group-empty">{{ 'customerQuestions.groupEmpty' | translate }}</p>
+                            }
+                            @for (leaf of view.node.cluster.leaves; track leaf.id) {
+                              <div
+                                class="event-customer-questions__row event-customer-questions__row--grouped"
+                                data-testid="customer-question-row"
+                                [class.event-customer-questions__row--interactive]="leaf.value.viewable || leaf.value.editable"
+                                [class.event-customer-questions__row--selected]="isSelected(leaf.value)"
+                                [attr.data-selected]="isSelected(leaf.value) ? '' : null"
+                                [attr.role]="leaf.value.viewable || leaf.value.editable ? 'button' : null"
+                                [attr.tabindex]="leaf.value.viewable || leaf.value.editable ? 0 : null"
+                                (click)="onQuestionClick(leaf.value)"
+                                (keydown.enter)="onQuestionClick(leaf.value)"
+                              >
+                                <ng-container *ngTemplateOutlet="questionContent; context: { view: leaf.value, number: view.order }" />
+                                @if (leaf.value.editable || canViewResponses(leaf.value)) {
+                                  <ng-container
+                                    *ngTemplateOutlet="
+                                      groupedActions;
+                                      context: {
+                                        key: frequencySection.key,
+                                        clusterId: view.node.cluster.id,
+                                        leafId: leaf.id,
+                                        view: leaf.value,
+                                      }
+                                    "
+                                  />
+                                }
+                              </div>
+                            }
+
+                            @if (canAssign) {
+                              <ignt-button
+                                variant="tertiary"
+                                size="small"
+                                [label]="'customerQuestions.actions.addQuestion' | translate"
+                                [leadingIcon]="{ name: 'plus-circle', variant: 'solid' }"
+                                [disabled]="panelOpen()"
+                                (click)="onAddQuestion(frequencySection.key, view.node.cluster.id)"
+                              />
+                            }
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  @if (frequencySection.items.length === 0) {
+                    <span class="event-customer-questions__no-questions">{{ 'customerQuestions.noQuestions' | translate }}</span>
+                  }
+                </div>
+
+                @if (canAssign) {
+                  <div class="event-customer-questions__section-actions">
+                    <ignt-button
+                      variant="tertiary"
+                      size="small"
+                      [label]="'customerQuestions.actions.addQuestion' | translate"
+                      [leadingIcon]="{ name: 'plus-circle', variant: 'solid' }"
+                      [disabled]="panelOpen()"
+                      (click)="onAddQuestion(frequencySection.key)"
+                    />
+                    <ignt-button
+                      variant="tertiary"
+                      size="small"
+                      [label]="'customerQuestions.actions.createGroup' | translate"
+                      [leadingIcon]="{ name: 'plus-circle', variant: 'solid' }"
+                      [disabled]="panelOpen()"
+                      (click)="onCreateGroup(frequencySection.key)"
+                    />
+                  </div>
+                }
+              </ignt-list-item>
+            }
+          </div>
+        </ignt-expansion-panel>
+      }
+    </div>
+  }
+</div>
+
+<ng-template #questionContent let-view="view" let-number="number">
+  <div class="event-customer-questions__content">
+    <span class="event-customer-questions__col event-customer-questions__col--title">{{ number }}. {{ view.title }}</span>
+    <span class="event-customer-questions__col event-customer-questions__col--description">
+      @if (view.choiceLabels) {
+        <span class="event-customer-questions__choices">
+          @for (choice of view.choiceLabels; track $index) {
+            <ignt-tag sentiment="sharp" variant="outline">{{ choice }}</ignt-tag>
+          }
+        </span>
+      } @else {
+        {{ view.description }}
+      }
+    </span>
+  </div>
+</ng-template>
+
+<ng-template #looseActions let-key="key" let-nodeId="nodeId" let-leaf="leaf" let-view="view">
+  <button
+    ignt-icon-button
+    sentiment="tertiary"
+    size="small"
+    data-testid="question-actions"
+    [icon]="['fas', 'ellipsis-v']"
+    [disabled]="panelOpen()"
+    [attr.aria-label]="'common.actions' | translate"
+    [igntMenuTriggerFor]="menu"
+    (click)="$event.stopPropagation()"
+    (keydown)="$event.stopPropagation()"
+  ></button>
+  <ng-template #menu>
+    <ignt-menu>
+      @if (view.editable) {
+        <ignt-menu-item label="{{ 'customerQuestions.actions.edit' | translate }}" value="edit" (triggered)="onQuestionClick(view)">
+          <ignt-icon name="edit" variant="light" />
+        </ignt-menu-item>
+      }
+      @if (view.editable && sectionHasGroup(key)) {
+        <ignt-menu-item
+          label="{{ 'customerQuestions.actions.addToGroup' | translate }}"
+          value="add-to-group"
+          (triggered)="onAddToGroup(key, nodeId, leaf)"
+        >
+          <ignt-icon name="layer-group" variant="light" />
+        </ignt-menu-item>
+      }
+      @if (canViewResponses(view)) {
+        <ignt-menu-item
+          label="{{ 'customerQuestions.actions.viewResponses' | translate }}"
+          value="view-responses"
+          (triggered)="onViewResponses(view)"
+        >
+          <ignt-icon name="comments-alt" variant="light" />
+        </ignt-menu-item>
+      }
+      @if (view.editable) {
+        <ignt-menu-item
+          label="{{ 'customerQuestions.actions.delete' | translate }}"
+          value="delete"
+          sentiment="danger"
+          (triggered)="onDelete(key, view)"
+        >
+          <ignt-icon name="trash-alt" variant="light" />
+        </ignt-menu-item>
+      }
+    </ignt-menu>
+  </ng-template>
+</ng-template>
+
+<ng-template #groupedActions let-key="key" let-clusterId="clusterId" let-leafId="leafId" let-view="view">
+  <button
+    ignt-icon-button
+    sentiment="tertiary"
+    size="small"
+    data-testid="question-actions"
+    [icon]="['fas', 'ellipsis-v']"
+    [disabled]="panelOpen()"
+    [attr.aria-label]="'common.actions' | translate"
+    [igntMenuTriggerFor]="menu"
+    (click)="$event.stopPropagation()"
+    (keydown)="$event.stopPropagation()"
+  ></button>
+  <ng-template #menu>
+    <ignt-menu>
+      @if (view.editable) {
+        <ignt-menu-item label="{{ 'customerQuestions.actions.edit' | translate }}" value="edit" (triggered)="onQuestionClick(view)">
+          <ignt-icon name="edit" variant="light" />
+        </ignt-menu-item>
+      }
+      @if (view.editable) {
+        <ignt-menu-item
+          label="{{ 'customerQuestions.actions.removeFromGroup' | translate }}"
+          value="remove-from-group"
+          (triggered)="onRemoveFromGroup(key, clusterId, leafId)"
+        >
+          <ignt-icon name="layer-group" variant="light" />
+        </ignt-menu-item>
+      }
+      @if (canViewResponses(view)) {
+        <ignt-menu-item
+          label="{{ 'customerQuestions.actions.viewResponses' | translate }}"
+          value="view-responses"
+          (triggered)="onViewResponses(view)"
+        >
+          <ignt-icon name="comments-alt" variant="light" />
+        </ignt-menu-item>
+      }
+      @if (view.editable) {
+        <ignt-menu-item
+          label="{{ 'customerQuestions.actions.delete' | translate }}"
+          value="delete"
+          sentiment="danger"
+          (triggered)="onDelete(key, view)"
+        >
+          <ignt-icon name="trash-alt" variant="light" />
+        </ignt-menu-item>
+      }
+    </ignt-menu>
+  </ng-template>
+</ng-template>

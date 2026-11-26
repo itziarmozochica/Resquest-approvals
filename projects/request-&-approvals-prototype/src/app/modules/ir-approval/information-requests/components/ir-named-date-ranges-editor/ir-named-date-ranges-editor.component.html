@@ -1,0 +1,199 @@
+<div class="ndr-editor" data-testid="named-date-ranges-editor">
+  <header class="ndr-editor__toolbar">
+    <div class="ndr-editor__toolbar-lead">
+      <button type="button" class="ndr-editor__add" (click)="addBand()" data-testid="ndr-editor-add">
+        <span aria-hidden="true">+</span> {{ 'informationRequests.schedule.addPeriod' | translate }}
+      </button>
+      <p class="ndr-editor__hint">{{ 'informationRequests.schedule.periodsHint' | translate }}</p>
+    </div>
+  </header>
+
+  @if (bands().length) {
+    <div class="ndr-editor__list" data-testid="ndr-editor-bands">
+      @for (band of bands(); track band.id) {
+        <article class="ndr-editor__band" [attr.data-testid]="'ndr-editor-band-' + band.id">
+          <div class="ndr-editor__band-main">
+            <div class="ndr-editor__band-topline">
+              <span class="ndr-editor__band-name">{{ band.name }}</span>
+              <span class="ndr-editor__badge">{{ band.statusKey | translate }}</span>
+            </div>
+            <div class="ndr-editor__band-range">{{ band.range || ('informationRequests.schedule.noDates' | translate) }}</div>
+            <div class="ndr-editor__band-meta">
+              <span>{{ 'informationRequests.schedule.stats.segments' | translate: { count: band.segments } }}</span>
+              <span>{{ 'informationRequests.schedule.stats.openDays' | translate: { count: band.openDays } }}</span>
+              <span>{{ 'informationRequests.schedule.stats.sessions' | translate: { count: band.sessions } }}</span>
+              <span>{{ 'informationRequests.schedule.stats.tickets' | translate: { count: band.ticketCount } }}</span>
+            </div>
+          </div>
+          <div class="ndr-editor__band-actions">
+            <button type="button" (click)="editBand(band.id)" [attr.data-testid]="'ndr-editor-edit-' + band.id">
+              {{ 'informationRequests.schedule.edit' | translate }}
+            </button>
+            <button
+              type="button"
+              class="ndr-editor__danger"
+              (click)="removeBand(band.id)"
+              [attr.data-testid]="'ndr-editor-remove-' + band.id"
+            >
+              {{ 'informationRequests.schedule.remove' | translate }}
+            </button>
+          </div>
+        </article>
+      }
+    </div>
+  } @else {
+    <div class="ndr-editor__empty" data-testid="ndr-editor-empty">
+      <strong>{{ 'informationRequests.schedule.emptyTitle' | translate }}</strong>
+      <span>{{ 'informationRequests.schedule.empty' | translate }}</span>
+    </div>
+  }
+
+  @if (editingBand(); as band) {
+    <div class="ndr-editor__backdrop" data-testid="ndr-editor-modal">
+      <div class="ndr-editor__modal" role="dialog" aria-modal="true">
+        <header class="ndr-editor__modal-head">
+          <div>
+            <span class="ndr-editor__modal-kicker">{{ 'informationRequests.schedule.wizardKicker' | translate }}</span>
+            <h3 class="ndr-editor__modal-title">
+              {{ 'informationRequests.schedule.wizardTitle' | translate }}{{ band.name ? ': ' + band.name : '' }}
+            </h3>
+          </div>
+          <button type="button" class="ndr-editor__close" (click)="cancel()" data-testid="ndr-editor-cancel" aria-label="Close">✕</button>
+        </header>
+
+        <div class="ndr-editor__progress" aria-hidden="true">
+          <span [style.width.%]="modalProgress()"></span>
+        </div>
+
+        <app-fz-wizard-stepper
+          [steps]="stepViews()"
+          [currentIndex]="currentStepIndex()"
+          [allowStepSelect]="true"
+          (stepSelect)="goToStep($event)"
+        />
+
+        @if (finishValidationAttempted() && !canFinish()) {
+          <p class="ndr-editor__validation" data-testid="ndr-editor-validation">
+            {{ 'informationRequests.schedule.validationCompleteRequired' | translate }}
+          </p>
+        }
+        @if (currentStepValidationAttempted() && currentMissingFieldKeys().length) {
+          <div class="ndr-editor__validation ndr-editor__validation--list" data-testid="ndr-editor-missing-fields">
+            <strong>{{ 'informationRequests.schedule.validationMissingFields' | translate }}</strong>
+            <ul>
+              @for (fieldKey of currentMissingFieldKeys(); track fieldKey) {
+                <li>{{ fieldKey | translate }}</li>
+              }
+            </ul>
+          </div>
+        }
+
+        <div class="ndr-editor__step">
+          @switch (currentStep()) {
+            @case ('identity') {
+              <app-ir-schedule-wizard-step-identity
+                [band]="band"
+                [validationAttempted]="currentStepValidationAttempted()"
+                [otherBandsUsedYmds]="otherBandsUsedYmds()"
+                (bandChange)="onBandChange($event)"
+              />
+            }
+            @case ('tickets') {
+              <app-ir-schedule-wizard-step-tickets
+                [band]="band"
+                [allProducts]="allProducts()"
+                [validationAttempted]="currentStepValidationAttempted()"
+                (bandChange)="onBandChange($event)"
+              />
+            }
+            @case ('weekdays') {
+              <app-ir-schedule-wizard-step-weekdays
+                [band]="band"
+                [products]="editingBandProducts()"
+                [validationAttempted]="currentStepValidationAttempted()"
+                (bandChange)="onBandChange($event)"
+              />
+            }
+          }
+        </div>
+
+        <footer class="ndr-editor__modal-foot">
+          @if (currentStepIndex() > 0) {
+            <button type="button" class="ndr-editor__secondary" (click)="previous()" data-testid="ndr-editor-prev">
+              {{ 'informationRequests.schedule.back' | translate }}
+            </button>
+          }
+          <button type="button" class="ndr-editor__secondary" (click)="saveProgress()" data-testid="ndr-editor-save-progress">
+            {{ 'informationRequests.schedule.saveProgress' | translate }}
+          </button>
+          @if (currentStepIndex() < steps().length - 1) {
+            <button type="button" class="ndr-editor__primary" (click)="next()" data-testid="ndr-editor-next">
+              {{ 'informationRequests.schedule.nextStep' | translate }}
+            </button>
+          } @else {
+            <button type="button" class="ndr-editor__primary" [disabled]="!canFinish()" (click)="finish()" data-testid="ndr-editor-finish">
+              {{ 'informationRequests.schedule.finish' | translate }}
+            </button>
+          }
+        </footer>
+      </div>
+    </div>
+  }
+
+  @if (newRangeChoiceOpen()) {
+    <div class="ndr-editor__backdrop" data-testid="ndr-editor-new-choice">
+      <section class="ndr-editor__choice" role="dialog" aria-modal="true">
+        <header class="ndr-editor__modal-head">
+          <div>
+            <span class="ndr-editor__modal-kicker">{{ 'informationRequests.schedule.addPeriod' | translate }}</span>
+            <h3 class="ndr-editor__modal-title">{{ 'informationRequests.schedule.newChoice.title' | translate }}</h3>
+          </div>
+          <button type="button" class="ndr-editor__close" (click)="newRangeChoiceOpen.set(false)" aria-label="Close">✕</button>
+        </header>
+        <div class="ndr-editor__choice-body">
+          <label class="ndr-editor__choice-option">
+            <input type="radio" name="new-range-mode" [checked]="newRangeMode() === 'scratch'" (change)="newRangeMode.set('scratch')" />
+            <span>
+              <strong>{{ 'informationRequests.schedule.newChoice.scratchLabel' | translate }}</strong>
+              <small>{{ 'informationRequests.schedule.newChoice.scratchHint' | translate }}</small>
+            </span>
+          </label>
+          <label class="ndr-editor__choice-option">
+            <input type="radio" name="new-range-mode" [checked]="newRangeMode() === 'copy'" (change)="newRangeMode.set('copy')" />
+            <span>
+              <strong>{{ 'informationRequests.schedule.newChoice.copyLabel' | translate }}</strong>
+              <small>{{ 'informationRequests.schedule.newChoice.copyHint' | translate }}</small>
+            </span>
+          </label>
+          @if (newRangeMode() === 'copy') {
+            <select
+              class="form-select"
+              [value]="newRangeCopySourceId()"
+              (change)="newRangeCopySourceId.set($any($event.target).value)"
+              data-testid="ndr-editor-copy-source"
+            >
+              <option value="">{{ 'informationRequests.schedule.newChoice.copyPlaceholder' | translate }}</option>
+              @for (band of bands(); track band.id) {
+                <option [value]="band.id">{{ band.name }} · {{ band.range }}</option>
+              }
+            </select>
+          }
+        </div>
+        <footer class="ndr-editor__modal-foot">
+          <button type="button" class="ndr-editor__secondary" (click)="newRangeChoiceOpen.set(false)">
+            {{ 'informationRequests.schedule.cancel' | translate }}
+          </button>
+          <button
+            type="button"
+            class="ndr-editor__primary"
+            [disabled]="newRangeMode() === 'copy' && !newRangeCopySourceId()"
+            (click)="confirmAddBand()"
+            data-testid="ndr-editor-new-choice-continue"
+          >
+            {{ 'informationRequests.schedule.continue' | translate }}
+          </button>
+        </footer>
+      </section>
+    </div>
+  }
+</div>

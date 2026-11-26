@@ -1,0 +1,121 @@
+<div class="timeslot-mapping-step">
+  <div class="step-header">
+    <h4>{{ 'accessControl.uploadCodes.wizard.timeslotMapping.title' | translate }}</h4>
+    <p class="description">
+      {{ 'accessControl.uploadCodes.wizard.timeslotMapping.description' | translate }}
+    </p>
+  </div>
+
+  <div class="date-range-section">
+    <h5>
+      <i class="fas fa-calendar-alt"></i>
+      {{ 'accessControl.uploadCodes.wizard.timeslotMapping.selectDateRange' | translate }}
+    </h5>
+    <div class="date-range-wrapper">
+      <div class="date-inputs">
+        <div class="date-input-group">
+          <label for="startDate">{{ 'common.from' | translate }}:</label>
+          <input
+            id="startDate"
+            type="date"
+            class="form-control"
+            [value]="formatDateForInput(selectedDateRange?.startDate)"
+            (change)="onStartDateChange($event)"
+          />
+        </div>
+        <div class="date-input-group">
+          <label for="endDate">{{ 'common.to' | translate }}:</label>
+          <input
+            id="endDate"
+            type="date"
+            class="form-control"
+            [value]="formatDateForInput(selectedDateRange?.endDate)"
+            (change)="onEndDateChange($event)"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="timeslots-info" *ngIf="selectedDateRange">
+      <div class="info-item" *ngIf="isLoadingTimeslots">
+        <i class="fas fa-spinner fa-spin"></i>
+        {{ 'accessControl.uploadCodes.wizard.timeslotMapping.loadingTimeslots' | translate }}
+      </div>
+      <div class="info-item" *ngIf="!isLoadingTimeslots">
+        <i class="fas fa-info-circle"></i>
+        {{ 'accessControl.uploadCodes.wizard.timeslotMapping.availableTimeslots' | translate: { count: availableTimeslots.length } }}
+      </div>
+    </div>
+  </div>
+
+  <div class="mapping-list" *ngIf="uniqueTimeslots.length > 0 && !isLoadingTimeslots">
+    <h5>
+      <i class="fas fa-link"></i>
+      {{ 'accessControl.uploadCodes.wizard.timeslotMapping.mapTimeslots' | translate }}
+    </h5>
+
+    <div class="mapping-item" *ngFor="let csvTimeslot of uniqueTimeslots">
+      <div class="csv-timeslot">
+        <div class="timeslot-label">
+          <i class="fas fa-file-csv"></i>
+          <strong>{{ csvTimeslot }}</strong>
+        </div>
+
+        <div class="usage-count">
+          {{ 'accessControl.uploadCodes.wizard.timeslotMapping.usageCount' | translate: { count: getUsageCount(csvTimeslot) } }}
+        </div>
+      </div>
+
+      <div class="mapping-arrow">
+        <i class="fas fa-arrow-right"></i>
+      </div>
+
+      <div class="system-timeslot">
+        <select class="form-select" [value]="mapping[csvTimeslot] ?? ''" (change)="onMappingSelect(csvTimeslot, $event.target.value)">
+          <option value="">
+            {{ 'accessControl.uploadCodes.wizard.timeslotMapping.selectTimeslot' | translate }}
+          </option>
+          <option *ngFor="let timeslot of availableTimeslots" [value]="timeslot.id">
+            {{ formatTimeslot(timeslot.startsAt) }}
+          </option>
+        </select>
+
+        <div class="selected-info" *ngIf="getSelectedSystemTimeslot(csvTimeslot)">
+          <i class="fas fa-check-circle text-success"></i>
+          <span>{{ formatTimeslot(getSelectedSystemTimeslot(csvTimeslot)!.startsAt) }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="no-timeslots" *ngIf="uniqueTimeslots.length === 0">
+    <div class="alert alert-info">
+      <i class="fas fa-info-circle"></i>
+      {{ 'accessControl.uploadCodes.wizard.timeslotMapping.noTimeslots' | translate }}
+    </div>
+  </div>
+
+  <div
+    class="no-available-timeslots"
+    *ngIf="uniqueTimeslots.length > 0 && availableTimeslots.length === 0 && !isLoadingTimeslots && selectedDateRange"
+  >
+    <div class="alert alert-warning">
+      <i class="fas fa-exclamation-triangle"></i>
+      {{ 'accessControl.uploadCodes.wizard.timeslotMapping.noAvailableTimeslots' | translate }}
+    </div>
+  </div>
+
+  <div class="validation-summary" *ngIf="uniqueTimeslots.length > 0 && !isLoadingTimeslots && !isValid()">
+    <div class="alert alert-warning">
+      <i class="fas fa-exclamation-triangle"></i>
+      {{ 'accessControl.uploadCodes.wizard.timeslotMapping.validationError' | translate }}
+    </div>
+  </div>
+
+  <div class="mapping-summary" *ngIf="uniqueTimeslots.length > 0 && !isLoadingTimeslots && isValid()">
+    <div class="alert alert-success">
+      <i class="fas fa-check-circle"></i>
+      {{ 'accessControl.uploadCodes.wizard.timeslotMapping.mappingComplete' | translate: { count: uniqueTimeslots.length } }}
+    </div>
+  </div>
+</div>

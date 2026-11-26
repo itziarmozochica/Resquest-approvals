@@ -1,0 +1,2382 @@
+@use 'sass:map';
+@use 'foundations' as foundations;
+@use 'foundations/font/font-sizes' as font-sizes;
+@use 'foundations/effects/motion';
+@use 'foundations/effects/shadows' as shadows;
+@use '../../../../theme/components/navigation/headerbar/tokens' as headerbar;
+@use './booking-card-tag-surfaces' as booking-card-tag-surfaces;
+@use './booking-card-v3' as card;
+@use './calendar-dim' as calendar-dim;
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/mixins';
+
+// The edge fades over the asset grid. Same colour as `shadows.$shadow-200-right`, the system's
+// shadow for a sticky edge, drawn as a gradient instead so it reaches further than a 6px blur:
+// the grid is 1440px wide and the cue has to read at a glance from either side.
+$calendar-scroll-edge-shadow: rgba(foundations.$palette-primary-900, 0.16);
+$calendar-scroll-edge-shadow-fade: rgba(foundations.$palette-primary-900, 0);
+
+:host {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+
+  > app-page-title {
+    margin-bottom: 0;
+
+    ::ng-deep .bl-page-title {
+      padding-bottom: 0;
+    }
+  }
+
+  > .asset-based-calendar-view {
+    margin-top: 0;
+  }
+}
+
+.calendar-view-actions {
+  &__button {
+    margin-left: auto;
+
+    @include media-breakpoint-down(md) {
+      display: block;
+      min-width: 100%;
+    }
+  }
+
+  @include media-breakpoint-down(md) {
+    width: 100%;
+  }
+}
+
+.calendar-view-header__filters {
+  display: flex;
+  align-items: center;
+  gap: foundations.$space-4;
+  flex-wrap: wrap;
+  z-index: 2;
+
+  @include media-breakpoint-up(md) {
+    flex-wrap: nowrap;
+  }
+
+  app-multi-select {
+    position: relative;
+    z-index: 3;
+  }
+
+  .calendar-view-header__order-search {
+    position: relative;
+    z-index: 3;
+  }
+
+  .calendar-view-header__lock {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    position: relative;
+
+    .calendar-view-header__lock-button {
+      flex-shrink: 0;
+
+      ::ng-deep .ignt-dropdown > button.button {
+        align-items: center;
+        border: 1px solid foundations.$color-border-main;
+        border-radius: 50%;
+        box-shadow: none;
+        box-sizing: border-box;
+        color: foundations.$palette-primary-600;
+        display: inline-flex;
+        flex-shrink: 0;
+        gap: 0;
+        height: 40px;
+        justify-content: center;
+        min-width: 40px;
+        padding: 0;
+        width: 40px;
+
+        > fa-icon {
+          display: none;
+        }
+      }
+
+      &.calendar-view-header__lock-button--armed ::ng-deep .ignt-dropdown > button.button {
+        background-color: rgba(foundations.$palette-primary-200, 0.4);
+        box-shadow: inset 0 0 0 foundations.$size-px2 foundations.$palette-primary-500;
+      }
+
+      ::ng-deep .ignt-dropdown-content__container {
+        min-width: 11rem;
+      }
+    }
+
+    .calendar-view-header__quick-block-hint {
+      background-color: foundations.$color-background-main;
+      border: foundations.$size-px solid foundations.$color-border-main;
+      border-radius: foundations.$radii-2;
+      box-shadow: shadows.$shadow-300;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: foundations.$space-1;
+      inset-inline-end: 0;
+      padding: foundations.$space-3;
+      pointer-events: none;
+      position: absolute;
+      top: calc(100% + #{foundations.$space-2});
+      width: 15rem;
+      z-index: 3;
+    }
+
+    .calendar-view-header__quick-block-hint-title {
+      color: foundations.$color-text-main;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .calendar-view-header__quick-block-hint-text {
+      color: foundations.$color-text-subtle;
+      margin: 0;
+    }
+
+    .calendar-view-header__lock-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: inherit;
+      font-size: font-sizes.$size-h4;
+      line-height: 1;
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+  }
+
+  .calendar-view-header__actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: foundations.$space-3;
+    flex-wrap: wrap;
+  }
+
+  &--with-tag-filter {
+    flex-wrap: wrap;
+    row-gap: foundations.$space-3;
+
+    .calendar-view-header__order-search {
+      flex-basis: 200px;
+      min-width: 160px;
+    }
+
+    .calendar-view-header__tag-filter {
+      flex: 0 0 auto;
+    }
+
+    .calendar-view-header__actions {
+      flex-shrink: 0;
+      flex-wrap: nowrap;
+    }
+  }
+
+  .calendar-view-header__day-entries {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    position: relative;
+
+    &--active {
+      // The drawer is open: the trigger reads as pressed even though the button owns its own tokens.
+      border-radius: foundations.$radii-full;
+      box-shadow: inset 0 0 0 1px foundations.$color-action-border-primary;
+    }
+  }
+
+  .calendar-view-header__day-entries-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: foundations.$color-action-background-primary;
+    border-radius: foundations.$radii-full;
+    color: foundations.$color-text-main-contrast;
+    font-size: font-sizes.$size-tiny;
+    font-weight: 700;
+    min-width: 18px;
+    padding: 0 5px;
+    position: absolute;
+    right: -6px;
+    top: -4px;
+  }
+
+  .calendar-view-header__settings-menu {
+    flex-shrink: 0;
+
+    ::ng-deep .ignt-dropdown > button.button {
+      align-items: center;
+      border: 1px solid foundations.$color-border-main;
+      border-radius: 50%;
+      box-shadow: none;
+      box-sizing: border-box;
+      color: foundations.$palette-primary-600;
+      display: inline-flex;
+      flex-shrink: 0;
+      gap: 0;
+      height: 40px;
+      justify-content: center;
+      min-width: 40px;
+      padding: 0;
+      width: 40px;
+
+      > fa-icon {
+        display: none;
+      }
+    }
+  }
+
+  .calendar-view-header__settings-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: inherit;
+    font-size: font-sizes.$size-h4;
+    line-height: 1;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+}
+
+.calendar-header-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+
+  @include media-breakpoint-down(md) {
+    flex-direction: column;
+  }
+
+  &__format-explanation {
+    border-radius: 8px;
+    white-space: nowrap;
+    background-color: foundations.$palette-positive-100;
+    padding: foundations.$space-0 foundations.$space-4;
+  }
+
+  &__filters {
+    @include media-breakpoint-down(md) {
+      width: 100%;
+    }
+  }
+}
+
+.calendar-extend-dates-button {
+  min-width: fit-content;
+}
+
+.calendar-container {
+  display: block;
+  margin-top: 1.5rem;
+  border-radius: 4px;
+  padding: 16px;
+  background-color: foundations.$palette-neutral-50;
+  width: 100%;
+  overflow-x: auto;
+
+  &__results {
+    display: block;
+    min-width: 1000px;
+  }
+}
+
+.calendar-item-container {
+  $p: &;
+  all: unset;
+  cursor: pointer;
+  pointer-events: auto;
+  display: block;
+  width: calc(100% - 6px);
+  height: calc(100% - 4px);
+  margin: 2px 3px;
+
+  app-asset-based-calendar.asset-based-calendar--slot-drag-active & {
+    cursor: inherit;
+  }
+
+  #{$p}__timeslot {
+    background-color: foundations.$palette-neutral-white;
+    border: 1px solid foundations.$color-border-primary-medium;
+    padding: 0;
+  }
+
+  &__timeslot-summary {
+    padding: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  #{$p}__exclusive-tag {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: foundations.$space-2;
+  }
+
+  &--clamped {
+    #{$p}__timeslot {
+      border-radius: 8px 8px 0 0;
+    }
+  }
+
+  &--dimmed {
+    filter: calendar-dim.$calendar-dim-filter;
+    opacity: calendar-dim.$calendar-dim-opacity;
+  }
+
+  // On opacity alone the heatmap's green ramp outweighed the very purchase the selection was meant
+  // to single out (GAME-1932). The gentler opacity stays, so the occupancy figures keep reading as
+  // context.
+  &--dimmed-summary {
+    filter: calendar-dim.$calendar-dim-filter;
+    opacity: calendar-dim.$calendar-dim-summary-opacity;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    transition:
+      filter motion.$motion-duration-moderate1 motion.$motion-easing-regular,
+      opacity motion.$motion-duration-moderate1 motion.$motion-easing-regular;
+  }
+
+  &--selected {
+    #{$p}__timeslot {
+      border: 2px solid foundations.$color-border-primary-medium;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+    }
+
+    #{$p}__timeslot-summary {
+      border: 2px solid foundations.$color-border-positive-base;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  &--to-be-paid {
+    #{$p}__timeslot {
+      border: 1px solid foundations.$color-border-warning-medium;
+    }
+
+    &.calendar-item-container--selected {
+      #{$p}__timeslot {
+        border: 2px solid foundations.$color-border-warning-medium;
+      }
+    }
+  }
+
+  &--maintenance {
+    background-color: foundations.$palette-neutral-100;
+
+    #{$p}__timeslot {
+      border: 1px solid foundations.$color-border-main;
+    }
+
+    &.calendar-item-container--selected {
+      #{$p}__timeslot {
+        border: 2px solid foundations.$color-border-main;
+      }
+    }
+  }
+
+  /** No stroke of its own: all four sides stay with the selection, to-be-paid and maintenance borders. */
+  &--playing {
+    #{$p}__timeslot {
+      background-color: foundations.$palette-positive-100;
+    }
+  }
+
+  // A tinted card hands its bar and border to the tag; the state stays readable through its glyph.
+  @each $color, $surface in booking-card-tag-surfaces.$booking-card-tag-surfaces {
+    &[data-tag-color='#{$color}'] {
+      --booking-card-tag-surface: #{$surface};
+      --booking-card-bar-color: #{map.get(booking-card-tag-surfaces.$booking-card-tag-bars, $color)};
+    }
+  }
+
+  &[data-tag-color] #{$p}__timeslot {
+    background-color: var(--booking-card-tag-surface);
+  }
+
+  &--to-be-paid[data-tag-color] #{$p}__timeslot {
+    border-color: var(--booking-card-bar-color);
+  }
+}
+
+$card-v3-inset-inline: foundations.$space-1;
+$card-v3-column-line-width: foundations.$size-px;
+$card-v3-hover-shadow-near: 0 1px 2px rgba(foundations.$palette-neutral-800, 0.08);
+$card-v3-hover-shadow-far: 0 4px 12px rgba(foundations.$palette-neutral-800, 0.12);
+$card-v3-hover-duration: 120ms;
+$floating-alert-width: 21.4375rem;
+$floating-alert-layer: 10;
+$details-panel-width: 420px;
+
+.calendar-item-container.calendar-item-container--card-v3 {
+  block-size: 100%;
+  border-radius: foundations.$radii-1;
+  inline-size: calc(100% - 2 * #{$card-v3-inset-inline} + #{$card-v3-column-line-width});
+  margin: 0 $card-v3-inset-inline 0 calc(#{$card-v3-inset-inline} - #{$card-v3-column-line-width});
+  overflow: hidden;
+  position: relative;
+
+  .calendar-item-container__timeslot,
+  .calendar-item-container__timeslot-summary {
+    background-color: transparent;
+    block-size: 100%;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    transition: box-shadow $card-v3-hover-duration ease-in-out;
+
+    &:hover:not(.calendar-item-container--block, .calendar-item-container--dimmed, .calendar-item-container--dimmed-summary) {
+      box-shadow: $card-v3-hover-shadow-near, $card-v3-hover-shadow-far;
+    }
+  }
+
+  &.calendar-item-container--selected::after,
+  &[aria-current='true']::after {
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 foundations.$size-px2 foundations.$palette-primary-600;
+    content: '';
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
+  }
+
+  &:focus-visible {
+    outline: foundations.$size-px2 solid foundations.$palette-primary-600;
+    outline-offset: foundations.$size-px;
+  }
+}
+
+.calendar-card-tooltip__title,
+.calendar-card-tooltip__line {
+  display: block;
+}
+
+.calendar-card-tooltip__title {
+  font-weight: card.$weight-semibold;
+}
+
+.calendar__floating-alerts {
+  display: flex;
+  flex-direction: column;
+  inline-size: $floating-alert-width;
+  inset-block-end: foundations.$space-5;
+  inset-inline-end: foundations.$space-5;
+  position: fixed;
+  z-index: $floating-alert-layer;
+
+  &:empty {
+    display: none;
+  }
+
+  &--beside-panel {
+    @include media-breakpoint-up(md) {
+      inline-size: min(#{$floating-alert-width}, calc(100vw - #{$details-panel-width} - 2 * #{foundations.$space-5}));
+      inset-inline-end: calc(#{$details-panel-width} + #{foundations.$space-5});
+    }
+  }
+}
+
+::ng-deep ignt-tag.exclusive-hire-tag .tag {
+  min-width: 0;
+  width: auto;
+  text-transform: none;
+}
+
+::ng-deep ignt-tag.exclusive-hire-tag .tag * {
+  text-transform: none;
+}
+
+.calendar-item-header {
+  color: foundations.$palette-neutral-500;
+  font-size: font-sizes.$size-small;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  container-type: inline-size;
+
+  .calendar-item {
+    font-size: clamp(font-sizes.$size-tiny, 8cqw, font-sizes.$size-small);
+  }
+}
+
+.calendar-item {
+  display: flex;
+  flex-direction: column;
+  gap: foundations.$space-1;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: foundations.$space-2;
+  text-transform: none;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: foundations.$space-1;
+    width: 100%;
+    min-width: 0;
+  }
+
+  &__badges {
+    display: flex;
+    align-items: center;
+    gap: foundations.$space-2 + foundations.$space-1; // 10px
+    margin-bottom: foundations.$space-1;
+    width: 100%;
+  }
+
+  &__badge {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    background: foundations.$color-background-subtle-weak;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    fa-icon {
+      font-size: font-sizes.$size-caption;
+      color: foundations.$palette-neutral-900;
+    }
+  }
+
+  &__badge--multi {
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  &__tag-icons,
+  &__tag-chips {
+    width: 100%;
+  }
+
+  &__name {
+    font-size: font-sizes.$size-caption;
+    font-weight: 600;
+    color: foundations.$palette-neutral-900;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+    width: 95px;
+    text-transform: capitalize;
+  }
+
+  &__multi-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background-color: #06232c;
+    border-radius: 4px;
+    flex-shrink: 0;
+
+    fa-icon {
+      font-size: 12px;
+      color: foundations.$palette-neutral-white;
+    }
+  }
+
+  &__info {
+    display: flex;
+    align-items: center;
+    gap: foundations.$space-1;
+    font-size: font-sizes.$size-caption;
+    color: foundations.$palette-neutral-900;
+    flex-wrap: wrap;
+    row-gap: foundations.$space-1;
+  }
+
+  &__status-tag {
+    margin-top: 2px;
+
+    --reservation-status-tag-color: #{foundations.$palette-neutral-900};
+  }
+
+  &__validated-tag {
+    max-width: 100%;
+
+    &::ng-deep .tag__content {
+      text-transform: none;
+    }
+
+    &--compact {
+      ::ng-deep .tag {
+        padding: foundations.$space-1;
+      }
+
+      ::ng-deep .tag__content:empty {
+        display: none;
+      }
+    }
+  }
+
+  &--compact {
+    gap: foundations.$space-1;
+    min-width: 68px;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: foundations.$space-1;
+    font-size: font-sizes.$size-caption;
+    color: foundations.$palette-neutral-900;
+    width: 100%;
+  }
+
+  &__info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  &__info-icon {
+    font-size: font-sizes.$size-caption;
+    color: foundations.$palette-neutral-900;
+  }
+
+  &__separator {
+    color: foundations.$palette-neutral-900;
+  }
+}
+
+.calendar-item-maintenance {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: foundations.$space-1;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  padding: foundations.$space-2;
+  width: 100%;
+
+  &__lock-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+
+  &__title {
+    color: foundations.$palette-neutral-900;
+    font-size: font-sizes.$size-caption;
+    font-weight: 600;
+    line-height: 1.3;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    text-transform: capitalize;
+    white-space: normal;
+    width: 100%;
+    word-break: break-word;
+  }
+
+  &__time {
+    color: foundations.$palette-neutral-900;
+    font-size: font-sizes.$size-caption;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-transform: none;
+    white-space: nowrap;
+    width: 100%;
+  }
+}
+
+.calendar__view-notice {
+  width: 100%;
+
+  &:has(ignt-alert) {
+    margin-block-end: foundations.$space-4;
+  }
+}
+
+@mixin drag-cancel-zone {
+  align-items: center;
+  align-self: stretch;
+  background-color: foundations.$palette-neutral-white;
+  border: 2px dashed foundations.$palette-neutral-400;
+  border-radius: foundations.$radii-2;
+  color: foundations.$palette-neutral-700;
+  display: flex;
+  flex: 0 0 auto;
+  font-size: foundations.$size-small;
+  font-weight: 600;
+  gap: foundations.$space-2;
+  justify-content: center;
+  min-width: 14rem;
+  padding: foundations.$space-2 foundations.$space-4;
+  pointer-events: none;
+  text-align: center;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+
+  &--hovered {
+    background-color: foundations.$palette-danger-100;
+    border-color: foundations.$palette-danger-600;
+    border-style: solid;
+    color: foundations.$palette-danger-700;
+  }
+}
+
+.calendar__controls {
+  position: sticky;
+  top: foundations.$space-18;
+  z-index: 4;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 1.5rem;
+  width: 100%;
+  background-color: foundations.$color-background-main-contrast;
+  padding: 1rem;
+  border-radius: 0 0 4px 4px;
+  margin-top: 0;
+
+  > .field {
+    flex: 1 1 0;
+    min-width: 18rem;
+    max-width: 24rem;
+  }
+
+  > .drag-cancel-zone {
+    @include drag-cancel-zone;
+
+    margin-inline-start: auto;
+  }
+
+  .drag-cancel-zone__icon {
+    font-size: foundations.$size-h4;
+    line-height: 0;
+  }
+
+  @include media-breakpoint-down(md) {
+    flex-direction: column;
+    gap: 1rem;
+
+    > .field {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+    }
+
+    > .drag-cancel-zone {
+      margin-inline-start: 0;
+      width: 100%;
+    }
+  }
+}
+
+.calendar-header {
+  display: flex;
+  border: solid #ccd2d8;
+  border-width: 0 0 1px;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  line-height: 24px;
+  padding-bottom: 16px;
+  gap: 16px;
+
+  .view-selector {
+    all: unset;
+    display: flex;
+    gap: 16px;
+    font-size: 16px;
+    line-height: 16px;
+
+    @include media-breakpoint-down(md) {
+      flex-direction: column;
+    }
+
+    &__label {
+      cursor: pointer;
+      display: flex;
+      gap: 4px;
+      margin: 0;
+    }
+
+    &__option {
+      all: unset;
+    }
+  }
+
+  .attendees-header-info {
+    &__title {
+      font-weight: 600;
+    }
+  }
+}
+
+.main-wrapper,
+.wrapper-card--main {
+  position: relative;
+}
+
+.main-wrapper {
+  max-height: 80vh;
+  height: 80vh;
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+
+  &--list {
+    height: auto;
+    max-height: none;
+    min-height: 80vh;
+
+    .wrapper-card--main {
+      height: auto;
+      max-height: none;
+    }
+
+    .asset-based-calendar-view__view-container {
+      height: auto;
+      max-height: none;
+    }
+
+    .calendar-scroll-wrapper {
+      max-height: none;
+      overflow-y: visible;
+    }
+
+    .calendar-scroll-wrapper__body,
+    .calendar-scroll-wrapper__content {
+      min-height: auto;
+    }
+  }
+}
+
+.asset-based-calendar-view__refresh-status {
+  display: block;
+  min-inline-size: 0;
+
+  @include media-breakpoint-down(md) {
+    display: none;
+  }
+}
+
+/* Runs along the top edge of the page, under the header bar, while the booked slots are read again. */
+.asset-based-calendar-view__refresh-bar {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  z-index: 12;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.wrapper-card--main {
+  overflow-x: hidden;
+  overflow-y: visible;
+  height: 100%;
+  max-height: 100%;
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+
+  &--panel-open {
+    overflow: hidden;
+  }
+}
+
+$gap: 32px;
+
+.asset-based-calendar-view {
+  &__view-container {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    height: 100%;
+    max-height: 100%;
+    width: 100%;
+    max-width: 100%;
+    flex-grow: 1;
+    gap: 16px;
+
+    &--panel-open {
+      @include media-breakpoint-up(xl) {
+        flex: 0 0 calc(100% - #{$details-panel-width});
+        max-width: calc(100% - #{$details-panel-width});
+        width: calc(100% - #{$details-panel-width});
+      }
+
+      @include media-breakpoint-down(xl) {
+        .calendar-scroll-wrapper {
+          scroll-padding-right: min(#{$details-panel-width}, 100vw);
+        }
+      }
+    }
+
+    @include media-breakpoint-up(md) {
+      &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: calc($gap / -2);
+        height: 100%;
+        border-right: 1px solid foundations.$palette-neutral-200;
+      }
+    }
+  }
+
+  .calendar-scroll-wrapper {
+    flex: 1;
+    min-height: 0;
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 100%;
+    width: 100%;
+    z-index: 1;
+    position: relative;
+
+    &:has(.asset-based-calendar-view__skeleton) {
+      overflow: hidden;
+    }
+
+    // Scrollbar styling for calendar
+    scrollbar-width: thin;
+
+    &::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: foundations.$palette-neutral-100;
+      border-radius: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: foundations.$palette-neutral-400;
+      border-radius: 4px;
+
+      &:hover {
+        background: foundations.$palette-neutral-500;
+      }
+    }
+  }
+
+  .calendar-scroll-wrapper__body,
+  .calendar-scroll-wrapper__content {
+    position: relative;
+    min-height: 100%;
+  }
+
+  // Positioning context for the edge fades. It takes over the scroll wrapper's place in the
+  // view-container column and the wrapper keeps growing inside it, so the layout is the same with
+  // or without the overlays.
+  .calendar-scroll-area {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    width: 100%;
+  }
+
+  // The only cue that the grid continues past the viewport, on whichever side still holds assets.
+  // It reads as a shadow cast over the columns passing underneath rather than as a wash of the
+  // page colour: the grid sits on `$palette-neutral-75`, where a fade to white is all but
+  // invisible. It never takes the pointer, because a fade over a booking still has to let the
+  // booking be clicked and dragged.
+  .calendar-scroll-area__edge {
+    bottom: 0;
+    pointer-events: none;
+    position: absolute;
+    top: 0;
+    width: foundations.$space-8;
+    z-index: 2;
+
+    // `inset-inline-start` comes from the template: the measured width of the sticky hour column,
+    // so the fade starts exactly where the time axis ends. Anywhere else and a lit strip is left
+    // between the two, which reads as a band floating over the grid.
+    &--start {
+      background: linear-gradient(to right, $calendar-scroll-edge-shadow, $calendar-scroll-edge-shadow-fade);
+    }
+
+    &--end {
+      background: linear-gradient(to left, $calendar-scroll-edge-shadow, $calendar-scroll-edge-shadow-fade);
+      inset-inline-end: 0;
+    }
+  }
+
+  .asset-based-calendar-view__loader-overlay {
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.85);
+    z-index: 10;
+
+    &--full-height {
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      min-height: 100%;
+    }
+
+    &--spinner {
+      align-items: center;
+      background-color: transparent;
+      display: flex;
+      inset: 0;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 11;
+    }
+  }
+
+  // List mode grows with the page instead of scrolling inside a fixed-height card, so centring on
+  // the container would drop the spinner below the fold on a long list.
+  .main-wrapper--list .asset-based-calendar-view__loader-overlay--spinner {
+    position: fixed;
+    inset: auto;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  &__details-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    align-self: stretch;
+    min-width: 0;
+    width: 0;
+    height: auto;
+    max-height: calc(100vh - foundations.$space-18 - 2rem);
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    overflow: hidden;
+    background-color: foundations.$color-background-main;
+    border: 1px solid foundations.$color-border-main;
+    border-radius: 16px 0 0 16px;
+    z-index: 3;
+    transition:
+      width 200ms,
+      min-width 200ms,
+      opacity 200ms ease-in,
+      padding 200ms;
+    overflow-y: auto;
+    box-shadow: -4px 0 6px 0 rgba(0, 70, 121, 0.2);
+    pointer-events: none;
+
+    @media (max-width: 1200px) {
+      top: calc(foundations.$size-14 + 1rem);
+      max-height: calc(100vh - foundations.$size-14 - 2rem);
+    }
+
+    &--selected {
+      box-sizing: border-box;
+      pointer-events: auto;
+      max-width: $details-panel-width;
+      min-width: $details-panel-width;
+      width: $details-panel-width;
+      opacity: 1;
+      padding: foundations.$space-6;
+
+      @include media-breakpoint-down(xl) {
+        position: fixed;
+        top: 0;
+        max-height: none;
+        max-width: min(#{$details-panel-width}, 100vw);
+        min-width: 0;
+        width: min(#{$details-panel-width}, 100vw);
+        box-shadow: -6px 0 6px 0 rgba(0, 70, 121, 0.2);
+        z-index: 1020;
+      }
+    }
+
+    &--selected:has(app-booking-detail-panel) {
+      padding-bottom: 0;
+    }
+
+    // The booking note form slides in fixed to the viewport, but this panel's z-index scopes it under the
+    // header bar, so the panel is lifted over the page while the slider is open.
+    &--selected:has(.lateral-slider--expanded) {
+      z-index: 1020;
+    }
+  }
+
+  #{&}__details-panel#{&}__details-panel--customize#{&}__details-panel--selected {
+    align-items: stretch;
+    background-color: transparent;
+    border: 0;
+    border-radius: 0;
+    bottom: 0;
+    box-shadow: none;
+    display: flex;
+    flex-direction: row;
+    height: 100vh; // Fallback for browsers without dvh units.
+    height: 100dvh;
+    left: 0;
+    max-height: none;
+    max-width: none;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0;
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: 100vw;
+    z-index: 1020;
+    transition: none;
+
+    .asset-based-calendar-view__customize-backdrop {
+      background-color: #06232ce0;
+      border: 0;
+      cursor: pointer;
+      flex: 1 1 auto;
+      margin: 0;
+      min-height: 0;
+      min-width: 0;
+      padding: 0;
+
+      &:disabled {
+        cursor: not-allowed;
+        opacity: 0.85;
+      }
+    }
+
+    .asset-based-calendar-view__customize-drawer {
+      background-color: foundations.$color-background-main;
+      border-left: 1px solid foundations.$color-border-main;
+      border-radius: 16px 0 0 16px;
+      box-shadow: -6px 0 6px 0 rgba(0, 70, 121, 0.2);
+      display: flex;
+      flex: 0 0 auto;
+      flex-direction: column;
+      height: 100%;
+      max-width: min(420px, 100vw);
+      min-height: 0;
+      position: relative;
+      width: min(420px, 100vw);
+    }
+
+    .asset-based-calendar-view__close-button {
+      right: foundations.$dimension-4;
+      top: foundations.$dimension-4;
+      z-index: 1;
+    }
+
+    .asset-based-calendar-view__close-button--saving-blocked {
+      cursor: not-allowed;
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    .customize-assets-panel {
+      border-radius: 0;
+      box-shadow: none;
+      flex: 1 1 auto;
+      height: auto;
+      inset: auto;
+      min-height: 0;
+      position: relative;
+    }
+  }
+
+  #{&}__details-panel#{&}__details-panel--block-time#{&}__details-panel--selected {
+    align-items: stretch;
+    background-color: transparent;
+    border: 0;
+    border-radius: 0;
+    bottom: 0;
+    box-shadow: none;
+    display: flex;
+    flex-direction: row;
+    height: 100vh; // Fallback for browsers without dvh units.
+    height: 100dvh;
+    left: 0;
+    max-height: none;
+    max-width: none;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0;
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: 100vw;
+    z-index: 1020;
+    transition: none;
+
+    .asset-based-calendar-view__block-time-backdrop {
+      background-color: #06232ce0;
+      border: 0;
+      cursor: pointer;
+      flex: 1 1 auto;
+      margin: 0;
+      min-height: 0;
+      min-width: 0;
+      padding: 0;
+
+      &:disabled {
+        cursor: not-allowed;
+        opacity: 0.85;
+      }
+    }
+
+    .asset-based-calendar-view__block-time-drawer {
+      background-color: foundations.$color-background-main;
+      border-left: 1px solid foundations.$color-border-main;
+      border-radius: 16px 0 0 16px;
+      box-shadow: -6px 0 6px 0 rgba(0, 70, 121, 0.2);
+      display: flex;
+      flex: 0 0 auto;
+      flex-direction: column;
+      height: 100%;
+      max-width: min(420px, 100vw);
+      min-height: 0;
+      position: relative;
+      width: min(420px, 100vw);
+
+      > app-block-time-form-panel {
+        display: flex;
+        flex: 1 1 auto;
+        min-height: 0;
+      }
+    }
+
+    .asset-based-calendar-view__close-button {
+      right: foundations.$dimension-4;
+      top: foundations.$dimension-4;
+      z-index: 1;
+    }
+
+    .asset-based-calendar-view__close-button--saving-blocked {
+      cursor: not-allowed;
+      opacity: 0.4;
+      pointer-events: none;
+    }
+  }
+
+  #{&}__details-panel#{&}__details-panel--day-entries#{&}__details-panel--selected {
+    align-items: stretch;
+    background-color: transparent;
+    border: 0;
+    border-radius: 0;
+    bottom: 0;
+    box-shadow: none;
+    display: flex;
+    flex-direction: row;
+    height: 100vh; // Fallback for browsers without dvh units.
+    height: 100dvh;
+    left: 0;
+    max-height: none;
+    max-width: none;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0;
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: 100vw;
+    z-index: 1020;
+    transition: none;
+
+    .asset-based-calendar-view__day-entries-backdrop {
+      background-color: #06232ce0;
+      border: 0;
+      cursor: pointer;
+      flex: 1 1 auto;
+      margin: 0;
+      min-height: 0;
+      min-width: 0;
+      padding: 0;
+    }
+
+    .asset-based-calendar-view__day-entries-drawer {
+      background-color: foundations.$color-background-main;
+      border-left: 1px solid foundations.$color-border-main;
+      border-radius: 16px 0 0 16px;
+      box-shadow: -6px 0 6px 0 rgba(0, 70, 121, 0.2);
+      display: flex;
+      flex: 0 0 auto;
+      flex-direction: column;
+      height: 100%;
+      max-width: min(420px, 100vw);
+      min-height: 0;
+      padding: foundations.$space-6;
+      position: relative;
+      width: min(420px, 100vw);
+
+      > app-day-entries-panel {
+        display: flex;
+        flex: 1 1 auto;
+        min-height: 0;
+      }
+    }
+
+    .asset-based-calendar-view__close-button {
+      right: foundations.$dimension-4;
+      top: foundations.$dimension-4;
+      z-index: 1;
+    }
+  }
+
+  &__close-button {
+    cursor: pointer;
+    position: absolute;
+    right: 0.5rem;
+  }
+}
+
+.customize-assets-panel {
+  position: absolute;
+  inset: 0;
+  background-color: foundations.$color-background-main;
+  border-radius: 16px 0 0 16px;
+  box-shadow: -6px 0 6px 0 rgba(0, 70, 121, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: foundations.$space-3;
+  min-height: 0;
+  padding: foundations.$dimension-6;
+}
+
+.customize-assets-panel__header {
+  min-height: 40px;
+  padding-right: foundations.$dimension-8;
+}
+
+.customize-assets-panel__title {
+  color: foundations.$palette-neutral-900;
+  font-size: font-sizes.$size-base;
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0;
+  text-align: center;
+}
+
+.customize-assets-panel__subtitle {
+  color: foundations.$palette-neutral-900;
+  font-size: font-sizes.$size-small;
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.customize-assets-panel__description {
+  color: foundations.$palette-neutral-600;
+  font-size: font-sizes.$size-small;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.customize-assets-panel__inline-alert {
+  display: block;
+  flex-shrink: 0;
+  margin-bottom: foundations.$space-3;
+  width: 100%;
+}
+
+.customize-assets-panel__list {
+  background-color: foundations.$palette-neutral-white;
+  border: 0;
+  border-radius: 0;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.customize-assets-panel__row {
+  &:not(.cdk-drag-disabled) {
+    cursor: grab;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  &:last-child .customize-assets-panel__row-main {
+    border-bottom: none;
+  }
+}
+
+.customize-assets-panel__row-main {
+  align-items: center;
+  background-color: foundations.$palette-neutral-white;
+  border-bottom: 1px solid foundations.$palette-neutral-200;
+  column-gap: foundations.$space-4;
+  display: flex;
+  padding: foundations.$space-3 foundations.$space-4;
+}
+
+.customize-assets-panel__dnd-placeholder {
+  background-color: rgba(foundations.$palette-neutral-100, 0.6);
+  border: 1px dashed foundations.$palette-neutral-300;
+  border-radius: 4px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  margin: 0 foundations.$space-4 foundations.$space-2;
+  min-height: 3.25rem;
+}
+
+.customize-assets-panel__drag-preview {
+  align-items: center;
+  background-color: foundations.$palette-neutral-white;
+  border-radius: 8px;
+  box-shadow: 0 3px 12px rgb(0 0 0 / 0.18);
+  box-sizing: border-box;
+  column-gap: foundations.$space-4;
+  display: flex;
+  padding: foundations.$space-3 foundations.$space-4;
+}
+
+.customize-assets-panel__row-gutter {
+  align-items: center;
+  align-self: center;
+  column-gap: foundations.$space-3;
+  display: flex;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.customize-assets-panel__index {
+  color: foundations.$palette-neutral-900;
+  flex-shrink: 0;
+  font-size: font-sizes.$size-small;
+  font-weight: 600;
+  line-height: 1.25;
+  min-width: 1.125rem;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+
+.customize-assets-panel__reorder {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  justify-content: center;
+  position: relative;
+}
+
+.customize-assets-panel__reorder-btn {
+  all: unset;
+  align-items: center;
+  box-sizing: border-box;
+  color: foundations.$palette-neutral-900;
+  cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  height: auto;
+  justify-content: center;
+  min-height: 1rem;
+  padding: 0.125rem 0.3125rem;
+  width: 1.5rem;
+
+  &--down {
+    margin-top: -0.25rem;
+  }
+
+  &:first-of-type {
+    border-radius: 3px 3px 0 0;
+  }
+
+  &:last-of-type {
+    border-radius: 0 0 3px 3px;
+  }
+
+  &:disabled {
+    color: foundations.$palette-neutral-400;
+    cursor: default;
+    opacity: 1;
+
+    ::ng-deep ignt-icon {
+      opacity: 0.35;
+    }
+  }
+
+  &:hover:not(:disabled) {
+    background-color: rgba(foundations.$palette-primary-600, 0.08);
+  }
+
+  &:focus-visible {
+    background-color: rgba(foundations.$palette-primary-600, 0.1);
+    box-shadow: inset 0 0 0 1px foundations.$palette-primary-600;
+    outline: none;
+    z-index: 1;
+  }
+
+  ::ng-deep ignt-icon {
+    display: flex;
+    font-size: 0.6875rem;
+    line-height: 1;
+  }
+}
+
+.customize-assets-panel__meta {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  justify-content: center;
+  min-width: 0;
+  padding: 0;
+}
+
+.customize-assets-panel__name {
+  color: foundations.$palette-neutral-900;
+  font-size: font-sizes.$size-small;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.customize-assets-panel__capacity {
+  color: foundations.$palette-neutral-600;
+  font-size: font-sizes.$size-caption;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.customize-assets-panel__toggle {
+  align-items: center;
+  align-self: center;
+  cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.customize-assets-panel__footer {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: foundations.$space-2;
+  margin-top: auto;
+  padding-top: foundations.$space-8;
+}
+
+.customize-assets-panel__save.button--primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.customize-assets-panel__cancel {
+  align-self: center;
+}
+
+.customize-unsaved-modal-layer {
+  align-items: center;
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: foundations.$dimension-4;
+  position: fixed;
+  z-index: 1030;
+}
+
+.customize-unsaved-modal-layer__backdrop {
+  background-color: #06232ce0;
+  border: 0;
+  cursor: pointer;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+}
+
+.customize-unsaved-modal {
+  background-color: foundations.$palette-neutral-white;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 35, 44, 0.2);
+  max-width: 28rem;
+  padding: foundations.$dimension-6;
+  position: relative;
+  width: 100%;
+  z-index: 1;
+}
+
+.customize-unsaved-modal__header {
+  margin-bottom: foundations.$dimension-4;
+  padding-right: foundations.$dimension-8;
+  position: relative;
+}
+
+.customize-unsaved-modal__title {
+  color: foundations.$palette-neutral-900;
+  font-size: font-sizes.$size-base;
+  font-weight: 600;
+  line-height: 1.25;
+  margin: 0;
+  text-align: center;
+}
+
+.customize-unsaved-modal__close {
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+.customize-unsaved-modal__divider {
+  background-color: foundations.$color-border-main;
+  height: 1px;
+  margin-bottom: foundations.$dimension-4;
+}
+
+.customize-unsaved-modal__message {
+  color: foundations.$color-text-main;
+  margin: 0 0 foundations.$dimension-6;
+  text-align: left;
+}
+
+.customize-unsaved-modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: foundations.$space-3;
+  justify-content: flex-end;
+}
+
+.asset-edit-panel {
+  position: absolute;
+  inset: 0;
+  background-color: foundations.$color-background-main;
+  display: flex;
+  flex-direction: column;
+  padding: foundations.$dimension-6;
+  gap: foundations.$space-4;
+  border-radius: 16px 0 0 16px;
+  box-shadow: -6px 0 6px 0 rgba(0, 70, 121, 0.2);
+}
+
+.asset-edit-panel__close {
+  position: absolute;
+  top: foundations.$dimension-4;
+  right: foundations.$dimension-4;
+  cursor: pointer;
+}
+
+.asset-edit-panel__header {
+  display: flex;
+  align-items: center;
+  gap: foundations.$space-3;
+  padding-right: foundations.$dimension-8; // leave room for the X button
+  min-height: 40px;
+}
+
+.asset-edit-panel__back {
+  all: unset;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: foundations.$palette-neutral-700;
+
+  &:hover {
+    background-color: foundations.$palette-neutral-100;
+    color: foundations.$palette-neutral-900;
+  }
+}
+
+.asset-edit-panel__header-text {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+.asset-edit-panel__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: foundations.$palette-neutral-900;
+  text-align: center;
+}
+
+.asset-edit-panel__divider {
+  height: 1px;
+  background-color: foundations.$palette-neutral-300;
+  flex-shrink: 0;
+}
+
+.asset-edit-panel__content {
+  display: flex;
+  flex-direction: column;
+  gap: foundations.$space-8;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.asset-edit-panel__booking-details {
+  background-color: foundations.$palette-neutral-100;
+  border-radius: 8px;
+  padding: foundations.$space-3;
+  display: flex;
+  flex-direction: column;
+  gap: foundations.$space-3;
+}
+
+.asset-edit-panel__section-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: foundations.$palette-neutral-600;
+}
+
+.asset-edit-panel__booking-list {
+  display: flex;
+  flex-direction: column;
+  gap: foundations.$space-2;
+}
+
+.asset-edit-panel__booking-row {
+  display: flex;
+  align-items: center;
+  gap: foundations.$space-2;
+  font-size: 14px;
+  color: foundations.$palette-neutral-600;
+}
+
+.asset-edit-panel__booking-item {
+  display: flex;
+  align-items: center;
+  gap: foundations.$space-1;
+}
+
+.asset-edit-panel__booking-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: foundations.$palette-neutral-600;
+}
+
+.asset-edit-panel__booking-divider {
+  height: 1px;
+  border-top: 1px dashed foundations.$palette-neutral-300;
+  margin: foundations.$space-1 0;
+}
+
+.asset-edit-panel__booking-from {
+  display: flex;
+  align-items: center;
+  gap: foundations.$space-1;
+  font-size: 14px;
+  color: foundations.$palette-neutral-900;
+
+  .asset-edit-panel__booking-asset {
+    font-weight: 600;
+  }
+}
+
+.asset-edit-panel__booking-transfer {
+  display: flex;
+  align-items: center;
+  gap: foundations.$space-1;
+  font-size: 14px;
+  color: foundations.$palette-neutral-900;
+
+  .asset-edit-panel__booking-asset {
+    font-weight: 600;
+
+    &--available {
+      color: foundations.$palette-positive-600;
+    }
+
+    &--swap {
+      color: foundations.$palette-warning-600;
+    }
+  }
+}
+
+.asset-edit-panel__booking-transfer-icon {
+  flex-shrink: 0;
+  color: foundations.$palette-neutral-600;
+}
+
+.asset-edit-panel__booking-swap-with {
+  margin: 0;
+  font-size: 14px;
+  color: foundations.$palette-neutral-900;
+  line-height: 1.4;
+}
+
+.asset-edit-panel__select-section {
+  display: flex;
+  flex-direction: column;
+  gap: foundations.$space-3;
+
+  .asset-edit-panel__section-title {
+    color: foundations.$palette-neutral-900;
+  }
+}
+
+.asset-edit-panel__asset-list {
+  display: flex;
+  flex-direction: column;
+  gap: foundations.$space-2;
+}
+
+.asset-edit-panel__asset-item {
+  display: flex;
+  align-items: center;
+  gap: foundations.$space-4;
+  padding: foundations.$space-3;
+  border: 1px solid foundations.$palette-neutral-300;
+  border-radius: 8px;
+  cursor: pointer;
+  background-color: foundations.$color-background-main;
+
+  &:has(input:checked) {
+    border-width: 2px;
+    border-color: foundations.$palette-primary-600;
+  }
+
+  input[type='radio'] {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    accent-color: foundations.$palette-primary-500;
+  }
+}
+
+.asset-edit-panel__asset-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: foundations.$space-1;
+  min-width: 0;
+}
+
+.asset-edit-panel__asset-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: foundations.$palette-neutral-900;
+}
+
+.asset-edit-panel__asset-conflict {
+  display: flex;
+  align-items: center;
+  gap: foundations.$space-1;
+  font-size: 12px;
+  color: foundations.$palette-neutral-600;
+
+  fa-icon {
+    flex-shrink: 0;
+  }
+}
+
+.asset-edit-panel__footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: foundations.$space-2;
+  padding-top: foundations.$space-8;
+  flex-shrink: 0;
+
+  .button--tertiary:disabled {
+    color: foundations.$palette-neutral-400;
+    background-color: foundations.$palette-neutral-100;
+    cursor: not-allowed;
+    opacity: 1;
+  }
+}
+
+.view-mode-toggle {
+  display: flex;
+  gap: foundations.$space-1;
+  border-radius: 8px;
+  background-color: foundations.$palette-neutral-100;
+  padding: foundations.$space-1;
+
+  &__button {
+    all: unset;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: foundations.$space-2;
+    padding: foundations.$space-2 foundations.$space-3;
+    border-radius: 6px;
+    font-size: font-sizes.$size-small;
+    font-weight: 500;
+    color: foundations.$palette-neutral-700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    user-select: none;
+
+    fa-icon {
+      font-size: font-sizes.$size-base;
+    }
+
+    &:hover:not(&--active) {
+      background-color: foundations.$palette-neutral-200;
+      color: foundations.$palette-neutral-900;
+    }
+
+    &--active {
+      background-color: foundations.$palette-neutral-white;
+      color: foundations.$palette-neutral-900;
+      box-shadow: shadows.$shadow-100;
+      cursor: default;
+    }
+  }
+
+  @include media-breakpoint-down(md) {
+    width: 100%;
+
+    &__button {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+}
+
+.timeslot-summary-slot-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: foundations.$space-1;
+  width: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
+  position: relative;
+  // Same radius as the cell it fills, so the occupancy bar can run the whole width and still
+  // be cut by the corners instead of squaring them off.
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+// Taken out of the flow so it sits at the cell's right edge for every body variant (occupancy
+// counts, exclusive-hire tag) without disturbing the height tuning those variants rely on.
+// `.timeslot-details--time-blocked` reserves the width so the counts never run underneath.
+.timeslot-blocked-badge {
+  position: absolute;
+  inset-inline-end: foundations.$space-2;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  border-radius: foundations.$radii-full;
+  // Dark chip + white glyph, per the frame's `background/subtle/base/default` + `palette/neutral/white`.
+  // The slate chip carries its own contrast across the whole success/100…700 heatmap ramp.
+  background-color: foundations.$color-background-subtle-base;
+  color: foundations.$palette-neutral-white;
+  overflow: hidden;
+  pointer-events: none;
+
+  &__icon {
+    font-size: font-sizes.$size-caption;
+    line-height: 1;
+  }
+}
+
+.timeslot-details {
+  padding: 16px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  // Cell height is proportional to the segment duration, so a short segment cannot fit
+  // this content: clip it inside our own box rather than spill over the next cell.
+  overflow: hidden;
+  min-width: 0;
+
+  &__occupancy {
+    font-size: font-sizes.$size-caption;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  &__capacity {
+    font-size: font-sizes.$size-caption;
+    font-weight: 500;
+    color: foundations.$color-text-subtle;
+    flex-shrink: 0;
+  }
+
+  // Yields before the counts do — the red outline still marks the cell as overbooked.
+  &__overbooked {
+    margin-inline-start: foundations.$space-2;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-size: font-sizes.$size-caption;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    background-color: foundations.$color-background-danger-base;
+    color: foundations.$color-background-danger-base-contrast;
+  }
+
+  // Grid cells are sized strictly from their duration, so the block padding above acts as a
+  // floor the cell cannot honour: a border-box height never shrinks below its own padding,
+  // pushing the centred label out of a short cell's clip box. That is why the top stays at 2px.
+  // The 5px bottom pulls the other way — it is the occupancy bar's clearance, and it costs a
+  // short cell 1.5px of its centred label. List rows are laid out by their content instead,
+  // so they keep the full padding.
+  &--grid {
+    padding-block: 2px 5px;
+  }
+
+  // Room for the absolutely-positioned lock badge (20px chip + its 8px inset + a 4px gap).
+  &--time-blocked {
+    padding-inline-end: 32px;
+  }
+
+  // Last child of the body on a list row, so its bottom edge is the body's: it has to give up
+  // the 3px the occupancy bar occupies, or the bar cuts through the chip.
+  &--validated {
+    padding: 0 0 3px;
+    height: auto;
+    flex-shrink: 0;
+  }
+}
+
+// Occupancy again, read as a length instead of a colour: the background moves in seven steps,
+// the bar in one. The track is opaque white so the fill is judged against white on every step.
+// Held inside the cell's 1px border and clear of its 8px corners, so it reads as a bar in the
+// cell rather than as a bite out of its bottom edge.
+.timeslot-occupancy-bar {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  height: 3px;
+  background-color: foundations.$palette-neutral-white;
+  overflow: hidden;
+  pointer-events: none;
+
+  &__fill {
+    height: 100%;
+    background-color: foundations.$palette-positive-900;
+  }
+
+  // At exactly 100% the ramp turns the cell `full`, its one dark step: the green fill would be
+  // green on green with no track left to separate it, so the bar takes the same white the ramp
+  // gives the figures. Keyed off the ratio this component owns rather than the class the child
+  // puts on its host, which would stop matching the day that class moves inside the child.
+  &--inverted {
+    background-color: rgba(foundations.$palette-neutral-white, 0.3);
+  }
+
+  &--inverted &__fill {
+    background-color: foundations.$palette-neutral-white;
+  }
+
+  // The lock badge is opaque, centred on the cell's own height and painted after the bar, so on
+  // a cell under 26px tall it covers the bar's trailing end — a quarter of an 80px column, on
+  // exactly the reading the bar exists to give. Stop the track where the figures already stop.
+  &--time-blocked {
+    inset-inline-end: 32px;
+  }
+}
+
+.calendar-item-container--overbooked {
+  outline: 2px solid foundations.$color-border-danger-base;
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+:host ::ng-deep .calendar-item-container__timeslot-summary .calendar-item__value {
+  height: 100%;
+}
+
+.lock-button {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 8px;
+  background-color: foundations.$palette-neutral-100;
+  color: foundations.$palette-neutral-700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+
+  fa-icon {
+    font-size: font-sizes.$size-base;
+    transition: transform 0.2s ease;
+  }
+
+  &:hover {
+    background-color: foundations.$palette-neutral-200;
+    color: foundations.$palette-neutral-900;
+  }
+
+  &--active {
+    background-color: foundations.$palette-neutral-white;
+    color: foundations.$palette-neutral-900;
+    box-shadow: shadows.$shadow-100;
+
+    fa-icon {
+      color: foundations.$palette-primary-600;
+    }
+
+    &:hover {
+      background-color: foundations.$palette-neutral-50;
+    }
+  }
+
+  @include media-breakpoint-down(md) {
+    width: 100%;
+    height: auto;
+    padding: foundations.$space-2;
+  }
+}
+
+.asset-based-calendar-view__customize-assets {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: foundations.$palette-primary-600;
+  cursor: pointer;
+  display: flex;
+  font-size: font-sizes.$size-small;
+  font-weight: 600;
+  gap: foundations.$space-2;
+  justify-content: space-between;
+  line-height: 1.25;
+  padding: foundations.$space-2 foundations.$space-1;
+  text-align: left;
+  width: 100%;
+
+  &:hover,
+  &:focus-visible {
+    color: foundations.$palette-primary-700;
+    outline: none;
+  }
+
+  &:focus-visible {
+    border-radius: foundations.$radii-1;
+    box-shadow: 0 0 0 2px foundations.$palette-primary-200;
+  }
+}
+
+.asset-based-calendar-view__customize-assets-chevron {
+  color: foundations.$palette-primary-600;
+  flex-shrink: 0;
+  font-size: font-sizes.$size-small;
+}
+
+.people-count-lanes-notice {
+  align-items: center;
+  background-color: foundations.$color-background-primary-weak;
+  border-bottom: foundations.$size-px solid foundations.$color-border-primary-weak;
+  color: foundations.$color-text-accent;
+  display: flex;
+  font-size: font-sizes.$size-small;
+  font-weight: 500;
+  gap: foundations.$space-2;
+  padding: foundations.$space-2 foundations.$space-4;
+
+  &__icon {
+    flex: 0 0 auto;
+  }
+
+  &__message {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__collapse {
+    flex: 0 0 auto;
+    margin-inline-start: auto;
+  }
+}
+
+// The frame takes the screen below the shell's header bar, and the toolbar and the grid share it through flex: a
+// toolbar that wraps to two lines on a phone shrinks the grid instead of pushing it below the screen. The inset
+// mirrors `#main-content`'s `padding-block-start`, header bar plus the impersonation and MFA banners, which swaps
+// size at 1200px.
+.asset-based-calendar-view--new-frame {
+  --calendar-shell-inset: calc(
+    #{headerbar.$dimensions-height-large} + var(--impersonation-banner-height, 0px) + var(--mfa-setup-required-banner-height, 0px)
+  );
+
+  block-size: calc(100vh - var(--calendar-shell-inset)); // Fallback for browsers without dvh units.
+  block-size: calc(100dvh - var(--calendar-shell-inset));
+  display: flex;
+  flex-direction: column;
+
+  @media (max-width: 1200px) {
+    --calendar-shell-inset: calc(
+      #{headerbar.$dimensions-height} + var(--impersonation-banner-height, 0px) + var(--mfa-setup-required-banner-height, 0px)
+    );
+  }
+
+  &:has(.main-wrapper--list) {
+    block-size: auto;
+  }
+
+  .main-wrapper {
+    block-size: auto;
+    flex: 1 1 auto;
+    max-block-size: none;
+    min-block-size: 0;
+    padding: 0;
+  }
+
+  .main-wrapper--list {
+    flex: 0 0 auto;
+  }
+
+  .wrapper-card--main {
+    background-color: foundations.$palette-neutral-75;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  .asset-based-calendar-view__toolbar {
+    inset-block-start: var(--calendar-shell-inset);
+  }
+
+  // Docked flush under the toolbar and down to the bottom of the frame, the details panel meets straight edges on
+  // both sides: a rounded corner there showed the square header row through it.
+  .asset-based-calendar-view__details-panel {
+    border-radius: 0;
+  }
+}
+
+.asset-based-calendar-view__toolbar {
+  inset-block-start: foundations.$space-18;
+  position: sticky;
+  z-index: 4;
+
+  > .drag-cancel-zone {
+    @include drag-cancel-zone;
+
+    block-size: calc(#{foundations.$size-18} - 2 * #{foundations.$space-2});
+    inset-block-start: foundations.$space-2;
+    inset-inline: foundations.$space-6;
+    position: absolute;
+    z-index: 6;
+  }
+
+  .drag-cancel-zone__icon {
+    font-size: foundations.$size-h4;
+    line-height: 0;
+  }
+}
+
+.asset-based-calendar-view__toolbar-pickers {
+  align-items: center;
+  display: flex;
+  gap: foundations.$space-2;
+  min-inline-size: 0;
+
+  ::ng-deep .field .field__icon--trail {
+    inset-block-start: 0;
+  }
+}
+
+.asset-based-calendar-view__hub-picker {
+  display: block;
+  flex: 0 1 foundations.$dimension-65;
+  min-inline-size: foundations.$dimension-40;
+}
+
+.asset-based-calendar-view__view-picker {
+  display: block;
+  flex: 0 1 foundations.$dimension-36;
+  min-inline-size: foundations.$dimension-24;
+}
+
+.asset-based-calendar-view__toolbar-pickers ::ng-deep .field .field-dropdown {
+  inline-size: max-content;
+  inset: calc(100% + #{foundations.$space-2}) auto auto 0 !important;
+  padding: foundations.$space-2;
+}
+
+.asset-based-calendar-view__hub-picker ::ng-deep {
+  .field-dropdown {
+    max-inline-size: foundations.$dimension-110;
+    min-inline-size: foundations.$dimension-75;
+  }
+
+  .field-dropdown-item__content {
+    min-inline-size: 0;
+  }
+
+  .field-dropdown-item__content ngb-highlight {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.asset-based-calendar-view__view-picker ::ng-deep {
+  .field-dropdown {
+    max-inline-size: foundations.$dimension-110;
+    min-inline-size: foundations.$dimension-68;
+  }
+
+  .field-dropdown-item {
+    align-items: center;
+    gap: foundations.$space-2;
+  }
+
+  .field-dropdown-item__content {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+  }
+
+  .field-dropdown-item__content ngb-highlight {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .field-dropdown-item__edit-button {
+    flex: none;
+  }
+}
+
+.asset-based-calendar-view__toolbar-pickers ::ng-deep .field .field__select {
+  block-size: foundations.$size-11;
+  line-height: foundations.$size-11;
+  padding-block: 0;
+}

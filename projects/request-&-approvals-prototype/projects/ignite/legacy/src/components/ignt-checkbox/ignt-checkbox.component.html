@@ -1,0 +1,43 @@
+<label
+  class="checkbox"
+  [class.checkbox--disabled]="disabled"
+  [class.checkbox--error]="hasError"
+  (click)="onLabelClick($event)"
+  [attr.data-testid]="dataTestId"
+>
+  <!-- Visually hidden input for form integration. It joins the tab order as soon as the checkbox has
+       an accessible name, so the control is operable by keyboard, and .checkbox__input:focus-visible
+       draws the ring on the visible icon. Activating it (pointer or Space) dispatches a click that
+       the label handles; no native change event survives that handler's preventDefault, so there is
+       nothing to bind here. -->
+  <input
+    [id]="id"
+    class="checkbox__input"
+    type="checkbox"
+    [attr.aria-label]="ariaLabel"
+    [attr.tabindex]="keyboardFocusable ? null : -1"
+    [checked]="checked"
+    [disabled]="disabled"
+  />
+
+  <span class="checkbox__icon" [class.checkbox__icon--unchecked]="!checked" [class.checkbox__icon--small]="size === 'small'">
+    <fa-icon *ngIf="checked" [icon]="['fas', 'check']"></fa-icon>
+  </span>
+  <div class="checkbox__content" *ngIf="label || description || (hasError && errorMessage)">
+    <span *ngIf="label" class="checkbox__label" [class.checkbox__label--small]="size === 'small'">
+      {{ label }}
+    </span>
+    <span *ngIf="description" class="checkbox__description" [class.checkbox__description--small]="size === 'small'">
+      {{ description }}
+    </span>
+    <span *ngIf="hasError && errorMessage" class="checkbox__error" [class.checkbox__error--small]="size === 'small'">{{
+      errorMessage
+    }}</span>
+  </div>
+  <!-- Wrapper so the component can tell whether the call site projected anything: projected text
+       lands inside this same <label> and names the control just as [label] would, so a checkbox
+       that has it belongs in the tab order. display: contents keeps it out of the flex layout. -->
+  <span #projectedContent class="checkbox__projected" *ngIf="!label && !description">
+    <ng-content></ng-content>
+  </span>
+</label>

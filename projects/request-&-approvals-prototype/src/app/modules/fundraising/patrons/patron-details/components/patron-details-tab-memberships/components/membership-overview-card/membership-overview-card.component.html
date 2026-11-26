@@ -1,0 +1,130 @@
+<section class="membership-overview-card wrapper-card wrapper-card--elevation-75" data-testid="membership-overview-card">
+  <header class="membership-overview-card__header">
+    <h3 class="membership-overview-card__title">
+      {{ 'fundraising.patronDetails.memberships.overview.title' | translate }}
+    </h3>
+  </header>
+
+  @if (membershipView().status === membershipStatuses.EXPIRED) {
+    <ignt-alert
+      sentiment="danger"
+      [showCloseButton]="false"
+      data-testid="patron-details-tab-memberships-expired-banner"
+      [title]="'fundraising.patronDetails.memberships.alerts.expiredTitle' | translate"
+    >
+      <ng-template #igntAlertContent>
+        @if (membershipView().expirationDate) {
+          {{
+            'fundraising.patronDetails.memberships.alerts.expiredOn'
+              | translate: { date: (membershipView().expirationDate | date: 'mediumDate') }
+          }}
+        }
+        {{ 'fundraising.patronDetails.memberships.alerts.expiredMessage' | translateTerminology }}
+      </ng-template>
+    </ignt-alert>
+  } @else if (membershipView().status === membershipStatuses.SUSPENDED) {
+    <ignt-alert
+      sentiment="danger"
+      [showCloseButton]="false"
+      data-testid="patron-details-tab-memberships-suspended-banner"
+      [title]="'fundraising.patronDetails.memberships.alerts.suspendedTitle' | translate"
+      [description]="'fundraising.patronDetails.memberships.alerts.suspendedMessage' | translateTerminology"
+    ></ignt-alert>
+  }
+
+  <div class="membership-overview-card__grid">
+    <app-patron-details-info-section
+      data-testid="membership-overview-card-tier"
+      [title]="'fundraising.patronDetails.memberships.overview.membershipTier' | translate"
+      [value]="membershipView().tierName ?? notAvailable"
+      [secondaryValue]="membershipView().membershipName"
+      [subtitle]="tierSubtitle() ? (tierSubtitle()!.key | translate: tierSubtitle()!.params) : undefined"
+    >
+      <ignt-tag
+        infoSectionTrailing
+        class="membership-overview-card__tag"
+        [sentiment]="statusBadgeSentiment()"
+        variant="solid"
+        data-testid="membership-overview-card-status"
+      >
+        {{ statusLabelKey() | translate }}
+      </ignt-tag>
+    </app-patron-details-info-section>
+
+    <app-patron-details-info-section
+      data-testid="membership-overview-card-renewal-date"
+      [title]="'fundraising.patronDetails.memberships.overview.renewalDate' | translate"
+      [value]="renewalValue() ? (renewalValue()!.key | translate: renewalValue()!.params) : notAvailable"
+      [subtitle]="renewalSubtitle() ? (renewalSubtitle()!.key | translate: renewalSubtitle()!.params) : undefined"
+    >
+      @if (renewalRiskTag(); as risk) {
+        <ignt-tag
+          infoSectionAlert
+          class="membership-overview-card__tag"
+          [sentiment]="risk.sentiment"
+          variant="solid"
+          data-testid="membership-overview-card-renewal-risk"
+        >
+          {{ risk.labelKey | translate }}
+        </ignt-tag>
+      }
+
+      @if (isAutoRenewalOn()) {
+        <ignt-tag
+          infoSectionTrailing
+          class="membership-overview-card__tag"
+          sentiment="positive"
+          variant="solid"
+          data-testid="membership-overview-card-auto-renewal"
+        >
+          {{ 'fundraising.patronDetails.memberships.overview.autoRenewalTag' | translate }}
+        </ignt-tag>
+      } @else if (isAutoRenewalOff()) {
+        <ignt-tag
+          infoSectionTrailing
+          class="membership-overview-card__tag"
+          sentiment="disable"
+          variant="solid"
+          data-testid="membership-overview-card-auto-renewal"
+        >
+          {{ 'fundraising.patronDetails.memberships.overview.autoRenewalOffTag' | translate }}
+        </ignt-tag>
+      }
+    </app-patron-details-info-section>
+
+    <app-patron-details-info-section
+      data-testid="membership-overview-card-payment-method"
+      [title]="'fundraising.patronDetails.memberships.overview.paymentMethod' | translate"
+      [value]="
+        membershipView().maskedCard ??
+        (membershipView().paymentMethod ? ('boxOffice.cart.paymentMethods.' + membershipView().paymentMethod | translate) : notAvailable)
+      "
+      [subtitle]="paymentSubtitle() ? (paymentSubtitle()!.key | translate: paymentSubtitle()!.params) : undefined"
+    >
+      @if (brandLogo(); as logo) {
+        <img
+          infoSectionTrailing
+          class="membership-overview-card__brand-logo"
+          [src]="logo.src"
+          [alt]="logo.alt"
+          data-testid="membership-overview-card-brand"
+        />
+      } @else if (membershipView().cardBrand) {
+        <span infoSectionTrailing class="membership-overview-card__brand" data-testid="membership-overview-card-brand">{{
+          membershipView().cardBrand | uppercase
+        }}</span>
+      }
+    </app-patron-details-info-section>
+
+    <app-patron-details-info-section
+      data-testid="membership-overview-card-total-savings"
+      [centered]="true"
+      [title]="'fundraising.patronDetails.memberships.overview.totalSavings' | translate"
+      [value]="
+        membershipView().totalSavings !== undefined
+          ? ((membershipView().totalSavings | currency: membershipView().currency) ?? notAvailable)
+          : notAvailable
+      "
+    ></app-patron-details-info-section>
+  </div>
+</section>

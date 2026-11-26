@@ -1,0 +1,148 @@
+@use 'sass:map';
+@use 'foundations' as foundations;
+@use 'foundations/text-styles' as text-styles;
+
+:host {
+  display: inline-block;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: var(--fv-spacing-2xs);
+  padding-block: var(--fv-spacing-2xs);
+  gap: var(--fv-spacing-2xs);
+  // No step of the new size scale is 20px (16px / 24px).
+  height: foundations.$dimension-5;
+  max-width: 100%;
+  min-width: 0;
+  border-radius: var(--fv-border-radius-container-sm);
+  border: var(--fv-border-width-sm) solid transparent;
+  text-decoration: none;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  cursor: default;
+
+  @include text-styles.fv-font-label-sm-default;
+
+  &__content {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &--height-auto {
+    height: auto;
+  }
+}
+
+$tag-variants-map: (
+  positive: (
+    solid: (
+      color: var(--fv-color-content-static-fixed-white),
+      background-color: var(--fv-color-data-green-strong),
+    ),
+    outline: (
+      color: var(--fv-color-data-green-strong),
+      border-color: var(--fv-color-data-green-strong),
+    ),
+  ),
+  danger: (
+    solid: (
+      color: var(--fv-color-content-static-fixed-white),
+      background-color: var(--fv-color-data-red-strong),
+    ),
+    outline: (
+      color: var(--fv-color-data-red-strong),
+      border-color: var(--fv-color-data-red-strong),
+    ),
+  ),
+  warning: (
+    solid: (
+      color: var(--fv-color-content-static-fixed-white),
+      background-color: var(--fv-color-data-orange-strong),
+    ),
+    outline: (
+      color: var(--fv-color-data-orange-strong),
+      border-color: var(--fv-color-data-orange-strong),
+    ),
+  ),
+  accent: (
+    solid: (
+      color: var(--fv-color-content-static-fixed-white),
+      background-color: var(--fv-color-data-purple-strong),
+    ),
+    outline: (
+      color: var(--fv-color-data-purple-strong),
+      border-color: var(--fv-color-data-purple-strong),
+    ),
+  ),
+  info: (
+    solid: (
+      color: var(--fv-color-content-static-primary),
+      background-color: var(--fv-color-data-brand-weak),
+    ),
+    outline: (
+      color: var(--fv-color-data-brand-strong),
+      border-color: var(--fv-color-data-brand-strong),
+    ),
+  ),
+  disable: (
+    solid: (
+      color: var(--fv-color-content-static-primary),
+      background-color: var(--fv-color-data-gray-weak),
+    ),
+    outline: (
+      color: var(--fv-color-content-static-tertiary),
+      border-color: var(--fv-color-border-static-secondary),
+    ),
+  ),
+  sharp: (
+    solid: (
+      color: var(--fv-color-content-static-on-inverse),
+      background-color: var(--fv-color-surface-static-inverse),
+    ),
+    outline: (
+      color: var(--fv-color-content-static-primary),
+      border-color: var(--fv-color-border-static-on-inverse),
+    ),
+  ),
+);
+// The -contrast variants are unreachable through `variant` and the theme now handles dark, so they mirror the base ones.
+$tag-contrast-variants-map: ();
+
+@each $variant-name, $variant in $tag-variants-map {
+  $tag-contrast-variants-map: map.set(
+    $tag-contrast-variants-map,
+    $variant-name,
+    (
+      contrast: map.get($variant, solid),
+      outline-contrast: map.get($variant, outline),
+    )
+  );
+}
+
+$all-tag-variants-map: map.deep-merge($tag-variants-map, $tag-contrast-variants-map);
+
+@mixin tag-styles($type) {
+  color: map-get($type, color);
+  background-color: map-get($type, background-color);
+  border-color: map-get($type, border-color);
+}
+
+@each $variant-name, $variant in $all-tag-variants-map {
+  @each $type-name, $type in $variant {
+    .tag--#{$variant-name}-#{$type-name} {
+      @include tag-styles($type);
+    }
+  }
+}
+
+.bullet-icon {
+  font-size: 0.4rem;
+}

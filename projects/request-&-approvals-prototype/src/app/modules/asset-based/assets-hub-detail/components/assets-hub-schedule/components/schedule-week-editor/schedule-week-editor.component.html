@@ -1,0 +1,133 @@
+<section class="schedule-week">
+  <header class="schedule-week__header">
+    <h2 class="schedule-week__title" translate>assetsHubs.detail.schedule.weeklyTitle</h2>
+    <p class="schedule-week__description" translate>assetsHubs.detail.schedule.weeklyDescription</p>
+  </header>
+
+  <div class="schedule-week__rows">
+    @for (row of rows(); track row.weekday) {
+      <div class="schedule-day" [attr.data-testid]="'schedule-day-' + row.weekday">
+        <div class="schedule-day__name">
+          <span class="schedule-day__label">{{ row.labelKey | translate }}</span>
+          <span class="schedule-day__state" [attr.data-testid]="'schedule-day-state-' + row.weekday">
+            @switch (row.state) {
+              @case (ScheduleDayState.notConfigured) {
+                <span class="schedule-day__state-badge schedule-day__state-badge--muted" translate>
+                  assetsHubs.detail.schedule.states.notConfigured
+                </span>
+              }
+              @case (ScheduleDayState.closed) {
+                <span class="schedule-day__state-badge schedule-day__state-badge--closed" translate>
+                  assetsHubs.detail.schedule.states.closed
+                </span>
+              }
+              @default {
+                <span class="schedule-day__state-badge schedule-day__state-badge--open" translate>
+                  assetsHubs.detail.schedule.states.open
+                </span>
+              }
+            }
+          </span>
+        </div>
+
+        <div class="schedule-day__body">
+          @if (row.form === null) {
+            <p class="schedule-day__hint" translate>assetsHubs.detail.schedule.notConfiguredHint</p>
+          } @else if (row.state === ScheduleDayState.closed) {
+            <p class="schedule-day__hint" translate>assetsHubs.detail.schedule.closedHint</p>
+          } @else {
+            <div class="schedule-day__open" [formGroup]="row.form">
+              <ignt-checkbox
+                formControlName="isAllDay"
+                size="small"
+                [dataTestId]="'schedule-day-all-day-' + row.weekday"
+                [label]="'assetsHubs.detail.schedule.allDay' | translate"
+                (change)="toggleAllDay(row.weekday, $event)"
+              ></ignt-checkbox>
+
+              @if (!row.form.controls.isAllDay.value) {
+                <app-schedule-window-list
+                  [windows]="row.form.controls.windows"
+                  [overlappingIndexes]="overlappingIndexes(row.form)"
+                  [isDisabled]="isSaving()"
+                  [canManage]="canManage()"
+                  [testIdPrefix]="'schedule-window-' + row.weekday"
+                  (windowAdded)="addWindow(row.weekday)"
+                  (windowRemoved)="removeWindow(row.weekday, $event)"
+                ></app-schedule-window-list>
+
+                @if (hasOpenWithoutWindows(row.form)) {
+                  <p class="schedule-day__error" [attr.data-testid]="'schedule-day-error-' + row.weekday" translate>
+                    assetsHubs.detail.schedule.errors.openWithoutWindows
+                  </p>
+                }
+              }
+            </div>
+          }
+        </div>
+
+        @if (canManage()) {
+          <div class="schedule-day__actions">
+            @if (row.state !== ScheduleDayState.open) {
+              <ignt-button
+                sentiment="brand"
+                variant="tertiary"
+                size="small"
+                [label]="'assetsHubs.detail.schedule.setHours' | translate"
+                [disabled]="isSaving()"
+                [attr.data-testid]="'schedule-day-set-hours-' + row.weekday"
+                (click)="configureAsOpen(row.weekday)"
+              ></ignt-button>
+            }
+
+            @if (row.state !== ScheduleDayState.closed) {
+              <ignt-button
+                sentiment="neutral"
+                variant="tertiary"
+                size="small"
+                [label]="'assetsHubs.detail.schedule.markAsClosed' | translate"
+                [disabled]="isSaving()"
+                [attr.data-testid]="'schedule-day-close-' + row.weekday"
+                (click)="configureAsClosed(row.weekday)"
+              ></ignt-button>
+            }
+
+            @if (row.form !== null) {
+              <ignt-button
+                sentiment="neutral"
+                variant="tertiary"
+                size="small"
+                [label]="'assetsHubs.detail.schedule.resetDay' | translate"
+                [disabled]="isSaving()"
+                [attr.data-testid]="'schedule-day-reset-' + row.weekday"
+                (click)="resetToNotConfigured(row.weekday)"
+              ></ignt-button>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  @if (canManage()) {
+    <footer class="schedule-week__footer">
+      <ignt-button
+        sentiment="neutral"
+        variant="secondary"
+        size="large"
+        [label]="'assetsHubs.detail.schedule.discard' | translate"
+        [disabled]="isSaving() || !hasChanges()"
+        (click)="discard()"
+      ></ignt-button>
+      <ignt-button
+        sentiment="brand"
+        variant="primary"
+        size="large"
+        [label]="'assetsHubs.detail.schedule.saveWeekly' | translate"
+        [loading]="isSaving()"
+        [disabled]="isSaving() || !hasChanges()"
+        (click)="submit()"
+      ></ignt-button>
+    </footer>
+  }
+</section>

@@ -1,0 +1,230 @@
+<table class="quota-management-list-table">
+  <colgroup>
+    <col class="quota-management-list-table__col--name" />
+    <col class="quota-management-list-table__col--type" />
+    <col class="quota-management-list-table__col--assignation" />
+    <col class="quota-management-list-table__col--issued" />
+    <col class="quota-management-list-table__col--available" />
+    <col class="quota-management-list-table__col--capacity" />
+    <col class="quota-management-list-table__col--actions" />
+  </colgroup>
+
+  <thead class="quota-management-list-table__thead">
+    <tr class="quota-management-list-table__header">
+      <th class="quota-management-list-table__header-cell quota-management-list-table__header-cell--date">
+        <div class="quota-management-list-table__header-date-row">
+          <span *ngIf="timeSlotDateTime() && timeZone()" class="quota-management-list-table__timeslot-date">
+            {{ timeSlotDateTime()! | momentDate: 'EEEE, d MMMM y - h:mm a' : timeZone()! }}
+          </span>
+          <div class="quota-management-list-table__header-buttons">
+            <button
+              *ngIf="canShowTimeslotAddQuota()"
+              class="quota-management-list-table__header-add-quota-button"
+              type="button"
+              aria-label="Add quota at timeslot level"
+              [disabled]="isLiveEditorActive()"
+              (click)="onAddTimeslotQuota()"
+              data-testid="timeslot-add-quota-button"
+            >
+              <ignt-icon name="plus" variant="light" size="sm"></ignt-icon>
+              {{ 'sessions.quotaManagement.table.addQuota' | translate }}
+            </button>
+            <button
+              *ngIf="canShowTimeslotLiveEditor()"
+              class="quota-management-list-table__header-live-editor-button"
+              type="button"
+              aria-label="Edit all quotas in timeslot"
+              [disabled]="isLiveEditorActive()"
+              (click)="onTimeslotLiveEditor()"
+              data-testid="timeslot-live-editor-button"
+            >
+              <ignt-icon name="edit" variant="regular" size="sm"></ignt-icon>
+              {{ 'sessions.quotaManagement.table.liveEditor' | translate }}
+            </button>
+          </div>
+        </div>
+        <div *ngIf="activeFilterValue()" class="quota-management-list-table__filter-info" data-testid="active-filter-info">
+          <span class="quota-management-list-table__filter-label">{{ 'sessions.quotaManagement.table.filteredBy' | translate }}</span>
+          <span class="quota-management-list-table__filter-chip">
+            {{ activeFilterValue() }}
+            <ignt-icon
+              class="quota-management-list-table__filter-chip-close"
+              [class.quota-management-list-table__filter-chip-close--disabled]="isLiveEditorActive()"
+              name="times-circle"
+              variant="solid"
+              size="sm"
+              (click)="!isLiveEditorActive() && onClearFilter()"
+              data-testid="clear-filter-button"
+            ></ignt-icon>
+          </span>
+        </div>
+      </th>
+      <th class="quota-management-list-table__header-cell quota-management-list-table__header-cell--centered">
+        <span class="quota-management-list-table__header-cell-title">{{ 'sessions.quotaManagement.table.quotaType' | translate }}</span>
+      </th>
+      <th
+        class="quota-management-list-table__header-cell quota-management-list-table__header-cell--centered quota-management-list-table__header-cell--with-separator"
+      >
+        <span class="quota-management-list-table__header-cell-title">{{
+          'sessions.quotaManagement.table.quotaAssignation' | translate
+        }}</span>
+      </th>
+      <th class="quota-management-list-table__header-cell quota-management-list-table__header-cell--numeric">
+        <span class="quota-management-list-table__issued-label">
+          <span class="quota-management-list-table__header-cell-title">{{ 'sessions.quotaManagement.table.issued' | translate }}</span>
+        </span>
+        <span class="quota-management-list-table__header-value">{{ totalIssued() === null ? '' : totalIssued() }}</span>
+      </th>
+      <th class="quota-management-list-table__header-cell quota-management-list-table__header-cell--numeric">
+        <span class="quota-management-list-table__header-cell-title">{{ 'sessions.quotaManagement.table.available' | translate }}</span>
+        <span class="quota-management-list-table__header-value">{{ totalAvailable() === null ? '' : totalAvailable() }}</span>
+      </th>
+      <th class="quota-management-list-table__header-cell quota-management-list-table__header-cell--numeric">
+        <span class="quota-management-list-table__header-cell-title">{{ 'sessions.quotaManagement.table.capacity' | translate }}</span>
+        <span class="quota-management-list-table__header-value">{{ totalCapacity() === null ? '' : totalCapacity() }}</span>
+      </th>
+      <th class="quota-management-list-table__header-cell"></th>
+    </tr>
+  </thead>
+
+  <ng-container *ngFor="let row of tableRows(); let sectionIndex = index; trackBy: trackByRowId">
+    <tbody *ngIf="shouldShowSectionSpacerBefore(sectionIndex)">
+      <tr>
+        <td
+          class="quota-management-list-table__col--padding"
+          [class.quota-management-list-table__col--padding--compact]="shouldUseCompactSectionPadding(sectionIndex)"
+          colspan="7"
+        ></td>
+      </tr>
+    </tbody>
+    <tbody
+      class="quota-management-list-table__body"
+      [class.quota-management-list-table__body--radius-small]="shouldUseSmallBodyOutlineRadius(row)"
+    >
+      <ng-container *ngTemplateOutlet="rowTemplate; context: { $implicit: row, level: 0 }"></ng-container>
+    </tbody>
+    <tbody *ngIf="shouldShowTimeslotSaveButtons(row)" class="quota-management-list-table__actions">
+      <ng-container *ngTemplateOutlet="saveButtonsRow"></ng-container>
+    </tbody>
+  </ng-container>
+</table>
+
+<ng-template #rowTemplate let-row let-level="level">
+  <tr
+    appQuotaManagementListTableRow
+    [row]="row"
+    [formControl]="getQuotaFormControl(row.originalData?.capacityQuotaId ?? '')"
+    [indentLevel]="level"
+    (addQuota)="onAddQuota($event)"
+    (quotaAction)="onQuotaAction($event)"
+    [class.quota-management-list-table__row--capacity-group]="row.type === rowType.capacityGroup"
+    [class.quota-management-list-table__row--ungrouped-tickets]="row.type === rowType.ungroupedTickets"
+    [class.quota-management-list-table__row--session]="row.type === rowType.session"
+    [class.quota-management-list-table__row--free-capacity]="row.type === rowType.freeCapacity"
+    [class.quota-management-list-table__row--quota]="row.type === rowType.quota"
+    [class.quota-management-list-table__row--nested-under-capacity-group]="
+      (row.type === rowType.freeCapacity || row.type === rowType.quota) && row.parent?.type === rowType.capacityGroup
+    "
+    [class.quota-management-list-table__row--top-level]="level === 0"
+    #rowComponent
+  ></tr>
+  <ng-container *ngIf="row.children.length > 0 && rowComponent.isExpanded()">
+    <ng-container
+      *ngTemplateOutlet="rowsTemplate; context: { $implicit: row.children, level: level + 1, parentRowId: row.id }"
+    ></ng-container>
+    <ng-container
+      *ngIf="[rowType.quota, rowType.freeCapacity].includes(row.children[row.children.length - 1].type)"
+      [ngTemplateOutlet]="paddingRow"
+    ></ng-container>
+    <ng-container *ngIf="isCapacityGroupBeingEdited(row.id)" [ngTemplateOutlet]="saveButtonsRow"></ng-container>
+  </ng-container>
+</ng-template>
+
+<ng-template #rowsTemplate let-rows let-level="level" let-parentRowId="parentRowId">
+  <ng-container *ngFor="let row of rows; let last = last; let i = index; trackBy: trackByRowId">
+    <ng-container *ngTemplateOutlet="rowTemplate; context: { $implicit: row, level }"></ng-container>
+    <ng-container
+      *ngIf="shouldShowSessionSaveButtons(parentRowId) && row.isLastQuotaInPool"
+      [ngTemplateOutlet]="saveButtonsRow"
+    ></ng-container>
+  </ng-container>
+</ng-template>
+
+<ng-template #paddingRow>
+  <tr>
+    <td class="quota-management-list-table__col--padding" colspan="7"></td>
+  </tr>
+</ng-template>
+
+<ng-template #saveButtonsRow>
+  <tr class="quota-management-list-table__save-row">
+    <td colspan="7" class="quota-management-list-table__save-cell">
+      <div class="quota-management-list-table__save-container">
+        <div *ngIf="quotasFormGroup.invalid" class="quota-management-list-table__capacity-errors">
+          <div
+            *ngFor="let errorInfo of formGroupErrors(); trackBy: trackByError"
+            class="quota-management-list-table__capacity-error"
+            [attr.data-testid]="'capacity-error-message-' + errorInfo.quotaName"
+          >
+            <ignt-icon
+              name="exclamation-circle"
+              variant="solid"
+              size="sm"
+              class="quota-management-list-table__capacity-error-icon"
+              aria-label="Error"
+            ></ignt-icon>
+            <span [ngSwitch]="errorInfo.error.type">
+              <span *ngSwitchCase="'max'">
+                {{ errorInfo.quotaName }}:
+                {{ 'sessions.quotaManagement.table.capacityExceeded' | translate: { max: errorInfo.error.maxCapacity } }}
+              </span>
+              <span *ngSwitchCase="'min'">
+                {{ errorInfo.quotaName }}:
+                {{ 'sessions.quotaManagement.table.capacityBelowMinimum' | translate: { min: errorInfo.error.minCapacity } }}
+              </span>
+              <span *ngSwitchCase="'empty'">
+                {{ errorInfo.quotaName }}: {{ 'sessions.quotaManagement.table.capacityEmpty' | translate }}
+              </span>
+              <span *ngSwitchCase="'pattern'">
+                {{ errorInfo.quotaName }}: {{ 'sessions.quotaManagement.table.capacityPattern' | translate }}
+              </span>
+            </span>
+          </div>
+        </div>
+        <div class="quota-management-list-table__save-buttons">
+          <button
+            class="quota-management-list-table__save-button"
+            type="button"
+            aria-label="Save quota changes"
+            [disabled]="!hasQuotaChanges() || quotasFormGroup.invalid"
+            (click)="onLiveEditorSaveQuotasAdjustments()"
+            data-testid="save-quotas-button"
+          >
+            <ignt-icon
+              name="check-circle"
+              variant="solid"
+              size="sm"
+              class="quota-management-list-table__save-button-icon quota-management-list-table__save-button-icon--success"
+            ></ignt-icon>
+            <span class="quota-management-list-table__save-button-text">{{ 'common.save' | translate }}</span>
+          </button>
+          <button
+            class="quota-management-list-table__save-button quota-management-list-table__save-button--discard"
+            type="button"
+            aria-label="Discard quota changes"
+            (click)="onDiscardQuotas()"
+            data-testid="discard-quotas-button"
+          >
+            <ignt-icon
+              name="times-circle"
+              variant="solid"
+              size="sm"
+              class="quota-management-list-table__save-button-icon quota-management-list-table__save-button-icon--danger"
+            ></ignt-icon>
+            <span class="quota-management-list-table__save-button-text">{{ 'common.discard' | translate }}</span>
+          </button>
+        </div>
+      </div>
+    </td>
+  </tr>
+</ng-template>

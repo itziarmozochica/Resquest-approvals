@@ -1,0 +1,398 @@
+<div class="common-session-edit lateral-slider-body__wrapper">
+  <ng-container *ngIf="formLoaded && sessionType">
+    <ignt-alert
+      *ngIf="isTicketTypeEditionLimited"
+      [description]="'sessions.sessionTypes.edition.planIsPublishedBanner' | translate"
+      data-testid="common-session-edit__message-banner"
+      class="common-session-edit__message-banner"
+    ></ignt-alert>
+
+    <form [formGroup]="formGroup" class="common-session-edit__form session-type-form" data-testid="session-type-form">
+      <h5 *ngIf="false" class="font-h5 collapsible-title" (click)="isBasicSettingsCollapsed = !isBasicSettingsCollapsed">
+        <ignt-icon [name]="isBasicSettingsCollapsed ? 'angle-down' : 'angle-right'" variant="light" aria-hidden="true"></ignt-icon>
+        {{ 'sessions.sessionTypes.edition.basicSettings' | translate }}
+      </h5>
+      <fieldset class="wrapper collapsible" [class.collapsible--hidden]="isBasicSettingsCollapsed">
+        <div class="cell">
+          <ng-container *ngTemplateOutlet="inputTemplate; context: { fieldName: 'label', fieldType: 'text' }"></ng-container>
+          <ignt-alert
+            *ngIf="showExplodePipesWarning$ | async"
+            sentiment="warning"
+            data-testid="session-type-label-explode-pipes-warning"
+            [description]="'sessions.sessionTypes.edition.field.label.explodePipesWarning' | translate"
+          ></ignt-alert>
+        </div>
+
+        <div class="cell" data-testid="session-type-product-type">
+          <ignt-typeahead
+            (selected)="formGroup.get('productType').setValue($event)"
+            [editable]="false"
+            [fieldLabel]="'sessions.sessionTypes.edition.field.productType.title' | translate"
+            [emptyLabel]="'sessions.sessionTypes.edition.field.productType.title' | translate"
+            [options]="productTypeSelectOptions"
+            [selectedOption]="productType"
+            id="session-type-productType"
+            [disabled]="formGroup.get('productType').disabled"
+            [class.field--readonly]="formGroup.get('productType').disabled"
+            [customPopupClass]="'dropdown-menu--on-sidebar'"
+          ></ignt-typeahead>
+          <div class="session-type-form__note">
+            {{ 'sessions.sessionTypes.edition.field.productType.note' | translate }}
+          </div>
+        </div>
+      </fieldset>
+
+      <h5 class="font-h5 collapsible-title" (click)="isAdvancedSettingsCollapsed = !isAdvancedSettingsCollapsed">
+        <ignt-icon [name]="isAdvancedSettingsCollapsed ? 'angle-down' : 'angle-right'" variant="light" aria-hidden="true"></ignt-icon>
+        {{ 'sessions.sessionTypes.edition.advancedSettings' | translate }}
+      </h5>
+      <fieldset class="wrapper collapsible" [class.collapsible--hidden]="isAdvancedSettingsCollapsed">
+        <div class="cell">
+          <h6 class="font-h6">
+            {{ 'sessions.sessionTypes.edition.field.allowedNumTickets.title' | translate }}
+          </h6>
+          <div class="wrapper wrapper--row">
+            <ng-container
+              *ngTemplateOutlet="
+                inputTemplate;
+                context: { fieldName: 'allowedNumTickets.minimum', fieldType: 'number', class: 'field--equal-size' }
+              "
+            >
+            </ng-container>
+            <ng-container
+              *ngTemplateOutlet="
+                inputTemplate;
+                context: {
+                  fieldName: 'allowedNumTickets.maximum',
+                  fieldType: 'number',
+                  min: this.formGroup.get('allowedNumTickets.minimum').value,
+                  class: 'field--equal-size',
+                }
+              "
+            >
+            </ng-container>
+          </div>
+          <ng-container
+            *ngTemplateOutlet="validationErrors; context: { error: getControlError(formGroup.get('allowedNumTickets')) }"
+          ></ng-container>
+        </div>
+
+        <ignt-wrapper-card [type]="'default'" class="cell" *ngIf="this.sessionTypeChannelsAll.length > 0">
+          <ignt-switch
+            class="cell"
+            data-testid="session-type-channels-toggle"
+            [label]="'sessions.sessionTypes.edition.field.sessionTypeChannels.title' | translate"
+            (click)="$event.stopPropagation()"
+            [checked]="this.showLimitsByChannel"
+            (checkedChange)="toggleLimitsByChannel()"
+          />
+          <div class="cell" *ngIf="this.showLimitsByChannel">
+            <ng-container formArrayName="sessionTypeChannels">
+              <ng-container *ngFor="let sessionTypeChannelForm of sessionTypeChannels.controls; let i = index">
+                <div class="wrapper wrapper--row session-type-form__limit-by-channel" [formGroup]="sessionTypeChannelForm">
+                  <div class="wrapper cell cell--fill">
+                    <ignt-typeahead
+                      class="cell"
+                      (selected)="selectSessionTypeChannelOption(sessionTypeChannelForm, $event)"
+                      [editable]="sessionTypeChannelForm.get('channelId').value === null"
+                      [fieldLabel]="'Channel' | translate"
+                      [emptyLabel]="'Channel' | translate"
+                      [options]="sessionTypeChannelsOptions"
+                      [selectedOption]="sessionTypeChannelForm.get('channelId').value"
+                      [id]="'session-type-channel-' + i + '-channel-id'"
+                    >
+                    </ignt-typeahead>
+                    <div class="wrapper wrapper--row">
+                      <ng-container
+                        *ngTemplateOutlet="
+                          inputSessionTypeChannelsAllowedNumTicketsTemplate;
+                          context: {
+                            form: sessionTypeChannelForm,
+                            index: i,
+                            fieldName: 'minimum',
+                            fieldType: 'number',
+                            min: MINIMUM_ALLOWED_NUM_TICKETS,
+                            class: 'field--equal-size',
+                          }
+                        "
+                      >
+                      </ng-container>
+                      <ng-container
+                        *ngTemplateOutlet="
+                          inputSessionTypeChannelsAllowedNumTicketsTemplate;
+                          context: {
+                            form: sessionTypeChannelForm,
+                            index: i,
+                            fieldName: 'maximum',
+                            fieldType: 'number',
+                            min: sessionTypeChannelForm.get('allowedNumTickets.minimum').value ?? MINIMUM_ALLOWED_NUM_TICKETS,
+                            class: 'field--equal-size',
+                          }
+                        "
+                      >
+                      </ng-container>
+                    </div>
+                    <ng-container
+                      *ngTemplateOutlet="
+                        validationErrors;
+                        context: { error: getControlError(sessionTypeChannelForm.get('allowedNumTickets')) }
+                      "
+                    ></ng-container>
+                  </div>
+                  <div class="wrapper cell cell--hug">
+                    <button
+                      class="session-type-form__limit-by-channel__remove-button"
+                      (click)="removeChannel(i)"
+                      [disabled]="sessionTypeChannels.length < 2"
+                    >
+                      <ignt-icon name="trash" variant="solid" aria-hidden="true"></ignt-icon>
+                    </button>
+                  </div>
+                </div>
+              </ng-container>
+            </ng-container>
+            <a class="cell session-type-form__limit-by-channel__add-button" (click)="addChannel()">
+              <ignt-icon name="plus-circle" variant="solid" aria-hidden="true"></ignt-icon>
+              {{ 'sessions.sessionTypes.edition.field.sessionTypeChannels.addButton' | translate }}</a
+            >
+          </div>
+        </ignt-wrapper-card>
+        <div class="cell">
+          <h6 class="font-h6">{{ 'sessions.sessionTypes.edition.field.instructions.title' | translate }}</h6>
+          <div [class.form-group--error]="getControlError(formGroup.get('instructions'))">
+            <ignt-rich-text-editor
+              formControlName="instructions"
+              [features]="inlineLinkListsFeatures"
+              [blockElement]="'p'"
+              data-testid="session-type-instructions"
+              id="instructions"
+            ></ignt-rich-text-editor>
+
+            <ng-container *ngTemplateOutlet="validationErrors; context: { error: getControlError(formGroup.get('instructions')) }">
+            </ng-container>
+          </div>
+          <div class="session-type-form__note">{{ 'sessions.sessionTypes.edition.field.instructions.note' | translate }}</div>
+        </div>
+
+        <div class="cell">
+          <h6 class="font-h6">{{ 'sessions.sessionTypes.edition.field.details.title' | translate }}</h6>
+          <div [class.form-group--error]="getControlError(formGroup.get('details'))">
+            <ignt-rich-text-editor
+              formControlName="details"
+              [features]="inlineLinkListsFeatures"
+              [blockElement]="'p'"
+              data-testid="session-type-details"
+              id="details"
+            ></ignt-rich-text-editor>
+
+            <ng-container
+              *ngTemplateOutlet="validationErrors; context: { error: getControlError(formGroup.get('details')) }"
+            ></ng-container>
+          </div>
+          <div class="session-type-form__note">{{ 'sessions.sessionTypes.edition.field.details.note' | translate }}</div>
+        </div>
+
+        <div class="cell">
+          <ignt-typeahead
+            id="session-type-targetAttendee"
+            (selected)="formGroup.get('targetAttendee').setValue($event)"
+            [editable]="false"
+            [fieldLabel]="'sessions.sessionTypes.edition.field.targetAttendee.title' | translate"
+            [emptyLabel]="'sessions.sessionTypes.edition.field.targetAttendee.title' | translate"
+            [options]="targetAttendeeSelectOptions"
+            [selectedOption]="targetAttendee"
+            [disabled]="formGroup.get('targetAttendee').disabled"
+            [class.field--readonly]="formGroup.get('targetAttendee').disabled"
+            [customPopupClass]="'dropdown-menu--on-sidebar'"
+          ></ignt-typeahead>
+          <div class="session-type-form__note">
+            {{ 'sessions.sessionTypes.edition.field.targetAttendee.note' | translate }}
+          </div>
+        </div>
+
+        <ng-container *ngIf="isSuperuser()">
+          <div class="cell">
+            <ng-container
+              *ngTemplateOutlet="
+                inputTemplate;
+                context: {
+                  fieldName: 'ticketTier',
+                  fieldType: 'number',
+                  min: 0,
+                  class: 'field--equal-size',
+                }
+              "
+            >
+            </ng-container>
+          </div>
+        </ng-container>
+
+        <div class="cell">
+          <div class="form-group form-group--fix-height session-type-form__tags">
+            <label class="form-label">
+              {{ 'sessions.sessionTypes.edition.field.details.tags' | translate }}
+            </label>
+            <span data-testid="tags-content">
+              <ng-container *ngFor="let tag of sessionType.tags; let last = last">{{ tag.label }}{{ !last ? ', ' : '' }}</ng-container>
+            </span>
+          </div>
+          <div class="session-type-form__note">{{ 'sessions.sessionTypes.edition.field.details.tagsNote' | translate }}</div>
+        </div>
+
+        <ng-container
+          *ngTemplateOutlet="
+            checkboxInputTemplate;
+            context: { fieldName: 'isAddOn', checked: formGroup.get('isAddOn').value, class: 'session-type-form__add-on-checkbox' }
+          "
+        >
+        </ng-container>
+        <ng-container *ngIf="formGroup.get('isAddOn').value">
+          <div class="cell">
+            <div class="session-type__form-display-step" data-testid="session-type-display-step">
+              <ignt-typeahead
+                (selected)="formGroup.get('displayStep').setValue($event)"
+                [editable]="false"
+                [fieldLabel]="'sessions.sessionTypes.edition.field.displayStep.title' | translate"
+                [emptyLabel]="'sessions.sessionTypes.edition.field.displayStep.title' | translate"
+                [options]="displayStepSelectOptions"
+                [selectedOption]="displayStep"
+                id="session-type-display-step"
+              ></ignt-typeahead>
+            </div>
+            <div class="session-type-form__note">
+              {{ 'sessions.sessionTypes.edition.field.displayStep.note' | translate }}
+            </div>
+          </div>
+          <div class="cell">
+            <app-session-type-image-upload
+              data-testid="session-type-image-upload"
+              [imageUrl]="imageUrl"
+              [originalImageUrl]="originalImageUrl"
+              [uploadedFileName]="uploadedFileName"
+              [isUploading]="isUploadingImage()"
+              (fileSelected)="onImageSelected($event)"
+              (invalidFile)="onImageInvalid()"
+              (removed)="onImageRemoved()"
+              (restored)="onImageRestored()"
+            ></app-session-type-image-upload>
+          </div>
+        </ng-container>
+      </fieldset>
+    </form>
+  </ng-container>
+</div>
+
+<div class="lateral-slider-body__footer">
+  <ignt-button
+    variant="tertiary"
+    (click)="cancel()"
+    data-testid="session-type-discard-button"
+    [label]="'sessions.sessionTypes.edition.button.discard' | translate"
+  />
+
+  <ignt-button
+    (click)="save()"
+    [loading]="saving"
+    [disabled]="saving || isSaveButtonDisabled()"
+    data-testid="session-type-save-button"
+    [label]="'sessions.sessionTypes.edition.button.save' | translate"
+  />
+</div>
+
+<ng-template #inputTemplate let-fieldName="fieldName" let-fieldType="fieldType" let-hideTitle="hideTitle" let-min="min" let-class="class">
+  <div class="cell field" [class]="class">
+    <div
+      class="form-group form-group--fix-height"
+      [class.form-group--error]="getControlError(formGroup.get(fieldName))"
+      [class.form-group--readonly]="formGroup.get(fieldName).disabled"
+    >
+      <label *ngIf="!hideTitle" [for]="fieldName" class="form-label">
+        {{ 'sessions.sessionTypes.edition.field.' + fieldName + '.title' | translate }}
+      </label>
+      <input
+        [attr.data-testid]="'session-type-' + fieldName"
+        [formControl]="$any(formGroup.get(fieldName))"
+        [id]="fieldName"
+        [min]="min ?? MINIMUM_ALLOWED_NUM_TICKETS"
+        [type]="fieldType"
+        [readonly]="formGroup.get(fieldName).disabled"
+        class="form-input"
+      />
+    </div>
+    <ng-container *ngTemplateOutlet="validationErrors; context: { error: getControlError(formGroup.get(fieldName)) }"></ng-container>
+  </div>
+</ng-template>
+
+<ng-template
+  #inputSessionTypeChannelsAllowedNumTicketsTemplate
+  let-form="form"
+  let-index="index"
+  let-fieldName="fieldName"
+  let-min="min"
+  let-class="class"
+>
+  <div class="cell field" [class]="class">
+    <div
+      class="form-group form-group--white form-group--fix-height"
+      [class.form-group--error]="getControlError(form.get('allowedNumTickets.' + fieldName))"
+    >
+      <label [for]="'minimum'" class="form-label">
+        {{ 'sessions.sessionTypes.edition.field.allowedNumTickets.' + fieldName + '.shortTitle' | translate }}
+      </label>
+      <input
+        [attr.data-testid]="'session-type-channel-' + index + '-' + fieldName"
+        [formControl]="form.get('allowedNumTickets.' + fieldName)"
+        [id]="fieldName"
+        [min]="min"
+        [type]="'number'"
+        class="form-input"
+      />
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #checkboxInputTemplate let-checked="checked" let-fieldName="fieldName" let-class="class">
+  <div class="cell field" [class]="class">
+    <div
+      class="form-group form-group--no-border form-group--checkbox"
+      [class.form-group--error]="getControlError(formGroup.get(fieldName))"
+    >
+      <input
+        [attr.data-testid]="'session-type-' + fieldName"
+        [checked]="checked"
+        [formControl]="formGroup.get(fieldName)"
+        [id]="fieldName"
+        autocomplete="off"
+        class="form-input--checkbox"
+        min="0"
+        type="checkbox"
+      />
+      <label class="form-label--checkbox" [for]="fieldName">
+        {{ 'sessions.sessionTypes.edition.field.' + fieldName + '.title' | translate }}
+      </label>
+    </div>
+    <ng-container *ngTemplateOutlet="validationErrors; context: { error: getControlError(formGroup.get(fieldName)) }"></ng-container>
+  </div>
+</ng-template>
+<ng-template #validationErrors let-error="error">
+  <ng-container *ngIf="error">
+    <div [ngSwitch]="error" class="form-error">
+      <ignt-icon name="exclamation-circle" variant="solid" class="form-error--icon" aria-hidden="true"></ignt-icon>
+      <span *ngSwitchCase="'min'" class="form-error--message" data-testid="error-min-value-field">
+        {{ 'form.error.greaterThanZero' | translate }}
+      </span>
+      <span *ngSwitchCase="'eitherOneOrNoneFilled'" class="form-error--message" data-testid="error-mandatory-field">
+        {{ 'form.error.eitherOneOrNoneFilled' | translate }}
+      </span>
+      <span *ngSwitchCase="'lessOrEqual'" class="form-error--message" data-testid="error-mandatory-field">
+        {{ 'form.error.lessOrEqual' | translate }}
+      </span>
+      <span *ngSwitchCase="'required'" class="form-error--message" data-testid="error-max-value-field">
+        {{ 'form.error.required' | translate }}
+      </span>
+      <span *ngSwitchCase="'maxlength'" class="form-error--message" data-testid="error-max-value-field">
+        {{ 'form.error.maxLength' | translate: { value: LABEL_MAX_LENGTH } }}
+      </span>
+    </div>
+  </ng-container>
+</ng-template>

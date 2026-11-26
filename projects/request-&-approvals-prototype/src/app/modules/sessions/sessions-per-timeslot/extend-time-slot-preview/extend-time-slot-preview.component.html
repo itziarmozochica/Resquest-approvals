@@ -1,0 +1,107 @@
+<div class="extend-time-slot-preview" *ngIf="vm$ | async as vm">
+  <div class="spinner" *ngIf="vm.loading">
+    <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'2x'"></fa-icon>
+  </div>
+
+  <div *ngIf="vm.sessionsByDate" class="extend-time-slot-preview__content">
+    <h5 class="font-base-bold content__title">{{ 'sessions.extendTimeSlotPreview.title' | translate }}</h5>
+
+    <div class="extend-time-slot-preview__content__selectors">
+      <ignt-typeahead
+        [fieldLabel]="'sessions.extendTimeSlotPreview.selectors.dateAndTime' | translate"
+        (selected)="vm.selectedDateOption = $event"
+        [disabled]="vm.dateOptions.length === 1"
+        [options]="vm.dateOptions"
+        [selectedOption]="vm.selectedDateOption"
+      ></ignt-typeahead>
+
+      <ignt-typeahead
+        *ngIf="!vm.appliedToAllChannels"
+        class="extend-time-slot-preview__content__selectors__selector"
+        [fieldLabel]="'sessions.extendTimeSlotPreview.selectors.channel' | translate"
+        (selected)="vm.selectedChannelOption = $event"
+        [options]="vm.channelOptions"
+        [selectedOption]="vm.selectedChannelOption"
+      ></ignt-typeahead>
+
+      <ignt-typeahead
+        *ngIf="vm.appliedToAllChannels"
+        class="extend-time-slot-preview__content__selectors__selector"
+        [fieldLabel]="'sessions.extendTimeSlotPreview.selectors.channel' | translate"
+        [disabled]="true"
+        [options]="[{ id: '-', title: 'sessions.extendTimeSlotPreview.selectors.allChannels' | translate }]"
+        [selectedOption]="{ id: '-', title: 'sessions.extendTimeSlotPreview.selectors.allChannels' | translate }"
+      ></ignt-typeahead>
+    </div>
+
+    <div
+      *ngIf="
+        !vm.noPriceListAvailable &&
+        getPriceListsInTimeSlot(vm.sessionsByDate[vm.selectedDateOption.id][vm.selectedChannelOption.id]).length > 1
+      "
+      class="extend-time-slot-preview__content__table-description"
+    >
+      {{ 'sessions.extendTimeSlotPreview.priceListApplied' | translate }}
+      <b>{{ getFormattedPriceListsInTimeSlot(vm.sessionsByDate[vm.selectedDateOption.id][vm.selectedChannelOption.id]) }}</b>
+      <br />
+      <span [innerHTML]="'sessions.extendTimeSlotPreview.previewsDescription' | translate: { link: pricesPerTimeSlotLink }"></span>
+    </div>
+
+    <table class="fz-table fz-table--striped">
+      <header class="fz-table__header">
+        <div class="fz-table__row">
+          <div class="fz-table__cell">{{ 'sessions.extendTimeSlotPreview.table.ticketTypeTitle' | translate }}</div>
+          <div class="fz-table__cell visibility-cell">{{ 'sessions.extendTimeSlotPreview.table.visibilityTitle' | translate }}</div>
+          <div class="fz-table__cell price-cell">{{ 'sessions.extendTimeSlotPreview.table.priceTitle' | translate }}</div>
+        </div>
+      </header>
+      <div class="fz-table__body">
+        <div
+          class="fz-table__row"
+          *ngFor="let session of vm.sessionsByDate[vm.selectedDateOption.id][vm.selectedChannelOption.id]; trackBy: trackByLabel"
+          data-testid="session-type-settings-table-row"
+        >
+          <div class="fz-table__cell">
+            <fa-icon [icon]="['far', 'ticket']"></fa-icon>
+            {{ session.label }}
+          </div>
+          <div class="fz-table__cell visibility-cell">
+            <fa-icon [icon]="session.isVisible ? ['fal', 'eye'] : ['fal', 'eye-slash']"></fa-icon>
+          </div>
+          <div class="fz-table__cell price-cell">
+            <span class="strikethrough-price">{{ session.strikethroughPrice }}</span>
+            <span class="ticket-price">{{ session.ticketPrice }}</span>
+            <br />
+            <span class="surcharge-price">{{ session.surchargePerTicket }}</span>
+          </div>
+        </div>
+      </div>
+    </table>
+
+    <div class="extend-time-slot-preview__content__messages">
+      <ignt-alert
+        *ngIf="vm.wasInactiveALongTime"
+        [description]="'sessions.extendTimeSlotPreview.alerts.moreThanOneYearOlder' | translate"
+      ></ignt-alert>
+      <ignt-alert
+        *ngIf="vm.noPriceListAvailable"
+        [description]="'sessions.extendTimeSlotPreview.alerts.noPriceListAvailable' | translate"
+      ></ignt-alert>
+      <ignt-alert
+        *ngIf="vm.comesFromOverwrittenPrice"
+        sentiment="warning"
+        [description]="'sessions.extendTimeSlotPreview.alerts.comesFromOverwrittenPrice' | translate"
+      ></ignt-alert>
+    </div>
+  </div>
+
+  <div class="lateral-slider-body__footer">
+    <button data-testid="extend-time-slot-preview__cancel-button" class="button button--large button--tertiary" (click)="onCancel()">
+      {{ 'sessions.extendTimeSlotPreview.buttons.back' | translate }}
+    </button>
+
+    <button class="button button--large button--primary" (click)="onSave()" [disabled]="vm.loading || vm.dateOptions.length === 0">
+      {{ 'sessions.extendTimeSlotPreview.buttons.confirm' | translate }}
+    </button>
+  </div>
+</div>

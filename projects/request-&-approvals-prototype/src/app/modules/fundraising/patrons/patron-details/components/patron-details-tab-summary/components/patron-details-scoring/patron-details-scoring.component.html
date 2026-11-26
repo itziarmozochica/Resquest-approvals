@@ -1,0 +1,114 @@
+<div class="patron-details-scoring wrapper-card wrapper-card--elevation-75">
+  <div class="scoring-heatmap__title">{{ 'fundraising.patronDetails.scoring.title' | translate }}</div>
+  @if (isLoading()) {
+    <div class="patron-details-scoring__loading" data-testid="patron-details-scoring-loading" role="status" aria-live="polite">
+      <ignt-icon
+        name="spinner"
+        variant="solid"
+        [spin]="true"
+        size="display"
+        class="patron-details-scoring__loading-icon"
+        aria-hidden="true"
+      />
+    </div>
+  } @else {
+    <div class="scoring-heatmap">
+      <div class="scoring-heatmap__header">
+        @for (month of heatmapGrid(); track month.year + '-' + month.label) {
+          <span class="scoring-heatmap__month-label">{{ month.label }}</span>
+        }
+      </div>
+
+      @for (weekIndex of weekIndices; track weekIndex) {
+        <div class="scoring-heatmap__row">
+          @for (month of heatmapGrid(); track month.year + '-' + month.label; let monthIndex = $index; let monthCount = $count) {
+            @let week = month.weeks[weekIndex];
+            <div
+              class="scoring-heatmap__cell"
+              [attr.data-intensity]="week.intensity"
+              igntTooltip
+              [tooltipTemplate]="cellTooltip"
+              [tooltipPlacement]="monthIndex >= monthCount - 3 ? edgeTooltipPlacement() : 'top'"
+            ></div>
+            <ng-template #cellTooltip>
+              <div class="scoring-heatmap-tooltip">
+                <div class="scoring-heatmap-tooltip__title">{{ week.tooltipTitle }}</div>
+                <ignt-divider />
+                <div class="scoring-heatmap-tooltip__row scoring-heatmap-tooltip__row--donations">
+                  <div class="scoring-heatmap-tooltip__label">
+                    <div class="scoring-heatmap-tooltip__icon">
+                      <ignt-icon name="hand-holding-usd" variant="light" size="base" />
+                    </div>
+                    <span class="scoring-heatmap-tooltip__label-text">{{ week.tooltipDonationsLabel }}</span>
+                  </div>
+
+                  @if (week.donationAmount) {
+                    <div class="scoring-heatmap-tooltip__amount">{{ week.donationAmount | currency: currencyCode() }}</div>
+                  }
+                </div>
+                <div class="scoring-heatmap-tooltip__row scoring-heatmap-tooltip__row--purchases">
+                  <div class="scoring-heatmap-tooltip__label">
+                    <div class="scoring-heatmap-tooltip__icon">
+                      <ignt-icon name="ticket" variant="light" size="base" />
+                    </div>
+                    <span class="scoring-heatmap-tooltip__label-text">{{ week.tooltipPurchasesLabel }}</span>
+                  </div>
+
+                  @if (week.purchaseAmount) {
+                    <div class="scoring-heatmap-tooltip__amount">{{ week.purchaseAmount | currency: currencyCode() }}</div>
+                  }
+                </div>
+                <div class="scoring-heatmap-tooltip__row">
+                  <div class="scoring-heatmap-tooltip__icon">
+                    <ignt-icon name="address-card" variant="light" size="base" />
+                  </div>
+                  <span class="scoring-heatmap-tooltip__label-text">{{ week.tooltipMembershipsLabel }}</span>
+                </div>
+                <div class="scoring-heatmap-tooltip__row">
+                  <div class="scoring-heatmap-tooltip__icon">
+                    <ignt-icon name="landmark" variant="light" size="base" />
+                  </div>
+                  <span class="scoring-heatmap-tooltip__label-text">{{ week.tooltipVisitsLabel }}</span>
+                </div>
+              </div>
+            </ng-template>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="scoring-heatmap-legend">
+      <span class="scoring-heatmap-legend__label">{{ 'fundraising.patronDetails.scoring.heatmapLegendLess' | translate }}</span>
+      @for (level of intensityLevels; track level) {
+        <div class="scoring-heatmap-legend__cell" [attr.data-intensity]="level"></div>
+      }
+      <span class="scoring-heatmap-legend__label">{{ 'fundraising.patronDetails.scoring.heatmapLegendMore' | translate }}</span>
+    </div>
+
+    @if (level(); as level) {
+      <div class="engagement-level" data-testid="patron-details-scoring-engagement-level">
+        <div class="engagement-level__header">
+          <span class="engagement-level__title">{{ 'fundraising.patronDetails.scoring.engagementLevel.title' | translate }}</span>
+          <span
+            class="engagement-level__info"
+            igntTooltip
+            [tooltipLabel]="'fundraising.patronDetails.scoring.engagementLevel.info' | translateTerminology"
+            data-testid="patron-details-scoring-engagement-level-info"
+          >
+            <ignt-icon name="info-circle" variant="solid" size="caption" aria-hidden="true" />
+          </span>
+        </div>
+        <div class="engagement-level__content">
+          <div class="engagement-level__value" [attr.data-level]="level" data-testid="patron-details-scoring-engagement-level-value">
+            {{ 'fundraising.patrons.list.engagementLevels.' + level | translate }}
+          </div>
+          @if (levelSinceFormatted(); as since) {
+            <div class="engagement-level__since" data-testid="patron-details-scoring-engagement-level-since">
+              {{ 'fundraising.patronDetails.scoring.engagementLevel.since' | translate: { date: since } }}
+            </div>
+          }
+        </div>
+      </div>
+    }
+  }
+</div>

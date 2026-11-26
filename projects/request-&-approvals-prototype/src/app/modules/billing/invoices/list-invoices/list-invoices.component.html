@@ -1,0 +1,144 @@
+<div class="bl-billing">
+  <app-page-title [title]="'menu.billing' | translate"></app-page-title>
+  <app-filters>
+    <div class="el-filters">
+      <app-filter-select
+        (selected)="filterByDate($event)"
+        [options]="dateFilterOptions"
+        [preloadedOption]="dateFilterOptions.length > 1 ? dateFilterOptions[1] : dateFilterOptions[0]"
+      ></app-filter-select>
+    </div>
+  </app-filters>
+  <div class="bl-billing-overview">
+    <div *ngIf="!!this.partner" class="bl-billing-overview-content">
+      <div
+        *ngIf="invoices?.length === 0 && simplifiedBillsStatements?.length === 0"
+        class="bl-billing-overview-no-results"
+        data-testid="billing-overview-no-result"
+      >
+        <fa-icon [icon]="['fas', 'user']" class="bl-billing-overview-no-results__icon"></fa-icon>
+        <p class="bl-billing-overview-no-results__text">{{ 'common.noResults' | translate }}</p>
+      </div>
+      <div *ngIf="invoices?.length > 0">
+        <h3 class="bl-simplified-bill-title" translate>listInvoices.invoicesTitle</h3>
+        <div class="bl-billing-overview-table-header">
+          <span class="bl-billing-overview-table-header__created">
+            {{ 'listInvoices.tableHeader.date' | translate }}
+          </span>
+          <span class="bl-billing-overview-table-header__number">
+            {{ 'listInvoices.tableHeader.number' | translate }}
+          </span>
+          <span class="bl-billing-overview-table-header__range">
+            {{ 'listInvoices.tableHeader.from' | translate }}<br />
+            {{ 'listInvoices.tableHeader.to' | translate }}
+          </span>
+          <span class="bl-billing-overview-table-header__start">
+            {{ 'listInvoices.tableHeader.from' | translate }}
+          </span>
+          <span class="bl-billing-overview-table-header__end">
+            {{ 'listInvoices.tableHeader.to' | translate }}
+          </span>
+          <span class="bl-billing-overview-table-header__icon">
+            {{ 'listInvoices.tableHeader.download' | translate }}
+          </span>
+        </div>
+        <div class="bl-billing-overview-row">
+          <ng-container *ngFor="let invoice of invoices">
+            <div *ngIf="shouldShowInvoice(invoice)" class="bl-billing-overview-pdf" data-testid="billing-overview-pdf">
+              <div class="co-billing-overview-pdf" data-testid="billing-row">
+                <span class="co-billing-overview-pdf__info co-billing-overview-pdf__info--created" data-testid="billing-created-date">{{
+                  invoice.date | date: 'yyyy-MM-dd'
+                }}</span>
+                <span class="co-billing-overview-pdf__info co-billing-overview-pdf__info--id" data-testid="billing-number">
+                  {{ invoice.number }}
+                </span>
+                <div class="co-billing-overview-pdf__info--range">
+                  <span class="co-billing-overview-pdf__info co-billing-overview-pdf__info--start" data-testid="billing-start-date">
+                    {{ invoice.startDate }}
+                  </span>
+                  <span class="co-billing-overview-pdf__info co-billing-overview-pdf__info--end" data-testid="billing-end-date">
+                    {{ invoice.endDate }}
+                  </span>
+                </div>
+
+                <a
+                  (click)="handleInvoiceDownload()"
+                  [href]="invoice.invoiceFile"
+                  class="co-billing-overview-pdf__info co-billing-overview-pdf__info--icon"
+                  target="_blank"
+                >
+                  <fa-icon [fixedWidth]="true" [icon]="['fal', 'file-pdf']" class="el-billing-overview-pdf_icon"></fa-icon>
+                </a>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
+      <div *ngIf="simplifiedBillsStatements?.length > 0">
+        <h3 class="bl-simplified-bill-title bl-simplified-bill-title--simplified" translate>listInvoices.simplifiedBillsStatementsTitle</h3>
+
+        <div class="bl-simplified-bill-row">
+          <div class="bl-billing-overview-table">
+            <div class="bl-billing-overview-table-header">
+              <span class="bl-billing-overview-table-header__created bl-billing-overview-table-header__created--simplified">
+                {{ 'listInvoices.tableHeader.date' | translate }}
+              </span>
+              <span class="bl-billing-overview-table-header__range bl-billing-overview-table-header__range--simplified">
+                {{ 'listInvoices.tableHeader.from' | translate }}<br />
+                {{ 'listInvoices.tableHeader.to' | translate }}
+              </span>
+              <span class="bl-billing-overview-table-header__start bl-billing-overview-table-header__start--simplified">
+                {{ 'listInvoices.tableHeader.from' | translate }}
+              </span>
+              <span class="bl-billing-overview-table-header__end bl-billing-overview-table-header__end--simplified">
+                {{ 'listInvoices.tableHeader.to' | translate }}
+              </span>
+              <span class="bl-billing-overview-table-header__icon bl-billing-overview-table-header__icon--simplified">
+                {{ 'listInvoices.tableHeader.download' | translate }}
+              </span>
+            </div>
+            <div class="bl-billing-overview-row">
+              <ng-container *ngFor="let simplifiedBillsStatement of simplifiedBillsStatements">
+                <div *ngIf="shouldShowStatement(simplifiedBillsStatement)" class="bl-billing-overview-pdf">
+                  <div class="co-billing-overview-pdf">
+                    <span class="el-billing-overview-pdf__date">
+                      {{ simplifiedBillsStatement.createdAt | date: 'yyyy-MM-dd' : '+00:00' }}
+                    </span>
+                    <div class="el-billing-overview-pdf__range">
+                      <span class="el-billing-overview-pdf__date">
+                        {{ simplifiedBillsStatement.issuedFrom | date: 'yyyy-MM-dd' : '+00:00' }}
+                      </span>
+                      <span class="el-billing-overview-pdf__date">
+                        {{ simplifiedBillsStatement.issuedTo | date: 'yyyy-MM-dd' : '+00:00' }}
+                      </span>
+                    </div>
+                    <a [href]="simplifiedBillsStatement.simplifiedBillsStatementFile" class="el-billing-overview-pdf" target="_blank">
+                      <fa-icon [fixedWidth]="true" [icon]="['fal', 'file-pdf']" class="el-billing-overview-pdf_icon"></fa-icon>
+                    </a>
+                  </div>
+                </div>
+              </ng-container>
+            </div>
+          </div>
+          <div class="bl-simplified-bill-sidebar">
+            <div class="bl-simplified-bill-generator">
+              <p translate>listInvoices.generateCustomSimplifiedBillsInfo</p>
+              <button (click)="onGenerateCustomStatementButtonClicked()" class="btn btn-round bl-cta-button">
+                <span translate>listInvoices.generateCustomSimplifiedBillsStatement</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bl-billing__help-topic" appHideWrapperOnHelpTopicClose>
+        <app-help-topic-banner
+          [message]="'helpTopics.finances.message' | translate"
+          [ctaLabel]="'helpTopics.generic.cta.label' | translate"
+          [ctaLink]="'helpTopics.finances.cta.href' | translate"
+        ></app-help-topic-banner>
+      </div>
+    </div>
+  </div>
+</div>

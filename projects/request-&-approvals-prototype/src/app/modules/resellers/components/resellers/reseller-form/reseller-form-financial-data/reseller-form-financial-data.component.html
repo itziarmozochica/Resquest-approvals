@@ -1,0 +1,183 @@
+<ng-container *ngIf="resellerFinancialDataForm">
+  <div [formGroup]="resellerFinancialDataForm" class="reseller-form">
+    <p class="font-base-bold">{{ 'resellers.invoicingInfo' | translate }}</p>
+    <div class="reseller-form__section">
+      <div class="reseller-form__stack">
+        <ignt-input-field
+          class="cell cell--fill-md"
+          type="text"
+          formControlName="contactName"
+          id="contactName"
+          [label]="('resellers.resellerForm.contactName' | translate) + '*'"
+          [readonly]="isLoggedAsPartnerOrganization"
+          [customFormErrors]="[
+            {
+              type: 'required',
+              message: 'form.error.mandatoryField' | translate,
+            },
+            {
+              type: 'maxlength',
+              message: 'form.error.maxLength' | translate: { value: '150' },
+            },
+          ]"
+        />
+        <app-country-code-selector
+          [attr.data-testid]="'business-form__countryCode'"
+          [required]="true"
+          [hasErrors]="resellerFinancialDataForm.controls.countryCode.invalid && resellerFinancialDataForm.controls.countryCode.touched"
+          (selected)="selectCountry(resellerFinancialDataForm.controls.countryCode, $event)"
+          [selectedOption]="resellerFinancialDataForm.controls.countryCode.value"
+          [readonly]="isLoggedAsPartnerOrganization"
+        ></app-country-code-selector>
+        <ignt-input-field
+          class="cell cell--fill-md"
+          type="text"
+          formControlName="phone"
+          id="phone"
+          [label]="('resellers.resellerForm.phoneNumber' | translate) + '*'"
+          [readonly]="isLoggedAsPartnerOrganization"
+          [customFormErrors]="[
+            {
+              type: 'required',
+              message: 'form.error.mandatoryField' | translate,
+            },
+            {
+              type: 'maxlength',
+              message: 'form.error.maxLength' | translate: { value: '128' },
+            },
+          ]"
+        />
+      </div>
+      <div class="reseller-form__stack">
+        <ignt-input-field
+          class="cell cell--fill-md"
+          type="text"
+          formControlName="businessName"
+          id="businessName"
+          [label]="('resellers.resellerForm.businessName' | translate) + '*'"
+          [readonly]="isLoggedAsPartnerOrganization"
+          [customFormErrors]="[
+            {
+              type: 'required',
+              message: 'form.error.mandatoryField' | translate,
+            },
+            {
+              type: 'maxlength',
+              message: 'form.error.maxLength' | translate: { value: '150' },
+            },
+          ]"
+        />
+        <ignt-input-field
+          class="cell cell--fill-md"
+          type="text"
+          formControlName="nif"
+          id="nif"
+          [label]="('resellers.resellerForm.nif' | translate) + '*'"
+          [readonly]="isLoggedAsPartnerOrganization"
+          [customFormErrors]="[
+            {
+              type: 'required',
+              message: 'form.error.mandatoryField' | translate,
+            },
+            {
+              type: 'maxlength',
+              message: 'form.error.maxLength' | translate: { value: '50' },
+            },
+          ]"
+        />
+        <ng-container
+          *ngTemplateOutlet="
+            selectFieldTemplate;
+            context: {
+              label: ('resellers.resellerForm.cityCode' | translate),
+              formControlName: 'cityCode',
+              options: cityOptions,
+              readOnly: isLoggedAsPartnerOrganization,
+            }
+          "
+        >
+        </ng-container>
+      </div>
+      <div class="reseller-form__stack">
+        <ignt-input-field
+          class="cell cell--fill-md"
+          type="text"
+          formControlName="address"
+          id="address"
+          [label]="('resellers.resellerForm.address' | translate) + '*'"
+          [readonly]="isLoggedAsPartnerOrganization"
+          [customFormErrors]="[
+            {
+              type: 'required',
+              message: 'form.error.mandatoryField' | translate,
+            },
+            {
+              type: 'maxlength',
+              message: 'form.error.maxLength' | translate: { value: '255' },
+            },
+          ]"
+        />
+        <ignt-input-field
+          class="cell cell--fill-md"
+          type="text"
+          formControlName="postalCode"
+          id="postalCode"
+          [label]="('resellers.resellerForm.postalCode' | translate) + '*'"
+          [readonly]="isLoggedAsPartnerOrganization"
+          [customFormErrors]="[
+            {
+              type: 'required',
+              message: 'form.error.mandatoryField' | translate,
+            },
+          ]"
+        />
+        <div class="cell field cell--fill-md"></div>
+      </div>
+    </div>
+    <div class="resellers__buttons">
+      <div class="only-in-desktop" *ngIf="!isLoggedAsPartnerOrganization">
+        <ng-container *ngTemplateOutlet="buttonsTemplate"></ng-container>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #selectFieldTemplate let-formControlName="formControlName" let-label="label" let-options="options" let-readOnly="readOnly">
+    <label *ngIf="readOnly" class="cell field cell--fill-md">
+      <span class="field field__label--readonly">{{ label | translate }}</span>
+      <div class="field__input--readonly">
+        {{ resellerFinancialDataForm.controls[formControlName].value?.title || '-' }}
+      </div>
+    </label>
+    <ng-container *ngIf="!readOnly">
+      <ignt-typeahead
+        class="cell field cell--fill-md"
+        [options]="options"
+        [customPopupClass]="'dropdown-menu--on-sidebar'"
+        [selectedOption]="resellerFinancialDataForm.controls[formControlName].value"
+        [fieldLabel]="label + ((resellerFinancialDataForm.controls[formControlName] | isRequiredField) ? ' *' : '')"
+        [emptyLabel]="'common.selectsPlaceholder' | translate"
+        [editable]="false"
+        (selected)="selectOption(formControlName, $event)"
+      ></ignt-typeahead>
+    </ng-container>
+  </ng-template>
+
+  <div class="reseller-form__footer only-in-mobile" *ngIf="!isLoggedAsPartnerOrganization">
+    <bottom-slider [buttonsTemplate]="buttonsTemplate"> </bottom-slider>
+  </div>
+
+  <ng-template #buttonsTemplate>
+    <button igntButton data-testid="back-button" (click)="goBack()" [sentiment]="'tertiary'">
+      {{ 'common.cancel' | translate }}
+    </button>
+    <button
+      igntButton
+      data-testid="reseller-form__save-button"
+      (click)="saveReseller()"
+      [disabled]="!resellerFinancialDataForm.valid"
+      [loading]="isSaving"
+    >
+      {{ 'common.save' | translate }}
+    </button>
+  </ng-template>
+</ng-container>

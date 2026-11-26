@@ -1,0 +1,247 @@
+@if (tableData().headers.length > 0 && tableData().sessions.length > 0) {
+  <table class="price-list-matrix-table" data-testid="price-list-matrix-table">
+    <tbody class="price-list-matrix-table__header">
+      <tr>
+        <td class="price-list-matrix-table__header-title">
+          <div class="rounded-container rounded-container--top">
+            <div class="price-list-title">{{ 'sessions.pricing.priceListsOverview.matrix.priceListName' | translate }}</div>
+          </div>
+        </td>
+        @for (header of tableData().headers; track trackById($index, header); let i = $index) {
+          <td class="price-list-matrix-table__col price-list-matrix-table__header-col" data-testid="price-list-header-col">
+            @if (hasTiers()) {
+              <div class="tier-color" data-testid="tier-color" [style.background-color]="header.tier?.color ?? 'transparent'"></div>
+            }
+
+            <ng-container *ngTemplateOutlet="listProperties; context: { status: header.status, order: i + 1 }"></ng-container>
+            <a
+              [routerLink]="['../../list', header.id]"
+              queryParamsHandling="preserve"
+              class="price-list-matrix-table__header-name"
+              data-testid="price-list-header-link"
+            >
+              <span class="price-list-matrix-table__price-list-name" data-testid="price-list-name">
+                {{ header.name }}
+              </span>
+              @if (header.isBase) {
+                <ng-container [ngTemplateOutlet]="basePriceListTag"></ng-container>
+              }
+            </a>
+          </td>
+        }
+      </tr>
+
+      <tr>
+        <td class="price-list-matrix-table__header-title">
+          <div class="rounded-container rounded-container--bottom">
+            <div class="price-list-matrix-table__header-list-channels">
+              <span class="header-title">{{ 'sessions.pricing.priceListsOverview.matrix.channels' | translate }}</span>
+            </div>
+            <div class="price-list-matrix-table__header-list-timeslots">
+              <span class="header-title">{{ 'sessions.pricing.priceListsOverview.matrix.timeSlots' | translate }}</span>
+            </div>
+            @if (hasTiers()) {
+              <div class="price-list-matrix-table__header-list-timeslots">
+                <span class="header-title">{{ 'sessions.pricing.priceListsOverview.matrix.tier' | translate }}</span>
+              </div>
+            }
+          </div>
+        </td>
+        @for (header of tableData().headers; track trackById($index, header)) {
+          <td class="price-list-matrix-table__col price-list-matrix-table__header-col price-list-matrix-table__header-col--bottom">
+            <div class="price-list-matrix-table__header-list-properties" [appTemplatedTooltip]="timeslotsTooltipTemplate">
+              <div class="price-list-matrix-table__header-list-channels" data-testid="price-list-channels">
+                <span class="ellipsis-container">
+                  {{ header.channelsList }}
+                </span>
+              </div>
+              <div class="price-list-matrix-table__header-list-timeslots" data-testid="price-list-timeslots">
+                <span class="ellipsis-container">
+                  {{ header.timeSlotsList }}
+                </span>
+              </div>
+              @if (hasTiers()) {
+                <div class="price-list-matrix-table__header-list-timeslots" data-testid="price-list-tier-header">
+                  @if (header.tier; as tier) {
+                    <span class="ellipsis-container">
+                      <ng-container *ngTemplateOutlet="badgeTemlate; context: { color: tier.color, tag: tier.name }"></ng-container>
+                    </span>
+                  }
+                </div>
+              }
+
+              <ng-template #timeslotsTooltipTemplate>
+                <div class="price-matrix-header-tooltip-content">
+                  <p>
+                    <strong>{{ 'sessions.pricing.priceListsOverview.priceListMatrixHeaderTooltip.channels' | translate }}</strong>
+                    {{ header.channelsList }}
+                  </p>
+                  <p>
+                    <strong>{{ 'sessions.pricing.priceListsOverview.priceListMatrixHeaderTooltip.timeSlots' | translate }}</strong>
+                    {{ header.timeSlotsList }}
+                  </p>
+                  @if (header.tier) {
+                    <p>
+                      <strong>{{ 'sessions.pricing.priceListsOverview.priceListMatrixHeaderTooltip.tier' | translate }}</strong>
+                      {{ header.tier.name }}
+                    </p>
+                  }
+                </div>
+              </ng-template>
+            </div>
+          </td>
+        }
+      </tr>
+    </tbody>
+
+    <tbody>
+      @for (session of tableData().sessions; track trackById($index, session)) {
+        <tr
+          class="price-list-matrix-table__prices-row"
+          data-testid="session-row"
+          [class.price-list-matrix-table__prices-row--archived]="session.isArchived"
+        >
+          <td class="price-list-matrix-table__col price-list-matrix-table__session-name-col">
+            <div class="session-name-container">
+              <ng-container *ngTemplateOutlet="iconLabelTemplate; context: { $implicit: session.ticketType }"></ng-container>
+              {{ session.name }}
+              @if (session.isArchived) {
+                <app-archived-ticket-type-badge />
+              }
+            </div>
+          </td>
+          @for (price of session.prices; track trackById($index, price)) {
+            <td class="price-list-matrix-table__prices-col price-list-matrix-table__col price-list-matrix-table__price-cell">
+              @if (currencyMode === 'points') {
+                <button
+                  type="button"
+                  class="price-list-link price-list-link--button"
+                  [class.price-list-link--empty]="getPointsPrice(session.id) === null"
+                  [disabled]="!canModifyPriceLists()"
+                  [attr.data-testid]="canModifyPriceLists() ? 'price-cell-points-button' : 'price-cell-points-readonly'"
+                  (click)="onPriceCellClick(price.priceListId, session.id)"
+                >
+                  @if (getPointsPrice(session.id) === null) {
+                    {{ 'sessions.pricing.priceList.table.setPriceLink' | translate }}
+                  } @else {
+                    {{ 'sessions.pricing.priceList.table.pointsValue' | translate: { value: getPointsPrice(session.id) } }}
+                  }
+                </button>
+              } @else {
+                <button
+                  type="button"
+                  class="price-list-link price-list-link--button"
+                  [class.price-list-link--empty]="!price.ticketPrice"
+                  [disabled]="!canModifyPriceLists()"
+                  [attr.data-testid]="canModifyPriceLists() ? 'price-cell-button' : 'price-cell-readonly'"
+                  (click)="onPriceCellClick(price.priceListId, session.id)"
+                >
+                  <ng-container *ngTemplateOutlet="matrixPriceCellBody; context: { price: price, session: session }"></ng-container>
+                </button>
+              }
+            </td>
+          }
+        </tr>
+      }
+    </tbody>
+  </table>
+}
+
+<ng-template #matrixPriceCellBody let-price="price" let-session="session">
+  @if (!session.isPercentageOverBasePriceAddOn && displayStrikethrough() && price.strikethroughPrice) {
+    <span class="price-strikethrough" data-testid="price-strikethrough">{{
+      price.strikethroughPrice.amount | currency: price.strikethroughPrice.currency
+    }}</span>
+  }
+  @if (price.ticketPrice; as ticketPrice) {
+    @if (session.isPercentageOverBasePriceAddOn) {
+      <ignt-icon name="tag" variant="solid" size="caption" class="tag-icon" />
+      {{ ticketPrice.amount }}%
+    } @else {
+      <span class="price-ticket-row">
+        <span class="price-ticket" data-testid="price-ticket">{{ ticketPrice.amount | currency: ticketPrice.currency }}</span>
+        @if (!session.isPercentageOverBasePriceAddOn && displaySurcharge() && price.surchargePrice) {
+          <span class="price-surcharge" data-testid="price-surcharge"
+            >(+{{ price.surchargePrice.amount | currency: price.surchargePrice.currency }})</span
+          >
+        }
+      </span>
+    }
+  }
+</ng-template>
+
+<ng-template #listProperties let-status="status" let-order="order">
+  <div class="price-list-matrix-table__list-status">
+    <span
+      [appTemplatedTooltip]="getStatusTooltipTemplate(status)"
+      [class.pricelist-status-dot--active]="status === PriceListStatus.ACTIVE || status === PriceListStatus.SCHEDULED"
+      class="pricelist-status-dot"
+      data-testid="price-list-status-dot"
+    ></span>
+    <span [appTemplatedTooltip]="prioritizationTooltipTemplate">#{{ order }}</span>
+  </div>
+</ng-template>
+
+<ng-template #iconLabelTemplate let-ticketType>
+  <span class="price-list-matrix-table-session__session-icon" data-testid="price-list-matrix-table-session-icon">
+    @if (ticketType === 'regular') {
+      <ignt-icon name="ticket-alt" variant="light" />
+    }
+    @if (ticketType === 'addOn') {
+      <ignt-icon name="cart-plus" variant="light" />
+    }
+    @if (ticketType === 'pack') {
+      <ignt-icon name="box-open" variant="light" />
+    }
+    @if (ticketType === 'shopProduct') {
+      <ignt-icon name="store" variant="light" />
+    }
+  </span>
+</ng-template>
+
+<ng-template #activePriceListTooltipTemplate>
+  <div
+    class="price-matrix-header-tooltip-content"
+    [innerHTML]="'sessions.pricing.priceListsOverview.matrix.activePriceListTooltip' | translate"
+  ></div>
+</ng-template>
+
+<ng-template #inactivePriceListTooltipTemplate>
+  <div
+    class="price-matrix-header-tooltip-content"
+    [innerHTML]="'sessions.pricing.priceListsOverview.matrix.inactivePriceListTooltip' | translate"
+  ></div>
+</ng-template>
+
+<ng-template #scheduledPriceListTooltipTemplate>
+  <div
+    class="price-matrix-header-tooltip-content"
+    [innerHTML]="'sessions.pricing.priceListsOverview.matrix.scheduledPriceListTooltip' | translate"
+  ></div>
+</ng-template>
+
+<ng-template #expiredPriceListTooltipTemplate>
+  <div
+    class="price-matrix-header-tooltip-content"
+    [innerHTML]="'sessions.pricing.priceListsOverview.matrix.expiredPriceListTooltip' | translate"
+  ></div>
+</ng-template>
+
+<ng-template #prioritizationTooltipTemplate
+  ><div
+    class="price-matrix-header-tooltip-content"
+    [innerHTML]="'sessions.pricing.priceListsOverview.matrix.prioritizationToolTip' | translate"
+  ></div>
+</ng-template>
+
+<ng-template #badgeTemlate let-tag="tag" let-color="color">
+  <span class="price-list-badge" [ngStyle]="{ 'border-color': color, color: color }">
+    {{ tag }}
+  </span>
+</ng-template>
+
+<ng-template #basePriceListTag let-tag="tag" let-color="color">
+  <span class="price-list-badge price-list-badge--base-price-list" data-testid="base-price-list-badge">
+    {{ 'sessions.pricing.basePriceListTag' | translate }}
+  </span>
+</ng-template>

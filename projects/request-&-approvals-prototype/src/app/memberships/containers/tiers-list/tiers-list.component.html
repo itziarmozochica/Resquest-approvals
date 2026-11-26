@@ -1,0 +1,133 @@
+<div class="main-wrapper">
+  <div class="memberships-page__title">
+    <span class="memberships-page__section">{{ 'menu.memberships' | translate }}</span>
+    <h1 class="memberships-page__heading" data-testid="page-title">{{ 'menu.tiers' | translate }}</h1>
+  </div>
+  <ng-container *ngIf="isLoading(); else tiersListWrapper">
+    <div class="loading-spinner">
+      <ignt-icon aria-hidden="true" class="loader" name="spinner" size="display" variant="solid" [spin]="true" />
+    </div>
+  </ng-container>
+</div>
+
+<ng-template #tiersListWrapper>
+  <div class="wrapper-card wrapper-card--main wrapper-card--elevation-100">
+    <div *ngIf="!formGroup.controls['searchField'].value && !hasTiers(); else tiersTable" class="empty-state">
+      <img
+        class="empty-state__image"
+        src="assets/images/memberships/hand-card.svg"
+        alt="{{ 'memberships.programmes.emptyState.alt' | translate }}"
+      />
+      <h3>{{ 'memberships.programmes.emptyState.title' | translate }}</h3>
+      <h3>{{ 'memberships.programmes.emptyState.subtitle' | translate }}</h3>
+      <ignt-button [label]="'memberships.programmes.emptyState.createButton' | translate" routerLink="/memberships/programmes/create" />
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #tiersTable>
+  <div class="tiers-list__container">
+    <div class="tiers-table">
+      <div class="tiers-table__actions-toolbar">
+        <div class="tiers-table__actions-toolbar-title">
+          <label class="cell field">
+            <form [formGroup]="formGroup">
+              <ignt-input-field
+                formControlName="searchField"
+                class="cell cell--fill-md"
+                type="search"
+                [customFormErrors]="[
+                  {
+                    type: 'required',
+                    message: 'form.error.mandatoryField' | translate,
+                  },
+                ]"
+                [required]="false"
+                [placeholder]="'memberships.tiers.table.searchByName' | translate"
+                [label]="'memberships.tiers.table.searchByName' | translate"
+              ></ignt-input-field>
+            </form>
+            <ignt-icon class="field__icon field__icon--lead" name="search" variant="regular" />
+          </label>
+        </div>
+        <ignt-button [label]="'memberships.programmes.table.createButton' | translate" routerLink="/memberships/programmes/create" />
+      </div>
+      <app-table
+        [type]="tableType"
+        [scrollable]="true"
+        [headers]="headers"
+        [orderBy]="orderBy()"
+        (updateOrderByEmit)="updateOrderBy($event)"
+      >
+        <ng-container *ngFor="let tier of tiers()">
+          <tr [ngClass]="{ selected: tier.id === selectedTier()?.id }">
+            <td>
+              <span class="link" (click)="showDetail(tier)"
+                ><strong>{{ tier.name }}</strong></span
+              >
+            </td>
+            <td>{{ tier.programme.name }}</td>
+            <td>{{ tier.members }}</td>
+            <td>{{ tier.createdAt | momentDate: 'd MMM, yyyy' : timezone }}</td>
+            <td>
+              <span class="status status--{{ tier.status }}">{{ tier.status }}</span>
+            </td>
+            <td>
+              <button [igntMenuTriggerFor]="tierActionsMenu" (click)="$event.stopPropagation()" class="dropdown-container__button">
+                <ignt-icon name="ellipsis-h" variant="regular" [fixedWidth]="true" />
+              </button>
+
+              <ng-template #tierActionsMenu>
+                <ignt-menu>
+                  <ignt-menu-item
+                    value="edit"
+                    [label]="'memberships.tiers.table.dropdown.edit' | translate"
+                    disabled
+                    (triggered)="editTier(tier)"
+                  >
+                    <ignt-icon name="pen" variant="solid" />
+                  </ignt-menu-item>
+                  <ignt-menu-item
+                    value="toggle-status"
+                    [label]="
+                      (tier.status === TierStatusEnum.ACTIVE
+                        ? 'memberships.tiers.table.dropdown.deactivate'
+                        : 'memberships.tiers.table.dropdown.activate'
+                      ) | translate
+                    "
+                    (triggered)="toggleStatus(tier)"
+                  >
+                    <ignt-icon name="ban" variant="solid" />
+                  </ignt-menu-item>
+                  <ignt-menu-item
+                    value="delete"
+                    [label]="'memberships.tiers.table.dropdown.delete' | translate"
+                    (triggered)="deleteTier(tier)"
+                  >
+                    <ignt-icon name="trash-alt" variant="solid" />
+                  </ignt-menu-item>
+                </ignt-menu>
+              </ng-template>
+            </td>
+          </tr>
+        </ng-container>
+      </app-table>
+    </div>
+    <ng-container *ngIf="selectedTier()">
+      <div class="tiers-list__divider"></div>
+    </ng-container>
+    <div [ngClass]="{ 'tier-detail-wrapper': true, 'tier-detail-wrapper--active': selectedTier() }">
+      <ng-container *ngIf="selectedTier()">
+        <app-tiers-preview
+          [tier]="selectedTier()"
+          (closePreviewClicked)="closePreview()"
+          (statusChanged)="toggleStatus($event.tier, $event.event)"
+          (deleteTierClicked)="deleteTier($event)"
+        >
+        </app-tiers-preview>
+      </ng-container>
+    </div>
+  </div>
+</ng-template>
+
+<app-confirmation-dialog></app-confirmation-dialog>

@@ -1,0 +1,151 @@
+<div class="delivery-methods-table">
+  <!-- Every data column is `secondary` so the card view below `mobile` shows all of them, as in Scheduled Exports. -->
+  <ignt-table data-testid="delivery-methods-table" [data]="rows()" [getRowId]="getRowId">
+    <ignt-table-column
+      key="displayName"
+      [width]="190"
+      [header]="'analytics.dashboardBuilder.deliveryMethods.table.name' | translate"
+      columnType="primary"
+    >
+      <ng-template [igntTableColumnTemplateType]="rows()[0]" let-item="item">
+        <!-- Not a tab stop, but the focus can land here when the list reloads after a delete. -->
+        <span
+          class="delivery-methods-table__ellipsis"
+          data-testid="delivery-method-name"
+          tabindex="-1"
+          [attr.data-delivery-method-id]="item.id"
+          [attr.title]="item.displayName"
+          >{{ item.displayName }}</span
+        >
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column
+      key="type"
+      [width]="84"
+      [header]="'analytics.dashboardBuilder.deliveryMethods.table.type' | translate"
+      columnType="secondary"
+    >
+      <ng-template [igntTableColumnTemplateType]="rows()[0]" let-item="item">
+        <ignt-tag data-testid="delivery-method-type" [sentiment]="item.typeTag.sentiment" variant="outline">{{
+          item.typeTag.labelKey | translate
+        }}</ignt-tag>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column
+      key="destination"
+      [width]="196"
+      [header]="'analytics.dashboardBuilder.deliveryMethods.table.destination' | translate"
+      columnType="secondary"
+    >
+      <ng-template [igntTableColumnTemplateType]="rows()[0]" let-item="item">
+        @if (item.destination; as destination) {
+          <span class="delivery-methods-table__destination" data-testid="delivery-method-destination">
+            @if (destination.isFullText) {
+              <span class="delivery-methods-table__full-text">{{ destination.text }}</span>
+            } @else {
+              <span class="delivery-methods-table__ellipsis" [attr.title]="destination.text">{{ destination.text }}</span>
+              @if (destination.moreCount > 0) {
+                <!-- A button so keyboard and touch users can open the full list too. The tooltip's
+                     aria-describedby lands on the host, not on the inner button that takes focus,
+                     so the accessible name carries the other recipients. -->
+                <ignt-button
+                  class="delivery-methods-table__more"
+                  data-testid="delivery-method-more-recipients"
+                  igntTooltip
+                  size="small"
+                  variant="tertiary"
+                  [ariaLabel]="
+                    'analytics.dashboardBuilder.deliveryMethods.moreRecipientsAriaLabel'
+                      | translate: { count: destination.moreCount, recipients: destination.otherRecipients }
+                  "
+                  [label]="'analytics.dashboardBuilder.deliveryMethods.moreRecipients' | translate: { count: destination.moreCount }"
+                  [tooltipTemplate]="recipientsTooltip"
+                />
+                <ng-template #recipientsTooltip>
+                  <ul class="delivery-methods-table__recipients" data-testid="delivery-method-recipients">
+                    @for (recipient of destination.recipients; track $index) {
+                      <li>{{ recipient }}</li>
+                    }
+                  </ul>
+                </ng-template>
+              }
+            }
+          </span>
+        } @else {
+          <span data-testid="delivery-method-destination">—</span>
+        }
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column
+      key="usedBy"
+      [width]="168"
+      [header]="'analytics.dashboardBuilder.deliveryMethods.table.usedBy' | translate"
+      columnType="secondary"
+    >
+      <ng-template [igntTableColumnTemplateType]="rows()[0]" let-item="item">
+        <span data-testid="delivery-method-used-by">{{ item.usedBy.key | translate: item.usedBy.params }}</span>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column
+      key="createdBy"
+      [width]="146"
+      [header]="'analytics.dashboardBuilder.deliveryMethods.table.createdBy' | translate"
+      columnType="secondary"
+    >
+      <ng-template [igntTableColumnTemplateType]="rows()[0]" let-item="item">
+        @let createdBy = item.createdBy?.email ?? '—';
+        <span class="delivery-methods-table__ellipsis" data-testid="delivery-method-created-by" [attr.title]="createdBy">{{
+          createdBy
+        }}</span>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column
+      key="createdAt"
+      [width]="112"
+      [header]="'analytics.dashboardBuilder.deliveryMethods.table.created' | translate"
+      columnType="secondary"
+    >
+      <ng-template [igntTableColumnTemplateType]="rows()[0]" let-item="item">
+        <span data-testid="delivery-method-created">{{ item.createdAt | date: dateFormat : 'UTC' }}</span>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column columnType="action" [width]="96" [header]="'common.actions' | translate">
+      <ng-template [igntTableColumnTemplateType]="rows()[0]" let-item="item">
+        <div class="delivery-methods-table__actions">
+          @if (item.isEditable) {
+            <button
+              type="button"
+              ignt-icon-button
+              sentiment="tertiary"
+              size="small"
+              data-testid="delivery-method-edit"
+              [icon]="['fas', 'pen']"
+              [attr.aria-label]="'analytics.dashboardBuilder.deliveryMethods.editAriaLabel' | translate: { name: item.displayName }"
+              [attr.data-delivery-method-id]="item.id"
+              (click)="onEditClick($event, item.id)"
+            ></button>
+          }
+          @if (item.isDeletable) {
+            <button
+              type="button"
+              ignt-icon-button
+              sentiment="tertiary"
+              size="small"
+              data-testid="delivery-method-delete"
+              [icon]="['fas', 'trash']"
+              [attr.aria-label]="'analytics.dashboardBuilder.deliveryMethods.deleteNamedAriaLabel' | translate: { name: item.displayName }"
+              [attr.data-delivery-method-id]="item.id"
+              (click)="delete(item.id)"
+            ></button>
+          }
+        </div>
+      </ng-template>
+    </ignt-table-column>
+  </ignt-table>
+</div>

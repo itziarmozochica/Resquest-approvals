@@ -1,0 +1,191 @@
+<ignt-table
+  class="patrons-list-table"
+  data-testid="patrons-list-table"
+  [data]="patrons()"
+  [filterConfig]="filterConfig()"
+  [hasServerSidePagination]="true"
+  [hasServerSideSorting]="true"
+  [isLoading]="isLoading()"
+  [pageIndex]="pageIndex()"
+  [pageSize]="pageSize()"
+  [searchConfig]="searchConfig()"
+  [sorting]="sorting()"
+  [totalRowCount]="totalCount()"
+  (filterClosed)="filterClosed.emit($event)"
+  (pageIndexChange)="pageIndexChange.emit($event)"
+  (searchChanged)="searchChanged.emit($event)"
+  (sortingChange)="sortingChange.emit($event.sorting)"
+>
+  <ignt-table-column key="name" columnType="primary" [header]="'fundraising.patrons.list.name' | translate" [sortable]="true" [width]="280">
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      <a
+        igntLink
+        size="small"
+        sentiment="primary"
+        class="patrons-list-table__cell-name__link"
+        [routerLink]="['/guest-profiles/profiles', item.userAssociationId]"
+        [state]="{ patronsEntryPoint: 'patron_list_row_link' }"
+      >
+        <app-avatar-initials
+          class="patrons-list-table__cell-name__avatar-initials"
+          data-testid="patrons-list-avatar-initials-component"
+          aria-hidden="true"
+          [avatarUrl]="item.imageUrl"
+          [name]="item.name"
+          [size]="36"
+        ></app-avatar-initials>
+        <div class="patrons-list-table__cell-name__content">
+          <span class="patrons-list-table__cell-name__content__name">{{ item.name }}</span>
+          <span class="patrons-list-table__cell-name__content__email">{{ item.email }}</span>
+        </div>
+        @if (isNewPatron(item.patronSince)) {
+          <ignt-tag sentiment="info">{{ 'fundraising.patrons.list.isNewTag' | translate }}</ignt-tag>
+        }
+      </a>
+    </ng-template>
+  </ignt-table-column>
+
+  @if (canViewGivingEngagement) {
+    <ignt-table-column
+      key="total"
+      align="right"
+      [header]="'fundraising.patrons.list.totalContributions' | translate"
+      [sortable]="true"
+      [width]="150"
+    >
+      <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+        {{ item.total | currency: currencyCode : 'symbol' }}
+      </ng-template>
+    </ignt-table-column>
+  }
+
+  @if (hasMemberships) {
+    <ignt-table-column
+      key="membership"
+      columnType="secondary"
+      [header]="'fundraising.patrons.list.membership' | translate"
+      [sortable]="true"
+      [width]="180"
+    >
+      <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+        @if (item.membershipName) {
+          <ignt-tag
+            sentiment="sharp"
+            variant="solid"
+            [class.patrons-list-table__membership-tier]="getMembershipTierStyle(item.membershipName)"
+            [style.--membership-tier-bg]="getMembershipTierStyle(item.membershipName)?.backgroundColor"
+            [style.--membership-tier-color]="getMembershipTierStyle(item.membershipName)?.color"
+          >
+            @if (item.membershipType === patronsMembershipOwnershipTypes.PRIMARY) {
+              <ignt-icon name="star" variant="light" aria-hidden="true" />
+            } @else if (item.membershipType === patronsMembershipOwnershipTypes.SECONDARY) {
+              <ignt-icon name="user-plus" variant="light" aria-hidden="true" />
+            }
+            {{ item.membershipName }}
+          </ignt-tag>
+        } @else {
+          <span aria-hidden="true">-</span>
+          <span class="visually-hidden">{{ 'common.notAvailable' | translate }}</span>
+        }
+      </ng-template>
+    </ignt-table-column>
+  }
+
+  <ignt-table-column key="tags" align="center" [header]="'fundraising.patrons.list.tags' | translate" [sortable]="true" [width]="160">
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      <app-patrons-table-tags-cell [primaryItems]="item.computedTags" [secondaryItems]="translatedNormalTags(item.userAssociationId)" />
+    </ng-template>
+  </ignt-table-column>
+
+  <ignt-table-column
+    key="managedByB2bUser"
+    [header]="'fundraising.patrons.list.b2bUserManager' | translate"
+    [sortable]="true"
+    [width]="170"
+  >
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      @if (item.managedByB2bUserFullName) {
+        <a
+          igntLink
+          size="small"
+          sentiment="primary"
+          class="patrons-list-table__cell-owner__link"
+          data-testid="patrons-list-gift-officer-link"
+          tabindex="0"
+          (click)="onGiftOfficerClick($event, item)"
+          (keydown.enter)="onGiftOfficerClick($event, item)"
+        >
+          {{ item.managedByB2bUserFullName }}
+        </a>
+      } @else {
+        <span class="patrons-list-table__cell-owner__empty" data-testid="patrons-list-gift-officer-empty" aria-hidden="true">-</span>
+        <span class="visually-hidden">{{ 'common.notAvailable' | translate }}</span>
+      }
+    </ng-template>
+  </ignt-table-column>
+
+  <ignt-table-column
+    key="patronSince"
+    align="center"
+    [header]="'fundraising.patrons.list.patronSince' | translateTerminology"
+    [sortable]="true"
+    [width]="150"
+  >
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      {{ patronSinceDisplay(item.userAssociationId) }}
+    </ng-template>
+  </ignt-table-column>
+
+  @if (canViewGivingEngagement) {
+    <ignt-table-column key="engagement" [header]="'fundraising.patrons.list.engagement' | translate" [sortable]="true" [width]="150">
+      <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+        @if (item.engagementLevel) {
+          {{ 'fundraising.patrons.list.engagementLevels.' + item.engagementLevel | translate }}
+        } @else {
+          <span aria-hidden="true">-</span>
+          <span class="visually-hidden">{{ 'common.notAvailable' | translate }}</span>
+        }
+      </ng-template>
+    </ignt-table-column>
+  }
+
+  <ignt-table-column key="source" [header]="'fundraising.patrons.list.source' | translate" [sortable]="true" [width]="150">
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      @if (item.source) {
+        {{ 'fundraising.patrons.list.sourceTypes.' + item.source | translate }}
+      } @else {
+        <span aria-hidden="true">-</span>
+        <span class="visually-hidden">{{ 'common.notAvailable' | translate }}</span>
+      }
+    </ng-template>
+  </ignt-table-column>
+
+  <ignt-table-column columnType="action" align="center" [header]="'fundraising.patrons.list.actionsHeader' | translate" [width]="90">
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      <button
+        ignt-icon-button
+        data-testid="patrons-list-actions-dropdown"
+        sentiment="tertiary"
+        size="small"
+        [icon]="['fas', 'ellipsis-v']"
+        [attr.aria-label]="('fundraising.patrons.list.actionsFor' | translate) + ' ' + item.name"
+        [igntMenuTriggerFor]="rowActionsMenu"
+      ></button>
+
+      <ng-template #rowActionsMenu>
+        <ignt-menu (menuItemSelected)="rowActionClick.emit({ patron: item, value: $event })">
+          @for (action of rowActions()(item); track action.value) {
+            <ignt-menu-item
+              [label]="action.label"
+              [value]="action.value"
+              [disabled]="action.disabled ?? false"
+              [sentiment]="action.sentiment"
+            >
+              <ignt-icon [name]="action.icon" variant="light" aria-hidden="true" />
+            </ignt-menu-item>
+          }
+        </ignt-menu>
+      </ng-template>
+    </ng-template>
+  </ignt-table-column>
+</ignt-table>

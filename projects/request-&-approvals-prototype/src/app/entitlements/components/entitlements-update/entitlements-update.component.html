@@ -1,0 +1,221 @@
+<div class="entitlements-form-page">
+  <div class="entitlements-form-page__header">
+    <div class="entitlements-form-page__title">
+      <span class="entitlements-form-page__section">{{ 'entitlements.update.section' | translate }}</span>
+      <h1 class="entitlements-form-page__heading" data-testid="page-title">{{ 'entitlements.update.title' | translate }}</h1>
+    </div>
+    <div class="entitlements-form-page__actions">
+      <ignt-button
+        variant="secondary"
+        data-testid="entitlement-update-cancel-desktop"
+        [label]="'common.cancel' | translate"
+        (click)="goBack()"
+      />
+      <ignt-button
+        [disabled]="form.invalid || isSubmitting() || isLoading()"
+        data-testid="entitlement-update-submit-desktop"
+        [label]="(isSubmitting() ? 'entitlements.update.submitting' : 'entitlements.update.submit') | translate"
+        (click)="onSubmit()"
+      />
+    </div>
+  </div>
+
+  <div class="entitlements-form-page__body">
+    @if (isLoading()) {
+      <div
+        class="entitlements-update__skeleton"
+        data-testid="entitlements-update-loading"
+        role="status"
+        aria-busy="true"
+        [attr.aria-label]="'entitlements.update.loading' | translate"
+      >
+        @for (helperWidth of skeletonHelperWidths; track $index) {
+          <div class="entitlements-update__skeleton-field" aria-hidden="true">
+            <ignt-skeleton-base [animation]="true" [height]="56" />
+            <ignt-skeleton-base class="entitlements-update__skeleton-helper" [animation]="true" [height]="12" [width]="helperWidth" />
+          </div>
+        }
+        <div class="entitlements-update__skeleton-field" aria-hidden="true">
+          <ignt-skeleton-base [animation]="true" [height]="20" width="120px" />
+          <ignt-skeleton-base [animation]="true" [height]="16" width="55%" />
+          <div class="entitlements-update__skeleton-selectors">
+            @for (selector of skeletonSelectors; track $index) {
+              <ignt-skeleton-base [animation]="true" [height]="56" />
+            }
+          </div>
+        </div>
+      </div>
+    } @else {
+      <form class="entitlements-create-form" [formGroup]="form" (ngSubmit)="onSubmit()">
+        <div class="entitlements-create-form__field">
+          <ignt-input-field
+            data-testid="entitlement-update-name"
+            type="text"
+            formControlName="name"
+            [helperText]="'entitlements.create.fields.name.helper' | translate"
+            [label]="'entitlements.create.fields.name.label' | translate"
+            [placeholder]="'entitlements.create.fields.name.placeholder' | translate"
+            [required]="true"
+          ></ignt-input-field>
+        </div>
+
+        <div class="entitlements-create-form__field">
+          <ignt-input-field
+            data-testid="entitlement-update-type"
+            type="text"
+            formControlName="typeDisplay"
+            [helperText]="'entitlements.update.fields.type.helper' | translate"
+            [label]="'entitlements.create.fields.type.label' | translate"
+            [placeholder]="''"
+            [readonly]="true"
+          ></ignt-input-field>
+        </div>
+
+        @if (form.controls.type.value === EntitlementTypeEnum.SHOPS) {
+          @if (shopsConfig(); as shops) {
+            <div class="entitlements-create-form__field">
+              <label class="entitlements-create-form__label">
+                {{ 'entitlements.create.fields.shops.benefitKind.label' | translate }}
+              </label>
+              <p class="entitlements-create-form__readonly-value" data-testid="entitlement-update-shops-benefit">
+                {{ 'entitlements.create.fields.shops.benefitKind.option.' + shops.benefit.kind | translate }} —
+                {{ shops.benefit.value }}
+              </p>
+            </div>
+
+            <div class="entitlements-create-form__field">
+              <label class="entitlements-create-form__label">
+                {{ 'entitlements.create.fields.shops.retailSetup.label' | translate }}
+              </label>
+              <p class="entitlements-create-form__readonly-value" data-testid="entitlement-update-shops-retail-setup">
+                {{ shops.retailSetup.name }}
+              </p>
+            </div>
+
+            <div class="entitlements-create-form__field">
+              <label class="entitlements-create-form__label">
+                {{ 'entitlements.create.fields.shops.restrictionModel.label' | translate }}
+              </label>
+              <p class="entitlements-create-form__readonly-value" data-testid="entitlement-update-shops-restriction">
+                {{ 'entitlements.create.fields.shops.restrictionModel.option.' + shops.restriction.model | translate }} —
+                {{ shops.restriction.name }} ({{ shops.restriction.id }})
+              </p>
+            </div>
+
+            <div class="entitlements-create-form__field">
+              <label class="entitlements-create-form__label">
+                {{ 'entitlements.create.fields.shops.timeWindow.label' | translate }}
+              </label>
+              <p class="entitlements-create-form__readonly-value" data-testid="entitlement-update-shops-time-window">
+                @if (shops.restriction.timeRangeSeconds === null) {
+                  {{ 'entitlements.create.fields.shops.timeWindow.none' | translate }}
+                } @else {
+                  {{ shops.restriction.timeRangeSeconds | secondsToDuration }}
+                }
+              </p>
+            </div>
+          }
+        }
+
+        @if (form.controls.type.value === EntitlementTypeEnum.RESCHEDULE_FOR_FREE) {
+          <div class="entitlements-create-form__field">
+            <ignt-input-field
+              data-testid="entitlement-update-max-days-before-visit"
+              type="number"
+              formControlName="maxDaysBeforeInitialVisit"
+              [helperText]="'entitlements.create.fields.maxDaysBeforeInitialVisit.helper' | translate"
+              [label]="'entitlements.create.fields.maxDaysBeforeInitialVisit.label' | translate"
+              [placeholder]="'entitlements.create.fields.maxDaysBeforeInitialVisit.placeholder' | translate"
+              [minValue]="0"
+              [required]="true"
+            ></ignt-input-field>
+          </div>
+
+          <div class="entitlements-create-form__field">
+            <ignt-input-field
+              data-testid="entitlement-update-max-days"
+              type="number"
+              formControlName="maxDaysAfterVisit"
+              [helperText]="'entitlements.create.fields.maxDays.helper' | translate"
+              [label]="'entitlements.create.fields.maxDays.label' | translate"
+              [placeholder]="'entitlements.create.fields.maxDays.placeholder' | translate"
+              [required]="true"
+            ></ignt-input-field>
+          </div>
+
+          <div class="entitlements-create-form__field">
+            <ignt-input-field
+              data-testid="entitlement-update-max-reschedules"
+              type="number"
+              formControlName="maxReschedules"
+              [helperText]="'entitlements.create.fields.maxReschedules.helper' | translate"
+              [label]="'entitlements.create.fields.maxReschedules.label' | translate"
+              [placeholder]="'entitlements.create.fields.maxReschedules.placeholder' | translate"
+              [required]="true"
+            ></ignt-input-field>
+          </div>
+        }
+
+        @if (form.controls.type.value !== EntitlementTypeEnum.SHOPS) {
+          <div class="entitlements-create-form__field" role="group" [attr.aria-required]="isTicketTypeIdRequired(form.controls.type.value)">
+            <label class="entitlements-create-form__label">
+              {{ 'entitlements.create.fields.ticketTypeId.label' | translate }}
+              @if (isTicketTypeIdRequired(form.controls.type.value)) {
+                <span class="text-danger" aria-hidden="true">*</span>
+              }
+            </label>
+            <p class="entitlements-create-form__helper">{{ getTicketTypeIdHelperKey(form.controls.type.value) | translate }}</p>
+            <div class="entitlements-create-form__ticket-type-selectors">
+              <app-multi-select
+                class="entitlements-create-form__multi-select"
+                [options]="cities()"
+                [selectedOptions]="selectedCities()"
+                [placeholder]="'coupons.form.assignments.fields.cities.label' | translate"
+                [displayInPlaceMaximum]="1"
+                (selected)="onSelectCities($event)"
+                data-testid="entitlement-update-city"
+              ></app-multi-select>
+              <app-multi-select
+                class="entitlements-create-form__multi-select"
+                [options]="planOptions()"
+                [selectedOptions]="selectedPlanOptions()"
+                [placeholder]="'coupons.form.assignments.fields.plans.label' | translate"
+                [displayInPlaceMaximum]="1"
+                [maxSelectedOptions]="1"
+                [disabled]="selectedCities().length === 0"
+                (selected)="onSelectPlanOptions($event)"
+                data-testid="entitlement-update-plan"
+              ></app-multi-select>
+              <app-multi-select
+                class="entitlements-create-form__multi-select"
+                [options]="sessionTypeOptions()"
+                [selectedOptions]="selectedSessionTypeOptions()"
+                [placeholder]="'coupons.form.assignments.fields.ticketTypes.label' | translate"
+                [displayInPlaceMaximum]="1"
+                [maxSelectedOptions]="1"
+                [disabled]="selectedPlanId() === null"
+                (selected)="onSelectSessionTypeOptions($event)"
+                data-testid="entitlement-update-ticket-type-id"
+              ></app-multi-select>
+            </div>
+          </div>
+        }
+      </form>
+    }
+  </div>
+</div>
+
+<div class="only-in-mobile">
+  <bottom-slider [buttonsTemplate]="buttonsTemplate"></bottom-slider>
+</div>
+
+<ng-template #buttonsTemplate>
+  <ignt-button variant="secondary" fill data-testid="entitlement-update-cancel" [label]="'common.cancel' | translate" (click)="goBack()" />
+  <ignt-button
+    fill
+    [disabled]="form.invalid || isSubmitting() || isLoading()"
+    data-testid="entitlement-update-submit"
+    [label]="(isSubmitting() ? 'entitlements.update.submitting' : 'entitlements.update.submit') | translate"
+    (click)="onSubmit()"
+  />
+</ng-template>

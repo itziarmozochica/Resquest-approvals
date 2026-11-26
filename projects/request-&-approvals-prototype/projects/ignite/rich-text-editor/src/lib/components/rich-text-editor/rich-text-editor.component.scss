@@ -1,0 +1,119 @@
+@use '../../styles/rich-text-content' as content;
+@use './tokens' as tokens;
+@use 'foundations' as foundations;
+
+.ignt-rich-text-editor {
+  position: relative;
+  width: 100%;
+
+  &__editor {
+    min-height: 200px;
+    padding: foundations.$space-3;
+    color: tokens.$editor-text;
+    background: tokens.$editor-bg;
+    border: 1px solid tokens.$editor-border;
+    border-radius: 0 0 tokens.$editor-radius tokens.$editor-radius;
+
+    // TipTap mounts .tiptap/.ProseMirror at runtime without Angular emulated encapsulation
+    // attributes, so ::ng-deep is required to style the editable content area.
+    ::ng-deep .tiptap {
+      min-height: 180px;
+      outline: none;
+
+      &:focus,
+      &:focus-visible,
+      &.ProseMirror-focused {
+        outline: none;
+      }
+
+      @include content.rich-text-content(tokens.$editor-link);
+
+      a {
+        cursor: text;
+      }
+
+      .ProseMirror-selectednode {
+        outline: 2px solid tokens.$editor-selection;
+      }
+
+      [data-resize-handle] {
+        width: 10px;
+        height: 10px;
+        background: tokens.$editor-selection;
+        border: 1px solid tokens.$editor-bg;
+        border-radius: foundations.$radii-0;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .ProseMirror-selectednode [data-resize-handle],
+      [data-resize-state='true'] [data-resize-handle] {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      [data-resize-handle='top-left'] {
+        cursor: nwse-resize;
+        transform: translate(-50%, -50%);
+      }
+
+      [data-resize-handle='top-right'] {
+        cursor: nesw-resize;
+        transform: translate(50%, -50%);
+      }
+
+      [data-resize-handle='bottom-left'] {
+        cursor: nesw-resize;
+        transform: translate(-50%, 50%);
+      }
+
+      [data-resize-handle='bottom-right'] {
+        cursor: nwse-resize;
+        transform: translate(50%, 50%);
+      }
+
+      p.is-editor-empty:first-child::before,
+      div.is-editor-empty:first-child::before {
+        color: tokens.$editor-placeholder;
+        content: attr(data-placeholder);
+        float: left;
+        height: 0;
+        pointer-events: none;
+      }
+    }
+  }
+
+  // Overlays the editor body instead of pushing it down: an absolutely positioned box with auto
+  // offsets keeps its static position right under the toolbar while leaving the normal flow.
+  &__emoji-panel {
+    position: absolute;
+    z-index: 2;
+    max-height: 22rem;
+    overflow: hidden;
+    background: foundations.$palette-neutral-white;
+    border: 1px solid tokens.$editor-border;
+    border-top: 0;
+    border-radius: 0 0 tokens.$editor-radius tokens.$editor-radius;
+    box-shadow: foundations.$shadow-100;
+  }
+
+  &__source-container {
+    border: 1px solid tokens.$editor-border;
+    border-radius: 0 0 tokens.$editor-radius tokens.$editor-radius;
+    overflow: hidden;
+  }
+
+  &__source-textarea {
+    width: 100%;
+    min-height: 200px;
+    padding: foundations.$space-3;
+    border: 0;
+    font-size: foundations.$size-small;
+    font-family: 'Monaco', 'Menlo', monospace;
+
+    &:focus {
+      outline: none;
+    }
+  }
+}

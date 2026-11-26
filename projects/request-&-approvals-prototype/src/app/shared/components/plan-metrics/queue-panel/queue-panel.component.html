@@ -1,0 +1,44 @@
+@if (isLoading() || error() !== null || overview() !== null) {
+  <div class="queue-panel" data-testid="queue-panel">
+    @if (isLoading()) {
+      <div class="queue-panel__loader">
+        <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'2x'"></fa-icon>
+        <span>{{ 'queue.loading' | translate }}</span>
+      </div>
+    } @else if (error() !== null) {
+      <ignt-alert sentiment="danger" [description]="error()! | translate" data-testid="queue-error"></ignt-alert>
+    } @else if (overview() !== null && isQueueStopped) {
+      <div class="queue-panel__header">
+        <h4 class="queue-panel__title">{{ 'queue.title' | translate }}</h4>
+      </div>
+      <ignt-alert [description]="'queue.stopped' | translate" data-testid="queue-stopped"></ignt-alert>
+    } @else if (overview() !== null) {
+      <div class="queue-panel__header">
+        <h4 class="queue-panel__title">{{ 'queue.title' | translate }}</h4>
+        @if (overview()!.status === 'partial') {
+          <span class="queue-panel__status queue-panel__status--partial">{{ 'queue.statusPartial' | translate }}</span>
+        }
+      </div>
+
+      @if (overview()!.warnings.length > 0) {
+        <ignt-alert sentiment="warning" [description]="overview()!.warnings.join(', ')" data-testid="queue-warnings"></ignt-alert>
+      }
+
+      <div class="queue-panel__cards" data-testid="queue-metric-cards">
+        @for (metric of cardMetrics(); track metric.key) {
+          <div class="queue-panel__card" [attr.data-testid]="'queue-card-' + metric.key">
+            <span class="queue-panel__card-label">{{ metricLabel(metric) | translate }}</span>
+            <span class="queue-panel__card-value" [attr.data-testid]="'queue-card-' + metric.key + '-value'">{{
+              metricDisplay(metric)
+            }}</span>
+            @if (metricUnit(metric) !== '') {
+              <span class="queue-panel__card-unit" [attr.data-testid]="'queue-card-' + metric.key + '-unit'">{{
+                metricUnit(metric) | translate
+              }}</span>
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+}

@@ -1,0 +1,180 @@
+@use 'foundations' as foundations;
+
+$thumb-shadow: 0 foundations.$size-px2 foundations.$size-px2 0 rgba(foundations.$color-background-main-contrast, 0.16);
+$thumb-shadow-contrast: 0 foundations.$size-px2 foundations.$size-px2 0 rgba(foundations.$color-background-main-contrast, 0.24);
+$focus-ring: 0 0 0 foundations.$space-2 rgba(foundations.$color-action-background-primary, 0.4);
+$focus-ring-contrast: 0 0 0 foundations.$space-2 rgba(foundations.$color-action-background-primary, 0.64);
+
+// The halo is decoration: at 40% it scores 1.20:1 against the "on" track and 1.39:1 against the "off"
+// one, and raising the alpha does not save it — opaque $color-action-background-primary is still
+// 1.50:1 on the green. No brand colour in the theme clears 1.4.11's 3:1 against all four track fills,
+// so an opaque edge carries the contrast and the halo stays for the look. Worst case 5.34:1 light,
+// 3.06:1 contrast, both on the green track.
+$focus-edge: 0 0 0 foundations.$size-px2 foundations.$color-action-border-main;
+$focus-edge-contrast: 0 0 0 foundations.$size-px2 foundations.$color-action-border-main-hover-contrast;
+
+:host {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+:host(.ignt-switch--row) {
+  display: flex;
+  width: 100%;
+}
+
+.ignt-switch {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: foundations.$space-4;
+  min-width: 0;
+  margin: 0;
+  cursor: pointer;
+
+  &--disabled {
+    cursor: not-allowed;
+  }
+
+  &__text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: foundations.$size-px2;
+    min-width: 0;
+  }
+
+  &__label {
+    font: foundations.$font-small-bold;
+    color: foundations.$color-text-main;
+  }
+
+  &--disabled &__label {
+    color: foundations.$color-text-subtle;
+  }
+
+  &__description {
+    font: foundations.$font-caption-regular;
+    color: foundations.$color-text-subtle;
+  }
+
+  &__control {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: flex-start;
+    box-sizing: border-box;
+    width: foundations.$size-14;
+    height: foundations.$size-8;
+    margin: 0;
+    padding-block: foundations.$space-1;
+    padding-inline: foundations.$space-2 foundations.$space-1;
+    border: foundations.$size-px solid foundations.$color-border-main;
+    border-radius: foundations.$radii-full;
+    background-color: foundations.$color-background-subtle-medium;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: none;
+
+      .ignt-switch__thumb {
+        box-shadow: $focus-edge, $focus-ring, $thumb-shadow;
+      }
+    }
+
+    &--checked {
+      justify-content: flex-end;
+      background-color: foundations.$color-background-positive-base;
+    }
+
+    &--disabled {
+      border-color: transparent;
+      background-color: foundations.$color-action-background-disable;
+      cursor: not-allowed;
+    }
+  }
+
+  &__thumb {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: foundations.$size-4;
+    height: foundations.$size-4;
+    border-radius: foundations.$radii-full;
+    background-color: foundations.$color-background-main;
+    box-shadow: $thumb-shadow;
+  }
+
+  &__control--checked &__thumb {
+    width: foundations.$size-6;
+    height: foundations.$size-6;
+  }
+
+  &__icon {
+    color: foundations.$color-text-positive;
+  }
+}
+
+:host(.ignt-switch--contrast) {
+  .ignt-switch__label {
+    color: foundations.$color-text-main-contrast;
+  }
+
+  .ignt-switch--disabled .ignt-switch__label,
+  .ignt-switch__description {
+    color: foundations.$color-text-subtle-contrast;
+  }
+
+  .ignt-switch__control {
+    border-color: foundations.$color-border-main-contrast;
+    background-color: foundations.$color-background-subtle-base;
+
+    &:focus-visible .ignt-switch__thumb {
+      box-shadow: $focus-edge-contrast, $focus-ring-contrast, $thumb-shadow-contrast;
+    }
+
+    &--checked {
+      background-color: foundations.$color-background-positive-base-contrast;
+    }
+
+    &--disabled {
+      border-color: transparent;
+      background-color: foundations.$color-action-background-disable-contrast;
+
+      .ignt-switch__thumb {
+        background-color: foundations.$color-background-subtle-base-contrast;
+      }
+    }
+  }
+
+  .ignt-switch__thumb {
+    box-shadow: $thumb-shadow-contrast;
+  }
+
+  .ignt-switch__icon {
+    color: foundations.$color-text-positive-contrast;
+  }
+}
+
+// `box-shadow` is not painted under forced colours, and the rule above removes the native outline, so
+// without this a focused switch is pixel-identical to an unfocused one there — no indicator at all.
+@media (forced-colors: active) {
+  .ignt-switch__control:focus-visible {
+    outline: foundations.$size-px2 solid Highlight;
+    outline-offset: foundations.$size-px2;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ignt-switch__control {
+    transition: background-color 120ms ease-out;
+  }
+
+  .ignt-switch__thumb {
+    transition:
+      width 120ms ease-out,
+      height 120ms ease-out,
+      box-shadow 120ms ease-out;
+  }
+}

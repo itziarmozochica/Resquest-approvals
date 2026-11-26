@@ -1,0 +1,115 @@
+<div class="reservation-actions__container">
+  @if (reservation.status === reservationStatus.TO_BE_PAID || reservation.status === reservationStatus.PAID) {
+    <div class="reservation-actions__dropdown" data-testid="reservation-actions__dropdown">
+      @if (isPrinting) {
+        <span
+          class="reservation-actions__printing"
+          data-testid="reservation-actions__printing-indicator"
+          role="status"
+          [attr.aria-label]="(usesProformaInvoice ? 'reservations.proformaInvoice.get' : 'reservations.getDeliveryNote') | translate"
+        >
+          <ignt-icon aria-hidden="true" name="spinner" variant="solid" [fixedWidth]="true" [spin]="true" />
+        </span>
+      } @else {
+        <button
+          ignt-icon-button
+          class="reservation-actions__button"
+          data-testid="reservation-actions__dropdown-button"
+          [attr.aria-label]="'common.actions' | translate"
+          [icon]="['far', 'ellipsis-h']"
+          sentiment="tertiary"
+          size="small"
+          [igntMenuTriggerFor]="reservationActionsMenu"
+          (click)="$event.stopPropagation()"
+        ></button>
+      }
+      <ng-template #reservationActionsMenu>
+        <ignt-menu class="reservation-actions__options" data-testid="reservation-actions__options">
+          @if (reservation.status === reservationStatus.TO_BE_PAID && canShareReservation) {
+            <ignt-menu-item
+              data-testid="reservation-actions__generate-share-link"
+              [label]="'generateShareUrl' | translate"
+              value="generate-share-link"
+              [disabled]="isLoadingPaymentLinkModal()"
+              (triggered)="requestGenerateShareLink()"
+            >
+              <ignt-icon
+                aria-hidden="true"
+                [name]="isManager ? 'credit-card' : 'share'"
+                [variant]="isManager ? 'light' : 'solid'"
+                [fixedWidth]="true"
+              />
+            </ignt-menu-item>
+          }
+          @if (reservation.status === reservationStatus.TO_BE_PAID && canPayReservation) {
+            <ignt-menu-item
+              data-testid="reservation-actions__pay-reservation"
+              [label]="'reservation.payReservation' | translate"
+              value="pay-reservation"
+              (triggered)="requestPayReservation(reservation)"
+            >
+              <ignt-icon aria-hidden="true" name="credit-card" variant="light" [fixedWidth]="true" />
+            </ignt-menu-item>
+          }
+          @if (reservation.status === reservationStatus.TO_BE_PAID && isReservationModifyEnabled()) {
+            <ignt-menu-item
+              data-testid="reservation-actions__modify-reservation"
+              [label]="'reservations.modifyReservation' | translate"
+              value="modify-reservation"
+              (triggered)="requestModifyReservationItems(reservation, editReservationAction.MODIFY_RESERVATION)"
+            >
+              <ignt-icon aria-hidden="true" name="edit" variant="solid" [fixedWidth]="true" />
+            </ignt-menu-item>
+          }
+          @if (reservation.status === reservationStatus.TO_BE_PAID && isCancelEnabled) {
+            <ignt-menu-item
+              data-testid="reservation-actions__cancel"
+              [label]="'reservations.cancel' | translate"
+              value="cancel"
+              (triggered)="requestCancelReservation(reservation)"
+            >
+              <ignt-icon aria-hidden="true" name="ban" variant="solid" [fixedWidth]="true" />
+            </ignt-menu-item>
+          }
+          @if (reservation.status === reservationStatus.PAID) {
+            <ignt-menu-item
+              data-testid="reservation-actions__view-details"
+              [label]="'reservations.viewDetails' | translate"
+              value="view-details"
+              (triggered)="viewReservationDetails(reservation)"
+            >
+              <ignt-icon aria-hidden="true" name="eye" variant="light" [fixedWidth]="true" />
+            </ignt-menu-item>
+          }
+          @if (reservation.status === reservationStatus.PAID && (reservation | pipeFunction: isInvoiceEnabled : this)) {
+            <ignt-menu-item
+              data-testid="reservation-actions__go-to-invoicing"
+              [label]="'validateTicketsNew.orderHeader.invoicing' | translate"
+              value="go-to-invoicing"
+              (triggered)="goToInvoicing(reservation)"
+            >
+              <ignt-icon aria-hidden="true" name="file-invoice-dollar" variant="light" [fixedWidth]="true" />
+            </ignt-menu-item>
+          }
+          @if (reservation.status === reservationStatus.PAID || reservation.status === reservationStatus.TO_BE_PAID) {
+            <ignt-menu-item
+              data-testid="reservation-actions__get-delivery-note"
+              [label]="(usesProformaInvoice ? 'reservations.proformaInvoice.get' : 'reservations.getDeliveryNote') | translate"
+              value="get-delivery-note"
+              [disabled]="isPrinting"
+              (triggered)="downloadDeliveryNote(reservation)"
+            >
+              <ignt-icon
+                aria-hidden="true"
+                [name]="isPrinting ? 'spinner' : 'file-pdf'"
+                [variant]="isPrinting ? 'solid' : 'light'"
+                [fixedWidth]="true"
+                [spin]="isPrinting"
+              />
+            </ignt-menu-item>
+          }
+        </ignt-menu>
+      </ng-template>
+    </div>
+  }
+</div>

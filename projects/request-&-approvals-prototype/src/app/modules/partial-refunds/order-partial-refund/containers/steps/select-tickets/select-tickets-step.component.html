@@ -1,0 +1,112 @@
+<div class="select-tickets-step" data-testid="order-partial-refund-select-tickets-step">
+  <header class="select-tickets-step__heading">
+    <div class="select-tickets-step__heading-text">
+      <h4 class="select-tickets-step__title">{{ 'orders.partialRefund.selectTickets.heading' | translate }}</h4>
+      <p class="select-tickets-step__subtitle">{{ 'orders.partialRefund.selectTickets.intro' | translate }}</p>
+    </div>
+    @if (isProbing()) {
+      <p class="select-tickets-step__checking" role="status" data-testid="order-partial-refund-status-loading">
+        <ignt-icon aria-hidden="true" name="spinner" variant="solid" [spin]="true" />
+        {{ 'orders.partialRefund.selectTickets.checking' | translate }}
+      </p>
+    } @else if (hasSelectableTickets()) {
+      <ignt-checkbox
+        class="select-tickets-step__select-all"
+        size="small"
+        [checked]="store.isEverySelectableSelected()"
+        [dataTestId]="'order-partial-refund-select-all'"
+        [disabled]="store.isOrderBlocked()"
+        [label]="'orders.partialRefund.selectTickets.selectAll' | translate"
+        (change)="onSelectAllChange()"
+      />
+    }
+  </header>
+
+  @if (store.isOrderBlocked()) {
+    <ignt-alert
+      data-testid="order-partial-refund-blocked"
+      sentiment="danger"
+      [description]="blockerReasons()"
+      [title]="'orders.partialRefund.selectTickets.blocked.title' | translate"
+    />
+  } @else if (store.hasUntrackedRefunds()) {
+    <ignt-alert
+      data-testid="order-partial-refund-untracked-refunds"
+      sentiment="warning"
+      [description]="'orders.partialRefund.selectTickets.untrackedRefunds.description' | translate"
+      [title]="'orders.partialRefund.selectTickets.untrackedRefunds.title' | translate"
+    />
+  } @else if (statusUnavailable()) {
+    <ignt-alert
+      data-testid="order-partial-refund-status-unavailable"
+      sentiment="warning"
+      [description]="'orders.partialRefund.selectTickets.statusUnavailable.description' | translate"
+      [title]="'orders.partialRefund.selectTickets.statusUnavailable.title' | translate"
+    />
+  }
+
+  <div class="select-tickets-step__groups" data-testid="order-partial-refund-groups">
+    @for (group of groups(); track group.summary.ticketId) {
+      <section class="select-tickets-step__group" [attr.data-testid]="'order-partial-refund-group-' + group.summary.ticketId">
+        <div class="select-tickets-step__group-heading">
+          <h5 class="select-tickets-step__group-title">
+            <span>{{ group.summary.totalCount }}x {{ group.summary.ticketTypeLabel }}</span>
+            <span class="select-tickets-step__group-id">
+              {{ 'orders.partialRefund.selectTickets.ticketGroup' | translate: { ticketId: group.summary.ticketId } }}
+            </span>
+          </h5>
+          @if (group.isSelectable) {
+            <ignt-checkbox
+              class="select-tickets-step__group-select-all"
+              size="small"
+              [checked]="group.isAllSelected"
+              [dataTestId]="'order-partial-refund-group-select-all-' + group.summary.ticketId"
+              [disabled]="store.isOrderBlocked() || isProbing()"
+              [label]="'orders.partialRefund.selectTickets.selectAll' | translate"
+              (change)="onGroupChange(group.summary)"
+            />
+          }
+        </div>
+
+        <ul class="select-tickets-step__items">
+          @for (view of group.items; track view.item.referenceId) {
+            <li
+              class="select-tickets-step__item"
+              [class.select-tickets-step__item--disabled]="!view.isSelectable"
+              data-testid="order-partial-refund-ticket"
+            >
+              <ignt-checkbox
+                [checked]="view.isSelected"
+                [dataTestId]="'order-partial-refund-ticket-' + view.item.referenceId"
+                [description]="view.details"
+                [disabled]="!view.isSelectable || store.isOrderBlocked() || isProbing()"
+                [label]="view.label"
+                (change)="onItemChange(view.item)"
+              />
+              @if (view.status; as status) {
+                <ignt-tag
+                  class="select-tickets-step__status"
+                  variant="outline"
+                  [sentiment]="status.sentiment"
+                  [attr.data-testid]="'order-partial-refund-status-' + status.kind"
+                >
+                  {{ status.label }}
+                </ignt-tag>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    } @empty {
+      <p class="select-tickets-step__empty" data-testid="order-partial-refund-empty">
+        {{ 'orders.partialRefund.selectTickets.empty' | translate }}
+      </p>
+    }
+  </div>
+
+  <p class="select-tickets-step__count" data-testid="order-partial-refund-selected-count">
+    {{
+      'orders.partialRefund.selectTickets.selected' | translate: { selected: store.selectedTicketCount(), total: store.totalTicketCount() }
+    }}
+  </p>
+</div>

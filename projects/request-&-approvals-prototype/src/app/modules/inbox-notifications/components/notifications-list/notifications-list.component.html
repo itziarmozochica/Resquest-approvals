@@ -1,0 +1,37 @@
+<div
+  class="notifications-list"
+  appNotificationsScrollEdges
+  [class.notifications-list--edge-hints]="edgeHints()"
+  [class.notifications-list--flat]="appearance() === 'flat'"
+  [enabled]="edgeHints()"
+  (edgesChange)="onScrollEdges($event)"
+  role="list"
+>
+  @if (isLoading() && !notifications().length) {
+    <p class="notifications-list__loading">{{ 'notifications.loading' | translate }}</p>
+  } @else if (error() && !notifications().length) {
+    <div class="notifications-list__error" role="alert">
+      <p class="notifications-list__error-message">{{ 'notifications.error' | translate }}</p>
+      <button type="button" igntButton sentiment="secondary" size="small" data-testid="notifications-retry" (click)="onRetry()">
+        {{ 'notifications.retry' | translate }}
+      </button>
+    </div>
+  } @else {
+    @for (notification of notifications(); track notification.id; let i = $index) {
+      <app-notification-item
+        [appearance]="appearance()"
+        [notification]="notification"
+        (openAssistant)="onOpenAssistant(notification, i)"
+        role="listitem"
+      />
+    } @empty {
+      <p class="notifications-list__empty">{{ 'notifications.empty' | translate }}</p>
+    }
+  }
+
+  <div #sentinel class="notifications-list__sentinel" aria-hidden="true"></div>
+
+  @if (isLoadingMore()) {
+    <p class="notifications-list__loading-more">{{ 'notifications.loading' | translate }}</p>
+  }
+</div>

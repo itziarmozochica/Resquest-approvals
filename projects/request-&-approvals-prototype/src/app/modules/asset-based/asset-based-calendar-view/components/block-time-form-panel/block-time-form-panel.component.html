@@ -1,0 +1,458 @@
+<div class="booked-slot-details block-time-panel" data-testid="block-time-form-panel">
+  <header class="block-time-panel__header">
+    <h3 class="block-time-panel__title">
+      {{ 'bookedSlots.blockTimePanel.title' | translate }}
+    </h3>
+    <p class="block-time-panel__subtitle">
+      {{ 'bookedSlots.blockTimePanel.subtitle' | translate }}
+    </p>
+  </header>
+
+  <div class="block-time-panel__body">
+    <div class="block-time-panel__mode-switch" role="group" [attr.aria-label]="'bookedSlots.blockTimePanel.modeSwitchLabel' | translate">
+      <button
+        type="button"
+        igntButton
+        size="small"
+        class="block-time-panel__mode-switch-option"
+        [fill]="true"
+        [sentiment]="isBulkMode() ? 'secondary' : 'primary'"
+        [attr.aria-pressed]="!isBulkMode()"
+        (click)="onSelectionModeChange('single')"
+        data-testid="block-time-mode-single"
+      >
+        {{ 'bookedSlots.blockTimePanel.modeSingle' | translate }}
+      </button>
+      <button
+        type="button"
+        igntButton
+        size="small"
+        class="block-time-panel__mode-switch-option"
+        [fill]="true"
+        [sentiment]="isBulkMode() ? 'primary' : 'secondary'"
+        [attr.aria-pressed]="isBulkMode()"
+        (click)="onSelectionModeChange('bulk')"
+        data-testid="block-time-mode-bulk"
+      >
+        {{ 'bookedSlots.blockTimePanel.modeBulk' | translate }}
+      </button>
+    </div>
+
+    <section class="block-time-panel__section">
+      <h4 class="block-time-panel__section-title">{{ 'bookedSlots.blockTimePanel.assetSectionTitle' | translate }}</h4>
+      @if (isBulkMode()) {
+        <ignt-input-field
+          type="search"
+          class="block-time-panel__asset-search"
+          [label]="'bookedSlots.blockTimePanel.assetSearchPlaceholder' | translate"
+          [ngModel]="assetSearchTerm()"
+          (ngModelChange)="onAssetSearchTermChange($event)"
+          data-testid="block-time-asset-search"
+        ></ignt-input-field>
+        <div class="block-time-panel__asset-select-all" data-testid="block-time-select-all">
+          <ignt-checkbox
+            size="small"
+            [checked]="areAllSelectableAssetsSelected()"
+            [disabled]="selectableBulkAssetCount() === 0"
+            [label]="selectAllLabelKey() | translate: selectAllLabelParams()"
+            (change)="onToggleAllAssets($event)"
+            dataTestId="block-time-select-all-assets"
+          ></ignt-checkbox>
+          <span class="block-time-panel__asset-count" data-testid="block-time-selected-asset-count">
+            {{ selectedAssetCount() }}/{{ selectableBulkAssetCount() }}
+          </span>
+        </div>
+        <ul class="block-time-panel__asset-list" data-testid="block-time-asset-list">
+          @for (row of visibleBulkAssetRows(); track row.assetId) {
+            <li
+              class="block-time-panel__asset-row"
+              [class.block-time-panel__asset-row--disabled]="row.hasExistingBlock || row.closedWindow !== null"
+              [attr.data-testid]="'block-time-asset-row-' + row.assetId"
+            >
+              <ignt-checkbox
+                size="small"
+                [checked]="isBulkAssetSelected(row.assetId)"
+                [disabled]="(row.hasExistingBlock || row.closedWindow !== null) && !isBulkAssetSelected(row.assetId)"
+                [label]="row.name"
+                (change)="onBulkAssetToggle(row, $event)"
+                [dataTestId]="'block-time-asset-row-' + row.assetId"
+              ></ignt-checkbox>
+              <span
+                class="block-time-panel__asset-row-capacity"
+                [class.block-time-panel__asset-row-capacity--blocked]="row.hasExistingBlock || row.closedWindow !== null"
+                [class.block-time-panel__asset-row-capacity--affected]="
+                  row.hasConflict && !row.hasExistingBlock && row.closedWindow === null
+                "
+              >
+                @if (row.closedWindow; as closedWindow) {
+                  <ignt-icon name="lock-alt" variant="light" aria-hidden="true"></ignt-icon>
+                  {{ assetRowClosedLabelKey(row) | translate: { startTime: closedWindow.startTime, endTime: closedWindow.endTime } }}
+                } @else if (row.hasExistingBlock) {
+                  <ignt-icon name="lock-alt" variant="light" aria-hidden="true"></ignt-icon>
+                  {{ 'bookedSlots.blockTimePanel.assetRowAlreadyBlocked' | translate }}
+                } @else if (row.hasConflict) {
+                  <ignt-icon name="right-left" variant="regular" aria-hidden="true"></ignt-icon>
+                  {{ assetRowAffectedLabelKey(row) | translate: { count: row.affectedBookingCount } }}
+                } @else {
+                  {{ assetRowCapacityLabelKey(row) | translate: { max: row.maxCapacity } }}
+                }
+              </span>
+            </li>
+          }
+          @if (hasNoAssetSearchMatch()) {
+            <li class="block-time-panel__asset-empty" data-testid="block-time-asset-list-empty">
+              {{ 'bookedSlots.blockTimePanel.assetSearchEmpty' | translate: { term: assetSearchTerm() } }}
+            </li>
+          }
+        </ul>
+        @if (hasUnavailableConflictData()) {
+          <ignt-alert
+            class="block-time-panel__conflict-data-alert"
+            sentiment="warning"
+            [showCloseButton]="false"
+            [title]="'bookedSlots.blockTimePanel.conflictDataUnavailableTitle' | translate"
+            [description]="'bookedSlots.blockTimePanel.conflictDataUnavailableDescription' | translate"
+            data-testid="block-time-conflict-data-unavailable-alert"
+          ></ignt-alert>
+        }
+
+        @if (hasExistingBlockSelectedAssets()) {
+          <ignt-alert
+            class="block-time-panel__selection-conflict-alert"
+            sentiment="danger"
+            [showCloseButton]="false"
+            [title]="'bookedSlots.blockTimePanel.selectionConflictTitle' | translate"
+            [description]="
+              'bookedSlots.blockTimePanel.selectionConflictDescription' | translate: { assets: existingBlockSelectedAssetNames() }
+            "
+            data-testid="block-time-selection-conflict-alert"
+          ></ignt-alert>
+        }
+
+        @if (hasClosedSelectedAssets()) {
+          <ignt-alert
+            class="block-time-panel__selection-conflict-alert"
+            sentiment="danger"
+            [showCloseButton]="false"
+            [title]="'bookedSlots.blockTimePanel.closedSelectionTitle' | translate"
+            [description]="'bookedSlots.blockTimePanel.closedSelectionDescription' | translate: { assets: closedSelectedAssetNames() }"
+            data-testid="block-time-closed-selection-alert"
+          ></ignt-alert>
+        }
+
+        @if (affectedBookingCount() > 0 && !hasExistingBlockSelectedAssets() && !hasClosedSelectedAssets()) {
+          <ignt-alert
+            class="block-time-panel__redistribution-alert"
+            sentiment="info"
+            [showCloseButton]="false"
+            [title]="'bookedSlots.blockTimePanel.redistributionNoticeTitle' | translate"
+            [description]="redistributionNoticeDescriptionKey() | translate: { count: affectedBookingCount() }"
+            data-testid="block-time-redistribution-alert"
+          ></ignt-alert>
+        }
+      } @else {
+        <ignt-typeahead
+          class="block-time-panel__field"
+          [fieldLabel]="'bookedSlots.blockTimePanel.assetNameLabel' | translate"
+          [options]="assetOptions()"
+          [selectedOption]="selectedAssetOption()"
+          [emptyLabel]="'bookedSlots.blockTimePanel.assetPlaceholder' | translate"
+          [detachedPopup]="hasDetachedDropdowns"
+          (selected)="onAssetChange($event)"
+          data-testid="block-time-asset-selector"
+        ></ignt-typeahead>
+      }
+    </section>
+
+    <ignt-divider [margin]="false" />
+
+    <section class="block-time-panel__section">
+      <h4 class="block-time-panel__section-title">{{ 'bookedSlots.blockTimePanel.unavailabilityWindowTitle' | translate }}</h4>
+      <input
+        #blockDatePicker
+        class="block-time-panel__date-picker-native"
+        type="date"
+        tabindex="-1"
+        aria-hidden="true"
+        [value]="blockDate()"
+        (input)="onBlockDateChange($any($event.target).value)"
+      />
+      <ignt-input-field
+        type="text"
+        class="block-time-panel__date-field"
+        [label]="'bookedSlots.blockTimePanel.dateLabel' | translate"
+        [readonly]="true"
+        [ngModel]="blockDateDisplay()"
+        (click)="openBlockDatePicker()"
+        (keydown.enter)="openBlockDatePicker()"
+        data-testid="block-time-date"
+      ></ignt-input-field>
+      <div class="block-time-panel__two-col">
+        <div class="block-time-panel__labeled-field">
+          <p class="block-time-panel__field-heading">{{ 'bookedSlots.blockTimePanel.startTimeLabel' | translate }}</p>
+          <ignt-input-field
+            type="time"
+            appNativePicker
+            [trailIcon]="['fal', 'clock']"
+            [trailIconAriaLabel]="'common.openTimePicker' | translate"
+            class="block-time-panel__time-field"
+            [label]="'bookedSlots.blockTimePanel.startTimePlaceholder' | translate"
+            [ngModel]="startTime()"
+            (ngModelChange)="onStartTimeChange($event)"
+            data-testid="block-time-start"
+          ></ignt-input-field>
+        </div>
+        <div class="block-time-panel__labeled-field">
+          <p class="block-time-panel__field-heading">{{ 'bookedSlots.blockTimePanel.endTimeLabel' | translate }}</p>
+          <ignt-input-field
+            type="time"
+            appNativePicker
+            [trailIcon]="['fal', 'clock']"
+            [trailIconAriaLabel]="'common.openTimePicker' | translate"
+            class="block-time-panel__time-field"
+            [label]="'bookedSlots.blockTimePanel.endTimePlaceholder' | translate"
+            [ngModel]="endTime()"
+            (ngModelChange)="onEndTimeChange($event)"
+            data-testid="block-time-end"
+          ></ignt-input-field>
+        </div>
+      </div>
+      @if (hasInvalidTimeMinutes()) {
+        <ignt-alert
+          class="block-time-panel__time-conflict-alert"
+          sentiment="danger"
+          [showCloseButton]="false"
+          [title]="'bookedSlots.blockTimePanel.timeInvalidMinutesTitle' | translate"
+          [description]="'bookedSlots.blockTimePanel.timeInvalidMinutesDescription' | translate"
+          data-testid="block-time-invalid-minutes-alert"
+        ></ignt-alert>
+      }
+      @if (closedWindow()) {
+        <ignt-alert
+          class="block-time-panel__time-conflict-alert"
+          sentiment="danger"
+          [showCloseButton]="false"
+          [title]="'bookedSlots.blockTimePanel.closedWindowTitle' | translate"
+          [description]="closedWindowMessageKey() | translate: closedWindowMessageParams()"
+          data-testid="block-time-closed-window-alert"
+        ></ignt-alert>
+      } @else if (timeConflict(); as conflict) {
+        @if (hasExistingBlockConflict()) {
+          <ignt-alert
+            class="block-time-panel__time-conflict-alert"
+            sentiment="danger"
+            [showCloseButton]="false"
+            [title]="'bookedSlots.blockTimePanel.existingBlockConflictTitle' | translate"
+            [description]="
+              'bookedSlots.blockTimePanel.existingBlockConflictDescription'
+                | translate: { startTime: conflict.startTime, endTime: conflict.endTime }
+            "
+            data-testid="block-time-existing-block-alert"
+          ></ignt-alert>
+        } @else if (conflict.kind === 'booking') {
+          <ignt-alert
+            class="block-time-panel__time-conflict-alert"
+            sentiment="info"
+            [showCloseButton]="false"
+            [title]="'bookedSlots.blockTimePanel.bookingConflictTitle' | translate"
+            [description]="
+              (displacesBookings()
+                ? conflict.count > 1
+                  ? 'bookedSlots.blockTimePanel.bookingConflictDescriptionMany'
+                  : 'bookedSlots.blockTimePanel.bookingConflictPreviewDescription'
+                : conflict.count > 1
+                  ? 'bookedSlots.blockTimePanel.bookingOverlapDescriptionMany'
+                  : 'bookedSlots.blockTimePanel.bookingOverlapDescription'
+              ) | translate: { count: conflict.count, startTime: conflict.startTime, endTime: conflict.endTime }
+            "
+            data-testid="block-time-conflict-alert"
+          ></ignt-alert>
+        }
+      }
+    </section>
+
+    <ignt-divider [margin]="false" />
+
+    <section class="block-time-panel__section">
+      <h4 class="block-time-panel__section-title">{{ 'bookedSlots.blockTimePanel.capacitySectionTitle' | translate }}</h4>
+      @if (isBulkMode()) {
+        <ignt-alert
+          class="block-time-panel__full-capacity-alert"
+          sentiment="info"
+          [showCloseButton]="false"
+          [description]="'bookedSlots.blockTimePanel.bulkFullCapacityInfo' | translate"
+          data-testid="block-time-full-capacity-info"
+        ></ignt-alert>
+      } @else {
+        <p class="block-time-panel__section-hint">{{ capacityHintKey() | translate }}</p>
+      }
+      @if (showCapacityFields()) {
+        <div class="block-time-panel__capacity-input-wrap">
+          @if (isSinglePartyAsset()) {
+            <label class="field block-time-panel__field-control">
+              <input class="field__input" type="text" readonly tabindex="-1" value="1" data-testid="block-time-capacity-input" />
+              <span class="field__label">{{ capacityFieldLabelKey() | translate }}</span>
+            </label>
+          } @else {
+            <ignt-input-field
+              type="number"
+              class="block-time-panel__field-control"
+              [label]="capacityFieldLabelKey() | translate"
+              [ngModel]="capacityToBlock() ?? null"
+              (ngModelChange)="onCapacityChange($event)"
+              data-testid="block-time-capacity-input"
+            ></ignt-input-field>
+            @if (isCapacityUnavailable() && !closedWindow()) {
+              <span class="block-time-panel__capacity-error" data-testid="block-time-capacity-unavailable-error">
+                {{ 'bookedSlots.blockTimePanel.capacityUnavailableOverlap' | translate }}
+              </span>
+            }
+            @if (isCapacityTooLow()) {
+              <span class="block-time-panel__capacity-error" data-testid="block-time-capacity-min-error">
+                {{ 'bookedSlots.blockTimePanel.capacityMinError' | translate }}
+              </span>
+            }
+            @if (capacityAvailabilityKey(); as availabilityKey) {
+              <p
+                class="block-time-panel__capacity-availability"
+                [class.block-time-panel__capacity-availability--error]="showCapacityAvailabilityError()"
+                data-testid="block-time-capacity-availability"
+              >
+                @if (showCapacityAvailabilityError()) {
+                  <ignt-icon name="exclamation-circle" variant="solid" size="caption" aria-hidden="true"></ignt-icon>
+                }
+                {{ availabilityKey | translate: capacityAvailabilityParams() }}
+              </p>
+            }
+            @if (showCapacityExceededAlert()) {
+              <ignt-alert
+                class="block-time-panel__capacity-exceeded-alert"
+                sentiment="danger"
+                [showCloseButton]="false"
+                [title]="capacityExceededTitleKey() | translate: capacityExceededParams()"
+                [description]="capacityExceededDescriptionKey() | translate: capacityExceededParams()"
+                data-testid="block-time-capacity-exceeded-alert"
+              ></ignt-alert>
+            }
+          }
+        </div>
+      }
+    </section>
+
+    <ignt-divider [margin]="false" />
+
+    <section class="block-time-panel__section">
+      <h4 class="block-time-panel__section-title">{{ 'bookedSlots.blockTimePanel.reasonSectionTitle' | translate }}</h4>
+      <div class="block-time-panel__reason-control" [class.block-time-panel__reason-control--custom-active]="isAddingCustomReason()">
+        <ignt-typeahead
+          class="block-time-panel__field block-time-panel__reason-typeahead"
+          [fieldLabel]="'bookedSlots.blockTimePanel.reasonLabel' | translate"
+          [options]="reasonOptions"
+          [selectedOption]="selectedReasonOption()"
+          [allowCreateNew]="true"
+          [createNewIcon]="customReasonCreateIcon"
+          [createNewLabel]="'bookedSlots.blockTimePanel.addCustomReason' | translate"
+          [createNewMode]="'below-field'"
+          [emptyLabel]="'bookedSlots.blockTimePanel.reasonPlaceholder' | translate"
+          [detachedPopup]="hasDetachedDropdowns"
+          (selected)="onReasonChange($event)"
+          (createNewInitiated)="onAddCustomReasonInitiated()"
+          data-testid="block-time-reason-selector"
+        ></ignt-typeahead>
+        @if (isAddingCustomReason()) {
+          <div class="block-time-panel__custom-reason-row">
+            <div class="block-time-panel__custom-reason-field">
+              <ignt-input-field
+                type="text"
+                [label]="'bookedSlots.blockTimePanel.customReasonPlaceholder' | translate"
+                [maxlength]="50"
+                [ngModel]="customReasonDraft()"
+                (ngModelChange)="onCustomReasonDraftChange($event)"
+                data-testid="block-time-custom-reason"
+              ></ignt-input-field>
+              @if (customReasonDraft()) {
+                <button
+                  ignt-icon-button
+                  type="button"
+                  class="block-time-panel__custom-reason-clear"
+                  sentiment="tertiary"
+                  size="small"
+                  [icon]="['fas', 'xmark']"
+                  [attr.aria-label]="'bookedSlots.blockTimePanel.customReasonClear' | translate"
+                  (click)="onClearCustomReasonDraft()"
+                ></button>
+              }
+            </div>
+            <button
+              ignt-icon-button
+              type="button"
+              class="block-time-panel__custom-reason-confirm"
+              [class.block-time-panel__custom-reason-confirm--active]="isCustomReasonDraftValid()"
+              sentiment="tertiary"
+              size="small"
+              [icon]="['fas', 'check']"
+              [disabled]="!isCustomReasonDraftValid()"
+              [attr.aria-label]="'common.confirm' | translate"
+              (click)="onConfirmCustomReason()"
+              data-testid="block-time-custom-reason-confirm"
+            ></button>
+          </div>
+        }
+      </div>
+      <ignt-textarea-field
+        class="block-time-panel__comment-field"
+        [label]="'bookedSlots.blockTimePanel.commentPlaceholder' | translate"
+        [rows]="4"
+        [ngModel]="comment()"
+        (ngModelChange)="onCommentChange($event)"
+        data-testid="block-time-comment"
+      ></ignt-textarea-field>
+    </section>
+
+    @if (hasSummary()) {
+      <section class="block-time-panel__summary" data-testid="block-time-summary">
+        <h4 class="block-time-panel__summary-title">{{ 'bookedSlots.blockTimePanel.summaryTitle' | translate }}</h4>
+        <p class="block-time-panel__summary-row">
+          <ignt-icon name="box-open" variant="solid" size="caption" aria-hidden="true"></ignt-icon>
+          {{ summaryAssetsLabel() }}
+        </p>
+        <p class="block-time-panel__summary-row">
+          <ignt-icon name="calendar-clock" variant="solid" size="caption" aria-hidden="true"></ignt-icon>
+          {{ summaryWindowLabel() }}
+        </p>
+        @if (summaryReasonLabel()) {
+          <p class="block-time-panel__summary-row">
+            <ignt-icon name="lock-alt" variant="solid" size="caption" aria-hidden="true"></ignt-icon>
+            {{ summaryReasonLabel() }}
+          </p>
+        }
+      </section>
+    }
+  </div>
+
+  <footer class="block-time-panel__footer">
+    <button
+      type="button"
+      class="block-time-panel__submit"
+      igntButton
+      sentiment="primary"
+      [fill]="true"
+      [disabled]="!canSubmit()"
+      [loading]="isSubmitting()"
+      (click)="onSubmitClick()"
+      data-testid="block-time-submit-button"
+    >
+      {{ submitLabelKey() | translate: submitLabelParams() }}
+    </button>
+    <button
+      type="button"
+      class="block-time-panel__discard"
+      igntButton
+      sentiment="secondary"
+      (click)="onDiscardClick()"
+      data-testid="block-time-discard-button"
+    >
+      {{ 'bookedSlots.blockTimePanel.discard' | translate }}
+    </button>
+  </footer>
+</div>

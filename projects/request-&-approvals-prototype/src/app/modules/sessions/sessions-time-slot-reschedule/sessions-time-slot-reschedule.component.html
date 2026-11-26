@@ -1,0 +1,315 @@
+<div class="sessions-time-slot-reschedule">
+  <div class="sessions-time-slot-reschedule__content">
+    <div class="sessions-time-slot-reschedule__form">
+      @if (canSendRescheduleEmail && hasActiveOrders) {
+        <div class="sessions-time-slot-reschedule__communication-section">
+          <div class="sessions-time-slot-reschedule__communication-header">
+            <ignt-icon name="file-invoice-dollar" variant="solid" class="sessions-time-slot-reschedule__communication-icon"></ignt-icon>
+            <span class="sessions-time-slot-reschedule__communication-title">
+              {{ 'sessions.reschedule.communicateChanges' | translate }}
+            </span>
+            <ignt-toggle
+              id="notify-customers-toggle"
+              [checked]="isNotifyToggleOn()"
+              [disabled]="!isNotifyToggleEnabled()"
+              (change)="onNotifyCustomersChange($event)"
+              data-testid="notify-customers-toggle"
+            />
+          </div>
+          <p class="sessions-time-slot-reschedule__communication-info">
+            @if (isLivGolfPartner) {
+              {{ 'sessions.reschedule.communicateChangesInfoLivGolf' | translate }}
+            } @else {
+              {{ 'sessions.reschedule.communicateChangesInfo' | translate }}
+            }
+          </p>
+        </div>
+      }
+
+      <h5 class="sessions-time-slot-reschedule__section-title">
+        {{ 'sessions.reschedule.timeSlotDetailsSection' | translate }}
+      </h5>
+      <div class="sessions-time-slot-reschedule__fields">
+        <div class="sessions-time-slot-reschedule__section">
+          <span class="sessions-time-slot-reschedule__section-label">{{ 'sessions.reschedule.startTime' | translate }}</span>
+          <app-date-time-picker
+            class="sessions-time-slot-reschedule__picker"
+            mode="datetime"
+            [disabled]="nonUniformFields.isStartsAtNonUniform || isStartsAtLocked"
+            [value]="startsAtSignal()"
+            [timezone]="timezone"
+            (valueChange)="onStartsAtChange($event)"
+            testId="reschedule-start"
+          />
+          <div class="sessions-time-slot-reschedule__feedback-row">
+            @if (showStartsAtCurrent()) {
+              <span class="sessions-time-slot-reschedule__current">
+                {{ 'sessions.reschedule.current' | translate }}: {{ currentStartsAt }}
+              </span>
+            }
+          </div>
+        </div>
+
+        <div class="sessions-time-slot-reschedule__section">
+          <span class="sessions-time-slot-reschedule__section-label">{{ 'sessions.reschedule.endTime' | translate }}</span>
+          <app-date-time-picker
+            class="sessions-time-slot-reschedule__picker"
+            mode="datetime"
+            [disabled]="nonUniformFields.isEndsAtNonUniform"
+            [errorType]="endsAtErrorType()"
+            [value]="endsAtSignal()"
+            [timezone]="timezone"
+            [min]="minEndsAt()"
+            (valueChange)="onEndsAtChange($event)"
+            testId="reschedule-end"
+          />
+          <div class="sessions-time-slot-reschedule__feedback-row">
+            @if (showEndsAtCurrent()) {
+              <span class="sessions-time-slot-reschedule__current">
+                {{ 'sessions.reschedule.current' | translate }}: {{ currentEndsAt }}
+              </span>
+            }
+            @if (endsAtErrorType() !== 'none') {
+              <span class="sessions-time-slot-reschedule__error">
+                <ignt-icon class="sessions-time-slot-reschedule__error-icon" name="exclamation-circle" variant="solid"></ignt-icon>
+                {{ 'sessions.reschedule.endTimeError' | translate }}
+              </span>
+            }
+          </div>
+        </div>
+
+        <div class="sessions-time-slot-reschedule__section sessions-time-slot-reschedule__section--gates">
+          <div class="sessions-time-slot-reschedule__section-header">
+            <span class="sessions-time-slot-reschedule__section-label">
+              {{ 'sessions.reschedule.openGates' | translate }}
+              <ignt-icon
+                class="sessions-time-slot-reschedule__info-icon"
+                name="info-circle"
+                variant="solid"
+                [appTemplatedTooltip]="openGatesTooltipTemplate"
+              ></ignt-icon>
+              @if (openGatesAtWarning()) {
+                <ignt-icon
+                  class="sessions-time-slot-reschedule__warning-icon"
+                  name="exclamation-triangle"
+                  variant="light"
+                  [appTemplatedTooltip]="openGatesWarningTooltipTemplate"
+                ></ignt-icon>
+              }
+            </span>
+            @if (hasOpenGates()) {
+              <button
+                type="button"
+                class="sessions-time-slot-reschedule__toggle-link"
+                (click)="removeOpenGates()"
+                data-testid="reschedule-remove-gates"
+              >
+                {{ 'sessions.reschedule.remove' | translate }}
+              </button>
+            } @else {
+              <button
+                type="button"
+                class="sessions-time-slot-reschedule__toggle-link"
+                (click)="addOpenGates()"
+                data-testid="reschedule-add-gates"
+              >
+                {{ 'sessions.reschedule.add' | translate }}
+              </button>
+            }
+          </div>
+          @if (hasOpenGates()) {
+            <app-date-time-picker
+              class="sessions-time-slot-reschedule__picker"
+              mode="time"
+              [errorType]="openGatesAtError() ? 'time-only' : 'none'"
+              [value]="openGatesAtSignal()"
+              [timezone]="timezone"
+              [referenceDate]="startsAtSignal()"
+              [max]="maxOpenGatesAt()"
+              (valueChange)="onOpenGatesAtChange($event)"
+              testId="reschedule-open-gates"
+            />
+            @if (openGatesAtError()) {
+              <span class="sessions-time-slot-reschedule__error sessions-time-slot-reschedule__error--gates">
+                <ignt-icon class="sessions-time-slot-reschedule__error-icon" name="exclamation-circle" variant="solid"></ignt-icon>
+                {{ 'sessions.reschedule.openGatesTimeError' | translate }}
+              </span>
+            }
+            @if (showOpenGatesAtCurrent() && currentOpenGatesAt) {
+              <span class="sessions-time-slot-reschedule__current">
+                {{ 'sessions.reschedule.current' | translate }}: {{ currentOpenGatesAt }}
+              </span>
+            }
+          } @else {
+            <div class="sessions-time-slot-reschedule__inputs sessions-time-slot-reschedule__inputs--placeholder">
+              <span class="sessions-time-slot-reschedule__hint">{{ 'sessions.reschedule.noOpenGates' | translate }}</span>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div
+        class="sessions-time-slot-reschedule__collapsible-header"
+        [class.sessions-time-slot-reschedule__collapsible-header--collapsed]="isSalesDetailsCollapsed()"
+        (click)="toggleSalesDetailsCollapsed()"
+      >
+        <h5 class="sessions-time-slot-reschedule__section-title">
+          {{ 'sessions.reschedule.salesDetailsSection' | translate }}
+        </h5>
+        <ignt-icon
+          class="sessions-time-slot-reschedule__caret"
+          [class.sessions-time-slot-reschedule__caret--collapsed]="isSalesDetailsCollapsed()"
+          name="caret-down"
+          variant="solid"
+          data-testid="sales-details-toggle"
+        ></ignt-icon>
+      </div>
+      @if (!isSalesDetailsCollapsed()) {
+        <div
+          class="sessions-time-slot-reschedule__fields sessions-time-slot-reschedule__fields--sales"
+          [class.sessions-time-slot-reschedule__fields--sales-end-only]="!canChangeSalesStartAt"
+        >
+          @if (canChangeSalesStartAt) {
+            <div class="sessions-time-slot-reschedule__section">
+              <div class="sessions-time-slot-reschedule__section-header">
+                <span class="sessions-time-slot-reschedule__section-label">
+                  {{ 'sessions.reschedule.salesStartTime' | translate }}
+                </span>
+                @if (hasSalesStartsAt()) {
+                  <button
+                    type="button"
+                    class="sessions-time-slot-reschedule__toggle-link"
+                    (click)="removeSalesStartsAt()"
+                    data-testid="reschedule-remove-sales-start"
+                  >
+                    {{ 'sessions.reschedule.remove' | translate }}
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    class="sessions-time-slot-reschedule__toggle-link"
+                    (click)="addSalesStartsAt()"
+                    data-testid="reschedule-add-sales-start"
+                  >
+                    {{ 'sessions.reschedule.add' | translate }}
+                  </button>
+                }
+              </div>
+              @if (hasSalesStartsAt()) {
+                <app-date-time-picker
+                  class="sessions-time-slot-reschedule__picker"
+                  mode="datetime"
+                  [disabled]="nonUniformFields.isSalesStartsAtNonUniform"
+                  [errorType]="salesStartsAtErrorType()"
+                  [value]="salesStartsAtSignal()"
+                  [timezone]="timezone"
+                  [max]="maxSalesStartsAt()"
+                  (valueChange)="onSalesStartsAtChange($event)"
+                  testId="reschedule-sales-start"
+                />
+                <div class="sessions-time-slot-reschedule__feedback-row">
+                  @if (showSalesStartsAtCurrent() && currentSalesStartsAt) {
+                    <span class="sessions-time-slot-reschedule__current">
+                      {{ 'sessions.reschedule.current' | translate }}: {{ currentSalesStartsAt }}
+                    </span>
+                  }
+                  @if (salesStartsAtErrorType() !== 'none') {
+                    <span class="sessions-time-slot-reschedule__error">
+                      <ignt-icon class="sessions-time-slot-reschedule__error-icon" name="exclamation-circle" variant="solid"></ignt-icon>
+                      {{ 'sessions.reschedule.salesStartTimeError' | translate }}
+                    </span>
+                  }
+                </div>
+              } @else {
+                <div
+                  class="sessions-time-slot-reschedule__inputs sessions-time-slot-reschedule__inputs--placeholder sessions-time-slot-reschedule__inputs--datetime"
+                >
+                  <span class="sessions-time-slot-reschedule__hint">
+                    {{ 'sessions.reschedule.noSalesStart' | translate }}
+                  </span>
+                </div>
+              }
+            </div>
+          }
+
+          <div class="sessions-time-slot-reschedule__section">
+            <span class="sessions-time-slot-reschedule__section-label">
+              {{ 'sessions.reschedule.salesEndTime' | translate }}
+            </span>
+            <app-date-time-picker
+              class="sessions-time-slot-reschedule__picker"
+              mode="datetime"
+              [disabled]="nonUniformFields.isSalesEndsAtNonUniform"
+              [errorType]="salesEndsAtErrorType()"
+              [value]="salesEndsAtSignal()"
+              [timezone]="timezone"
+              [min]="minSalesEndsAt()"
+              [max]="maxSalesEndsAt()"
+              (valueChange)="onSalesEndsAtChange($event)"
+              testId="reschedule-sales-end"
+            />
+            <div class="sessions-time-slot-reschedule__feedback-row">
+              @if (showSalesEndsAtCurrent()) {
+                <span class="sessions-time-slot-reschedule__current">
+                  {{ 'sessions.reschedule.current' | translate }}: {{ currentSalesEndsAt }}
+                </span>
+              }
+              @if (salesEndsAtExceedsEventEnd()) {
+                <span class="sessions-time-slot-reschedule__error">
+                  <ignt-icon class="sessions-time-slot-reschedule__error-icon" name="exclamation-circle" variant="solid"></ignt-icon>
+                  {{ 'sessions.reschedule.salesEndTimeError' | translate }}
+                </span>
+              }
+              @if (salesEndsAtPrecedesSalesStart()) {
+                <span class="sessions-time-slot-reschedule__error">
+                  <ignt-icon class="sessions-time-slot-reschedule__error-icon" name="exclamation-circle" variant="solid"></ignt-icon>
+                  {{ 'sessions.reschedule.salesEndTimeRangeError' | translate }}
+                </span>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+      @if (hasNonUniformSessions) {
+        <ignt-alert
+          class="sessions-time-slot-reschedule__non-uniform-alert"
+          sentiment="warning"
+          [title]="'sessions.reschedule.nonUniformAlert.title' | translate"
+          [description]="'sessions.reschedule.nonUniformAlert.description' | translate"
+        />
+      }
+    </div>
+  </div>
+
+  <div class="sessions-time-slot-reschedule__footer">
+    <ignt-button
+      variant="secondary"
+      sentiment="danger"
+      [label]="'sessions.reschedule.cancel' | translate"
+      (click)="cancel()"
+      data-testid="reschedule-cancel-button"
+    />
+    <ignt-button
+      variant="primary"
+      [label]="saveButtonText()"
+      [disabled]="isSaveDisabled()"
+      [loading]="isSaving()"
+      (click)="save()"
+      data-testid="reschedule-save-button"
+    />
+  </div>
+</div>
+
+<ng-template #openGatesTooltipTemplate>
+  <div class="sessions-time-slot-reschedule__tooltip">
+    {{ 'sessions.reschedule.openGatesTooltip' | translate }}
+  </div>
+</ng-template>
+
+<ng-template #openGatesWarningTooltipTemplate>
+  <div class="sessions-time-slot-reschedule__tooltip sessions-time-slot-reschedule__tooltip--warning">
+    <ignt-icon name="exclamation-triangle" variant="solid"></ignt-icon>
+    {{ 'sessions.reschedule.openGatesWarningTooltip' | translate }}
+  </div>
+</ng-template>

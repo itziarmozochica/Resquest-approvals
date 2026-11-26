@@ -1,0 +1,95 @@
+<div class="refund-type-step" data-testid="split-refund-refund-type-step">
+  <div class="refund-type-step__form">
+    <header class="refund-type-step__heading">
+      <h4 class="refund-type-step__section-title">{{ 'cancellation.splitRefund.selectRefundType.title' | translate }}</h4>
+      <p class="refund-type-step__section-subtitle">{{ 'cancellation.splitRefund.selectRefundType.subtitle' | translate }}</p>
+    </header>
+
+    <div class="refund-type-step__tiles">
+      @for (refundType of store.context().allowedRefundTypes; track refundType) {
+        <ignt-option-tile
+          [attr.data-testid]="'split-refund-type-' + refundType"
+          [iconName]="refundTypeIcons[refundType]"
+          [selected]="store.context().refundType === refundType"
+          [title]="'cancellation.splitRefund.refundTypes.' + refundType | translate"
+          (tileClick)="onRefundTypeChange(refundType)"
+        />
+      }
+    </div>
+
+    <p class="refund-type-step__section-subtitle">{{ 'cancellation.splitRefund.selectRefundType.commentsIntro' | translate }}</p>
+
+    <ignt-typeahead
+      container="body"
+      data-testid="split-refund-reason"
+      [collapseOnClick]="true"
+      [editable]="false"
+      [emptyLabel]="reasonPlaceholder"
+      [fieldLabel]="'cancellation.splitRefund.reason.label' | translate"
+      [isInDialog]="true"
+      [options]="reasonOptions"
+      [selectedOption]="initialReasonOption"
+      (selected)="onReasonSelected($event)"
+    ></ignt-typeahead>
+
+    @if (isCancellationReasonShown()) {
+      @if (haveCancellationReasonsFailed()) {
+        <ignt-alert
+          sentiment="danger"
+          data-testid="split-refund-cancellation-reason-error"
+          [description]="'cancellation.reason.loadError' | translate"
+        >
+          <ng-template #igntAlertActions>
+            <ignt-button
+              size="small"
+              variant="secondary"
+              data-testid="split-refund-cancellation-reason-retry"
+              [label]="'cancellation.reason.retry' | translate"
+              (click)="onCancellationReasonsRetry()"
+            />
+          </ng-template>
+        </ignt-alert>
+      } @else {
+        <ignt-typeahead
+          container="body"
+          data-testid="split-refund-cancellation-reason"
+          [collapseOnClick]="true"
+          [editable]="false"
+          [emptyLabel]="'cancellation.reason.placeholder' | translate"
+          [fieldLabel]="'cancellation.reason.label' | translate"
+          [isInDialog]="true"
+          [options]="cancellationReasonOptions()"
+          [selectedOption]="selectedCancellationReason()"
+          (selected)="onCancellationReasonSelected($event)"
+        ></ignt-typeahead>
+      }
+    }
+
+    <ignt-textarea-field
+      id="split-refund-comment-field"
+      data-testid="split-refund-comment"
+      [formControl]="commentControl"
+      [label]="commentLabel"
+      [rows]="4"
+    />
+
+    @if (showMissingDetails()) {
+      <p class="refund-type-step__error" role="alert" data-testid="split-refund-details-error">
+        <ignt-icon name="exclamation-circle" variant="light" aria-hidden="true" />
+        {{ 'cancellation.splitRefund.errors.missingReasonOrComment' | translate }}
+      </p>
+    }
+  </div>
+
+  @if (store.context().amountToRefund; as amountToRefund) {
+    <app-split-refund-summary
+      [amountToRefund]="amountToRefund"
+      [locale]="store.context().locale"
+      [methodLabels]="methodLabels()"
+      [orderTotal]="store.context().orderTotal ?? amountToRefund"
+      [refundSum]="store.refundSum()"
+      [ticketsToCancel]="store.context().ticketsToCancel"
+      [totalTickets]="store.context().totalTickets"
+    />
+  }
+</div>

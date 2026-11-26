@@ -1,0 +1,524 @@
+@use 'foundations' as foundations;
+@use 'foundations/effects/shadows' as shadows;
+@use 'foundations/font/_font-properties' as font;
+
+$border: 1px solid foundations.$color-border-main;
+$label-column-width: 274px;
+$template-column-width: 252px;
+// Edit stack: th padding + name input (no-label) + status + small buttons + flex gaps (+ buffer for field chrome).
+$template-header-row-height: calc(
+  foundations.$space-2 * 2 + foundations.$space-1 * 2 + foundations.$size-10 + foundations.$space-5 + foundations.$size-8 +
+    foundations.$space-2 * 2 + foundations.$space-4
+);
+$capacity-cell-padding-block: foundations.$space-2;
+$capacity-cell-padding-inline: foundations.$space-4;
+$capacity-cell-min-height: foundations.$size-12;
+
+@mixin capacity-input-cell-height {
+  box-sizing: border-box;
+  height: $capacity-cell-min-height;
+  min-height: $capacity-cell-min-height;
+}
+
+.capacity-templates-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+
+  &__spacer td {
+    height: foundations.$space-3;
+    padding: 0;
+    border: none;
+    background: transparent;
+  }
+
+  &__activity-label {
+    display: inline-flex;
+    align-items: center;
+    background-color: foundations.$palette-primary-100;
+    border-radius: foundations.$radii-full;
+    padding: foundations.$space-1 foundations.$space-2;
+    font-size: foundations.$size-caption;
+    font-weight: 500;
+    color: foundations.$palette-primary-600;
+    white-space: nowrap;
+  }
+
+  &__cell {
+    box-sizing: border-box;
+    padding: foundations.$space-2;
+    vertical-align: middle;
+    border-right: $border;
+    border-bottom: $border;
+    white-space: nowrap;
+
+    &:first-child {
+      width: $label-column-width;
+      min-width: $label-column-width;
+      background-color: foundations.$color-background-subtle-weak;
+      padding-left: foundations.$space-3;
+      padding-right: foundations.$space-2;
+      border-left: $border;
+      font-weight: font.$weight-regular;
+    }
+
+    &:not(:first-child) {
+      width: $template-column-width;
+      min-width: $template-column-width;
+      background-color: foundations.$color-background-main;
+    }
+  }
+
+  &__cell--label {
+    background-color: foundations.$color-background-subtle-weak;
+  }
+
+  &__row--start > &__cell--label,
+  &__cell--template-header {
+    background-color: foundations.$color-background-main;
+    box-sizing: border-box;
+    height: $template-header-row-height;
+    min-height: $template-header-row-height;
+    vertical-align: middle;
+    white-space: normal;
+  }
+
+  &__row--start > &__cell--label {
+    background-color: foundations.$color-background-subtle-weak;
+    border-bottom: none;
+  }
+
+  &__cell--template-header {
+    border-bottom: none;
+    padding-block: foundations.$space-3;
+    padding-inline: foundations.$space-4;
+  }
+
+  &__cell--max-capacity,
+  &__cell--group-input,
+  &__cell:has(app-capacity-templates-table-capacity-cell) {
+    @include capacity-input-cell-height;
+    padding-block: $capacity-cell-padding-block;
+    padding-inline: $capacity-cell-padding-inline;
+  }
+
+  &__cell:has(&__validation-error) {
+    height: auto;
+    min-height: $capacity-cell-min-height;
+  }
+
+  &__cell--max-capacity {
+    background-color: foundations.$color-background-main;
+    vertical-align: middle;
+  }
+
+  &__cell--group-input {
+    background-color: foundations.$color-background-main;
+    border-right: $border;
+  }
+
+  &__header-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: foundations.$space-2;
+    box-sizing: border-box;
+    height: 100%;
+    min-height: 100%;
+    width: 100%;
+    padding: 0;
+  }
+
+  &__header-cell--editing {
+    align-items: stretch;
+    justify-content: center;
+    gap: foundations.$space-2;
+  }
+
+  &__header-view-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: foundations.$space-2;
+  }
+
+  &__header-view-actions--narrow {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  &__header-link {
+    display: inline-flex;
+    align-items: center;
+    gap: foundations.$space-1;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: foundations.$size-small;
+    font-weight: font.$weight-bold;
+    color: foundations.$color-action-background-primary;
+    text-decoration: none;
+
+    &:hover:not(:disabled) {
+      opacity: 0.85;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      color: foundations.$color-text-subtle;
+      opacity: 0.55;
+    }
+  }
+
+  &__header-editing-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: foundations.$space-1;
+    margin: 0;
+    font-size: foundations.$size-small;
+    color: foundations.$color-text-subtle;
+  }
+
+  &__header-editing-status-icon {
+    color: foundations.$color-text-subtle;
+  }
+
+  &__header-edit-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: foundations.$space-3;
+  }
+
+  &__header-name {
+    font-size: foundations.$size-base;
+    font-weight: font.$weight-bold;
+    color: foundations.$color-text-main;
+    text-align: center;
+  }
+
+  &__header-cell--editing ignt-input-field {
+    width: 100%;
+  }
+
+  &__timeslot-capacity-label {
+    display: inline-flex;
+    align-items: center;
+    gap: foundations.$space-1;
+    font-size: foundations.$size-small;
+    color: foundations.$color-text-main;
+  }
+
+  &__timeslot-capacity-info {
+    color: foundations.$color-text-subtle;
+  }
+
+  &__max-capacity-input {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: foundations.$space-1;
+    width: 100%;
+    max-width: 170px;
+    margin: 0 auto;
+  }
+
+  &__session-type-input-wrapper {
+    border-radius: foundations.$radii-2;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: foundations.$space-1;
+    width: 100%;
+    max-width: 170px;
+    margin: 0 auto;
+  }
+
+  &__validation-error {
+    color: foundations.$color-action-text-danger;
+    font-size: foundations.$size-tiny;
+    text-align: center;
+    white-space: normal;
+    width: 100%;
+  }
+
+  &__group-input-wrapper {
+    border-radius: foundations.$radii-2;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: foundations.$space-1;
+    width: 100%;
+    max-width: 170px;
+    margin: 0 auto;
+  }
+
+  &__asset-section {
+    margin-top: foundations.$space-5;
+  }
+
+  &__asset-section-header {
+    display: flex;
+    align-items: center;
+    gap: foundations.$space-2;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: foundations.$size-base;
+    color: foundations.$color-text-main;
+    padding: foundations.$space-2 0;
+    margin-bottom: foundations.$space-3;
+  }
+
+  &__asset-info-banner {
+    display: flex;
+    align-items: center;
+    gap: foundations.$space-2;
+    background-color: foundations.$palette-primary-100;
+    border-left: 3px solid foundations.$palette-primary-600;
+    border-radius: foundations.$radii-2;
+    padding: foundations.$space-3;
+    margin-bottom: foundations.$space-3;
+    color: foundations.$palette-primary-600;
+    font-size: foundations.$size-small;
+    width: 100%;
+  }
+
+  &__asset-table {
+    display: grid;
+    grid-template-columns: minmax($label-column-width, max-content) $template-column-width;
+  }
+
+  &__asset-pack-row {
+    display: contents;
+  }
+
+  &__asset-spacer {
+    grid-column: 1 / -1;
+    height: foundations.$space-3;
+  }
+
+  &__asset-pack-label,
+  &__asset-pack-value {
+    display: flex;
+    align-items: center;
+    height: 48px;
+    white-space: nowrap;
+    border-bottom: $border;
+  }
+
+  &__asset-pack-label {
+    min-width: $label-column-width;
+    padding: foundations.$space-2 foundations.$space-3;
+    text-align: left;
+    border-left: $border;
+    background-color: foundations.$color-background-main;
+
+    &--group {
+      font-weight: bold;
+      color: foundations.$color-text-main;
+    }
+
+    &--session {
+      gap: foundations.$space-1;
+      font-weight: font.$weight-regular;
+      font-size: foundations.$size-small;
+      color: foundations.$color-text-main;
+    }
+  }
+
+  &__asset-pack-value {
+    width: $template-column-width;
+    padding: foundations.$space-2;
+    justify-content: center;
+    text-align: center;
+    border-left: $border;
+    border-right: $border;
+    background-color: foundations.$palette-neutral-50;
+    color: foundations.$color-text-subtle;
+    font-size: foundations.$size-base;
+  }
+
+  &__asset-pack-row--start {
+    .capacity-templates-table__asset-pack-label,
+    .capacity-templates-table__asset-pack-value {
+      border-top: $border;
+    }
+
+    .capacity-templates-table__asset-pack-label {
+      border-top-left-radius: foundations.$radii-2;
+    }
+
+    .capacity-templates-table__asset-pack-value {
+      border-top-right-radius: foundations.$radii-2;
+    }
+  }
+
+  &__asset-pack-row--end {
+    .capacity-templates-table__asset-pack-label {
+      border-bottom-left-radius: foundations.$radii-2;
+    }
+
+    .capacity-templates-table__asset-pack-value {
+      border-bottom-right-radius: foundations.$radii-2;
+    }
+  }
+}
+
+:host(.capacity-templates-table__session-type-group-row) .capacity-templates-table__cell:first-child {
+  background-color: foundations.$color-background-main;
+  font-weight: bold;
+}
+
+:host(.capacity-templates-table__session-type-row) .capacity-templates-table__cell:first-child {
+  background-color: foundations.$color-background-main;
+  font-weight: font.$weight-regular;
+  font-size: foundations.$size-small;
+}
+
+:host(.capacity-templates-table__row--start) .capacity-templates-table__cell {
+  border-top: $border;
+}
+
+:host(.capacity-templates-table__row--start) .capacity-templates-table__cell:first-child {
+  border-top-left-radius: foundations.$radii-2;
+}
+
+:host(.capacity-templates-table__row--start) .capacity-templates-table__cell:last-child {
+  border-top-right-radius: foundations.$radii-2;
+}
+
+:host(.capacity-templates-table__row--start) .capacity-templates-table__cell--label {
+  border-bottom: none;
+}
+
+:host(.capacity-templates-table__timeslot-capacity-row) .capacity-templates-table__cell {
+  border-top: $border;
+}
+
+:host(.capacity-templates-table__row--end) .capacity-templates-table__cell:first-child {
+  border-bottom-left-radius: foundations.$radii-2;
+}
+
+:host(.capacity-templates-table__row--end) .capacity-templates-table__cell:last-child {
+  border-bottom-right-radius: foundations.$radii-2;
+}
+
+.collapse-group-icon {
+  display: flex;
+  align-items: center;
+  gap: foundations.$space-1;
+  cursor: pointer;
+}
+
+.pointer {
+  cursor: pointer;
+}
+
+// Scoped to app-capacity-templates-table-capacity-cell (shared stylesheet; :host is per component).
+:host-context(.capacity-templates-table__cell--max-capacity),
+:host-context(.capacity-templates-table__cell--group-input) {
+  .capacity-templates-table__display-value {
+    font-weight: font.$weight-bold;
+  }
+}
+
+:host(app-capacity-templates-table-capacity-cell) {
+  .capacity-templates-table__display-value {
+    display: block;
+    text-align: center;
+    width: 100%;
+    color: foundations.$color-text-subtle;
+    font-size: foundations.$size-base;
+    font-weight: font.$weight-regular;
+  }
+
+  // ::ng-deep: ignt-input-field has no text-align API; pierce encapsulation only to center the number input.
+  ::ng-deep input[type='number'] {
+    text-align: center;
+  }
+}
+
+// Scoped to app-capacity-templates-table-header-cell (shared stylesheet; :host is per component).
+:host(app-capacity-templates-table-header-cell) {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+:host(.capacity-templates-table-host) {
+  display: block;
+  width: 100%;
+}
+
+:host(.capacity-templates-table-host:not(.capacity-templates-table-host--narrow)) {
+  width: max-content;
+  min-width: 100%;
+}
+
+// Mobile cards: pin each template's thead to the viewport. Desktop keeps overflow-x: auto
+// on `.capacity-templates-table-scroll`, which would capture sticky and pin it to the wrapper.
+:host(.capacity-templates-table-host--narrow) {
+  .capacity-templates-table thead {
+    background-color: foundations.$color-background-main;
+    box-shadow: shadows.$shadow-200-top;
+    position: sticky;
+    top: var(--fz-assistant-dock-sticky-top, 0);
+    z-index: 2;
+  }
+}
+
+// Shared stylesheet: :host matches the table; :host-context matches row and cell children.
+:host(.capacity-templates-table-host--narrow),
+:host-context(.capacity-templates-table-host--narrow) {
+  .capacity-templates-table {
+    width: 100%;
+  }
+
+  .capacity-templates-table__cell {
+    &:first-child {
+      width: auto;
+      min-width: 0;
+      white-space: normal;
+    }
+
+    &:not(:first-child) {
+      width: 33%;
+      min-width: 0;
+    }
+  }
+
+  .capacity-templates-table__cell.capacity-templates-table__cell--template-header {
+    background-color: foundations.$color-background-main;
+    height: auto;
+    min-height: 0;
+    padding-block: foundations.$space-2;
+  }
+
+  .capacity-templates-table__max-capacity-input,
+  .capacity-templates-table__session-type-input-wrapper,
+  .capacity-templates-table__group-input-wrapper {
+    max-width: 100%;
+  }
+
+  .capacity-templates-table__asset-table {
+    grid-template-columns: minmax(0, 1fr) 33%;
+  }
+
+  .capacity-templates-table__asset-pack-label {
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .capacity-templates-table__asset-pack-value {
+    width: auto;
+  }
+}

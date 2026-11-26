@@ -1,0 +1,138 @@
+<div class="fv-booking-questions-form-group" [formGroup]="formGroup" data-testid="booking-question-form-group">
+  <ng-container *ngIf="renderPerTicketQuestionsFirst">
+    <ng-container *ngTemplateOutlet="perTicketTemplate; context: { formData: formData }"></ng-container>
+    <ng-container *ngTemplateOutlet="perOrderTemplate; context: { formData: formData }"></ng-container>
+  </ng-container>
+  <ng-container *ngIf="!renderPerTicketQuestionsFirst">
+    <ng-container *ngTemplateOutlet="perOrderTemplate; context: { formData: formData }"></ng-container>
+    <ng-container *ngTemplateOutlet="perTicketTemplate; context: { formData: formData }"></ng-container>
+  </ng-container>
+</div>
+
+<ng-template #perOrderTemplate let-formData="formData">
+  <ng-container *ngIf="formData.perOrder.length > 0">
+    <div class="fv-booking-questions-form-group__per-order">
+      <ng-container *ngIf="formData.orderDetails?.perOrderGroupLabel">
+        <span class="form__group-label" [innerHTML]="formData.orderDetails.perOrderGroupLabel | translate"> </span>
+      </ng-container>
+
+      <ng-container *ngFor="let item of formData.perOrder | sortBookingQuestions; trackBy: trackByItemId">
+        <div class="fv-booking-questions-form-group__per-order--question">
+          <ng-container *ngIf="item.type === questionItemType.COMPOSITE">
+            <div>
+              <fzo-composite-question-item [questions]="item.questions" [formGroup]="formGroup" [questionType]="item.id" />
+            </div>
+          </ng-container>
+          <ng-container *ngIf="item.type === questionItemType.SINGLE">
+            <ng-container
+              *ngTemplateOutlet="
+                controlTemplate;
+                context: {
+                  question: item.question,
+                  controlId: (item.question | buildBookingQuestionId),
+                  control: formGroup.get(item.question | buildBookingQuestionId),
+                }
+              "
+            ></ng-container>
+          </ng-container>
+        </div>
+      </ng-container>
+    </div>
+  </ng-container>
+</ng-template>
+
+<ng-template #perTicketTemplate let-formData="formData">
+  <ng-container *ngIf="formData.perTicket.length > 0">
+    <div class="fv-booking-questions-form-group__per-ticket">
+      <ng-container *ngIf="formData.orderDetails?.perTicketsGroupLabel">
+        <span class="form__group-label" [innerHTML]="formData.orderDetails.perTicketsGroupLabel | translate"> </span>
+      </ng-container>
+
+      <ng-container *ngFor="let item of formData.perTicket | sortBookingQuestions; trackBy: trackByIndex; let index = index">
+        <div class="fv-booking-questions-form-group__per-ticket--question">
+          <div class="fv-booking-questions-form-group__per-ticket--header">
+            <ng-container *ngIf="showTicketCounter">
+              <legend
+                class="form__legend form__legend--line"
+                [innerHTML]="
+                  showTicketLabel
+                    ? (formData.ticketDetails[index].label | translate)
+                    : ('bookingQuestionsForm.ticketTitle' | translate: { position: index + 1 })
+                "
+              ></legend>
+              <p class="form__ticket-counter">
+                {{
+                  'bookingQuestionsForm.ticketCounter'
+                    | translate
+                      : {
+                          position: index + 1,
+                          total: formData.perTicket.length,
+                        }
+                }}
+              </p>
+            </ng-container>
+          </div>
+
+          <ng-container *ngIf="customerInfoPerTicketIndexes().includes(index) && index === 0">
+            <div class="fv-booking-questions-form-group__per-ticket-checkbox">
+              <ignt-checkbox
+                [checked]="isCheckboxChecked()"
+                (change)="onCheckboxChange($event)"
+                [label]="'bookingQuestionsForm.buyerAndTicketHolderSamePerson' | translate"
+                [dataTestId]="'buyer-ticket-holder-same-person-checkbox'"
+              ></ignt-checkbox>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="item.type === questionItemType.COMPOSITE">
+            <div>
+              <fzo-composite-question-item [questions]="item.questions" [formGroup]="formGroup" />
+            </div>
+          </ng-container>
+          <ng-container *ngIf="item.type === questionItemType.SINGLE">
+            <ng-container *ngFor="let question of item.question">
+              <ng-container
+                *ngTemplateOutlet="
+                  controlTemplate;
+                  context: {
+                    question: question,
+                    controlId: (question | buildBookingQuestionId: index),
+                    control: formGroup.get(question | buildBookingQuestionId: index),
+                  }
+                "
+              ></ng-container>
+            </ng-container>
+          </ng-container>
+        </div>
+      </ng-container>
+    </div>
+  </ng-container>
+</ng-template>
+
+<ng-template #controlTemplate let-question="question" let-controlId="controlId" let-control="control">
+  <ng-container *ngIf="question | conditionalQuestion: formGroup | async">
+    <fieldset class="form__fieldset">
+      <app-booking-question-form-control
+        [question]="question"
+        data-testid="booking-question-form-control"
+        [error]="control.touched && control.valid"
+      >
+        <ng-container *ngIf="question.type === 'date' && dateQuestionTemplate; else defaultQuestionItem">
+          <ng-container
+            *ngTemplateOutlet="
+              dateQuestionTemplate;
+              context: {
+                question: question,
+                controlId: controlId,
+                control: control,
+              }
+            "
+          ></ng-container>
+        </ng-container>
+        <ng-template #defaultQuestionItem>
+          <fv-question-item [formGroup]="formGroup" [question]="question" [controlId]="controlId" [error]="error"></fv-question-item>
+        </ng-template>
+      </app-booking-question-form-control>
+    </fieldset>
+  </ng-container>
+</ng-template>

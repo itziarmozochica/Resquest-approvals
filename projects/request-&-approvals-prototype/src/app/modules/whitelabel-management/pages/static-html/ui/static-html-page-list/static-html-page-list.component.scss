@@ -1,0 +1,199 @@
+@use 'foundations' as foundations;
+
+/**
+ * The list scrolls inside the rail rather than lengthening it, which takes this whole chain.
+ *
+ * `__items` below already asks to scroll, but that only means something once something above it has a
+ * bound to hand down. The rail is size-contained by the panel wherever the preview sets the row, so
+ * its height is the row's and not the list's, and both this host and the section under it have to be
+ * allowed to shrink under their own content for that bound to reach `__items`. Leave either one out
+ * and the list keeps `min-height: auto`, grows to its full length, and the panel's `overflow: hidden`
+ * takes the rest of it away with no way to reach it.
+ *
+ * A whitelabel with a hundred pages is the case this is for. Without it the rail sizes the row the
+ * editor and the preview share, which is the same defect a long document used to cause on the other
+ * side of the divider, and it is answered the same way.
+ *
+ * Below the three-column width nothing is contained and these two declarations are inert: there is no
+ * bound to shrink under, so the list is as long as it is and the page scrolls past it.
+ *
+ * `flex: 1 1 auto` is a separate job: the rail is a grid item beside the editor, so this is what puts
+ * the add-page footer at the bottom of the rail rather than half way up it.
+ */
+:host {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.static-html-page-list {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+
+  // Neither the heading nor the add form is allowed to be squeezed by a long list: the list is the
+  // part that scrolls, so it is the part that gives.
+  &__header {
+    align-items: baseline;
+    display: flex;
+    flex: 0 0 auto;
+    gap: foundations.$space-2;
+    justify-content: space-between;
+    padding: foundations.$space-3 foundations.$space-3 foundations.$space-2;
+  }
+
+  &__title {
+    font: foundations.$font-caption-bold;
+    letter-spacing: 0.04em;
+    margin: 0;
+    text-transform: uppercase;
+  }
+
+  &__count {
+    color: foundations.$color-text-subtle;
+    font: foundations.$font-caption-regular;
+    white-space: nowrap;
+  }
+
+  // Takes whatever the heading and the add form leave, and scrolls the list inside it. No
+  // `min-height: 0` beside the `overflow`: a scroll container's automatic minimum size is already
+  // zero, so the chain that gets a bound this far ends here.
+  &__items {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    gap: foundations.$space-1;
+    list-style: none;
+    margin: 0;
+    overflow-y: auto;
+    padding: 0 foundations.$space-2 foundations.$space-2;
+  }
+
+  // The dot column and the two stacked lines, so the path and its status read as one row.
+  // The whole row is the control: no inner chrome, the surface itself is what answers a click.
+  &__item {
+    border-radius: foundations.$radii-4;
+    column-gap: foundations.$space-2;
+    cursor: pointer;
+    display: grid;
+    grid-template-areas: 'dot path' '. status';
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: foundations.$space-1 foundations.$space-2 foundations.$space-2;
+
+    &:hover {
+      background: foundations.$color-background-subtle-weak;
+    }
+
+    &:focus-visible {
+      outline: foundations.$size-1 solid foundations.$color-accessibility-outline;
+      outline-offset: 0;
+    }
+
+    // Hover must not paint over the open row, so the selected treatment restates itself under it.
+    &--selected,
+    &--selected:hover {
+      background: foundations.$color-background-primary-weak;
+      box-shadow: inset foundations.$size-px2 0 0 foundations.$color-border-primary-base;
+    }
+
+    // The tone the button used to carry as a `sentiment`, now carried by the dot and the path.
+    &--danger .static-html-page-list__dot {
+      background: foundations.$color-border-danger-base;
+    }
+
+    &--danger .static-html-page-list__path {
+      color: foundations.$color-text-danger;
+    }
+
+    &--warning .static-html-page-list__dot {
+      background: foundations.$color-border-warning-base;
+    }
+
+    &--positive .static-html-page-list__dot {
+      background: foundations.$color-border-positive-base;
+    }
+
+    &--muted .static-html-page-list__dot {
+      background: foundations.$color-border-main-contrast;
+    }
+  }
+
+  &__dot {
+    align-self: center;
+    block-size: foundations.$space-1-5;
+    border-radius: 50%;
+    grid-area: dot;
+    inline-size: foundations.$space-1-5;
+  }
+
+  // A URL is read character by character, so it is set in mono and allowed to wrap anywhere.
+  &__path {
+    color: foundations.$color-text-main;
+    font: foundations.$font-small-regular;
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+    grid-area: path;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    padding-inline-start: foundations.$space-1;
+  }
+
+  &__status {
+    color: foundations.$color-text-subtle;
+    font: foundations.$font-caption-regular;
+    grid-area: status;
+    padding-inline-start: foundations.$space-1;
+  }
+
+  &__empty {
+    color: foundations.$color-text-subtle;
+    font: foundations.$font-caption-regular;
+    margin: 0;
+    padding: 0 foundations.$space-3 foundations.$space-3;
+  }
+
+  &__footer {
+    border-top: foundations.$size-px solid foundations.$color-border-main;
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: foundations.$space-2;
+    padding: foundations.$space-2 foundations.$space-3;
+  }
+
+  &__new ::ng-deep .button {
+    width: 100%;
+  }
+
+  &__add {
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-2;
+  }
+
+  &__add-actions {
+    display: flex;
+    gap: foundations.$space-2;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-1;
+    min-width: 0;
+  }
+
+  &__label {
+    color: foundations.$color-text-subtle;
+    font: foundations.$font-caption-bold;
+  }
+
+  &__preview {
+    color: foundations.$color-text-subtle;
+    font: foundations.$font-caption-regular;
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}

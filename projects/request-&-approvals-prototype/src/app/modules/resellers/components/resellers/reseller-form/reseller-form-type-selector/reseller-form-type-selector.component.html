@@ -1,0 +1,151 @@
+<div class="reseller-form">
+  <h2 class="font-h2">{{ 'resellers.newBusinessTitle' | translate }}</h2>
+  <div class="reseller-form__section">
+    <form [formGroup]="resellerTypeForm" class="reseller-form__stack">
+      <ignt-radio-group
+        formControlName="concessionType"
+        [label]="'resellers.resellerForm.businessType' | translate"
+        class="reseller-form__radio-group"
+      >
+        <ignt-list-item
+          *ngFor="let concessionType of concessionTypes"
+          [title]="'resellers.resellerType.' + concessionType.value | translate"
+          [description]="'resellers.resellerTypeDescription.' + concessionType.value | translate"
+          (click)="selectBusinessType(concessionType.value)"
+          [selected]="resellerTypeForm.controls['concessionType'].value === concessionType.value"
+          [leadingIconTemplate]="icon"
+        >
+          <ng-template #icon>
+            <div [class]="'reseller-form__type-icon reseller-form__type-icon--' + concessionType.value">
+              <fa-icon [icon]="concessionType.icon"></fa-icon>
+            </div>
+          </ng-template>
+          <ng-container trailing-modifier>
+            <ignt-radio [value]="concessionType.value" name="groupRadio"></ignt-radio>
+          </ng-container>
+        </ignt-list-item>
+      </ignt-radio-group>
+      <ng-container *ngIf="!!resellerTypeForm.controls['concessionType'].value; else noBusinessTypeSelectedTemplate">
+        <ignt-radio-group
+          formControlName="concessionCategory"
+          *ngIf="resellerTypeForm.controls['concessionType'].value === ConcessionTypeEnum.AFFILIATE.valueOf()"
+          [label]="'resellers.resellerForm.category' | translate"
+          class="reseller-form__radio-group"
+        >
+          <ignt-list-item
+            *ngFor="let concessionCategory of concessionCategoriesForAssociates"
+            [title]="'resellers.concessionCategory.' + concessionCategory.value | translate"
+            [description]="'resellers.concessionCategoryDescription.' + concessionCategory.value | translate"
+            (click)="resellerTypeForm.patchValue({ concessionCategory: concessionCategory.value })"
+            [selected]="resellerTypeForm.controls['concessionCategory'].value === concessionCategory.value"
+            [leadingIconTemplate]="icon"
+          >
+            <ng-template #icon>
+              <div class="reseller-form__type-icon">
+                <fa-icon [icon]="concessionCategory.icon"></fa-icon>
+              </div>
+            </ng-template>
+            <ng-container trailing-modifier>
+              <ignt-radio [value]="concessionCategory.value"></ignt-radio>
+            </ng-container>
+          </ignt-list-item>
+        </ignt-radio-group>
+        <ignt-radio-group
+          formControlName="concessionCategory"
+          *ngIf="resellerTypeForm.controls['concessionType'].value === ConcessionTypeEnum.B2B_PORTAL.valueOf()"
+          [label]="'resellers.resellerForm.category' | translate"
+          class="reseller-form__radio-group"
+        >
+          <ignt-list-item
+            *ngFor="let concessionCategory of concessionCategoriesForReservations"
+            [title]="'resellers.concessionCategory.' + concessionCategory.value | translate"
+            [description]="'resellers.concessionCategoryDescription.' + concessionCategory.value | translate"
+            (click)="resellerTypeForm.patchValue({ concessionCategory: concessionCategory.value })"
+            [selected]="resellerTypeForm.controls['concessionCategory'].value === concessionCategory.value"
+            [leadingIconTemplate]="icon"
+          >
+            <ng-template #icon>
+              <div class="reseller-form__type-icon">
+                <fa-icon [icon]="concessionCategory.icon"></fa-icon>
+              </div>
+            </ng-template>
+            <ng-container trailing-modifier>
+              <ignt-radio [value]="concessionCategory.value"></ignt-radio>
+            </ng-container>
+          </ignt-list-item>
+        </ignt-radio-group>
+        <ng-template [ngIf]="resellerTypeForm.controls['concessionType'].value === ConcessionTypeEnum.API.valueOf()">
+          <ng-container *ngTemplateOutlet="apiConcessionInstructions"></ng-container>
+        </ng-template>
+      </ng-container>
+    </form>
+  </div>
+
+  <div class="resellers__buttons">
+    <div class="only-in-desktop">
+      <ng-container *ngTemplateOutlet="buttonsTemplate"></ng-container>
+    </div>
+  </div>
+</div>
+
+<div class="reseller-form__footer only-in-mobile">
+  <bottom-slider [buttonsTemplate]="buttonsTemplate"></bottom-slider>
+</div>
+
+<ng-template #buttonsTemplate let-fill="fill">
+  <div class="resellers__buttons">
+    <ignt-button data-testid="back-button" (click)="goBack()" fill variant="tertiary" [label]="'common.cancel' | translate" />
+    <ignt-button
+      *ngIf="resellerTypeForm.controls['concessionType'].value !== ConcessionTypeEnum.API"
+      data-testid="reseller-form__save-button"
+      (click)="createReseller()"
+      [disabled]="!resellerTypeForm.controls['concessionType'].value || !resellerTypeForm.controls['concessionCategory'].value"
+      fill
+      [label]="'common.create' | translate"
+    />
+  </div>
+</ng-template>
+
+<ng-template #noBusinessTypeSelectedTemplate>
+  <div class="reseller-form__empty">
+    <img class="reseller-form__empty-img" src="assets/images/businesses/new-business-empty.svg" />
+  </div>
+</ng-template>
+
+<ng-template #apiConcessionInstructions>
+  <div class="reseller-form__api">
+    <div class="reseller-form__api-card">
+      <h5 class="reseller-form__api-title font-h5">{{ 'resellers.apiBusiness.title' | translate }}</h5>
+      <ignt-divider></ignt-divider>
+      <p>{{ 'resellers.apiBusiness.description' | translate }}</p>
+      <div *ngIf="supportData?.contactLink" class="reseller-form__api-info">
+        <div class="reseller-form__api-icon">
+          <fa-icon [icon]="['fal', 'envelope']" [size]="'lg'"></fa-icon>
+        </div>
+        <a igntLink size="small" [href]="supportData?.contactLink" data-test="contact-link-support">
+          <span translate>footer.sendMessage</span>
+        </a>
+      </div>
+      <div class="reseller-form__api-info">
+        <div class="reseller-form__api-icon">
+          <fa-icon [icon]="['fal', 'user-headset']" [size]="'lg'"></fa-icon>
+        </div>
+        <div>
+          <a igntLink size="small" href="tel:{{ supportData.phone }}" tabindex="0">
+            {{ supportData.phone }}
+          </a>
+          <span *ngIf="supportData?.officeHoursBegin && supportData.officeHoursEnd" class="font-base-regular">
+            {{
+              'footer.supportOfficeHours'
+                | translate
+                  : {
+                      startTime: supportData.officeHoursBegin | date: 'HH:mm',
+                      endTime: supportData.officeHoursEnd | date: 'HH:mm',
+                    }
+            }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-template>

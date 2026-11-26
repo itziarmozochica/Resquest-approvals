@@ -1,0 +1,146 @@
+<div class="hub-pack-detail">
+  <div class="hub-pack-detail__wrapper">
+    <ng-container *ngTemplateOutlet="pageHeader"></ng-container>
+
+    @if (isLoading()) {
+      <div class="hub-pack-detail__loading" data-testid="hub-pack-detail-loading">
+        <span translate>common.loading</span>
+      </div>
+    } @else {
+      @if (isScheduleUnreadable()) {
+        <ignt-alert
+          class="hub-pack-detail__schedule-alert"
+          sentiment="warning"
+          [title]="'assetsHubs.detail.packs.form.unreadableScheduleTitle' | translate"
+          [description]="'assetsHubs.detail.packs.form.unreadableScheduleDescription' | translate"
+          data-testid="pack-unreadable-schedule"
+        />
+      }
+
+      <form [formGroup]="formGroup" class="hub-pack-detail__form">
+        <section class="hub-pack-detail__section hub-pack-detail__section--details">
+          <h2 class="hub-pack-detail__section-title" translate>assetsHubs.detail.packs.form.packDetailsTitle</h2>
+          <p class="hub-pack-detail__section-description" translate>assetsHubs.detail.packs.form.packDetailsDescription</p>
+
+          <div class="hub-pack-detail__field">
+            <ignt-input-field
+              id="pack-name"
+              [formControl]="formGroup.controls.name"
+              [label]="'assetsHubs.detail.packs.form.nameLabel' | translate"
+              [placeholder]="'assetsHubs.detail.packs.form.namePlaceholder' | translate"
+              [customFormErrors]="nameCustomErrors"
+            ></ignt-input-field>
+          </div>
+
+          <div class="hub-pack-detail__field">
+            <ignt-textarea-field
+              id="pack-description"
+              [formControl]="formGroup.controls.description"
+              [label]="'assetsHubs.detail.packs.form.descriptionLabel' | translate"
+              [placeholder]="'assetsHubs.detail.packs.form.descriptionPlaceholder' | translate"
+              [resize]="'vertical'"
+              [rows]="3"
+            ></ignt-textarea-field>
+          </div>
+
+          @if (isEditMode) {
+            <div class="hub-pack-detail__assigned-groups" data-testid="pack-assigned-groups">
+              <h3 class="hub-pack-detail__section-title" translate>assetsHubs.detail.packs.assignedGroups.title</h3>
+              <p class="hub-pack-detail__section-description" translate>assetsHubs.detail.packs.assignedGroups.description</p>
+
+              @if (affectedGroups().length > 0) {
+                <div class="hub-pack-detail__assigned-groups-list">
+                  @for (group of affectedGroups(); track group.id) {
+                    <ignt-list-item [title]="group.name" [description]="group.mainPlanName"></ignt-list-item>
+                  }
+                </div>
+              } @else {
+                <p class="hub-pack-detail__assigned-groups-empty" translate>assetsHubs.detail.packs.assignedGroups.empty</p>
+              }
+            </div>
+          }
+        </section>
+
+        <hr class="hub-pack-detail__divider" />
+
+        <!-- Only once something repeats: with nothing to choose, the band is a heading over an empty box. -->
+        @if (hasRepeatedActivities()) {
+          <section class="hub-pack-detail__pack-wide" aria-labelledby="pack-wide-asset-policy-title" data-testid="pack-asset-policy-band">
+            <div class="hub-pack-detail__pack-wide-intro">
+              <h3 class="hub-pack-detail__pack-wide-title" id="pack-wide-asset-policy-title" translate>
+                assetsHubs.detail.packs.form.assetPolicyTitle
+              </h3>
+              <!-- Announced, because it arrives on an edit made further down the page. -->
+              <p class="hub-pack-detail__pack-wide-hint" role="status" translate>assetsHubs.detail.packs.form.assetPolicyDescription</p>
+            </div>
+
+            <app-pack-asset-policy
+              layout="row"
+              [control]="formGroup.controls.repeatedActivityAssetPolicy"
+              [selectedPolicy]="repeatedActivityAssetPolicyValue()"
+              (policySelect)="onRepeatedActivityAssetPolicySelect($event)"
+            />
+          </section>
+        }
+
+        <div class="hub-pack-detail__content">
+          <div class="hub-pack-detail__main">
+            <section class="hub-pack-detail__section">
+              <h2 class="hub-pack-detail__section-title" translate>assetsHubs.detail.packs.form.activitiesMinHint</h2>
+
+              @if (schedule(); as schedule) {
+                <app-pack-schedule-editor
+                  [activities]="activities()"
+                  [activityDescriptionById]="activityDescriptionById()"
+                  [activityOptions]="activityOptions()"
+                  [schedule]="schedule"
+                  [violations]="scheduleViolations()"
+                  (scheduleChange)="onScheduleChange($event)"
+                />
+              }
+            </section>
+          </div>
+        </div>
+      </form>
+    }
+  </div>
+
+  <div class="hub-pack-detail__footer">
+    <div class="hub-pack-detail__footer-actions">
+      <ignt-button
+        variant="tertiary"
+        size="large"
+        [label]="'common.cancel' | translate"
+        [disabled]="isSaving()"
+        (click)="onCancel()"
+        data-testid="pack-cancel"
+      />
+      <ignt-button
+        variant="primary"
+        size="large"
+        [label]="'common.save' | translate"
+        [loading]="isSaving()"
+        [disabled]="isSaveDisabled()"
+        (click)="onSave()"
+        data-testid="pack-save"
+      />
+    </div>
+  </div>
+</div>
+
+<ng-template #pageHeader>
+  <div class="hub-pack-detail__page-header">
+    <div class="hub-pack-detail__hub-header">
+      <a class="hub-pack-detail__breadcrumb-link" href="#" (click)="onNavigateToHubList($event)" role="link">{{
+        'assetsHubs.pageTitle' | translate
+      }}</a>
+      <span class="hub-pack-detail__breadcrumb-separator">/</span>
+      <a class="hub-pack-detail__breadcrumb-link" href="#" (click)="onNavigateToHubDetail($event)" role="link">{{ hubName() }}</a>
+      <span class="hub-pack-detail__breadcrumb-separator">/</span>
+      <a class="hub-pack-detail__breadcrumb-link" href="#" (click)="onNavigateToHubDetail($event)" role="link">{{
+        'assetsHubs.components.activityPacks' | translate
+      }}</a>
+      <h1 class="hub-pack-detail__title" data-testid="page-title">{{ pageTitleKey() | translate }}</h1>
+    </div>
+  </div>
+</ng-template>

@@ -1,0 +1,95 @@
+<div class="order-entrance-ticket-card__header" [class.order-entrance-ticket-card__header--expanded]="expanded()">
+  <div class="order-entrance-ticket-card__info">
+    <div class="order-entrance-ticket-card__title-row">
+      <fa-icon [icon]="titleIcon()" class="order-entrance-ticket-card__icon" />
+      <span class="order-entrance-ticket-card__title" data-testid="order-entrance-ticket-card-title">
+        <span class="order-entrance-ticket-card__title-main">{{ ticketSummary().totalCount }}x {{ ticketSummary().ticketTypeLabel }}</span>
+        <span
+          class="order-entrance-ticket-card__title-sub"
+          [innerHTML]="'cancellation.ticketCard.title' | translate: { ticketId: ticketSummary().ticketId }"
+        ></span>
+      </span>
+      @if (hasCancelledItems()) {
+        <ignt-tag class="order-entrance-ticket-card__cancelled-badge" sentiment="danger" variant="solid" data-testid="cancelled-badge">
+          {{ 'cancellation.ticketCard.cancelled' | translate }}
+        </ignt-tag>
+      }
+      @if (isTicketFullyValidated()) {
+        <ignt-tag
+          class="order-entrance-ticket-card__validated-badge"
+          sentiment="positive"
+          variant="solid"
+          data-testid="order-entrance-ticket-card-validated-badge"
+        >
+          {{ 'cancellation.ticketCard.validated' | translate }}
+        </ignt-tag>
+      }
+    </div>
+  </div>
+  <div class="order-entrance-ticket-card__actions">
+    <fa-icon
+      [icon]="['fas', 'chevron-right']"
+      class="order-entrance-ticket-card__expand-icon"
+      [class.expanded]="expanded()"
+      [attr.aria-label]="(expanded() ? 'cancellation.ticketCard.collapse' : 'cancellation.ticketCard.expand') | translate"
+      (click)="toggleExpansion()"
+      data-testid="order-entrance-ticket-card-expand-icon"
+    />
+  </div>
+</div>
+
+<!-- Action Bar -->
+<div class="order-entrance-ticket-card__action-bar" [class.order-entrance-ticket-card__action-bar--collapsed]="!expanded()">
+  <div class="order-entrance-ticket-card__action-buttons">
+    @if (ticketIsPack() && !hasCancelledItems()) {
+      <button
+        class="order-entrance-ticket-card__action-btn"
+        (click)="onSplitPack()"
+        data-testid="order-entrance-ticket-card-split-pack-button"
+      >
+        <app-pack-session-icon />
+        {{ 'cancellation.splitPack.button' | translate }}
+      </button>
+    }
+  </div>
+  <div class="order-entrance-ticket-card__validation-status">
+    @if (!hasCancelledItems()) {
+      <div class="order-entrance-ticket-card__select-all-wrapper" data-testid="select-all-wrapper">
+        <input
+          class="order-entrance-ticket-card__select-checkbox"
+          type="checkbox"
+          id="select-all-{{ ticketSummary().ticketId }}"
+          [checked]="isAllSelected()"
+          [indeterminate]="isIndeterminate()"
+          (change)="onSelectAllChange($event.target.checked)"
+          [disabled]="isSelectionDisabled()"
+          [attr.aria-describedby]="selectionDescribedBy()"
+          data-testid="select-all-checkbox"
+        />
+        <label for="select-all-{{ ticketSummary().ticketId }}" class="order-entrance-ticket-card__select-label">{{
+          'common.selectAll' | translate
+        }}</label>
+      </div>
+    }
+  </div>
+</div>
+
+<div
+  class="order-entrance-ticket-card__qr-list"
+  [class.order-entrance-ticket-card__qr-list--collapsed]="!expanded()"
+  data-testid="order-entrance-ticket-card-qr-list"
+>
+  @for (item of orderTickets(); track item.referenceId) {
+    <app-order-ticket
+      [ticketMainStatus]="ticketSummary().mainStatus"
+      [orderTicket]="item"
+      [validationMethod]="validationMethod() ?? null"
+      [areAllTicketsValidated]="isTicketFullyValidated()"
+      [hasCancelledItems]="hasCancelledItems()"
+      [isSelected]="isItemSelected(item.referenceId)"
+      [isSelectionDisabled]="isSelectionDisabled()"
+      (itemSelection)="onItemSelectionChange($event)"
+      data-testid="order-entrance-ticket-card-ticket"
+    />
+  }
+</div>

@@ -1,0 +1,162 @@
+<div
+  class="fz-assistant-chat-surface"
+  [class.fz-assistant-chat-surface--dialog]="appearance() === 'dialog'"
+  [class.fz-assistant-chat-surface--dock]="appearance() === 'dock'"
+  [class.fz-assistant-chat-surface--expanded]="isExpanded()"
+  [class.fz-assistant-chat-surface--modal-body]="appearance() === 'dialog' && !showHeader()"
+>
+  @if (showHeader()) {
+    <div class="fz-assistant-chat-surface__header">
+      <div class="fz-assistant-chat-surface__title">
+        @if (isConversationHistoryEnabled) {
+          <button
+            ignt-icon-button
+            sentiment="tertiary"
+            size="small"
+            data-testid="fz-assistant-chat-surface-history-toggle"
+            [icon]="['far', isHistoryOpen() ? 'arrow-left' : 'bars']"
+            [attr.aria-expanded]="isHistoryOpen()"
+            [attr.aria-label]="(isHistoryOpen() ? 'chatbot.threads.back' : 'chatbot.threads.open') | translate"
+            (click)="toggleHistory()"
+          ></button>
+        }
+        <app-ai-sparkle-icon size="medium" fill="gradient" />
+        <span>{{ 'chatbot.header.assistantName' | translate }}</span>
+      </div>
+      <div class="fz-assistant-chat-surface__actions">
+        @if (isHistoryOpen()) {
+          <button
+            ignt-icon-button
+            sentiment="tertiary"
+            size="small"
+            data-testid="fz-assistant-chat-surface-new-chat"
+            [icon]="['far', 'pen-to-square']"
+            [attr.aria-label]="'chatbot.threads.newChat' | translate"
+            (click)="onHistoryNewChat()"
+          ></button>
+        }
+        <button
+          ignt-icon-button
+          sentiment="tertiary"
+          size="small"
+          [icon]="['far', 'arrow-up-right-from-square']"
+          (click)="expandRequested.emit()"
+          [attr.aria-label]="'chatbot.topBar.expand' | translate"
+        ></button>
+        @if (showOpenInSidebarButton()) {
+          <button
+            ignt-icon-button
+            sentiment="tertiary"
+            size="small"
+            [icon]="['far', 'sidebar']"
+            (click)="openAsDockRequested.emit()"
+            [attr.aria-label]="'chatbot.topBar.openInSidebar' | translate"
+          ></button>
+        }
+        @if (appearance() === 'dock') {
+          <button
+            ignt-icon-button
+            sentiment="tertiary"
+            size="small"
+            [icon]="['far', 'clone']"
+            (click)="openAsPopupRequested.emit()"
+            [attr.aria-label]="'chatbot.topBar.openPopup' | translate"
+          ></button>
+        }
+        <button
+          ignt-icon-button
+          sentiment="tertiary"
+          size="small"
+          [icon]="['far', 'xmark']"
+          (click)="closeRequested.emit()"
+          [attr.aria-label]="'chatbot.topBar.close' | translate"
+        ></button>
+      </div>
+    </div>
+  }
+
+  @if (isHistoryOpen()) {
+    <app-chatbot-threads-sidebar
+      class="fz-assistant-chat-surface__history"
+      [activeThreadId]="activeThreadId()"
+      [embedded]="true"
+      [lastCreatedThreadId]="lastCreatedThreadId()"
+      [lastCreatedThreadTitle]="lastCreatedThreadTitle()"
+      [pendingThreadTitles]="pendingThreadTitles()"
+      [titleReadyThreadId]="titleReadyThreadId()"
+      (threadSelected)="onHistoryThreadSelected($event)"
+    />
+  } @else {
+    <div #conversationBody class="fz-assistant-chat-surface__body" (scroll)="onConversationScroll($event)">
+      @if (isLoadingThread()) {
+        <div class="fz-assistant-chat-surface__conversation fz-assistant-chat-surface__conversation--loading">
+          <app-chatbot-loading />
+        </div>
+      } @else {
+        <div class="fz-assistant-chat-surface__conversation">
+          @for (conversationItem of messages(); track $index) {
+            <app-chatbot-conversation
+              [conversationItem]="conversationItem"
+              [confirmedFeedback]="confirmedFeedbackByRunId()[conversationItem.runId ?? ''] ?? null"
+              (negativeFeedbackRequested)="onNegativeFeedbackRequested($event)"
+              (positiveFeedbackSubmitted)="onPositiveFeedbackSubmitted($event)"
+            ></app-chatbot-conversation>
+          }
+
+          @if (showInlineLoading()) {
+            <app-chatbot-loading />
+          }
+        </div>
+      }
+    </div>
+
+    @if (showWelcomeTitle()) {
+      <h2 class="fz-assistant-chat-surface__welcome-title">{{ fzAssistantPromptContext.headerTitleKey() | translate }}</h2>
+    }
+
+    <div class="fz-assistant-chat-surface__input" [class.fz-assistant-chat-surface__input--expanded]="isInputExpanded()">
+      <textarea
+        #inputField
+        class="fz-assistant-chat-surface__input-field"
+        rows="1"
+        [placeholder]="inputPlaceholderKey() ?? fzAssistantPromptContext.inputPlaceholderKey() | translate"
+        [ngModel]="currentMessage()"
+        (ngModelChange)="currentMessage.set($event)"
+        (input)="onInputChange()"
+        (keypress)="onKeyPress($event)"
+      ></textarea>
+      <button
+        class="fz-assistant-chat-surface__input-icon"
+        [class.fz-assistant-chat-surface__input-icon--active]="!!currentMessage().trim() && !showInlineLoading() && !isLoadingThread()"
+        (click)="sendMessage()"
+      >
+        <ignt-icon name="arrow-up" variant="solid" [fixedWidth]="true" />
+      </button>
+    </div>
+
+    @if (showPromptVersionToggle()) {
+      <ignt-checkbox
+        class="fz-assistant-chat-surface__prompt-version"
+        data-testid="fz-assistant-chat-surface-prompt-version"
+        size="small"
+        [checked]="developerPromptVersionSelected()"
+        [label]="'chatbot.promptVersion.developer' | translate"
+        (change)="onDeveloperPromptVersionChange($event)"
+      />
+    }
+
+    @if (showSuggestions()) {
+      <div class="fz-assistant-chat-surface__suggestions">
+        <app-chatbot-suggestions
+          [suggestions]="fzAssistantPromptContext.suggestions()"
+          (actionSelected)="onCustomerServiceSelected()"
+          (suggestionClick)="sendSuggestion($event)"
+        />
+      </div>
+    }
+
+    <footer class="fz-assistant-chat-surface__footer">
+      {{ 'chatbot.footer.description' | translate }}
+    </footer>
+  }
+</div>

@@ -1,0 +1,104 @@
+<div class="wrapper" appMultiSelectExclusiveGroup>
+  <app-multi-select
+    [options]="statusOptions"
+    [selectedOptions]="selectedStatusOptions"
+    [fieldLabel]="'listPlan.statusLabel' | translate"
+    [placeholder]="'analytics.analytics360.selectStatus' | translate"
+    [displayInPlaceMaximum]="1"
+    (selected)="selectStatusOptions($event)"
+    [isSelectAllVisible]="true"
+    id="three-sixty-analytics-select-statuses"
+    data-testid="three-sixty-analytics-select-statuses"
+    class="cell cell--hug-md cell-statuses"
+  >
+  </app-multi-select>
+  <app-multi-select
+    [options]="cityOptions"
+    [selectedOptions]="selectedCityOptions"
+    [fieldLabel]="'common.city' | translate"
+    [placeholder]="'analytics.analytics360.selectCities' | translate"
+    [displayInPlaceMaximum]="2"
+    (selected)="selectCityOptions($event)"
+    [isSelectAllVisible]="true"
+    [isSelectAllFixHeight]="false"
+    [disabled]="selectedStatusOptions.length === 0"
+    data-testid="three-sixty-analytics-select-cities"
+    id="three-sixty-analytics-select-cities"
+    class="cell cell--hug-md cell-cities"
+  >
+  </app-multi-select>
+  <app-multi-select
+    [options]="placeOptions"
+    [selectedOptions]="selectedPlaceOptions"
+    [fieldLabel]="'common.venue' | translate"
+    [placeholder]="'analytics.analytics360.selectPlaces' | translate"
+    [displayInPlaceMaximum]="1"
+    [isSelectAllVisible]="true"
+    (selected)="selectPlaceOptions($event)"
+    [disabled]="selectedStatusOptions.length === 0 || selectedCityOptions.length === 0"
+    [showItemsDescriptions]="true"
+    id="three-sixty-analytics-select-places"
+    data-testid="three-sixty-analytics-select-places"
+    class="cell cell--hug-md cell-places"
+  >
+  </app-multi-select>
+  <app-multi-select
+    [options]="planOptions"
+    [selectedOptions]="selectedPlanOptions"
+    [fieldLabel]="'common.event' | translate"
+    [placeholder]="'analytics.analytics360.selectEvents' | translate"
+    [displayInPlaceMaximum]="1"
+    (selected)="selectPlanOptions($event)"
+    [isSelectAllVisible]="!singlePlanSelection()"
+    [maxSelectedOptions]="singlePlanSelection() ? 1 : null"
+    [disabled]="selectedStatusOptions.length === 0 || selectedCityOptions.length === 0"
+    id="three-sixty-analytics-select-plans"
+    data-testid="three-sixty-analytics-select-plans"
+    class="cell cell--fill-md"
+  >
+  </app-multi-select>
+</div>
+
+<ng-template #selectCurrencyTemplate>
+  <span data-testid="three-sixty-analytics-currency-help-text">{{ 'analytics.analytics360.currency.helpText' | translate }}</span>
+  <div class="reports-header__currency__dropdown" data-testid="three-sixty-analytics-currency-dropdown">
+    <!--
+      Shown disabled rather than hidden while pinned: the figures are in this currency, so the label
+      is the one thing telling the partner what they are reading. `aria-disabled` over `disabled` so
+      it stays reachable and its explanation announceable.
+    -->
+    <button
+      id="three-sixty-analytics-select-currency"
+      class="button button--small button--secondary"
+      data-testid="three-sixty-analytics-select-currency"
+      [attr.aria-disabled]="currencyLockedToLocal() ? 'true' : null"
+      [attr.aria-describedby]="currencyLockedToLocal() ? 'three-sixty-analytics-currency-locked-hint' : null"
+      [attr.title]="currencyLockedToLocal() ? ('analytics.analytics360.currency.lockedHint' | translate) : null"
+      (click)="toggleCurrencySelector()"
+    >
+      {{ selectedCurrencyOption?.title }}
+      @if (!currencyLockedToLocal()) {
+        <ignt-icon [name]="showCurrencyOptionSelector ? 'chevron-up' : 'chevron-down'" variant="solid" size="base"></ignt-icon>
+      }
+    </button>
+    <!--
+      `title` is the mouse affordance only: on a button that already has visible text it is commonly
+      dropped in favour of the accessible name, and it never reaches touch at all. The hint is carried
+      by this element so the reason is read out with the button rather than lost.
+    -->
+    @if (currencyLockedToLocal()) {
+      <span id="three-sixty-analytics-currency-locked-hint" class="visually-hidden">
+        {{ 'analytics.analytics360.currency.lockedHint' | translate }}
+      </span>
+    }
+    @if (showCurrencyOptionSelector && !currencyLockedToLocal()) {
+      <div class="reports-header__currency__dropdown__options" data-testid="three-sixty-analytics-currency-options">
+        @for (currency of currencyOptions; track currency.id) {
+          <span data-testid="three-sixty-analytics-currency-option" (click)="selectCurrency(currency)">
+            {{ currency.title }}
+          </span>
+        }
+      </div>
+    }
+  </div>
+</ng-template>

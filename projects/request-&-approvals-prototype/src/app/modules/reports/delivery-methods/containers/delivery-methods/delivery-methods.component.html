@@ -1,0 +1,57 @@
+<!-- `request` goes last: its setter starts the call, which must already see `areResultsEmpty`. -->
+<app-request-result
+  data-testid="delivery-methods-results"
+  [areResultsEmpty]="areResultsEmpty"
+  [noResultsTemplate]="emptyState"
+  [errorMessage]="'analytics.dashboardBuilder.deliveryMethods.loadError' | translate"
+  (searchResults)="updateDeliveryMethods($event)"
+  [request]="request()"
+>
+  <!-- The content shows while the list loads too; an empty table would flash its "No data" row under the spinner. -->
+  @if (deliveryMethods().length > 0) {
+    <app-delivery-methods-table
+      [currentUserId]="currentUserId"
+      [deliveryMethods]="deliveryMethods()"
+      [focusedDeliveryMethodId]="focusedDeliveryMethodId()"
+      [isSuperuser]="isSuperuser()"
+      (deleteDeliveryMethod)="onDeleteDeliveryMethod($event)"
+      (editDeliveryMethod)="onEditDeliveryMethod($event)"
+    />
+  }
+</app-request-result>
+
+<ng-template #emptyState>
+  <div class="delivery-methods__empty" data-testid="delivery-methods-empty">
+    <ignt-icon class="delivery-methods__empty-icon" name="paper-plane" variant="solid" />
+    <span class="delivery-methods__empty-title">{{ 'analytics.dashboardBuilder.deliveryMethods.empty.title' | translate }}</span>
+    <span>{{ 'analytics.dashboardBuilder.deliveryMethods.empty.description' | translate }}</span>
+  </div>
+</ng-template>
+
+<ng-template #inUseDialog>
+  <ignt-dialog-header>{{ 'reports.dashboardBuilder.deleteDeliveryMethodInUse.title' | translate }}</ignt-dialog-header>
+  <ignt-dialog-content>
+    <!-- Other partners' exports are never named, so with none of this partner's there is no list to point at. -->
+    <p class="delivery-methods__in-use-message" data-testid="delivery-method-in-use-message">
+      {{
+        (blockingExports().length > 0
+          ? 'reports.dashboardBuilder.deleteDeliveryMethodInUse.message'
+          : 'reports.dashboardBuilder.deleteDeliveryMethodInUse.otherPartnersMessage'
+        ) | translate
+      }}
+    </p>
+    <ul class="delivery-methods__in-use-exports">
+      @for (usage of blockingExports(); track usage.id) {
+        <li class="delivery-methods__in-use-export" data-testid="delivery-method-in-use-export">
+          <span>{{ usage.name }}</span>
+          @if (usage.status; as status) {
+            <ignt-tag variant="outline" [sentiment]="statusTags[status].sentiment">{{ statusTags[status].labelKey | translate }}</ignt-tag>
+          }
+        </li>
+      }
+    </ul>
+  </ignt-dialog-content>
+  <ignt-dialog-footer hideCancelButton>
+    <ignt-button fill igntDialogClose variant="primary" [label]="'common.close' | translate" />
+  </ignt-dialog-footer>
+</ng-template>

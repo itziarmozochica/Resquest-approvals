@@ -1,0 +1,113 @@
+<div [@fadeAnimation]="state">
+  <main
+    class="main-container"
+    [class.main-container--loading]="state === oboSecondScreenState.LoggedOut"
+    [class.main-container--vertical]="
+      state !== oboSecondScreenState.Checkout &&
+      state !== oboSecondScreenState.ContactInformation &&
+      state !== oboSecondScreenState.SeatingMap
+    "
+    [class.main-container--horizontal]="state === oboSecondScreenState.Checkout || state === oboSecondScreenState.ContactInformation"
+    [class.main-container--seating-map-fullscreen]="state === oboSecondScreenState.SeatingMap"
+  >
+    <!-- To avoid seating map in second screen to rerender each time we open it, we just hide it -->
+    <app-obo-seating-map
+      class="obo-seating-map-layer"
+      data-testid="second-screen-seating-map"
+      [class.obo-seating-map-layer--active]="state === oboSecondScreenState.SeatingMap"
+      [cart]="getCart()"
+      [partnerId]="getPartnerId()"
+      [seatingMap]="getSeatingMap()"
+      [isActive]="state === oboSecondScreenState.SeatingMap"
+      (unavailable)="onSeatingMapUnavailable()"
+    />
+
+    <ng-container [ngSwitch]="state">
+      <ng-container *ngSwitchCase="oboSecondScreenState.LoggedOut">
+        <div class="bouncein" data-testid="second-screen-closed-sign">
+          <div class="closed-sign">
+            <div class="closed-sign__cord"></div>
+            <div class="closed-sign__card">
+              <h1 class="closed-sign__title" data-testid="second-screen-closed-sign-title">
+                {{ loggedOutBannerTitle() | translate: loggedOutBannerTitleParams() }}
+              </h1>
+              <h2 class="closed-sign__supporting-text" translate>oboSecondScreen.loading.subtitle</h2>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-container *ngSwitchCase="oboSecondScreenState.StandBy">
+        @if (standbyCarouselItems.length > 0) {
+          <app-ken-burns-slider
+            class="contents-display"
+            data-testid="second-screen-standby-slider"
+            [items]="standbyCarouselItems"
+            [paused]="isMainScreenBusy()"
+          />
+        } @else {
+          <app-mosaic-slider class="contents-display" data-testid="second-screen-standby-mosaic" />
+        }
+        <app-banner-card
+          class="contents-display"
+          data-testid="second-screen-standby-banner"
+          [state]="bannerCardState.StandBy"
+          [partnerState]="partnerState"
+          [logo]="bannerLogo"
+          [configuration]="secondScreenConfiguration()"
+        />
+      </ng-container>
+
+      <ng-container *ngSwitchCase="oboSecondScreenState.Checkout">
+        <app-pinpad-message
+          [paymentInProgress]="paymentInProgress"
+          class="contents-display"
+          data-testid="second-screen-checkout"
+        ></app-pinpad-message>
+        <app-aside-cover
+          [paymentInProgress]="paymentInProgress"
+          class="contents-display"
+          [imageUrl]="getPlan()?.imageUrl"
+          [items]="asideCoverItems"
+        />
+        <app-cart [paymentInProgress]="paymentInProgress" class="contents-display" [plan]="getPlan()" [cart]="getCart()" />
+      </ng-container>
+
+      <ng-container *ngSwitchCase="oboSecondScreenState.ContactInformation">
+        <app-aside-cover class="contents-display" [imageUrl]="getPlan()?.imageUrl" [items]="asideCoverItems"></app-aside-cover>
+        <app-obo-contact-information class="contents-display" data-testid="second-screen-contact-information" />
+      </ng-container>
+
+      <ng-container *ngSwitchCase="oboSecondScreenState.FeedbackMessage">
+        <app-aside-cover class="contents-display" [imageUrl]="getPlan()?.imageUrl" [items]="asideCoverItems" />
+        <app-feedback-message class="contents-display" />
+      </ng-container>
+
+      <ng-container *ngSwitchCase="oboSecondScreenState.Survey">
+        <app-aside-cover class="contents-display" [imageUrl]="getPlan()?.imageUrl" [items]="asideCoverItems"></app-aside-cover>
+        <app-survey-card
+          class="contents-display"
+          data-testid="second-screen-survey"
+          [placeId]="getPlaceId()"
+          [shiftId]="getShiftId()"
+        ></app-survey-card>
+      </ng-container>
+
+      <ng-container *ngSwitchCase="oboSecondScreenState.Farewell">
+        @if (farewellImageUrl(); as farewellImage) {
+          <app-aside-cover class="contents-display" data-testid="second-screen-farewell-image" [imageUrl]="farewellImage" />
+        } @else {
+          <app-aside-cover class="contents-display" [imageUrl]="getPlan()?.imageUrl" [items]="asideCoverItems"></app-aside-cover>
+        }
+        <app-banner-card
+          class="contents-display"
+          data-testid="second-screen-farewell-banner"
+          [state]="bannerCardState.Farewell"
+          [partnerState]="partnerState"
+          [logo]="bannerLogo"
+          [configuration]="secondScreenConfiguration()"
+        />
+      </ng-container>
+    </ng-container>
+  </main>
+</div>

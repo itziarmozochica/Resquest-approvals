@@ -1,0 +1,189 @@
+<div class="otp-configurations__filters">
+  <div class="otp-configurations__toggle-wrapper">
+    <label for="showInactiveConfigs">
+      {{ 'branding.otpConfiguration.showInactiveConfigs' | translate }}
+    </label>
+    <ignt-toggle
+      id="showInactiveConfigs"
+      [checked]="isShowingInactiveConfigs()"
+      (change)="onToggleShowInactive()"
+      data-testid="otp-configurations-show-inactive-toggle"
+    >
+    </ignt-toggle>
+  </div>
+  <button
+    igntButton
+    [sentiment]="'primary'"
+    [variant]="'default'"
+    [size]="'large'"
+    [fill]="false"
+    (click)="onCreateConfiguration()"
+    data-testid="otp-configuration-create-button"
+  >
+    {{ 'branding.otpConfiguration.createButton' | translate }}
+  </button>
+</div>
+
+<div class="otp-configurations__content">
+  @if (isLoading()) {
+    <div class="otp-configurations__loading">
+      <fa-icon class="fa-spin" [icon]="['fas', 'spinner']" [size]="'3x'"></fa-icon>
+      <div class="otp-configurations__loading-text">{{ 'common.loading' | translate }}</div>
+    </div>
+  } @else if (totalCount() === 0) {
+    <div class="otp-configurations__empty">
+      <fa-icon [icon]="['fas', 'exclamation-circle']" [size]="'3x'"></fa-icon>
+      <div class="otp-configurations__empty-text">{{ 'branding.otpConfiguration.noResultsFound' | translate }}</div>
+    </div>
+  } @else {
+    <div class="otp-configurations__list">
+      @for (config of otpConfigurations(); track config.id) {
+        <ignt-expansion-panel [variant]="'card'" [elevation]="100" [isCollapsed]="true" class="otp-configurations__config-panel">
+          <div expansion-panel-title class="otp-configurations__config-header">
+            <div class="otp-configurations__config-title">
+              <strong>{{ config.name }}</strong>
+              <div class="otp-configurations__config-meta">
+                <span class="otp-configurations__config-subtitle">{{ config.template?.name }}</span>
+                <span
+                  class="otp-configurations__status-badge"
+                  [class.otp-configurations__status-badge--active]="config.isActive"
+                  [class.otp-configurations__status-badge--inactive]="!config.isActive"
+                >
+                  {{
+                    config.isActive ? ('branding.otpConfiguration.active' | translate) : ('branding.otpConfiguration.inactive' | translate)
+                  }}
+                </span>
+              </div>
+            </div>
+            <div class="otp-configurations__config-actions">
+              @if (!config.isActive) {
+                <button
+                  igntButton
+                  [variant]="'default'"
+                  [sentiment]="'secondary'"
+                  [size]="'small'"
+                  [leadingIcon]="['fas', 'check']"
+                  (click)="onEnableConfiguration(config, $event)"
+                >
+                  {{ 'branding.otpConfiguration.enable' | translate }}
+                </button>
+              }
+              <button
+                igntButton
+                [sentiment]="'secondary'"
+                [variant]="'default'"
+                [size]="'small'"
+                [leadingIcon]="['fas', 'paper-plane']"
+                [loading]="sendingPreviewIds().has(config.id)"
+                [disabled]="sendingPreviewIds().has(config.id)"
+                class="otp-configurations__send-preview-button"
+                (click)="onSendPreview(config, $event)"
+              >
+                {{ 'branding.otpConfiguration.sendPreview' | translate }}
+              </button>
+              <button
+                igntButton
+                [sentiment]="'secondary'"
+                [variant]="'default'"
+                [size]="'small'"
+                [leadingIcon]="['fas', 'edit']"
+                class="otp-configurations__edit-button"
+                (click)="onEditConfiguration(config, $event)"
+              >
+                {{ 'common.edit' | translate }}
+              </button>
+              @if (!config.isActive) {
+                <button
+                  igntButton
+                  [sentiment]="'tertiary'"
+                  [variant]="'danger'"
+                  [size]="'small'"
+                  [leadingIcon]="['fas', 'trash']"
+                  class="otp-configurations__delete-button"
+                  data-testid="otp-configuration-delete-button"
+                  (click)="onToggleDelete(config, $event)"
+                >
+                  {{ 'common.delete' | translate }}
+                </button>
+              }
+            </div>
+          </div>
+          <div class="otp-configurations__config-content">
+            <div class="otp-configurations__detail">
+              <span class="otp-configurations__detail-label">{{ 'branding.otpConfiguration.configurationId' | translate }}:</span>
+              <span class="otp-configurations__detail-value">{{ config.id }}</span>
+            </div>
+
+            <div class="otp-configurations__detail">
+              <span class="otp-configurations__detail-label">{{ 'branding.otpConfiguration.template' | translate }}:</span>
+              <span class="otp-configurations__detail-value">{{ config.template?.name }}</span>
+            </div>
+
+            <div class="otp-configurations__detail">
+              <span class="otp-configurations__detail-label">{{ 'branding.otpConfiguration.sender' | translate }}:</span>
+              <span class="otp-configurations__detail-value"
+                >{{ config.senderName }}
+                <span class="otp-configurations__secondary-text">({{ config.senderAddress }})</span>
+              </span>
+            </div>
+
+            <div class="otp-configurations__detail">
+              <span class="otp-configurations__detail-label">{{ 'branding.otpConfiguration.branding' | translate }}:</span>
+              <span class="otp-configurations__detail-value">{{ config.brandingName ?? 'N/A' }}</span>
+            </div>
+
+            @if (config.replyToAddress) {
+              <div class="otp-configurations__detail">
+                <span class="otp-configurations__detail-label">{{ 'branding.otpConfiguration.replyTo' | translate }}:</span>
+                <span class="otp-configurations__detail-value">{{ config.replyToAddress }}</span>
+              </div>
+            }
+
+            <div class="otp-configurations__detail">
+              <span class="otp-configurations__detail-label">{{ 'branding.otpConfiguration.useTheme' | translate }}:</span>
+              <span class="otp-configurations__detail-value">
+                {{ config.useTheme ? ('branding.otpConfiguration.yes' | translate) : ('branding.otpConfiguration.no' | translate) }}
+                <span class="otp-configurations__detail-hint">
+                  ({{
+                    config.useTheme
+                      ? ('branding.otpConfiguration.useThemeEnabled' | translate)
+                      : ('branding.otpConfiguration.useThemeDisabled' | translate)
+                  }})
+                </span>
+              </span>
+            </div>
+
+            @if (config.parameterValues.length > 0) {
+              <div class="otp-configurations__detail">
+                <span class="otp-configurations__detail-label">{{ 'branding.otpConfiguration.parameterValues' | translate }}:</span>
+                <div class="otp-configurations__detail-value">
+                  <div class="otp-configurations__parameters">
+                    @for (param of config.parameterValues; track param.parameterId) {
+                      <div class="otp-configurations__parameter">
+                        <span class="otp-configurations__parameter-strong">{{ param.parameterName }}:</span>
+                        {{ param.value ?? 'N/A' }}
+                      </div>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </ignt-expansion-panel>
+      }
+
+      @if (totalPages() > 1) {
+        <div class="otp-configurations__pagination">
+          <app-pagination-with-numbers
+            [selectedPage]="currentPage"
+            [totalCountResults]="totalCount()"
+            [pageSize]="itemsPerPage"
+            [previousPage]="previousPage"
+            [nextPage]="nextPage"
+            (numPageSelected)="onPageChange($event)"
+          ></app-pagination-with-numbers>
+        </div>
+      }
+    </div>
+  }
+</div>

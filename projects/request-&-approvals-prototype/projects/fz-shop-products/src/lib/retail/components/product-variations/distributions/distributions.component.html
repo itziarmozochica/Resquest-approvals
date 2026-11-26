@@ -1,0 +1,180 @@
+<ignt-dialog-header>
+  {{ dialogData.productVariationName }}
+</ignt-dialog-header>
+<ignt-dialog-content>
+  <div class="distributions" data-testid="distributions-content">
+    @if (isLoading()) {
+      <div class="distributions__spinner" role="status" data-testid="distributions-spinner"></div>
+    } @else if (error()) {
+      <ignt-alert
+        data-testid="distributions-error"
+        sentiment="danger"
+        [description]="'retailSetup.productVariations.distribution.error' | translate"
+      />
+    } @else {
+      <p class="distributions__subtitle">
+        {{ 'retailSetup.productVariations.distribution.subtitle' | translate }}
+      </p>
+
+      <div
+        class="distributions__plan-grid"
+        data-testid="distributions-grid"
+        [class.distributions__plan-grid--cols-1]="planGridColumns() === 1"
+        [class.distributions__plan-grid--cols-3]="planGridColumns() === 3"
+      >
+        @for (plan of distribution(); track plan.id) {
+          <button
+            type="button"
+            class="tile tile--large tile--fill"
+            data-testid="distributions-plan-tile"
+            [class.tile--selected]="plan.id === selectedPlan()?.id"
+            [attr.aria-pressed]="plan.id === selectedPlan()?.id"
+            (click)="selectPlan(plan.id)"
+          >
+            <div class="tile__info--large">
+              <div class="tile__label--large" [title]="plan.name">{{ plan.name }}</div>
+              <div class="tile__subtitle--large">
+                <ignt-icon aria-hidden="true" class="tile__subtitle-icon--large" name="landmark" size="sm" variant="light" />
+                <span [title]="plan.placeName">{{ plan.placeName }}</span>
+              </div>
+            </div>
+          </button>
+        }
+      </div>
+
+      <hr class="distributions__separator" />
+
+      @if (selectedPlan(); as plan) {
+        <section class="distributions__details" data-testid="distributions-panel">
+          <div class="distributions__section">
+            <h3 class="distributions__section-title">
+              {{ 'retailSetup.productVariations.distribution.pricing' | translate }}
+            </h3>
+            <ignt-alert sentiment="info" data-testid="distributions-pricing-info">
+              <ng-template #igntAlertContent>
+                <span class="distributions__alert-text">
+                  {{ 'retailSetup.productVariations.distribution.priceVisibility' | translate }}
+                  <a
+                    igntLink
+                    href="#"
+                    size="small"
+                    sentiment="primary"
+                    data-testid="distributions-inventory-pricing"
+                    [trailingIcon]="externalLinkIcon"
+                    (click)="goToInventoryPricing(plan); $event.preventDefault()"
+                  >
+                    {{ 'retailSetup.productVariations.distribution.inventoryPricing' | translate }}
+                  </a>
+                </span>
+              </ng-template>
+            </ignt-alert>
+          </div>
+
+          <div class="distributions__section">
+            <h3 class="distributions__section-title">
+              {{ 'retailSetup.productVariations.distribution.channels' | translate }}
+            </h3>
+            @if (plan.channels.length === 0) {
+              <ignt-alert sentiment="warning" data-testid="distributions-no-channels-warning">
+                <ng-template #igntAlertContent>
+                  <span class="distributions__alert-text">
+                    {{ 'retailSetup.productVariations.distribution.noChannelsWarning' | translate }}
+                    <a
+                      igntLink
+                      href="#"
+                      size="small"
+                      sentiment="primary"
+                      data-testid="distributions-channels-settings"
+                      [trailingIcon]="externalLinkIcon"
+                      (click)="goToChannelsSettings(plan); $event.preventDefault()"
+                    >
+                      {{ 'retailSetup.productVariations.distribution.noChannelsWarningLink' | translate }}
+                    </a>
+                  </span>
+                </ng-template>
+              </ignt-alert>
+            } @else {
+              <div class="distributions__section-panel distributions__section-panel--list">
+                <ul class="distributions__channels" role="list">
+                  @for (channel of plan.channels; track channel.id) {
+                    <li class="distributions__channel" data-testid="distributions-channel">
+                      <a
+                        igntLink
+                        href="#"
+                        size="small"
+                        sentiment="primary"
+                        class="distributions__channel-name"
+                        data-testid="distributions-channel-link"
+                        [trailingIcon]="externalLinkIcon"
+                        (click)="goToChannelsSettings(plan, channel.id); $event.preventDefault()"
+                      >
+                        {{ channel.name }}
+                      </a>
+                      <div class="distributions__channel-warehouses">
+                        @for (warehouse of channel.warehouses; track warehouse.id) {
+                          <ignt-tag sentiment="info" variant="solid" [startIcon]="warehouseIcon">{{ warehouse.name }}</ignt-tag>
+                        }
+                      </div>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+          </div>
+
+          <div class="distributions__section">
+            <h3 class="distributions__section-title">
+              {{ 'retailSetup.productVariations.distribution.sessionTypeId' | translate }}
+            </h3>
+            <div class="distributions__section-panel">
+              <div class="distributions__session">
+                <span class="distributions__session-value" data-testid="distributions-session-type-value">{{ plan.sessionTypeId }}</span>
+                <ignt-button
+                  variant="tertiary"
+                  size="small"
+                  data-testid="distributions-copy-session-type"
+                  [label]="'retailSetup.productVariations.distribution.copy' | translate"
+                  [leadingIcon]="copyIcon"
+                  (click)="copySessionType(plan.sessionTypeId)"
+                />
+              </div>
+            </div>
+            @if (!plan.hasActiveSession) {
+              <ignt-alert sentiment="danger" data-testid="distributions-no-active-session-warning">
+                <ng-template #igntAlertContent>
+                  <span class="distributions__alert-text">
+                    {{ 'retailSetup.productVariations.distribution.noActiveSessionWarning' | translate }}
+                    <a
+                      igntLink
+                      size="small"
+                      sentiment="primary"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-testid="distributions-no-active-session-runbook"
+                      [href]="noActiveSessionRunbookUrl()"
+                      [trailingIcon]="externalLinkIcon"
+                    >
+                      {{ 'retailSetup.productVariations.distribution.noActiveSessionWarningLink' | translate }}
+                    </a>
+                  </span>
+                </ng-template>
+              </ignt-alert>
+            }
+          </div>
+
+          <div class="distributions__section">
+            <h3 class="distributions__section-title">
+              {{ 'retailSetup.productVariations.distribution.productType' | translate }}
+            </h3>
+            <div class="distributions__section-panel">
+              <span class="distributions__product-type">{{ plan.productTypeLabel ?? '—' }}</span>
+            </div>
+          </div>
+        </section>
+      }
+    }
+  </div>
+</ignt-dialog-content>
+<ignt-dialog-footer hideCancelButton>
+  <ignt-button variant="primary" igntDialogClose data-testid="distributions-close" [label]="'common.close' | translate" />
+</ignt-dialog-footer>

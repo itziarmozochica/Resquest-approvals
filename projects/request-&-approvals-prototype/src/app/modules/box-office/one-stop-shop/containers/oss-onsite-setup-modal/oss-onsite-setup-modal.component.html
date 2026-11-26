@@ -1,0 +1,123 @@
+<ignt-dialog-header [hideCloseButton]="!hasCloseButton()" data-testid="onsite-setup-modal">
+  {{ modalTitle() }}
+</ignt-dialog-header>
+<ignt-dialog-content>
+  <ng-container *ngTemplateOutlet="setupContent"></ng-container>
+</ignt-dialog-content>
+
+<ng-template #setupContent>
+  <div class="oss-onsite-setup-modal__content" [class.oss-onsite-setup-modal__content--with-recents]="isRecentSectionVisible()">
+    @if (!hasActiveShiftAndPreviousOnsiteSetup()) {
+      @if (!isRecentSectionVisible() && !isVenueSearchActive()) {
+        <div class="oss-setup-header">
+          <div class="oss-setup-greeting">
+            👋 <span>{{ 'oneStopShop.onsiteSetupModal.greetings.title' | translate: { userName: userName } }}</span>
+          </div>
+          <div class="oss-setup-subtitle" translate>oneStopShop.onsiteSetupModal.greetings.subtitle</div>
+        </div>
+      }
+      @if (isRecentSectionVisible()) {
+        <div class="onsite-setup__recent" data-testid="recent-onsite-setups">
+          <div class="onsite-setup__recent-header">
+            <span class="onsite-setup__recent-label">{{ 'oneStopShop.onsiteSetupModal.recent' | translate }}</span>
+            <button
+              type="button"
+              igntButton
+              sentiment="tertiary"
+              size="small"
+              [leadingIcon]="['far', 'search']"
+              data-testid="recent-venue-search-button"
+              (click)="activateVenueSearch()"
+            >
+              {{ 'oneStopShop.onsiteSetupModal.search' | translate }}
+            </button>
+          </div>
+          <div class="onsite-setup__recent-chips">
+            @for (recent of recentOnsiteSetups(); track recent.id) {
+              <ignt-pill-button
+                [label]="recent.name"
+                [icon]="{ name: 'cash-register', variant: 'light' }"
+                [value]="recent.id"
+                data-testid="recent-onsite-setup"
+                (checkedChange)="selectRecentOnsiteSetup(recent)"
+              />
+            }
+          </div>
+        </div>
+      }
+      <div class="onsite-setup">
+        <div class="onsite-setup__section">
+          <label class="onsite-setup__label">{{ 'oneStopShop.onsiteSetupModal.selectVenue' | translate }}</label>
+          @if (isVenueSearchFieldVisible()) {
+            <div class="venue-search">
+              <div class="venue-search__row">
+                <label class="field venue-search__field">
+                  <ignt-input-field
+                    #venueSearchInput
+                    [formControl]="venueSearchFormControl"
+                    [label]="'oneStopShop.onsiteSetupModal.searchVenue' | translate"
+                    [placeholder]="'oneStopShop.onsiteSetupModal.searchVenuePlaceholder' | translate"
+                    type="search"
+                    data-testid="venue-search-input"
+                    (keydown.enter)="onSearchEnterKey()"
+                  ></ignt-input-field>
+                  <ignt-icon class="field__icon field__icon--lead" name="search" variant="light" aria-hidden="true" />
+                </label>
+                @if (recentOnsiteSetups().length > 0) {
+                  <button
+                    ignt-icon-button
+                    type="button"
+                    sentiment="secondary"
+                    [attr.aria-label]="'oneStopShop.search.close' | translate"
+                    data-testid="venue-search-close-button"
+                    [icon]="['far', 'times']"
+                    (click)="deactivateVenueSearch()"
+                  ></button>
+                }
+              </div>
+            </div>
+          }
+          <div class="tile-wrapper tile-wrapper--row" [class.tile-wrapper--row--compact]="isRecentSectionVisible()">
+            @for (venue of filteredPlaceOptions(); track venue.id) {
+              <button
+                type="button"
+                class="onsite-setup-tile tile"
+                data-testid="venue-option"
+                [class.tile--selected]="selectedPlace()?.id === venue.id"
+                [class.tile--disabled]="false"
+                [attr.data-venue-id]="venue.id"
+                (click)="selectVenue(venue)"
+              >
+                <div class="onsite-setup-tile__label" [title]="venue.name">{{ venue.name }}</div>
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (shouldShowSetups()) {
+          <div #onsiteSetupSection class="onsite-setup__section">
+            <label class="onsite-setup__label">{{ 'oneStopShop.onsiteSetupModal.selectOnsiteSetup' | translate }}</label>
+            <div class="tile-wrapper tile-wrapper--row">
+              @for (setup of onsiteSetupOptions(); track setup.id) {
+                <button
+                  type="button"
+                  class="onsite-setup-tile tile"
+                  data-testid="onsite-setup-option"
+                  [class.tile--selected]="selectedOnsiteSetupOption()?.id === setup.id"
+                  [class.tile--disabled]="!selectedPlace()"
+                  (click)="selectOnsiteSetup(setup)"
+                >
+                  <div class="onsite-setup-tile__label" [title]="setup.title">{{ setup.title }}</div>
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <div>
+        <p>{{ 'oneStopShop.onsiteSetupModal.activeShiftMessage' | translate }}</p>
+      </div>
+    }
+  </div>
+</ng-template>

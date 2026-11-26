@@ -1,0 +1,385 @@
+@use 'foundations' as foundations;
+@use '../reservation-floating-bar.mixin' as floating-bar;
+@import '../../../../../theme/abstracts/all';
+
+$box-office-sidebar-width: rem-calc(400);
+$box-office-container-max-width: rem-calc(1128);
+// Viewport from which the lead request renders as a third column instead of inside the left sidebar.
+// Not a theme breakpoint on purpose: this flow renders the date selector's 6-column hours grid from
+// 38rem up with no upper bound (.date-time-selector--all-step in date-selector-common.scss), which
+// needs ~540px (six tiles at their 5rem min-width plus five 12px gaps). Under the 3/6/3 grid below
+// the central column gets half the available width minus the two 24px gaps, and 90rem is the first
+// viewport where that clears the ~540px (≈544px once the 256px nav and 48px page padding are gone).
+// Must stay equal to LEAD_PANEL_MIN_VIEWPORT_QUERY in reservation-ticketing.component.ts, which
+// places the card.
+$lead-panel-min-viewport: 90rem;
+// Cap for the fluid 3/6/3 lead layout: at this width the central column reaches ~876px, just under
+// the 888px the legacy two-column layout caps content at, so hours tiles never render wider than
+// they do outside the lead flow.
+$lead-container-max-width: rem-calc(1800);
+
+.reservation-ticketing {
+  &__staff-note--sidebar {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: foundations.$space-4;
+    box-sizing: border-box;
+
+    @include media-breakpoint-down(sm) {
+      max-width: 100%;
+    }
+  }
+
+  &__include-ongoing {
+    display: inline-flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: foundations.$space-4;
+    min-width: 0;
+    padding-block: foundations.$space-3;
+
+    > * {
+      flex: 0 0 auto;
+    }
+  }
+
+  &__include-ongoing-label-column {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: foundations.$space-1;
+  }
+
+  &__staged-selection {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: foundations.$space-2;
+  }
+
+  &__staged-adjustments {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: foundations.$space-2;
+  }
+
+  &__staged-adjustment {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: foundations.$space-2;
+  }
+
+  &__staged-adjustment-text {
+    margin: 0;
+    font-size: foundations.$size-small;
+    color: foundations.$color-text-warning;
+    text-align: end;
+  }
+
+  &__staged-selection-status {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: foundations.$space-2;
+  }
+
+  &__staged-selection-hint {
+    margin: 0;
+    font-size: foundations.$size-small;
+    color: foundations.$color-text-subtle;
+    text-align: end;
+  }
+
+  &__include-ongoing-text {
+    font-size: foundations.$size-small;
+    font-weight: 600;
+    line-height: 1.25rem;
+    color: foundations.$color-text-main;
+    white-space: nowrap;
+  }
+
+  &__include-ongoing-toggle {
+    flex-shrink: 0;
+  }
+
+  &__whats-that-link {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: foundations.$color-action-text-primary;
+    cursor: pointer;
+    font-size: foundations.$size-caption;
+    font-weight: 700;
+    line-height: 1rem;
+    padding: 0;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  &__buttons {
+    @include floating-bar.reservation-floating-bar-buttons;
+  }
+}
+
+.reservation-ticketing__floating-bar {
+  @include floating-bar.reservation-floating-bar;
+
+  @include media-breakpoint-down(xl) {
+    display: none;
+  }
+}
+
+.reservation-ticketing__floating-bar-content {
+  @include media-breakpoint-up(lg) {
+    max-width: $box-office-container-max-width;
+  }
+
+  &--lead-mode {
+    @media (width >= $lead-panel-min-viewport) {
+      max-width: $lead-container-max-width;
+    }
+  }
+}
+
+.box-office-content__button--outline {
+  margin-right: 0;
+}
+
+.only-in-mobile {
+  .reservation-ticketing__buttons {
+    flex-wrap: wrap;
+    flex-direction: column-reverse;
+  }
+
+  .reservation-ticketing__buttons--right {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin-inline-start: 0;
+    width: 100%;
+
+    .reservation-ticketing__button {
+      flex: 1;
+      flex-grow: 1;
+    }
+
+    .reservation-ticketing__add-to-cart {
+      flex-basis: 100%;
+      order: -1;
+    }
+
+    @include media-breakpoint-down(xl) {
+      button {
+        width: 100%;
+      }
+    }
+  }
+
+  .box-office-content__button--cancel.reservation-ticketing__button {
+    border: 0;
+    margin: 0 auto;
+    order: 1;
+  }
+}
+
+// The sidebar is a plain flex column with no gap: each child owns its own bottom spacing. Only
+// rendered below $lead-panel-min-viewport (the component places the single card instance).
+.reservation-ticketing__lead-context {
+  display: block;
+  margin-bottom: foundations.$space-4;
+}
+
+.reservation-obo-plan-detail {
+  margin-bottom: rem-calc(8);
+}
+
+.reservation-obo-plan-detail + .reservation-ticketing__staff-note--sidebar {
+  margin-top: foundations.$space-4;
+}
+
+.reservation-plan-detail {
+  display: block;
+  margin: rem-calc(8) 0 0;
+
+  @include media-breakpoint-down(lg) {
+    margin: rem-calc(8) 0 rem-calc(16);
+  }
+}
+
+$sticky-panel-max-height: calc(var(--fz-assistant-dock-viewport-column-height) - 2 * #{foundations.$space-4});
+$sticky-panel-top: calc(var(--fz-assistant-dock-sticky-top) + #{foundations.$space-4});
+
+.box-office-content__sidebar--sticky-cart {
+  @include media-breakpoint-up(lg) {
+    min-height: rem-calc(480);
+  }
+}
+
+.reservation-ticketing__sticky-panel {
+  display: flex;
+  flex-direction: column;
+
+  @include media-breakpoint-up(lg) {
+    flex: 0 1 auto;
+    max-height: $sticky-panel-max-height;
+    min-height: 0;
+    position: sticky;
+    top: $sticky-panel-top;
+    z-index: 1;
+
+    .reservation-ticketing__sticky-cart {
+      display: flex;
+      flex: 0 1 auto;
+      flex-direction: column;
+      max-height: calc(#{$sticky-panel-max-height} * 0.6);
+      min-height: 0;
+    }
+
+    app-plan-detail {
+      display: flex;
+      flex: 0 1000 auto;
+      flex-direction: column;
+      min-height: 0;
+
+      &.plan-detail--panel-shown {
+        min-height: rem-calc(64);
+      }
+
+      &:not(.plan-detail--panel-shown) {
+        margin-top: 0;
+      }
+    }
+  }
+}
+
+.box-office-content__lead-panel--sticky {
+  align-self: start;
+  max-height: $sticky-panel-max-height;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  position: sticky;
+  top: $sticky-panel-top;
+  z-index: 1;
+}
+
+.box-office-content.box-office-content {
+  @include media-breakpoint-down(xl) {
+    background: $palette-neutral-white;
+  }
+
+  &--with-description {
+    padding: foundations.$space-6;
+
+    .box-office-content {
+      &__container {
+        margin: 0;
+        width: 100%;
+        max-width: 100%;
+
+        @include media-breakpoint-up(lg) {
+          max-width: $box-office-container-max-width;
+        }
+      }
+
+      &__sidebar {
+        display: flex;
+        flex-direction: column;
+        flex: 0 0 auto;
+        max-width: 100%;
+        width: 100%;
+        margin-bottom: foundations.$space-2;
+      }
+
+      &__alert-warning,
+      &__alert-quote {
+        margin-bottom: foundations.$space-4;
+        display: block;
+      }
+
+      &__content {
+        .only-in-mobile {
+          display: none;
+        }
+
+        &--contact-step {
+          max-width: 100%;
+        }
+      }
+
+      // Only rendered from $lead-panel-min-viewport up (the component places the single card
+      // instance), always inside the 3/6/3 grid below, so no explicit width: the 3fr track sizes it.
+      &__lead-panel {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      @include media-breakpoint-up(lg) {
+        &__row {
+          gap: foundations.$space-6;
+        }
+
+        &__sidebar {
+          width: $box-office-sidebar-width;
+          margin-bottom: 0;
+        }
+
+        &__content {
+          flex: 1;
+          min-width: 0;
+          padding: 0;
+          overflow: initial;
+          overflow-wrap: break-word;
+        }
+      }
+
+      // Three columns only from $lead-panel-min-viewport up. Below that the lead request lives in
+      // the left sidebar (.reservation-ticketing__lead-context): the central column would drop
+      // under the ~540 px the always-active 6-column hours grid needs.
+      @media (width >= $lead-panel-min-viewport) {
+        &__container--lead-mode {
+          max-width: $lead-container-max-width;
+        }
+
+        // 3/6/3 split (design spec): plan sidebar / content / lead request share the row
+        // 25% / 50% / 25% of a fluid container. Guarded with :has so the grid only forms when the
+        // third column actually renders — while loading, on error and with no availability the row
+        // keeps the legacy flex layout and the empty/spinner states span it as before.
+        &__row--lead-mode:has(.box-office-content__lead-panel) {
+          display: grid;
+          grid-template-columns: 3fr 6fr 3fr;
+
+          // Neutralise the flex-era sizing (the make-col percentages and the 400px sidebar of the
+          // two-column layout): each column is sized by its grid track alone.
+          .box-office-content__sidebar,
+          .box-office-content__content {
+            width: auto;
+            min-width: 0;
+            max-width: none;
+          }
+        }
+      }
+
+      &__content-card {
+        box-shadow: none;
+        border: foundations.$size-px solid foundations.$color-border-main;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+
+        @include media-breakpoint-down(md) {
+          margin: 0;
+        }
+      }
+    }
+  }
+}
+
+// The quote-prefill banner's removed-lines list (GAME-1594): the alert body brings its own spacing,
+// so the list only keeps its bullets and drops the default block margins.
+.quote-removed-lines {
+  margin: 0;
+  padding-inline-start: rem-calc(20);
+}

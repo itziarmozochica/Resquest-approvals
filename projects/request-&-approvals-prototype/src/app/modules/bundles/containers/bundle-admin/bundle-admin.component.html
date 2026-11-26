@@ -1,0 +1,58 @@
+<section class="bundles-page" [attr.aria-label]="'menu.bundles' | translate">
+  <app-event-selection-band data-testid="bundles-selectors" [summary]="selectedPlanTitle() || ('bundle.searchFilters' | translate)">
+    <app-search-bar
+      data-testid="bundles-search-bar"
+      [screen]="screenTypeaheadInputEnum.bundles"
+      [mandatoryFilters]="mandatoryFilters"
+      [searchOnChange]="true"
+      (searchEmitter)="loadNewSearch($event)"
+    ></app-search-bar>
+  </app-event-selection-band>
+
+  <div class="bundles-page__title">
+    <span class="bundles-page__section">{{ 'menu.events' | translate }}</span>
+    <h1 class="bundles-page__heading" data-testid="page-title">{{ 'menu.bundles' | translate }}</h1>
+  </div>
+
+  <div *ngIf="this.selectedMainPlanId() !== null; else noPlanSelected">
+    <ng-container [ngSwitch]="mode()">
+      <ng-container *ngSwitchCase="BundleAdminMode.CREATE" [ngTemplateOutlet]="create"></ng-container>
+      <ng-container *ngSwitchCase="BundleAdminMode.EDIT" [ngTemplateOutlet]="edit"></ng-container>
+      <ng-container *ngSwitchDefault [ngTemplateOutlet]="view"></ng-container>
+    </ng-container>
+  </div>
+</section>
+
+<ng-template #noPlanSelected>
+  <div class="bundle-no-plan-selected">
+    <ignt-icon class="bundle-no-plan-selected__icon" name="pen" variant="solid" />
+    <p class="bundle-no-plan-selected__text" translate>bundle.noPlanSelected</p>
+  </div>
+</ng-template>
+
+<ng-template #view>
+  <app-bundle-configuration-view
+    [bundleConfiguration]="bundleConfiguration()"
+    (deleteBundleConfiguration)="handleDeleteBundleConfiguration()"
+    (editBundleConfiguration)="handleEditBundleConfiguration()"
+    (startBundleConfigurationCreation)="handleStartBundleConfigurationCreation()"
+    data-testid="bundle-admin-view-component"
+  ></app-bundle-configuration-view>
+</ng-template>
+
+<ng-template #create>
+  <app-bundle-configuration-create
+    data-testid="bundle-admin-create-component"
+    (confirmBundleConfigurationCreation)="handleConfirmBundleConfigurationCreation($event)"
+    (cancelBundleConfigurationCreation)="handleCancelBundleConfigurationForm()"
+  ></app-bundle-configuration-create>
+</ng-template>
+
+<ng-template #edit>
+  <app-bundle-configuration-edit
+    data-testid="bundle-admin-edit-component"
+    [bundleConfiguration]="bundleConfiguration()"
+    (cancelBundleConfigurationEdit)="handleCancelBundleConfigurationForm()"
+    (confirmBundleConfigurationEdit)="handleConfirmBundleConfigurationEdit($event)"
+  ></app-bundle-configuration-edit>
+</ng-template>

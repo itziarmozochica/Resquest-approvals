@@ -1,0 +1,438 @@
+@if (permissionsLoaded) {
+  <div
+    class="sidebar-backdrop"
+    [class.sidebar-backdrop--is-open]="isActive"
+    [class.sidebar-backdrop--is-open--dual-screen]="isActive && isDualScreen"
+    [class.sidebar-backdrop--is-open--one-stop-shop]="isActive && isOneStopShopMode"
+  ></div>
+  @if (isOrganizationSelected()) {
+    <aside
+      class="sidebar"
+      [class.sidebar--is-open]="isActive"
+      [class.sidebar--one-stop-shop]="isOneStopShopMode"
+      (click)="onSidebarClick($event)"
+      (clickOutside)="onClickOutside()"
+      [clickOutsideEnabled]="isActive && !isSticky"
+      [exclude]="'.headerbar__show-menu'"
+    >
+      <ng-content select="[top-actions]"></ng-content>
+      <ul class="sidebar__menu">
+        @if (showEvents) {
+          <li>
+            <app-menu-item
+              (click)="toggleItem('events')"
+              [accordion]="true"
+              [icon]="['fal', 'list-alt']"
+              [isOpen]="expandedItems.includes('events')"
+              [section]="'myEvents'"
+              data-testid="sidebar-events"
+              [active]="activeMenu === 'events'"
+              id="events"
+            >
+            </app-menu-item>
+            <div class="sidebar__section sidebar__section--events" [class.sidebar__section--is-open]="expandedItems.includes('events')">
+              <ul class="sidebar-menu-section">
+                @if (showPlansList) {
+                  <li class="sidebar-menu-section__item">
+                    <app-menu-item
+                      [showIcon]="false"
+                      data-testid="sidebar-plans"
+                      [icon]="['fal', 'list']"
+                      [section]="'eventList'"
+                      [link]="'/plans'"
+                      [queryParams]="queryParamsMap.get('/plans') | async"
+                      (click)="toggle()"
+                    >
+                    </app-menu-item>
+                  </li>
+                }
+                @if (canViewSelectedPlan) {
+                  <li class="sidebar-menu-section__item" *permissionBased="'can_view_plans'">
+                    <app-menu-item
+                      [showIcon]="false"
+                      data-testid="sidebar-dashboard"
+                      [icon]="['fal', 'chart-bar']"
+                      [section]="'salesAndControl'"
+                      [link]="dashboardMenuLink"
+                      [pathOption]="'subset'"
+                      [queryParams]="dashboardMenuQueryParams$ | async"
+                      (click)="toggle()"
+                    >
+                    </app-menu-item>
+                  </li>
+                }
+
+                @if (canViewSelectedPlan && showContent) {
+                  <li class="sidebar-menu-section__item">
+                    <app-menu-item
+                      [showIcon]="false"
+                      data-testid="sidebar-content"
+                      [icon]="['fal', 'gift']"
+                      [section]="'contentPlan'"
+                      [link]="'/plan/detail'"
+                      [pathOption]="'subset'"
+                      [queryParams]="queryParamsMap.get('/plan/detail') | async"
+                      (click)="toggle()"
+                    >
+                    </app-menu-item>
+                  </li>
+                }
+
+                @if (showBundlesView && canManageSelectedPlan) {
+                  <li class="sidebar-menu-section__item" *permissionBased="'can_view_bundles'">
+                    <app-menu-item
+                      [section]="'bundles'"
+                      [link]="'/bundles'"
+                      [showIcon]="false"
+                      [queryParams]="queryParamsMap.get('/bundles') | async"
+                      (click)="toggle()"
+                      data-testid="sidebar-bundles"
+                    >
+                    </app-menu-item>
+                  </li>
+                }
+
+                @if (showEventSettings && canViewSelectedPlan) {
+                  <li class="sidebar-menu-section__item">
+                    <app-menu-item
+                      [showIcon]="false"
+                      data-testid="sidebar-event-settings"
+                      [icon]="['fal', 'star']"
+                      [section]="'eventSettings'"
+                      [link]="'/event-settings'"
+                      [queryParams]="queryParamsMap.get('/event-settings') | async"
+                      [pathOption]="'subset'"
+                      (click)="toggle()"
+                    >
+                    </app-menu-item>
+                  </li>
+                }
+
+                @if (showInventoryView && canManageSelectedPlan && isInventoryAvailableForSelectedPlan) {
+                  <li class="sidebar-menu-section__item">
+                    <app-menu-item
+                      [showIcon]="false"
+                      data-testid="sidebar-inventory"
+                      [icon]="['fal', 'gift']"
+                      [section]="'inventory'"
+                      [link]="'/inventory'"
+                      [queryParams]="queryParamsMap.get('/inventory') | async"
+                      [pathOption]="'subset'"
+                      (click)="toggle()"
+                    >
+                    </app-menu-item>
+                  </li>
+                }
+
+                @if (canManageSelectedPlan && showScheduleAndTickets) {
+                  <li class="sidebar-menu-section__item">
+                    <app-menu-item
+                      [showIcon]="false"
+                      data-testid="sidebar-sessions"
+                      [icon]="['fal', 'gift']"
+                      [section]="'sessions'"
+                      [link]="'/sessions'"
+                      [queryParams]="queryParamsMap.get('/sessions') | async"
+                      [pathOption]="'subset'"
+                      (click)="toggle()"
+                    >
+                    </app-menu-item>
+                  </li>
+                }
+
+                <!-- OPX-2786: provisionally hidden from the sidebar (still reachable via /plans/cancellations) -->
+                @if (false && canManageSelectedPlan && showCancellationHistory) {
+                  <li class="sidebar-menu-section__item">
+                    <app-menu-item
+                      [showIcon]="false"
+                      data-testid="sidebar-cancellation-history"
+                      [icon]="['fal', 'gift']"
+                      [section]="'cancellationHistory'"
+                      [link]="'/plans/cancellations'"
+                      [pathOption]="'subset'"
+                      (click)="toggle()"
+                    >
+                    </app-menu-item>
+                  </li>
+                }
+
+                @if (canManageSelectedPlan && canViewChannelSettings) {
+                  <li class="sidebar-menu-section__item">
+                    <app-menu-item
+                      [showIcon]="false"
+                      [section]="'channels'"
+                      [link]="'/channels-settings'"
+                      data-testid="sidebar-channels-settings"
+                      [pathOption]="'subset'"
+                      [queryParams]="queryParamsMap.get('/channels-settings') | async"
+                      (click)="toggle()"
+                    >
+                    </app-menu-item>
+                  </li>
+                }
+
+                @if (canManageSelectedPlan) {
+                  <li class="sidebar-menu-section__item" *permissionBased="'can_view_attendees'">
+                    <app-menu-item
+                      [showIcon]="false"
+                      [icon]="['fal', 'users']"
+                      [section]="'attendeesList'"
+                      [link]="'/attendees'"
+                      data-testid="sidebar-attendees"
+                      [queryParams]="queryParamsMap.get('/attendees') | async"
+                      (click)="toggle()"
+                    >
+                    </app-menu-item>
+                  </li>
+                }
+
+                @if (canManageSelectedPlan) {
+                  <li class="sidebar-menu-section__item" *permissionBased="permissions.CAN_VIEW_INVITATIONS">
+                    <app-menu-item
+                      [showIcon]="false"
+                      [icon]="['fal', 'gift']"
+                      [section]="'invitations'"
+                      [link]="'/invitations'"
+                      data-testid="sidebar-invitations"
+                      [queryParams]="queryParamsMap.get('/invitations') | async"
+                      (click)="toggle()"
+                    >
+                    </app-menu-item>
+                  </li>
+                }
+
+                @if (showWinnerSelection && canManageSelectedPlan) {
+                  <li class="sidebar-menu-section__item">
+                    <app-menu-item
+                      [showIcon]="false"
+                      data-testid="sidebar-winner-selection"
+                      [icon]="['fal', 'trophy']"
+                      [section]="'winnerSelection'"
+                      [link]="'/winner-selection'"
+                      [pathOption]="'subset'"
+                      [queryParams]="queryParamsMap.get('/winner-selection') | async"
+                      (click)="toggle()"
+                    >
+                    </app-menu-item>
+                  </li>
+                }
+              </ul>
+            </div>
+          </li>
+        }
+        @if (showProjectManagementEntry) {
+          <li>
+            <app-menu-item
+              id="project-management"
+              [icon]="['fal', 'flag-alt']"
+              [section]="'project-management'"
+              [link]="'/project-management/projects'"
+              [pathOption]="'subset'"
+              (click)="toggle()"
+              data-testid="sidebar-project-management"
+            >
+            </app-menu-item>
+          </li>
+        }
+        @if (showSettings) {
+          <li>
+            <app-menu-item
+              (click)="toggleItem('organization-settings')"
+              [active]="activeMenu === 'organization-settings'"
+              [accordion]="true"
+              [class.sidebar__item--is-open]="expandedItems.includes('organization-settings')"
+              [icon]="['fal', 'cog']"
+              [isOpen]="expandedItems.includes('organization-settings')"
+              [section]="'settings'"
+              data-testid="sidebar-settings"
+              id="organization-settings"
+            >
+            </app-menu-item>
+            <div
+              class="sidebar__section sidebar__section--settings"
+              [class.sidebar__section--is-open]="expandedItems.includes('organization-settings')"
+            >
+              <ul class="sidebar-menu-section" [class.sidebar-menu-section--is-open]="expandedItems.includes('organization-settings')">
+                @if (showAdminProjectManagementSettings) {
+                  <li class="sidebar-menu-section__item">
+                    <app-menu-item
+                      [icon]="['fal', 'sliders-h']"
+                      [link]="'/admin/project-management/settings'"
+                      [section]="'admin-project-management-settings'"
+                      [pathOption]="'subset'"
+                      [showIcon]="false"
+                      (click)="toggle()"
+                      data-testid="sidebar-admin-project-management-settings"
+                    >
+                    </app-menu-item>
+                  </li>
+                }
+                @if (showUserManagement) {
+                  <li class="sidebar-menu-section__item">
+                    <app-menu-item
+                      (click)="handleSettingsEvent()"
+                      [icon]="['fal', 'user-circle']"
+                      [link]="'/settings/users'"
+                      [queryParams]="queryParamsMap.get('/settings/users') | async"
+                      [section]="'users'"
+                      [showIcon]="false"
+                    >
+                    </app-menu-item>
+                  </li>
+                }
+                @if (showOnsiteAppearance) {
+                  <li class="sidebar-menu-section__item">
+                    <app-menu-item
+                      id="onsiteAppearance"
+                      [icon]="['fal', 'print']"
+                      [link]="'/onsite-appearance'"
+                      [section]="'onsiteAppearance'"
+                      [showIcon]="false"
+                      (click)="toggle()"
+                      data-testid="sidebar-onsite-appearance"
+                    >
+                    </app-menu-item>
+                  </li>
+                }
+                <li class="sidebar-menu-section__item" *permissionBased="'can_view_organization_settings'">
+                  <app-menu-item
+                    (click)="handleNotificationsEvent()"
+                    [icon]="['fal', 'envelope-open-text']"
+                    [link]="'/settings/notifications'"
+                    [section]="'notifications'"
+                    [showIcon]="false"
+                  >
+                  </app-menu-item>
+                </li>
+                @if (showPartnerTags) {
+                  <li class="sidebar-menu-section__item">
+                    <app-menu-item
+                      (click)="toggle()"
+                      [icon]="['fal', 'tag']"
+                      [link]="'/settings/tags'"
+                      [section]="'tags'"
+                      [showIcon]="false"
+                      data-testid="sidebar-settings-tags"
+                    >
+                    </app-menu-item>
+                  </li>
+                }
+                <li class="sidebar-menu-section__item" *permissionBased="'can_manage_permissions'">
+                  <app-menu-item
+                    (click)="handleFeatureManagementEvent()"
+                    [icon]="['fal', 'user-shield']"
+                    [link]="'/settings/feature-management'"
+                    [section]="'featureManagement'"
+                    [showIcon]="false"
+                    data-testid="sidebar-settings-feature-management"
+                  >
+                  </app-menu-item>
+                </li>
+                @if (showRoleManagement) {
+                  <li class="sidebar-menu-section__item">
+                    <app-menu-item
+                      (click)="handleRoleManagementEvent()"
+                      [icon]="['fal', 'users-cog']"
+                      [link]="'/settings/role-management'"
+                      [section]="'roleManagement'"
+                      [showIcon]="false"
+                      data-testid="sidebar-settings-role-management"
+                    >
+                    </app-menu-item>
+                  </li>
+                }
+                @if (showTransportConfiguration && hasManagePartnerTransportProviders) {
+                  <li class="sidebar-menu-section__item">
+                    <app-menu-item
+                      (click)="handleOrganizationTransportProvidersEvent()"
+                      [icon]="['fal', 'train-subway']"
+                      [link]="'/settings/organization-transport-providers'"
+                      [section]="'organizationTransportProviders'"
+                      [showIcon]="false"
+                      data-testid="sidebar-settings-organization-transport-providers"
+                    >
+                    </app-menu-item>
+                  </li>
+                }
+                @if ((showWhitelistAddress && hasManagePermissions) || (showTransportConfiguration && hasManageTransportProviders)) {
+                  <li class="sidebar-menu-section__item">
+                    <app-menu-item
+                      (click)="toggleItem('dev-portal', true)"
+                      [active]="activeMenu === 'dev-portal'"
+                      [accordion]="true"
+                      [class.sidebar__item--is-open]="expandedItems.includes('dev-portal')"
+                      [icon]="['fal', 'rocket']"
+                      [isOpen]="expandedItems.includes('dev-portal')"
+                      [section]="'devPortal'"
+                      data-testid="sidebar-dev-portal"
+                      id="dev-portal"
+                    >
+                    </app-menu-item>
+                    <div
+                      class="sidebar__section sidebar__section--dev-portal"
+                      [class.sidebar__section--is-open]="expandedItems.includes('dev-portal')"
+                    >
+                      <ul class="sidebar-menu-section" [class.sidebar-menu-section--is-open]="expandedItems.includes('dev-portal')">
+                        @if (showWhitelistAddress) {
+                          <li class="sidebar-menu-section__item" *permissionBased="'can_manage_permissions'">
+                            <app-menu-item
+                              (click)="handleWhitelistAddressEvent()"
+                              [icon]="['fal', 'users-cog']"
+                              [link]="'/settings/whitelist-address'"
+                              [section]="'whitelistAddress'"
+                              [showIcon]="false"
+                              data-testid="sidebar-settings-whitelist-address"
+                            >
+                            </app-menu-item>
+                          </li>
+                        }
+                        @if (showTransportConfiguration && hasManageTransportProviders) {
+                          <li class="sidebar-menu-section__item" *permissionBased="'can_manage_transport_providers'">
+                            <app-menu-item
+                              (click)="handleTransportProvidersEvent()"
+                              [icon]="['fal', 'train-subway']"
+                              [link]="'/settings/transport-providers'"
+                              [section]="'transportProviders'"
+                              [showIcon]="false"
+                              data-testid="sidebar-settings-transport-providers"
+                            >
+                            </app-menu-item>
+                          </li>
+                        }
+                      </ul>
+                    </div>
+                  </li>
+                }
+                @if (canAccessTasks) {
+                  <li class="sidebar-menu-section__item">
+                    <app-menu-item
+                      [link]="'/settings/tasks'"
+                      [section]="'tasks'"
+                      [showIcon]="false"
+                      [queryParams]="queryParamsMap.get('/settings/tasks') | async"
+                    >
+                    </app-menu-item>
+                  </li>
+                }
+              </ul>
+            </div>
+          </li>
+        }
+      </ul>
+
+      <ng-content select="[footer-actions]"></ng-content>
+    </aside>
+  }
+}
+
+<ng-template #ordersSingleOption>
+  <app-menu-item
+    [icon]="['fal', 'dollar-sign']"
+    [section]="'orders'"
+    [link]="'/order-list'"
+    (click)="handleOrderListEvent()"
+    data-testid="sidebar-orders"
+    [queryParams]="queryParamsMap.get('/order-list') | async"
+  >
+  </app-menu-item>
+</ng-template>

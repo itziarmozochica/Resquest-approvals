@@ -1,0 +1,166 @@
+<div class="main-wrapper affiliations-page__main">
+  <div class="affiliations-page__title">
+    <span class="affiliations-page__section">{{ 'menu.affiliations' | translate }}</span>
+    <h1 class="affiliations-page__heading" data-testid="page-title">{{ 'menu.associates' | translate }}</h1>
+  </div>
+  <div class="affiliations-page__body">
+    <div class="header">
+      <div class="header__filter">
+        <div class="header__filter-search">
+          <ignt-input-field
+            data-testid="header__filter-search-input"
+            type="text"
+            class="header__filter-search-input"
+            [(ngModel)]="searchParam"
+            (input)="searchSubject.next($event)"
+            [placeholder]="'filters.searchByNameOrEmail' | translate"
+            [label]="'filters.searchByNameOrEmail' | translate"
+          ></ignt-input-field>
+        </div>
+
+        <div class="header__filter-category" data-testid="reseller-header-filter-category">
+          <ignt-typeahead
+            class="app-typeahead-input"
+            id="filter-by-category"
+            [emptyLabel]="'resellers.resellerForm.category' | translate"
+            [fieldLabel]="'resellers.resellerForm.category' | translate"
+            [selectAllLabel]="'resellers.resellerForm.allCategories' | translate"
+            [options]="resellersCategoryOptionsFilters"
+            [editable]="false"
+            (selected)="selectResellerCategoryFilter($event)"
+          >
+          </ignt-typeahead>
+        </div>
+      </div>
+      <div class="only-in-desktop">
+        <ng-container *ngTemplateOutlet="buttonsTemplate"></ng-container>
+      </div>
+    </div>
+
+    <div class="resellers-list__table fz-table fz-table--striped">
+      <header class="fz-table__header" data-testid="reseller-table-header">
+        <div class="fz-table__row">
+          <div class="fz-table__cell table__header--bold item__big-columns">
+            {{ 'resellers.resellerName' | translate }}
+            <ng-container *ngTemplateOutlet="orderColumnTemplate; context: { column: 'name' }"></ng-container>
+          </div>
+          <div class="fz-table__cell table__header--bold item__big-columns">
+            {{ 'resellers.type' | translate }}
+            <ng-container *ngTemplateOutlet="orderColumnTemplate; context: { column: 'type' }"></ng-container>
+          </div>
+          <div class="fz-table__cell table__header--bold item__big-columns">
+            {{ 'resellers.category' | translate }}
+            <ng-container *ngTemplateOutlet="orderColumnTemplate; context: { column: 'category' }"></ng-container>
+          </div>
+          <div class="fz-table__cell table__header-filter-status">
+            <div [class]="'table__header-filter-status'">
+              {{ 'resellers.status' | translate }}
+              <ng-container *ngTemplateOutlet="orderColumnTemplate; context: { column: 'active' }"></ng-container>
+              <button
+                [igntMenuTriggerFor]="statusFilterMenu"
+                [class]="'table__header-filter-button'"
+                [attr.data-testid]="'header-status-filter'"
+                [class.table__header-filter-button--active]="selectedStatusOption && selectedStatusOption?.id != null"
+              >
+                <fa-icon
+                  [class]="'table__header-filter-icon'"
+                  [icon]="['far', 'filter']"
+                  [class.table__header-filter-icon--active]="selectedStatusOption && selectedStatusOption?.id != null"
+                ></fa-icon>
+              </button>
+              <ng-template #statusFilterMenu>
+                <ignt-menu>
+                  <ignt-menu-radio-group [ariaLabel]="'resellers.status' | translate">
+                    @for (option of statusOptions; track option.id) {
+                      <ignt-menu-item-radio
+                        [value]="'status-' + option.id"
+                        [label]="option.title | translate"
+                        [checked]="option?.id == selectedStatusOption?.id"
+                        (triggered)="selectStatusFilter(option)"
+                      />
+                    }
+                  </ignt-menu-radio-group>
+                </ignt-menu>
+              </ng-template>
+            </div>
+          </div>
+        </div>
+      </header>
+      <form class="fz-table__body" data-testid="reseller-table-data" [formGroup]="formGroup">
+        <td
+          *ngIf="!isLoading && resellers?.length === 0"
+          class="table-screen-content__no-results"
+          data-testid="reseller-list-no-results"
+          colspan="4"
+        >
+          <fa-icon [icon]="['fal', 'sensor-alert']" class="table-screen-content__no-results-icon"></fa-icon>
+          <p class="table-screen-content__no-results-text" translate>resellers.noResults</p>
+        </td>
+        <div
+          class="fz-table__row"
+          data-testid="reseller-table-row"
+          *ngFor="let reseller of resellerSummaryMapping | keyvalue: keepOrder; trackBy: trackByChannelKey"
+          (click)="goToResellerDetail(reseller.value.id)"
+        >
+          <div class="fz-table__cell resellers-list__table__row-group" data-testid="reseller-table-name">
+            <strong>
+              {{ reseller.value.name }}
+            </strong>
+          </div>
+          <div class="fz-table__cell resellers-list__table__row-group" data-testid="reseller-table-type">
+            <ignt-tag [sentiment]="sentimentTag[reseller.value.type]" [variant]="'outline'">
+              {{ 'resellers.resellerType.' + reseller.value.type | translate }}
+            </ignt-tag>
+          </div>
+          <div class="fz-table__cell resellers-list__table__row-group" data-testid="reseller-table-category">
+            <span>{{ 'resellers.concessionCategory.' + reseller.value.category | translate }}</span>
+          </div>
+          <div class="fz-table__cell resellers-list__table__actions" data-testid="reseller-table-status">
+            <div
+              (click)="$event.stopPropagation()"
+              class="form-check form-switch form-switch-lg"
+              data-testid="reseller-status-switch-button"
+            >
+              <input
+                [formControl]="reseller.value.form"
+                type="checkbox"
+                class="form-check-input"
+                data-testid="reseller-status-form-input"
+                [id]="'custom-reseller-switch-' + reseller.key"
+              />
+              <label [for]="'custom-reseller-switch-' + reseller.key"></label>
+            </div>
+          </div>
+        </div>
+        <td *ngIf="isLoading" class="table-screen-content__spinner" colspan="3">
+          <fa-icon [icon]="['fas', 'spinner']" [size]="'4x'" class="loader"></fa-icon>
+        </td>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="only-in-mobile">
+  <bottom-slider [buttonsTemplate]="buttonsTemplate"> </bottom-slider>
+</div>
+
+<ng-template #buttonsTemplate>
+  <button igntButton class="button--fill" data-testid="reseller-list-add-reseller-button" (click)="addNewReseller()" [fill]="true">
+    {{ 'resellers.addAssociate' | translate }}
+  </button>
+</ng-template>
+
+<ng-template #orderColumnTemplate let-column="column">
+  <button
+    [class]="column + '__header-sort table__header-sort'"
+    [attr.data-testid]="'reseller-header-' + column + '-sort'"
+    (click)="updateOrderBy(column)"
+  >
+    <fa-icon
+      [class]="column + '__header-sort-icon'"
+      [class.table__header-sort-icon--active]="orderBySelected(column)"
+      [fixedWidth]="true"
+      [icon]="orderByIcon(column)"
+    ></fa-icon>
+  </button>
+</ng-template>

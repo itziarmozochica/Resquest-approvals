@@ -1,0 +1,191 @@
+<div class="launches-list" data-testid="launches-list">
+  <app-project-migration-banner />
+  <header class="launches-list__header">
+    <h1 class="launches-list__title">{{ 'projectManagement.list.title' | translate }}</h1>
+    <a class="launches-list__add-member" [routerLink]="usersRoute" data-testid="projects-list-add-member">
+      {{ 'projectManagement.list.addMember' | translate }}
+    </a>
+  </header>
+  <div class="launches-list__cta-row" data-testid="projects-list-cta-row">
+    @if (canCreateInformationRequest) {
+      <a
+        class="launches-list__cta-button"
+        [routerLink]="['/project-management/information-requests', 'new']"
+        data-testid="projects-list-cta-new-ir"
+      >
+        {{ 'projectManagement.list.createInformationRequest' | translate }}
+      </a>
+    }
+    @if (canCreateApproval) {
+      <a
+        class="launches-list__cta-button"
+        [routerLink]="['/project-management/approvals', 'new']"
+        data-testid="projects-list-cta-new-approval"
+      >
+        {{ 'projectManagement.list.createApproval' | translate }}
+      </a>
+    }
+  </div>
+
+  @if (!loading() && !error()) {
+    <div class="launches-list__summary" data-testid="projects-list-summary">
+      <a
+        class="launches-list__summary-card launches-list__summary-card--requests"
+        [class.launches-list__summary-card--has-pending]="totalPendingInformationRequests() > 0"
+        [routerLink]="['/project-management/information-requests']"
+        data-testid="projects-list-summary-requests"
+      >
+        <span class="launches-list__summary-value">{{ totalPendingInformationRequests() }}</span>
+        <span class="launches-list__summary-label">{{ 'projectManagement.list.pendingInformationRequests' | translate }}</span>
+      </a>
+      @if (canEvaluate) {
+        <a
+          class="launches-list__summary-card launches-list__summary-card--requests"
+          [class.launches-list__summary-card--has-pending]="totalPendingEvaluationInformationRequests() > 0"
+          [routerLink]="['/project-management/information-requests']"
+          [queryParams]="pendingEvaluationQueryParams"
+          data-testid="projects-list-summary-evaluation-requests"
+        >
+          <span class="launches-list__summary-value">{{ totalPendingEvaluationInformationRequests() }}</span>
+          <span class="launches-list__summary-label">{{ 'projectManagement.list.pendingEvaluationInformationRequests' | translate }}</span>
+        </a>
+      }
+      <a
+        class="launches-list__summary-card launches-list__summary-card--approvals"
+        [class.launches-list__summary-card--has-pending]="totalPendingApprovals() > 0"
+        [routerLink]="['/project-management/approvals']"
+        data-testid="projects-list-summary-approvals"
+      >
+        <span class="launches-list__summary-value">{{ totalPendingApprovals() }}</span>
+        <span class="launches-list__summary-label">{{ 'projectManagement.list.pendingApprovals' | translate }}</span>
+      </a>
+      @if (canEvaluate) {
+        <a
+          class="launches-list__summary-card launches-list__summary-card--approvals"
+          [class.launches-list__summary-card--has-pending]="totalPendingEvaluationApprovals() > 0"
+          [routerLink]="['/project-management/approvals']"
+          [queryParams]="pendingEvaluationQueryParams"
+          data-testid="projects-list-summary-evaluation-approvals"
+        >
+          <span class="launches-list__summary-value">{{ totalPendingEvaluationApprovals() }}</span>
+          <span class="launches-list__summary-label">{{ 'projectManagement.list.pendingEvaluationApprovals' | translate }}</span>
+        </a>
+      }
+    </div>
+  }
+
+  @if (loading()) {
+    <p class="launches-list__loading" data-testid="launches-list-loading">{{ 'projectManagement.list.loading' | translate }}</p>
+  } @else if (error()) {
+    <p class="launches-list__error" data-testid="launches-list-error">
+      {{ 'projectManagement.errors.' + error() | translate }}
+    </p>
+  } @else if (launches().length === 0) {
+    <p class="launches-list__empty" data-testid="launches-list-empty">{{ 'projectManagement.list.empty' | translate }}</p>
+  } @else {
+    <div class="launches-list__search-row">
+      <input
+        type="search"
+        class="launches-list__search"
+        [value]="searchTerm()"
+        (input)="searchTerm.set($any($event.target).value)"
+        [attr.placeholder]="'projectManagement.list.searchPlaceholder' | translate"
+        [attr.aria-label]="'projectManagement.list.searchPlaceholder' | translate"
+        data-testid="launches-list-search"
+      />
+    </div>
+    @if (filteredLaunches().length === 0) {
+      @if (searchTerm().trim()) {
+        <p class="launches-list__empty" data-testid="launches-list-no-matches">{{ 'projectManagement.list.noMatches' | translate }}</p>
+      } @else {
+        <p class="launches-list__empty" data-testid="launches-list-no-upcoming">{{ 'projectManagement.list.noUpcoming' | translate }}</p>
+      }
+    } @else {
+      <ul
+        class="launches-list__grid"
+        data-testid="launches-list-grid"
+        appInfiniteScrollLoader
+        [pageRequestCallback]="loadMoreLaunches"
+        [active]="active$"
+      >
+        @for (launch of visibleLaunches(); track launch.id) {
+          <li class="launches-list__card" data-testid="launches-list-row" [attr.data-launch-id]="launch.id" (click)="onLaunchClick(launch)">
+            <div class="launches-list__card-header">
+              <h2 class="launches-list__card-name">{{ launch.name }}</h2>
+              @if (canViewAdminFields && launch.displayCode) {
+                <span class="launches-list__card-code" data-testid="launches-list-display-code">{{ launch.displayCode }}</span>
+              }
+            </div>
+            <p class="launches-list__card-city">{{ launch.city || '—' }}</p>
+
+            @if (canViewAdminFields) {
+              @if (launch.salesLaunchDate || launch.closedGatesDate) {
+                <dl class="launches-list__admin-dates" data-testid="launches-list-admin-dates">
+                  @if (launch.salesLaunchDate) {
+                    <dt>{{ 'projectManagement.admin.list.salesLaunchDate' | translate }}</dt>
+                    <dd>{{ launch.salesLaunchDate | date: 'mediumDate' }}</dd>
+                  }
+                  @if (launch.closedGatesDate) {
+                    <dt>{{ 'projectManagement.admin.list.closedGatesDate' | translate }}</dt>
+                    <dd>{{ launch.closedGatesDate | date: 'mediumDate' }}</dd>
+                  }
+                </dl>
+              }
+            }
+
+            <div class="launches-list__counters">
+              <a
+                class="launches-list__counter launches-list__counter--info-requests"
+                [class.launches-list__counter--has-pending]="launch.pendingInformationRequestsCount > 0"
+                [routerLink]="['/project-management/projects', launch.id, 'information-requests']"
+                (click)="$event.stopPropagation()"
+                data-testid="launches-list-info-requests-counter"
+              >
+                <span class="launches-list__counter-value">{{ launch.pendingInformationRequestsCount }}</span>
+                <span class="launches-list__counter-label">{{ 'projectManagement.list.pendingInformationRequests' | translate }}</span>
+              </a>
+              @if (canEvaluate) {
+                <a
+                  class="launches-list__counter launches-list__counter--info-requests"
+                  [class.launches-list__counter--has-pending]="launch.pendingEvaluationInformationRequestsCount > 0"
+                  [routerLink]="['/project-management/projects', launch.id, 'information-requests']"
+                  [queryParams]="pendingEvaluationQueryParams"
+                  (click)="$event.stopPropagation()"
+                  data-testid="launches-list-evaluation-info-requests-counter"
+                >
+                  <span class="launches-list__counter-value">{{ launch.pendingEvaluationInformationRequestsCount }}</span>
+                  <span class="launches-list__counter-label">{{
+                    'projectManagement.list.pendingEvaluationInformationRequests' | translate
+                  }}</span>
+                </a>
+              }
+              <a
+                class="launches-list__counter launches-list__counter--approvals"
+                [class.launches-list__counter--has-pending]="launch.pendingApprovalsCount > 0"
+                [routerLink]="['/project-management/projects', launch.id, 'approvals']"
+                (click)="$event.stopPropagation()"
+                data-testid="launches-list-approvals-counter"
+              >
+                <span class="launches-list__counter-value">{{ launch.pendingApprovalsCount }}</span>
+                <span class="launches-list__counter-label">{{ 'projectManagement.list.pendingApprovals' | translate }}</span>
+              </a>
+              @if (canEvaluate) {
+                <a
+                  class="launches-list__counter launches-list__counter--approvals"
+                  [class.launches-list__counter--has-pending]="launch.pendingEvaluationApprovalsCount > 0"
+                  [routerLink]="['/project-management/projects', launch.id, 'approvals']"
+                  [queryParams]="pendingEvaluationQueryParams"
+                  (click)="$event.stopPropagation()"
+                  data-testid="launches-list-evaluation-approvals-counter"
+                >
+                  <span class="launches-list__counter-value">{{ launch.pendingEvaluationApprovalsCount }}</span>
+                  <span class="launches-list__counter-label">{{ 'projectManagement.list.pendingEvaluationApprovals' | translate }}</span>
+                </a>
+              }
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  }
+</div>

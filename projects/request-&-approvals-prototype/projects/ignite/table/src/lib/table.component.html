@@ -1,0 +1,322 @@
+<!-- eslint-disable @angular-eslint/template/no-inline-styles -->
+<div class="ignt-table">
+  @if (table(); as tableInstance) {
+    @if (showToolbar()) {
+      <div
+        class="ignt-table__toolbar"
+        data-testid="ignt-table-toolbar"
+        [class.ignt-table__toolbar--full-width-search]="hasFullWidthSearch() && searchVisible()"
+      >
+        @if (searchVisible()) {
+          <div class="ignt-table__toolbar-search">
+            <ignt-table-search [config]="searchConfig()!" (searchChanged)="searchChanged.emit($event)" />
+          </div>
+        }
+        @if (toolbarActionsVisible()) {
+          <div class="ignt-table__toolbar-actions">
+            @if (visiblePaginationState(); as pageState) {
+              <div class="ignt-table__toolbar-pagination">
+                <ignt-table-pagination
+                  [disabled]="isLoading()"
+                  [pageIndex]="pageState.pageIndex"
+                  [pageSize]="pageState.pageSize"
+                  [totalRowCount]="pageState.totalRows"
+                  (pageChange)="onPaginationPageChange($event, tableInstance)"
+                />
+              </div>
+            }
+            @if (filterVisible()) {
+              <div class="ignt-table__toolbar-filter">
+                <ignt-table-filter
+                  [activeFilterCount]="selectedPills().length"
+                  [disabled]="filterDisabled()"
+                  [isActive]="filterIsActive()"
+                  [sidePanelContent]="filterSidePanelContent()!"
+                  [sidePanelOptions]="filterSidePanelOptions()!"
+                  (filterClosed)="filterClosed.emit($event)"
+                />
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    @if (showActiveFilters()) {
+      <div class="ignt-table__active-filters">
+        <ignt-table-active-filters
+          [selectedPills]="selectedPills()"
+          (clearAll)="filterClearAll.emit()"
+          (pillRemoved)="filterPillRemoved.emit($event)"
+        />
+      </div>
+    }
+
+    @if (isCardView()) {
+      @if (isLoading()) {
+        <div class="ignt-table__skeleton-cards" aria-hidden="true">
+          @for (idx of skeletonCardIndices; track idx) {
+            <ignt-skeleton [animation]="true" [type]="'list'" />
+          }
+        </div>
+      } @else {
+        @if (isEmptyCardList()) {
+          <div class="ignt-table__cards ignt-table__cards--empty">
+            {{ emptyMessage() }}
+          </div>
+        } @else {
+          <div class="ignt-table__cards">
+            @for (cardRow of cardRowsData(); track cardRow.row.id) {
+              <article
+                class="ignt-table__card"
+                [class.ignt-table__card--has-more]="cardRow.hasMore"
+                [class.ignt-table__card--interactive]="interactiveRows()"
+                [attr.role]="rowInteractiveRole()"
+                [attr.aria-label]="interactiveRows() ? ariaLabelForDataRow(cardRow.dataRowIndex) : null"
+                [attr.tabindex]="rowInteractiveTabIndex()"
+                (click)="emitRowInteractionIfAllowed($event, cardRow.row)"
+                (keydown)="emitRowInteractionIfAllowed($event, cardRow.row)"
+              >
+                <div class="ignt-table__card-header">
+                  <span class="ignt-table__card-title">
+                    @if (cardRow.primaryCellView; as primaryCellView) {
+                      @if (primaryCellView.isCustom) {
+                        <ng-container *flexRender="primaryCellView.flexRenderContent; props: primaryCellView.flexRenderProps" />
+                      } @else {
+                        {{ primaryCellView.cellContent }}
+                      }
+                    }
+                  </span>
+                  @if (cardRow.actionCellView; as actionCellView) {
+                    <div class="ignt-table__card-action">
+                      @if (actionCellView.isCustom) {
+                        <ng-container *flexRender="actionCellView.flexRenderContent; props: actionCellView.flexRenderProps" />
+                      } @else {
+                        {{ actionCellView.cellContent }}
+                      }
+                    </div>
+                  }
+                </div>
+                <div class="ignt-table__card-bottom" [class.ignt-table__card-bottom--no-more]="!cardRow.hasMore">
+                  <div class="ignt-table__card-fields">
+                    @for (contentCellView of cardRow.visibleContentViews; track contentCellView.cell.id) {
+                      <div class="ignt-table__card-field-row">
+                        <div class="ignt-table__card-field-label">
+                          <span class="ignt-table__card-field-label-text">{{ contentCellView.headerLabel }}</span>
+                        </div>
+                        <div class="ignt-table__card-field-value">
+                          @if (contentCellView.isCustom) {
+                            <ng-container *flexRender="contentCellView.flexRenderContent; props: contentCellView.flexRenderProps" />
+                          } @else {
+                            {{ contentCellView.cellContent }}
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                  @if (cardRow.hasMore) {
+                    <div class="ignt-table__card-accordion" [class.ignt-table__card-accordion--open]="cardRow.isExpanded">
+                      <div class="ignt-table__card-accordion-inner">
+                        <div class="ignt-table__card-fields ignt-table__card-fields--more">
+                          @for (contentCellView of cardRow.moreContentViews; track contentCellView.cell.id) {
+                            <div class="ignt-table__card-field-row">
+                              <div class="ignt-table__card-field-label">
+                                <span class="ignt-table__card-field-label-text">{{ contentCellView.headerLabel }}</span>
+                              </div>
+                              <div class="ignt-table__card-field-value">
+                                @if (contentCellView.isCustom) {
+                                  <ng-container *flexRender="contentCellView.flexRenderContent; props: contentCellView.flexRenderProps" />
+                                } @else {
+                                  {{ contentCellView.cellContent }}
+                                }
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      class="ignt-table__card-more"
+                      (click)="$event.stopPropagation(); toggleCardExpanded(cardRow.row.id)"
+                      (keydown)="$event.stopPropagation()"
+                    >
+                      {{ cardRow.moreButtonLabel }}
+                    </button>
+                  }
+                </div>
+              </article>
+            }
+          </div>
+        }
+      }
+    } @else {
+      <div class="ignt-table__scroll">
+        <table class="ignt-table__table">
+          <thead class="ignt-table__header">
+            @for (headerGroup of headerGroupViews(); track headerGroup.id) {
+              <tr class="ignt-table__header-row">
+                @for (headerView of headerGroup.headers; track headerView.header.id) {
+                  <th
+                    class="ignt-table__header-cell"
+                    [class.ignt-table__header-cell--primary]="headerView.isPrimary"
+                    [class.ignt-table__header-cell--sortable]="headerView.canSort"
+                    [class.ignt-table__header-cell--align-left]="headerView.align === 'left'"
+                    [class.ignt-table__header-cell--align-center]="headerView.align === 'center'"
+                    [class.ignt-table__header-cell--align-right]="headerView.align === 'right'"
+                    [attr.aria-label]="headerView.headerAriaLabel"
+                    [attr.aria-sort]="headerView.ariaSort"
+                    [attr.colspan]="headerView.colSpan"
+                    [style.width]="headerView.widthStyle"
+                  >
+                    @if (headerView.canSort && headerView.isString) {
+                      <ignt-table-sort-trigger [headerView]="headerView" [isLoading]="isLoading()" />
+                    } @else if (headerView.headerTemplateRef) {
+                      <span
+                        class="ignt-table__header-cell-custom"
+                        [class.ignt-table__header-cell-custom--align-left]="headerView.align === 'left'"
+                        [class.ignt-table__header-cell-custom--align-center]="headerView.align === 'center'"
+                        [class.ignt-table__header-cell-custom--align-right]="headerView.align === 'right'"
+                      >
+                        <ng-container [ngTemplateOutlet]="headerView.headerTemplateRef" />
+                      </span>
+                    } @else if (headerView.isString) {
+                      <span class="ignt-table__header-cell-text">{{ headerView.label }}</span>
+                    } @else {
+                      <span class="ignt-table__header-cell-text">
+                        <ng-container *flexRender="headerView.header.column.columnDef.header; props: headerView.header.getContext()" />
+                      </span>
+                    }
+                  </th>
+                }
+              </tr>
+            }
+          </thead>
+          <tbody class="ignt-table__body">
+            @switch (desktopBodyMode()) {
+              @case ('skeleton') {
+                @for (rowIdx of skeletonDesktopRowIndices; track rowIdx) {
+                  <tr class="ignt-table__row ignt-table__row--skeleton" aria-hidden="true">
+                    @for (headerView of skeletonDesktopHeaderViews(); track headerView.header.id) {
+                      <td
+                        class="ignt-table__cell ignt-table__cell--skeleton"
+                        [class.ignt-table__cell--primary]="headerView.isPrimary"
+                        [class.ignt-table__cell--align-left]="headerView.align === 'left'"
+                        [class.ignt-table__cell--align-center]="headerView.align === 'center'"
+                        [class.ignt-table__cell--align-right]="headerView.align === 'right'"
+                        [style.width]="headerView.widthStyle"
+                      >
+                        <ignt-skeleton-base [animation]="true" [height]="12" [width]="'80%'" />
+                      </td>
+                    }
+                  </tr>
+                }
+              }
+              @case ('empty') {
+                <tr class="ignt-table__row ignt-table__row--empty">
+                  <td class="ignt-table__cell ignt-table__cell--empty" [attr.colspan]="emptyColSpan()">
+                    {{ emptyMessage() }}
+                  </td>
+                </tr>
+              }
+              @default {
+                @for (desktopRow of desktopRowsData(); track desktopRow.row.id) {
+                  @if (desktopRow.isParent) {
+                    @let parentContext = desktopRow.parentContext;
+                    <tr
+                      class="ignt-table__parent-row"
+                      [class.ignt-table__parent-row--interactive]="parentContext.isExpandable"
+                      [attr.tabindex]="parentContext.isExpandable ? 0 : null"
+                      [attr.aria-expanded]="parentContext.isExpandable ? parentContext.isExpanded : null"
+                      (click)="toggleParentRowOnActivation($event, desktopRow.row)"
+                      (keydown)="toggleParentRowOnActivation($event, desktopRow.row)"
+                    >
+                      @if (desktopRow.parentCells; as parentCells) {
+                        @for (parentCell of parentCells; track parentCell.columnId) {
+                          <td
+                            class="ignt-table__parent-cell"
+                            [class.ignt-table__parent-cell--actions]="parentCell.isAction"
+                            [class.ignt-table__parent-cell--primary]="parentCell.isPrimary"
+                            [style.width]="parentCell.widthStyle"
+                          >
+                            @if (parentCell.template) {
+                              <div
+                                class="ignt-table__cell-inner"
+                                [class.ignt-table__cell-inner--align-left]="parentCell.align === 'left'"
+                                [class.ignt-table__cell-inner--align-center]="parentCell.align === 'center'"
+                                [class.ignt-table__cell-inner--align-right]="parentCell.align === 'right'"
+                              >
+                                <ng-container *ngTemplateOutlet="parentCell.template; context: parentContext" />
+                              </div>
+                            } @else if (parentCell.isLabel) {
+                              <div class="ignt-table__cell-inner">
+                                <ignt-table-parent-row-label
+                                  [isExpandable]="parentContext.isExpandable"
+                                  [isExpanded]="parentContext.isExpanded"
+                                  [label]="parentContext.label"
+                                  [subRowCount]="parentContext.subRowCount"
+                                />
+                              </div>
+                            }
+                          </td>
+                        }
+                      } @else {
+                        <td class="ignt-table__parent-cell ignt-table__parent-cell--full" [attr.colspan]="emptyColSpan()">
+                          <div class="ignt-table__parent-cell-pinned">
+                            @if (parentRowTemplate(); as parentRowTemplateRef) {
+                              <ng-container *ngTemplateOutlet="parentRowTemplateRef; context: parentContext" />
+                            } @else {
+                              <ignt-table-parent-row-label
+                                [isExpandable]="parentContext.isExpandable"
+                                [isExpanded]="parentContext.isExpanded"
+                                [label]="parentContext.label"
+                                [subRowCount]="parentContext.subRowCount"
+                              />
+                            }
+                          </div>
+                        </td>
+                      }
+                    </tr>
+                  } @else {
+                    <tr
+                      class="ignt-table__row"
+                      [class.ignt-table__row--sub]="desktopRow.isSubRow"
+                      [class.ignt-table__row--interactive]="interactiveRows()"
+                      [attr.role]="rowInteractiveRole()"
+                      [attr.aria-label]="interactiveRows() ? ariaLabelForDataRow(desktopRow.dataRowIndex) : null"
+                      [attr.tabindex]="rowInteractiveTabIndex()"
+                      (click)="emitRowInteractionIfAllowed($event, desktopRow.row)"
+                      (keydown)="emitRowInteractionIfAllowed($event, desktopRow.row)"
+                    >
+                      @for (cellView of desktopRow.cells; track cellView.cell.id) {
+                        <td
+                          class="ignt-table__cell"
+                          [class.ignt-table__cell--actions]="cellView.isAction"
+                          [class.ignt-table__cell--primary]="cellView.isPrimary"
+                          [style.width]="cellView.widthStyle"
+                        >
+                          <div
+                            class="ignt-table__cell-inner"
+                            [class.ignt-table__cell-inner--align-left]="cellView.align === 'left'"
+                            [class.ignt-table__cell-inner--align-center]="cellView.align === 'center'"
+                            [class.ignt-table__cell-inner--align-right]="cellView.align === 'right'"
+                          >
+                            @if (cellView.isCustom) {
+                              <ng-container *flexRender="cellView.flexRenderContent; props: cellView.flexRenderProps" />
+                            } @else {
+                              {{ cellView.cellContent }}
+                            }
+                          </div>
+                        </td>
+                      }
+                    </tr>
+                  }
+                }
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</div>

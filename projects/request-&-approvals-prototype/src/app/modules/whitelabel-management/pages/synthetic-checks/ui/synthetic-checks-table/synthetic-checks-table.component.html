@@ -1,0 +1,208 @@
+<div class="synthetic-checks-table">
+  <table class="synthetic-checks-table__table">
+    <thead>
+      <tr>
+        @if (selectable()) {
+          <th class="synthetic-checks-table__cell--select">
+            <ignt-checkbox
+              size="small"
+              dataTestId="synthetic-checks-table-select-all"
+              [ariaLabel]="'whitelabelManagement.syntheticChecks.table.selectAll' | translate"
+              [checked]="selectAllChecked()"
+              [disabled]="selectionDisabled() || loading() || rows().length === 0"
+              (change)="selectAllToggle.emit()"
+            ></ignt-checkbox>
+          </th>
+        }
+        <th class="synthetic-checks-table__cell--name">{{ 'whitelabelManagement.syntheticChecks.table.name' | translate }}</th>
+        <th class="synthetic-checks-table__cell--compact">{{ 'whitelabelManagement.syntheticChecks.table.typeColumn' | translate }}</th>
+        <th class="synthetic-checks-table__cell--compact">{{ 'whitelabelManagement.syntheticChecks.table.interval' | translate }}</th>
+        <th class="synthetic-checks-table__cell--compact">{{ 'whitelabelManagement.syntheticChecks.status.label' | translate }}</th>
+        <th class="synthetic-checks-table__cell--compact">{{ 'whitelabelManagement.syntheticChecks.table.lastResult' | translate }}</th>
+        <th class="synthetic-checks-table__cell--compact">{{ 'whitelabelManagement.syntheticChecks.table.responseTime' | translate }}</th>
+        <th class="synthetic-checks-table__cell--actions">{{ 'whitelabelManagement.syntheticChecks.table.actions' | translate }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      @if (loading()) {
+        @for (i of [1, 2, 3, 4]; track i) {
+          <tr class="synthetic-checks-table__skeleton-row">
+            @if (selectable()) {
+              <td></td>
+            }
+            <td><ignt-skeleton type="paragraph" [numElements]="1" [animation]="true"></ignt-skeleton></td>
+            <td><ignt-skeleton type="paragraph" [numElements]="1" [animation]="true"></ignt-skeleton></td>
+            <td><ignt-skeleton type="paragraph" [numElements]="1" [animation]="true"></ignt-skeleton></td>
+            <td><ignt-skeleton type="paragraph" [numElements]="1" [animation]="true"></ignt-skeleton></td>
+            <td><ignt-skeleton type="paragraph" [numElements]="1" [animation]="true"></ignt-skeleton></td>
+            <td><ignt-skeleton type="paragraph" [numElements]="1" [animation]="true"></ignt-skeleton></td>
+            <td></td>
+          </tr>
+        }
+      } @else if (rows().length === 0) {
+        <tr>
+          <td class="synthetic-checks-table__empty" [attr.colspan]="columnCount()" data-testid="synthetic-checks-table-empty">
+            {{ emptyMessageKey() | translate }}
+          </td>
+        </tr>
+      } @else {
+        @for (row of rows(); track row.check.id) {
+          <tr [class.synthetic-checks-table__row--selected]="selectable() && selectedIds().has(row.check.id)">
+            @if (selectable()) {
+              <td class="synthetic-checks-table__cell--select">
+                <ignt-checkbox
+                  size="small"
+                  dataTestId="synthetic-checks-table-select-row"
+                  [ariaLabel]="'whitelabelManagement.syntheticChecks.table.selectRow' | translate: { name: row.check.name }"
+                  [checked]="selectedIds().has(row.check.id)"
+                  [disabled]="selectionDisabled()"
+                  (change)="selectionToggle.emit(row)"
+                ></ignt-checkbox>
+              </td>
+            }
+            <td class="synthetic-checks-table__cell--name">
+              <span class="synthetic-checks-table__name" [title]="row.check.name">{{ row.check.name }}</span>
+              @if (row.check.url) {
+                <a
+                  class="synthetic-checks-table__url"
+                  [href]="row.check.url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  [title]="row.check.url"
+                  >{{ row.check.url }}</a
+                >
+              }
+            </td>
+            <td class="synthetic-checks-table__cell--compact">
+              @switch (row.check.checkType) {
+                @case ('transactional') {
+                  <span class="synthetic-checks-table__type-badge synthetic-checks-table__type-badge--transactional">
+                    {{ 'whitelabelManagement.syntheticChecks.table.typeBadge.transactional' | translate }}
+                  </span>
+                }
+                @default {
+                  <span class="synthetic-checks-table__type-badge synthetic-checks-table__type-badge--uptime">
+                    {{ 'whitelabelManagement.syntheticChecks.table.typeBadge.uptime' | translate }}
+                  </span>
+                }
+              }
+            </td>
+            <td class="synthetic-checks-table__cell--compact">
+              {{ formatInterval(row.check.intervalSeconds) }}
+            </td>
+            <td class="synthetic-checks-table__cell--compact">
+              @if (row.check.enabled) {
+                <span class="synthetic-checks-active-tag">
+                  <ignt-tag [sentiment]="'positive'" [variant]="'solid'">
+                    {{ 'whitelabelManagement.syntheticChecks.status.active' | translate }}
+                  </ignt-tag>
+                </span>
+              } @else {
+                <span class="synthetic-checks-paused-tag">
+                  <ignt-tag [sentiment]="'warning'" [variant]="'solid'">
+                    {{ 'whitelabelManagement.syntheticChecks.status.paused' | translate }}
+                  </ignt-tag>
+                </span>
+              }
+            </td>
+            <td class="synthetic-checks-table__cell--compact">
+              @if (row.latestResult === null) {
+                <span class="synthetic-checks-table__result-dash">{{
+                  'whitelabelManagement.syntheticChecks.result.unknown' | translate
+                }}</span>
+              } @else if (row.latestResult.status === 'success') {
+                <span class="synthetic-checks-active-tag">
+                  <ignt-tag [sentiment]="'positive'" [variant]="'solid'">
+                    {{ 'whitelabelManagement.syntheticChecks.result.pass' | translate }}
+                  </ignt-tag>
+                </span>
+              } @else if (row.latestResult.status === 'failure') {
+                <span class="synthetic-checks-failure-tag">
+                  <ignt-tag [sentiment]="'danger'" [variant]="'solid'">
+                    {{ 'whitelabelManagement.syntheticChecks.result.fail' | translate }}
+                  </ignt-tag>
+                </span>
+              } @else {
+                <span class="synthetic-checks-failure-tag">
+                  <ignt-tag [sentiment]="'danger'" [variant]="'solid'">
+                    {{ 'whitelabelManagement.syntheticChecks.result.error' | translate }}
+                  </ignt-tag>
+                </span>
+              }
+            </td>
+            <td class="synthetic-checks-table__cell--compact">
+              @if (row.latestResult?.responseTimeMs !== null && row.latestResult?.responseTimeMs !== undefined) {
+                {{ row.latestResult.responseTimeMs }}ms
+              } @else {
+                <span class="synthetic-checks-table__result-dash">{{
+                  'whitelabelManagement.syntheticChecks.result.unknown' | translate
+                }}</span>
+              }
+            </td>
+            <td class="synthetic-checks-table__cell--actions">
+              <div class="synthetic-checks-table__actions">
+                <button
+                  ignt-icon-button
+                  class="synthetic-checks-table__action-btn"
+                  [icon]="['fas', 'eye']"
+                  size="small"
+                  sentiment="tertiary"
+                  [title]="'whitelabelManagement.syntheticChecks.table.tooltipView' | translate"
+                  (click)="viewClick.emit(row)"
+                ></button>
+                @if (!isReadOnly()) {
+                  <button
+                    ignt-icon-button
+                    class="synthetic-checks-table__action-btn"
+                    [icon]="['fas', 'pen']"
+                    size="small"
+                    sentiment="tertiary"
+                    [title]="'whitelabelManagement.syntheticChecks.table.tooltipEdit' | translate"
+                    (click)="editClick.emit(row)"
+                  ></button>
+                  <button
+                    ignt-icon-button
+                    class="synthetic-checks-table__action-btn"
+                    [icon]="row.check.enabled ? ['fas', 'pause'] : ['fas', 'play']"
+                    size="small"
+                    sentiment="tertiary"
+                    [title]="
+                      (row.check.enabled
+                        ? 'whitelabelManagement.syntheticChecks.table.tooltipPause'
+                        : 'whitelabelManagement.syntheticChecks.table.tooltipResume'
+                      ) | translate
+                    "
+                    (click)="toggleClick.emit(row)"
+                  ></button>
+                  <button
+                    ignt-icon-button
+                    class="synthetic-checks-table__action-btn synthetic-checks-table__action-btn--delete"
+                    [icon]="['fas', 'trash']"
+                    size="small"
+                    sentiment="tertiary"
+                    [title]="'whitelabelManagement.syntheticChecks.table.tooltipDelete' | translate"
+                    (click)="deleteClick.emit(row)"
+                  ></button>
+                }
+              </div>
+            </td>
+          </tr>
+        }
+        @if (loadingMore()) {
+          <tr class="synthetic-checks-table__skeleton-row" data-testid="synthetic-checks-table-loading-more">
+            @if (selectable()) {
+              <td></td>
+            }
+            <td><ignt-skeleton type="paragraph" [numElements]="1" [animation]="true"></ignt-skeleton></td>
+            <td><ignt-skeleton type="paragraph" [numElements]="1" [animation]="true"></ignt-skeleton></td>
+            <td><ignt-skeleton type="paragraph" [numElements]="1" [animation]="true"></ignt-skeleton></td>
+            <td><ignt-skeleton type="paragraph" [numElements]="1" [animation]="true"></ignt-skeleton></td>
+            <td><ignt-skeleton type="paragraph" [numElements]="1" [animation]="true"></ignt-skeleton></td>
+            <td><ignt-skeleton type="paragraph" [numElements]="1" [animation]="true"></ignt-skeleton></td>
+            <td></td>
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>

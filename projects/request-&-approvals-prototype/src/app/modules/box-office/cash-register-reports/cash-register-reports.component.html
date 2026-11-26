@@ -1,0 +1,50 @@
+<div class="cash-register-reports">
+  <div class="cash-register-reports__title">
+    <span class="cash-register-reports__section">{{ 'menu.boxOffice' | translate }}</span>
+    <h1 class="cash-register-reports__heading" data-testid="page-title">{{ 'menu.cashRegisterReports' | translate }}</h1>
+    <p class="cash-register-reports__description">{{ 'boxOffice.cashRegisterReports.pageTitleDescription' | translate }}</p>
+  </div>
+
+  <section class="cash-register-reports__main">
+    <ng-container *ngIf="!isLoading(); else loadingTpl">
+      <div *ngIf="reports().length > 0; else noResultsTpl" class="cash-register-reports__list">
+        <app-report-card
+          *ngFor="let report of reports(); trackBy: trackReportById"
+          [report]="report"
+          (requestDownload)="download(report)"
+          (requestApproval)="approve(report)"
+          (requestFlagReport)="flagReport(report)"
+        />
+      </div>
+    </ng-container>
+  </section>
+</div>
+
+<ng-template #noResultsTpl>
+  <div class="cash-register-reports__no-results">
+    <img
+      class="cash-register-reports__no-results-img"
+      src="/assets/images/shared/no-results.svg"
+      [alt]="'boxOffice.cashRegisterReports.noResultsTitle' | translate"
+    />
+    <h4 class="cash-register-reports__no-results-title">{{ 'boxOffice.cashRegisterReports.noResultsTitle' | translate }}</h4>
+    <p>{{ 'boxOffice.cashRegisterReports.noResultsDescription' | translate }}</p>
+  </div>
+</ng-template>
+
+<ng-template #loadingTpl>
+  <fa-icon class="cash-register-reports__loading loader" [icon]="['fas', 'spinner']" [size]="'4x'"></fa-icon>
+</ng-template>
+
+<app-lateral-slider
+  [showDetails]="showFlagReportSlider()"
+  [title]="'boxOffice.cashRegisterReports.flagForm.title'"
+  [contentTemplate]="flagReportFormTemplate"
+  (closeSlider)="closeFlagReportSlider()"
+>
+</app-lateral-slider>
+
+<ng-template #flagReportFormTemplate>
+  <app-flag-report-form [reportId]="selectedReportForFlag()?.id ?? ''" (formSubmit)="processFlagReportFormSubmit($event)">
+  </app-flag-report-form>
+</ng-template>

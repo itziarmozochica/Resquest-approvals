@@ -1,0 +1,82 @@
+<section class="seating">
+  <header class="seating__header">
+    <app-time-slot-with-seating-selector
+      [filters]="filters()"
+      (timeSlotSelected)="onTimeSlotSelected($event)"
+    ></app-time-slot-with-seating-selector>
+    <div class="seating__header-actions">
+      @if (isTableView()) {
+        @if (showManageSeatingActions()) {
+          <app-sessions-per-timeslot-seating-actions
+            [locale]="currentLocale"
+            [partnerId]="filters()!.partner!.id"
+            [planId]="filters()!.selectedPlan!.id"
+            [planTitle]="filters()!.selectedPlan!.title"
+            [placeId]="filters()!.selectedPlace!.id"
+            [redirectManageActionsToSeatingMap]="true"
+            [sessionId]="manageSeatingSessionId()"
+            [timeslot]="selectedTimeSlot()!"
+            [timezone]="filters()?.timezone ?? undefined"
+            data-testid="manage-seating-button"
+            (navigateToSeatingMapTab)="onNavigateToSeatingMapTab($event)"
+          ></app-sessions-per-timeslot-seating-actions>
+        }
+        <button
+          class="button button--small button--tertiary seating__filters-button"
+          [class.seating__filters-button--active]="hasActiveFilters()"
+          [disabled]="!selectedTimeSlot()"
+          (click)="onOpenFiltersPanel()"
+        >
+          <ignt-icon class="seating__filters-button-icon" name="sliders-h" variant="solid"></ignt-icon>
+          {{ 'sessions.seating.filters' | translate }}
+          @if (hasActiveFilters()) {
+            <span class="seating__filters-button__active-label">| {{ 'sessions.seating.filtersActive' | translate }}</span>
+          }
+        </button>
+      }
+      <div class="seating__view-toggle" role="group" [attr.aria-label]="'sessions.seating.viewToggle.groupLabel' | translate">
+        <button
+          type="button"
+          class="seating__view-toggle-button"
+          [class.seating__view-toggle-button--active]="isTableView()"
+          [attr.aria-pressed]="isTableView()"
+          [attr.aria-label]="'sessions.seating.viewToggle.table' | translate"
+          data-testid="seating-view-toggle-table"
+          (click)="onNavigateToSeatingTableView()"
+        >
+          <ignt-icon class="seating__view-toggle-icon" name="list" variant="light"></ignt-icon>
+        </button>
+        <button
+          type="button"
+          class="seating__view-toggle-button"
+          [class.seating__view-toggle-button--active]="isMapView()"
+          [attr.aria-pressed]="isMapView()"
+          [attr.aria-label]="'sessions.seating.viewToggle.map' | translate"
+          data-testid="seating-view-toggle-map"
+          (click)="onNavigateToSeatingMapView()"
+        >
+          <ignt-icon class="seating__view-toggle-icon" name="loveseat" variant="solid"></ignt-icon>
+        </button>
+      </div>
+    </div>
+  </header>
+  @if (selectedTimeSlot() && !isLoading() && !hasSeatingSupport()) {
+    <div class="seating__no-seating-placeholder">
+      {{ 'sessions.seatingMap.noSeatingForTimeslot' | translate }}
+    </div>
+  } @else {
+    <router-outlet></router-outlet>
+  }
+  <app-lateral-slider-panel />
+</section>
+
+<ng-template #filtersPanelContentTemplate>
+  @if (isPanelOpen()) {
+    <app-seating-filters
+      [categoryOptions]="categoryOptions()"
+      [selectedCategoryIds]="selectedCategoryIds()"
+      [viewBy]="viewBy()"
+      (filtersApply)="onFiltersApply($event)"
+    ></app-seating-filters>
+  }
+</ng-template>

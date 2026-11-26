@@ -1,0 +1,226 @@
+<tr data-testid="sessions-per-timeslot-timeslot-row" class="sessions-per-timeslot-timeslot-header">
+  <th class="sessions-per-timeslot-timeslot-header-cell">
+    <ng-container *ngTemplateOutlet="labelTemplate"></ng-container>
+  </th>
+  <th
+    data-testid="session-per-timeslot-row-status-cell"
+    class="sessions-per-timeslot-timeslot-header-cell sessions-per-timeslot-timeslot-header-cell--center"
+  >
+    <ng-container
+      *ngTemplateOutlet="
+        dataCellTemplate;
+        context: {
+          titleKey: 'sessions.sessionsPerTimeslot.columnNames.status',
+          tooltipKey: 'sessions.sessionsPerTimeslot.statusToolTip',
+        }
+      "
+    ></ng-container>
+  </th>
+  <th
+    data-testid="session-per-timeslot-row-visibility-cell"
+    class="sessions-per-timeslot-timeslot-header-cell sessions-per-timeslot-timeslot-header-cell--center"
+  >
+    <ng-container
+      *ngTemplateOutlet="
+        dataCellTemplate;
+        context: {
+          titleKey: 'sessions.sessionsPerTimeslot.columnNames.visibility',
+          tooltipKey: 'sessions.sessionsPerTimeslot.visibilityToolTip',
+        }
+      "
+    ></ng-container>
+  </th>
+  <th class="sessions-per-timeslot-timeslot-header-cell" *ngIf="isPricesColumnVisible">
+    <ng-container
+      *ngTemplateOutlet="
+        dataCellTemplate;
+        context: {
+          titleKey: 'sessions.sessionsPerTimeslot.columnNames.price',
+        }
+      "
+    ></ng-container>
+  </th>
+
+  <th
+    data-testid="session-per-timeslot-row-sold-cell"
+    [class.sessions-per-timeslot-timeslot-header-cell--highlighted]="isSoldExpanded"
+    [class.sessions-per-timeslot-timeslot-header-cell--collapsed]="!isSoldExpanded"
+    class="sessions-per-timeslot-timeslot-header-cell"
+  >
+    <ng-container
+      *ngTemplateOutlet="
+        dataCellTemplate;
+        context: {
+          titleKey: 'sessions.sessionsPerTimeslot.columnNames.sold',
+          value: soldTickets - reservedUnpaid,
+        }
+      "
+    ></ng-container>
+  </th>
+  <th
+    data-testid="session-per-timeslot-row-reservations-cell"
+    [class.sessions-per-timeslot-timeslot-header-cell--highlighted]="isSoldExpanded"
+    [class.sessions-per-timeslot-timeslot-header-cell--collapsed]="!isSoldExpanded"
+    (click)="setIsSoldExpanded(false)"
+    class="sessions-per-timeslot-timeslot-header-cell sessions-per-timeslot-timeslot-header-cell--clickable"
+  >
+    <ng-container
+      *ngTemplateOutlet="
+        dataCellTemplate;
+        context: {
+          titleKey: 'sessions.sessionsPerTimeslot.columnNames.unpaidReserved',
+          value: reservedUnpaid,
+          tooltipKey: 'sessions.sessionsPerTimeslot.reservationTooltip',
+          iconName: 'minus-circle',
+          iconVariant: 'solid',
+        }
+      "
+    ></ng-container>
+  </th>
+
+  <th
+    data-testid="session-per-timeslot-row-sold-full-cell"
+    [class.sessions-per-timeslot-timeslot-header-cell--collapsed]="isSoldExpanded"
+    (click)="setIsSoldExpanded(true)"
+    class="sessions-per-timeslot-timeslot-header-cell sessions-per-timeslot-timeslot-header-cell--clickable"
+  >
+    <ng-container
+      *ngTemplateOutlet="
+        dataCellTemplate;
+        context: {
+          titleKey: 'sessions.sessionsPerTimeslot.columnNames.issued',
+          value: soldTickets,
+          iconName: 'plus-circle',
+          iconVariant: 'solid',
+        }
+      "
+    ></ng-container>
+  </th>
+
+  <th data-testid="session-per-timeslot-row-availability-cell" class="sessions-per-timeslot-timeslot-header-cell">
+    <ng-container
+      *ngTemplateOutlet="
+        dataCellTemplate;
+        context: {
+          titleKey: 'sessions.sessionsPerTimeslot.columnNames.available',
+          value: capacityPool ? availableTickets : undefined,
+        }
+      "
+    ></ng-container>
+  </th>
+  <th *ngIf="isBlockedColumnVisible" data-testid="session-per-timeslot-row-blocked-cell" class="sessions-per-timeslot-timeslot-header-cell">
+    <ng-container
+      *ngTemplateOutlet="
+        dataCellTemplate;
+        context: {
+          titleKey: 'sessions.sessionsPerTimeslot.columnNames.blocked',
+          value: capacityPool ? blockedTickets : undefined,
+        }
+      "
+    ></ng-container>
+  </th>
+  <th data-testid="session-per-timeslot-row-max-qty-cell" class="sessions-per-timeslot-timeslot-header-cell">
+    <ng-container
+      *ngTemplateOutlet="
+        dataCellTemplate;
+        context: {
+          titleKey: 'sessions.sessionsPerTimeslot.columnNames.capacity',
+          value: capacityPool ? maxQty : undefined,
+        }
+      "
+    ></ng-container>
+  </th>
+  <th data-testid="session-per-timeslot-row-occupancy-cell" class="sessions-per-timeslot-timeslot-header-cell">
+    <ng-container
+      *ngTemplateOutlet="
+        dataCellTemplate;
+        context: {
+          titleKey: 'sessions.sessionsPerTimeslot.columnNames.occupancy',
+          value: capacityPool ? occupancyPercentage + '%' : undefined,
+          tooltipKey: 'sessions.sessionsPerTimeslot.occupancyToolTip',
+        }
+      "
+    ></ng-container>
+  </th>
+  @if (canEditSession()) {
+    <th>
+      <ng-container [ngTemplateOutlet]="editTemplate"></ng-container>
+    </th>
+  }
+</tr>
+
+<ng-template #labelTemplate>
+  <div class="sessions-per-timeslot-timeslot-label-container">
+    <div
+      data-testid="session-per-timeslot-row-label"
+      class="sessions-per-timeslot-timeslot-data-cell sessions-per-timeslot-timeslot-data-cell--label"
+    >
+      <span class="sessions-per-timeslot-timeslot-data-cell__label-text">{{ rowValues?.label }}</span>
+      <span
+        *ngIf="rowInput?.tier"
+        data-testid="session-per-timeslot-row-label__tier-tag"
+        class="tag sessions-per-timeslot-timeslot-data-cell__tier-tag"
+        [ngStyle]="{ color: rowInput?.tier?.color, 'border-color': rowInput?.tier?.color }"
+        >{{ rowInput?.tier?.name }}</span
+      >
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #priceTemplate>
+  <div class="sessions-per-timeslot-timeslot-wrapper-cell">
+    <div class="sessions-per-timeslot-timeslot-row__wrapper-cell-title">
+      {{ 'sessions.sessionsPerTimeslot.columnNames.price' | translate }}
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #editTemplate>
+  <div class="sessions-per-timeslot-timeslot-data-cell sessions-per-timeslot-timeslot-data-cell--edit">
+    <button class="icon-button icon-button--small" (click)="clickOnEdit(rowInput)">
+      <ignt-icon data-testid="session-per-timeslot-row-activate-edit" name="edit" variant="regular" aria-hidden="true" />
+    </button>
+  </div>
+</ng-template>
+
+<ng-template
+  #dataCellTemplate
+  let-titleKey="titleKey"
+  let-value="value"
+  let-testid="testid"
+  let-tooltipKey="tooltipKey"
+  let-iconName="iconName"
+  let-iconVariant="iconVariant"
+>
+  <div [attr.data-testid]="testid" class="sessions-per-timeslot-timeslot-data-cell">
+    <div
+      *ngIf="!tooltipKey; else dataCellTooltipTitleTemplate"
+      data-testid="sessions-per-timeslot-timeslot-data-cell-title"
+      class="sessions-per-timeslot-timeslot-data-cell__title"
+    >
+      {{ titleKey | translate }}
+
+      <ignt-icon *ngIf="iconName" class="toggle-icon" [fixedWidth]="true" [name]="iconName" [variant]="iconVariant" aria-hidden="true" />
+    </div>
+    <div
+      [style.visibility]="value === undefined ? 'hidden' : 'visible'"
+      data-testid="sessions-per-timeslot-timeslot-data-cell-value"
+      class="sessions-per-timeslot-timeslot-data-cell__value"
+    >
+      {{ value ?? '-' }}
+    </div>
+  </div>
+
+  <ng-template #dataCellTooltipTitleTemplate>
+    <div
+      igntTooltip
+      [tooltipLabel]="tooltipKey | translate"
+      data-testid="sessions-per-timeslot-timeslot-data-cell-title"
+      class="sessions-per-timeslot-timeslot-data-cell__title"
+    >
+      {{ titleKey | translate }}
+
+      <ignt-icon *ngIf="iconName" class="toggle-icon" [fixedWidth]="true" [name]="iconName" [variant]="iconVariant" aria-hidden="true" />
+    </div>
+  </ng-template>
+</ng-template>

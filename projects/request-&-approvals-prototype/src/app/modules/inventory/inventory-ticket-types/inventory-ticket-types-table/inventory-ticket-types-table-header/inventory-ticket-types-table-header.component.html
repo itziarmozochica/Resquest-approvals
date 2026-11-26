@@ -1,0 +1,135 @@
+@if (isSortModeActive()) {
+  <th class="itt-table__header__cell itt-table__header__cell--mini"></th>
+}
+<th class="itt-table__header__cell itt-table__header__cell--name">
+  <ng-container
+    *ngTemplateOutlet="
+      dataCellTemplate;
+      context: {
+        titleKey: 'inventory.ticketTypes.columnNames.name.name',
+      }
+    "
+  ></ng-container>
+</th>
+@if (!isShowingArchived()) {
+  <th data-testid="itt-table-header-visualization-order" class="itt-table__header__cell fixed-width">
+    <ng-container
+      *ngTemplateOutlet="
+        dataCellTemplate;
+        context: {
+          titleKey: 'inventory.ticketTypes.columnNames.visualizationOrder.name',
+          tooltipKey: 'inventory.ticketTypes.columnNames.visualizationOrder.tooltip',
+          icon: ['far', 'info-circle'],
+        }
+      "
+    ></ng-container>
+  </th>
+}
+
+<th class="itt-table__header__cell fixed-width">
+  <ng-container
+    *ngTemplateOutlet="
+      dataCellTemplate;
+      context: {
+        titleKey: 'inventory.ticketTypes.columnNames.productType.name',
+        tooltipKey: 'inventory.ticketTypes.columnNames.productType.tooltip',
+        icon: ['far', 'info-circle'],
+      }
+    "
+  ></ng-container>
+</th>
+
+<th class="itt-table__header__cell fixed-width">
+  @if (isSortModeActive()) {
+    <ng-container
+      *ngTemplateOutlet="
+        dataCellTemplate;
+        context: {
+          titleKey: 'inventory.ticketTypes.columnNames.category.name',
+        }
+      "
+    ></ng-container>
+  } @else {
+    <ng-container
+      *ngTemplateOutlet="
+        dataCellFilterDropdownTemplate;
+        context: {
+          titleKey: 'inventory.ticketTypes.columnNames.category.name',
+          selectOptions: categoryOptions,
+          selectedOption: selectedCategoryOption,
+          onSelect: bindedSelectCategoryFilter,
+        }
+      "
+    ></ng-container>
+  }
+</th>
+
+<th class="itt-table__header__cell fixed-width">
+  <ng-container
+    *ngTemplateOutlet="
+      dataCellTemplate;
+      context: {
+        titleKey: 'inventory.ticketTypes.columnNames.allowedNumTickets.name',
+        tooltipKey: 'inventory.ticketTypes.columnNames.allowedNumTickets.tooltip',
+        icon: ['far', 'info-circle'],
+      }
+    "
+  ></ng-container>
+</th>
+
+@if (showActionsColumn()) {
+  <th data-testid="itt-table-header-actions" class="itt-table__header__cell itt-table__header__cell--actions">
+    {{ 'inventory.ticketTypes.columnNames.actions' | translate }}
+  </th>
+}
+
+<ng-template #dataCellTemplate let-titleKey="titleKey" let-tooltipKey="tooltipKey" let-icon="icon">
+  <div *ngIf="!tooltipKey; else dataCellTooltipTitleTemplate">
+    {{ titleKey | translate }}
+    <fa-icon *ngIf="icon" [fixedWidth]="true" [icon]="icon"></fa-icon>
+  </div>
+
+  <ng-template #dataCellTooltipTitleTemplate>
+    {{ titleKey | translate }}
+    <span igntTooltip [tooltipLabel]="tooltipKey | translate">
+      <fa-icon *ngIf="icon" [fixedWidth]="true" [icon]="icon"></fa-icon>
+    </span>
+  </ng-template>
+</ng-template>
+
+<ng-template
+  #dataCellFilterDropdownTemplate
+  let-titleKey="titleKey"
+  let-selectOptions="selectOptions"
+  let-selectedOption="selectedOption"
+  let-onSelect="onSelect"
+>
+  {{ titleKey | translate }}
+  <ng-container>
+    <button
+      [igntMenuTriggerFor]="filterMenu"
+      [class]="'table__header-filter-button'"
+      [class.table__header-filter-button--active]="selectedOption.id !== 'all'"
+    >
+      <fa-icon
+        [class]="'table__header-filter-icon'"
+        [class.table__header-filter-icon--active]="selectedOption.id !== 'all'"
+        [icon]="['far', 'filter']"
+      ></fa-icon>
+    </button>
+    <ng-template #filterMenu>
+      <ignt-menu>
+        <ignt-menu-radio-group [ariaLabel]="titleKey | translate">
+          @for (option of selectOptions; track option.id) {
+            <ignt-menu-item-radio
+              [value]="'filter-' + option.id"
+              [label]="option.title | translate"
+              [checked]="selectedOption.id === option.id"
+              (triggered)="onSelect(option)"
+            />
+          }
+        </ignt-menu-radio-group>
+      </ignt-menu>
+    </ng-template>
+  </ng-container>
+</ng-template>

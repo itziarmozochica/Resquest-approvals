@@ -1,0 +1,495 @@
+<div class="calendar-toolbar" [class.calendar-toolbar--collapsed]="isCollapsed()">
+  <div #row class="calendar-toolbar__row" data-testid="calendar-toolbar" [class.calendar-toolbar__row--tight]="isTight()">
+    <div class="calendar-toolbar__pickers" data-toolbar-fixed>
+      <ng-content select="[calendarToolbarPickers]" />
+    </div>
+    @if (isThemeVisible() && !overflowed().has('theme')) {
+      <span class="calendar-toolbar__item" data-toolbar-item="theme" [attr.data-toolbar-compact]="isThemeCompact() ? '' : null">
+        @if (isThemeCompact()) {
+          <ng-container [ngTemplateOutlet]="themeIconButton" />
+        } @else {
+          <ignt-button
+            class="calendar-toolbar__theme"
+            data-testid="calendar-toolbar-theme"
+            sentiment="brand"
+            size="large"
+            variant="tertiary"
+            [igntMenuTriggerFor]="themeMenu"
+            [label]="'bookedSlots.calendarToolbar.theme' | translate"
+            [leadingIcon]="themeLabelIcon"
+            (keydown.enter)="onThemeTriggerKeydown($event)"
+            (keydown.space)="onThemeTriggerKeydown($event)"
+          />
+        }
+      </span>
+    }
+    <div #zoomSlot class="calendar-toolbar__zoom" data-testid="calendar-toolbar-zoom" data-toolbar-fixed>
+      <ng-content select="[calendarToolbarZoom]" />
+    </div>
+    @if (!overflowed().has('today')) {
+      <ng-container [ngTemplateOutlet]="todayItem" />
+    }
+    @if (!overflowed().has('date')) {
+      <ng-container [ngTemplateOutlet]="dateItem" />
+    }
+    @if (isWeekVisible() && !overflowed().has('week')) {
+      <ng-container [ngTemplateOutlet]="weekItem" />
+    }
+    <div class="calendar-toolbar__status" data-testid="calendar-toolbar-status">
+      <ng-content select="[calendarToolbarStatus]" />
+    </div>
+    <div class="calendar-toolbar__actions">
+      @if (isSearchVisible() && !overflowed().has('search')) {
+        <span class="calendar-toolbar__item" data-toolbar-item="search">
+          <button
+            #searchOrigin
+            ignt-icon-button
+            cdkOverlayOrigin
+            type="button"
+            class="calendar-toolbar__action"
+            sentiment="tertiary"
+            size="large"
+            data-testid="calendar-toolbar-search"
+            igntTooltip
+            aria-haspopup="dialog"
+            [class.calendar-toolbar__action--active]="openPanel() === 'search'"
+            [attr.aria-expanded]="openPanel() === 'search'"
+            [attr.aria-label]="'bookedSlots.calendarToolbar.search' | translate"
+            [tooltipLabel]="'bookedSlots.calendarToolbar.search' | translate"
+            [icon]="searchIcon"
+            (click)="togglePanel('search')"
+          ></button>
+        </span>
+      }
+      @if (isTagFilterVisible() && !overflowed().has('tags')) {
+        <span class="calendar-toolbar__item" data-toolbar-item="tags">
+          <button
+            #tagsOrigin
+            ignt-icon-button
+            cdkOverlayOrigin
+            type="button"
+            class="calendar-toolbar__action"
+            sentiment="tertiary"
+            size="large"
+            data-testid="calendar-toolbar-tags"
+            igntTooltip
+            aria-haspopup="dialog"
+            [class.calendar-toolbar__action--active]="hasTagSelection() || openPanel() === 'tags'"
+            [attr.aria-expanded]="openPanel() === 'tags'"
+            [attr.aria-label]="
+              (hasTagSelection() ? 'bookedSlots.calendarToolbar.tagsActive' : 'bookedSlots.calendarToolbar.tags')
+                | translate: { count: tagMatchCount() }
+            "
+            [tooltipLabel]="'bookedSlots.calendarToolbar.tags' | translate"
+            [icon]="tagIcon"
+            (click)="togglePanel('tags')"
+          ></button>
+          @if (hasTagSelection()) {
+            <span class="calendar-toolbar__badge" aria-hidden="true" data-testid="calendar-toolbar-tags-count">{{ tagMatchCount() }}</span>
+          }
+        </span>
+      }
+      @if (isMoveVisible() && !overflowed().has('move')) {
+        <span class="calendar-toolbar__item" data-toolbar-item="move">
+          <ng-container [ngTemplateOutlet]="moveButton" />
+        </span>
+      }
+      @if (isBlockVisible() && !overflowed().has('plus')) {
+        <span class="calendar-toolbar__item" data-toolbar-item="plus">
+          <ng-container [ngTemplateOutlet]="plusButton" />
+        </span>
+      }
+      @if (isDayEntriesVisible() && !overflowed().has('notes')) {
+        <span class="calendar-toolbar__item" data-toolbar-item="notes">
+          <ng-container [ngTemplateOutlet]="dayEntriesButton" />
+        </span>
+      }
+      @if (overflowedVisibleItems().length > 0) {
+        <span class="calendar-toolbar__item" data-toolbar-more>
+          <button
+            #moreOrigin
+            ignt-icon-button
+            cdkOverlayOrigin
+            type="button"
+            class="calendar-toolbar__action"
+            sentiment="tertiary"
+            size="large"
+            data-testid="calendar-toolbar-more"
+            igntTooltip
+            aria-haspopup="dialog"
+            [class.calendar-toolbar__action--active]="openPanel() === 'more'"
+            [attr.aria-expanded]="openPanel() === 'more'"
+            [attr.aria-label]="'bookedSlots.calendarToolbar.more' | translate"
+            [tooltipLabel]="'bookedSlots.calendarToolbar.more' | translate"
+            [icon]="moreIcon"
+            (click)="togglePanel('more')"
+          ></button>
+        </span>
+      }
+    </div>
+    <span class="calendar-toolbar__divider" aria-hidden="true" data-toolbar-fixed></span>
+    <span class="calendar-toolbar__item" data-toolbar-fixed>
+      <button
+        ignt-icon-button
+        type="button"
+        class="calendar-toolbar__action"
+        sentiment="tertiary"
+        size="large"
+        data-testid="calendar-toolbar-collapse"
+        igntTooltip
+        [attr.aria-label]="'bookedSlots.calendarToolbar.collapse' | translate"
+        [tooltipLabel]="'bookedSlots.calendarToolbar.collapse' | translate"
+        [icon]="collapseIcon"
+        (click)="onCollapse()"
+      ></button>
+    </span>
+    @if (isQuickBlockHintVisible() && isBlockVisible()) {
+      <div class="calendar-toolbar__hint" aria-hidden="true" data-testid="quick-block-hint">
+        <p class="calendar-toolbar__hint-title">{{ 'bookedSlots.quickBlock.menuOption' | translate }}</p>
+        <p class="calendar-toolbar__hint-text">{{ 'bookedSlots.quickBlock.hint' | translate }}</p>
+      </div>
+    }
+  </div>
+  @if (isCollapsed()) {
+    <button
+      ignt-icon-button
+      type="button"
+      class="calendar-toolbar__expand"
+      sentiment="secondary"
+      size="medium"
+      data-testid="calendar-toolbar-expand"
+      igntTooltip
+      [fab]="true"
+      [attr.aria-label]="'bookedSlots.calendarToolbar.expand' | translate"
+      [tooltipLabel]="'bookedSlots.calendarToolbar.expand' | translate"
+      [icon]="expandIcon"
+      (click)="onExpand()"
+    ></button>
+  }
+</div>
+
+<ng-template #todayItem>
+  <span class="calendar-toolbar__item" data-toolbar-item="today">
+    <ignt-button
+      class="calendar-toolbar__today"
+      size="small"
+      variant="secondary"
+      sentiment="neutral"
+      data-testid="calendar-toolbar-today"
+      [disabled]="isDateDisabled()"
+      [label]="'bookedSlots.calendarToolbar.today' | translate"
+      (click)="onToday()"
+    ></ignt-button>
+  </span>
+</ng-template>
+
+<ng-template #dateItem>
+  <span class="calendar-toolbar__item" data-toolbar-item="date">
+    <app-calendar-date-nav
+      [isDisabled]="isDateDisabled()"
+      [isWeekly]="isWeeklySelection()"
+      [label]="dateLabel()"
+      [pickerValue]="datePickerValue()"
+      (next)="onDateNext()"
+      (picked)="onDatePicked($event)"
+      (previous)="onDatePrevious()"
+    />
+  </span>
+</ng-template>
+
+<ng-template #weekItem>
+  <span class="calendar-toolbar__item calendar-toolbar__week" data-toolbar-item="week">
+    <ignt-switch
+      data-testid="calendar-toolbar-week"
+      [checked]="isWeekly()"
+      [label]="'bookedSlots.calendarToolbar.week' | translate"
+      (checkedChange)="onWeekToggle($event)"
+    />
+  </span>
+</ng-template>
+
+<ng-template #dayEntriesButton>
+  <span class="calendar-toolbar__day-entries">
+    <button
+      ignt-icon-button
+      type="button"
+      class="calendar-toolbar__action"
+      sentiment="tertiary"
+      size="large"
+      data-testid="calendar-toolbar-day-entries"
+      igntTooltip
+      [class.calendar-toolbar__action--active]="isDayEntriesPanelOpen()"
+      [attr.aria-expanded]="isDayEntriesPanelOpen()"
+      [attr.aria-label]="'bookedSlots.dayEntries.triggerLabel' | translate: { count: dayEntriesOpenCount() }"
+      [tooltipLabel]="'bookedSlots.dayEntries.title' | translate"
+      [icon]="dayEntriesIcon"
+      (click)="onDayEntriesClick()"
+    ></button>
+    @if (dayEntriesOpenCount() > 0) {
+      <span class="calendar-toolbar__day-entries-badge" aria-hidden="true" data-testid="calendar-toolbar-day-entries-badge">
+        {{ dayEntriesOpenCount() }}
+      </span>
+    }
+  </span>
+</ng-template>
+
+<ng-template #moveButton>
+  <button
+    ignt-icon-button
+    type="button"
+    class="calendar-toolbar__action"
+    sentiment="tertiary"
+    size="large"
+    data-testid="calendar-toolbar-move"
+    igntTooltip
+    [class.calendar-toolbar__action--active]="isMoveEnabled()"
+    [attr.aria-pressed]="isMoveEnabled()"
+    [attr.aria-label]="'bookedSlots.calendarToolbar.moveMode' | translate"
+    [tooltipLabel]="'bookedSlots.calendarToolbar.moveMode' | translate"
+    [icon]="moveIcon"
+    (click)="onMoveToggle()"
+  ></button>
+</ng-template>
+
+<ng-template #plusButton>
+  @if (isQuickBlockArmed()) {
+    <button
+      ignt-icon-button
+      type="button"
+      class="calendar-toolbar__action calendar-toolbar__action--active"
+      sentiment="tertiary"
+      size="large"
+      data-testid="calendar-toolbar-plus"
+      igntTooltip
+      aria-pressed="true"
+      [attr.aria-label]="'bookedSlots.quickBlock.armedStatus' | translate"
+      [tooltipLabel]="'bookedSlots.quickBlock.armedStatus' | translate"
+      [icon]="plusIcon"
+      (click)="onQuickBlockDisarm()"
+    ></button>
+  } @else {
+    <button
+      ignt-icon-button
+      type="button"
+      class="calendar-toolbar__action"
+      sentiment="tertiary"
+      size="large"
+      data-testid="calendar-toolbar-plus"
+      [class.calendar-toolbar__action--active]="isBlockPanelOpen()"
+      igntTooltip
+      [attr.aria-label]="
+        (isBlockPanelOpen() ? 'bookedSlots.calendarToolbar.plusMenuPanelOpen' : 'bookedSlots.calendarToolbar.plusMenu') | translate
+      "
+      [tooltipLabel]="'bookedSlots.calendarToolbar.plusMenu' | translate"
+      [icon]="plusIcon"
+      [igntMenuTriggerFor]="plusMenu"
+    ></button>
+  }
+</ng-template>
+
+<ng-template #themeIconButton>
+  <button
+    ignt-icon-button
+    type="button"
+    class="calendar-toolbar__action"
+    sentiment="tertiary"
+    size="large"
+    data-testid="calendar-toolbar-theme-icon"
+    igntTooltip
+    [attr.aria-label]="'bookedSlots.calendarToolbar.theme' | translate"
+    [tooltipLabel]="'bookedSlots.calendarToolbar.theme' | translate"
+    [icon]="themeIcon"
+    [igntMenuTriggerFor]="themeMenu"
+  ></button>
+</ng-template>
+
+<ng-template #themeMenu>
+  <ignt-menu class="calendar-toolbar__theme-menu" data-testid="calendar-toolbar-theme-menu">
+    <ignt-menu-radio-group class="calendar-toolbar__theme-options" [ariaLabel]="'bookedSlots.calendarToolbar.themeOptions' | translate">
+      @for (option of themeOptions; track option.theme) {
+        <ignt-menu-item-radio
+          class="calendar-toolbar__theme-option"
+          [attr.data-testid]="'calendar-toolbar-theme-' + option.theme"
+          [checked]="option.theme === cardTheme()"
+          [label]="option.titleKey | translate"
+          [value]="option.theme"
+          (triggered)="onThemeChoose(option.theme)"
+        />
+      }
+    </ignt-menu-radio-group>
+
+    <ng-template igntMenuItemCustomTemplate let-item>
+      <span class="calendar-toolbar__theme-check" aria-hidden="true">
+        @if (item.checked) {
+          <ignt-icon name="check" size="h3" variant="solid" />
+        }
+      </span>
+      <span class="calendar-toolbar__theme-text">
+        <span class="calendar-toolbar__theme-title">{{ item.label }}</span>
+        <span class="calendar-toolbar__theme-description">{{ themeDescriptionKeys[item.value] | translate }}</span>
+      </span>
+    </ng-template>
+  </ignt-menu>
+</ng-template>
+
+<ng-template #plusMenu>
+  <ignt-menu data-testid="calendar-toolbar-plus-menu">
+    <ignt-menu-item
+      data-testid="calendar-toolbar-plus-block-time"
+      [label]="'bookedSlots.quickBlock.blockAssetMenuOption' | translate"
+      [value]="blockTimeMenuAction.blockAsset"
+      (triggered)="onBlockAction(blockTimeMenuAction.blockAsset)"
+    ></ignt-menu-item>
+    <ignt-menu-item
+      data-testid="calendar-toolbar-plus-quick-block"
+      [label]="'bookedSlots.quickBlock.menuOption' | translate"
+      [value]="blockTimeMenuAction.quickBlock"
+      (triggered)="onBlockAction(blockTimeMenuAction.quickBlock)"
+    ></ignt-menu-item>
+  </ignt-menu>
+</ng-template>
+
+@if (searchPanelOrigin(); as origin) {
+  <ng-template
+    cdkConnectedOverlay
+    [cdkConnectedOverlayOrigin]="origin"
+    [cdkConnectedOverlayOpen]="openPanel() === 'search'"
+    [cdkConnectedOverlayPositions]="panelPositions"
+    [cdkConnectedOverlayHasBackdrop]="true"
+    cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
+    (backdropClick)="closePanel()"
+    (detach)="closePanel('search')"
+    (overlayKeydown)="onPanelKeydown($event)"
+  >
+    <div
+      class="calendar-toolbar__panel calendar-toolbar__panel--search"
+      role="dialog"
+      data-testid="calendar-toolbar-search-panel"
+      [attr.aria-label]="'bookedSlots.calendarToolbar.search' | translate"
+    >
+      <app-calendar-order-search
+        [results]="orderSearchResults()"
+        [searchTerm]="orderSearchTerm()"
+        (resultSelect)="onOrderSearchResultSelect($event)"
+        (searchTermChange)="orderSearchTermChange.emit($event)"
+      ></app-calendar-order-search>
+    </div>
+  </ng-template>
+}
+
+@if (tagsPanelOrigin(); as origin) {
+  <ng-template
+    cdkConnectedOverlay
+    [cdkConnectedOverlayOrigin]="origin"
+    [cdkConnectedOverlayOpen]="openPanel() === 'tags'"
+    [cdkConnectedOverlayPositions]="panelPositions"
+    [cdkConnectedOverlayHasBackdrop]="true"
+    cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
+    (backdropClick)="closePanel()"
+    (detach)="closePanel('tags')"
+    (overlayKeydown)="onPanelKeydown($event)"
+  >
+    <div
+      class="calendar-toolbar__panel"
+      role="dialog"
+      data-testid="calendar-toolbar-tags-panel"
+      [attr.aria-label]="'bookedSlots.calendarToolbar.tags' | translate"
+    >
+      <app-calendar-tag-filter-menu
+        [matchCount]="tagMatchCount()"
+        [matchCountsByTag]="tagMatchCountsByTag()"
+        [options]="tagFilterOptions()"
+        [selectedTagIds]="selectedTagIds()"
+        (cleared)="tagFilterCleared.emit()"
+        (selectedTagIdsChange)="tagFilterChange.emit($event)"
+      ></app-calendar-tag-filter-menu>
+    </div>
+  </ng-template>
+}
+
+@if (moreOriginRef(); as origin) {
+  <ng-template
+    cdkConnectedOverlay
+    [cdkConnectedOverlayOrigin]="origin"
+    [cdkConnectedOverlayDisableClose]="true"
+    [cdkConnectedOverlayOpen]="openPanel() === 'more'"
+    [cdkConnectedOverlayPositions]="panelPositions"
+    [cdkConnectedOverlayHasBackdrop]="true"
+    cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
+    (backdropClick)="closePanel()"
+    (detach)="closePanel('more')"
+    (overlayKeydown)="onPanelKeydown($event)"
+  >
+    <div
+      class="calendar-toolbar__panel calendar-toolbar__panel--more"
+      role="dialog"
+      data-testid="calendar-toolbar-more-panel"
+      [attr.aria-label]="'bookedSlots.calendarToolbar.more' | translate"
+    >
+      @for (item of overflowedVisibleItems(); track item) {
+        @switch (item) {
+          @case ('today') {
+            <ng-container [ngTemplateOutlet]="todayItem" />
+          }
+          @case ('date') {
+            <ng-container [ngTemplateOutlet]="dateItem" />
+          }
+          @case ('week') {
+            <ng-container [ngTemplateOutlet]="weekItem" />
+          }
+          @case ('search') {
+            <button
+              ignt-icon-button
+              type="button"
+              class="calendar-toolbar__action"
+              sentiment="tertiary"
+              size="large"
+              data-testid="calendar-toolbar-more-search"
+              igntTooltip
+              [attr.aria-label]="'bookedSlots.calendarToolbar.search' | translate"
+              [tooltipLabel]="'bookedSlots.calendarToolbar.search' | translate"
+              [icon]="searchIcon"
+              (click)="togglePanel('search')"
+            ></button>
+          }
+          @case ('tags') {
+            <span class="calendar-toolbar__item">
+              <button
+                ignt-icon-button
+                type="button"
+                class="calendar-toolbar__action"
+                sentiment="tertiary"
+                size="large"
+                data-testid="calendar-toolbar-more-tags"
+                igntTooltip
+                [class.calendar-toolbar__action--active]="hasTagSelection()"
+                [attr.aria-label]="
+                  (hasTagSelection() ? 'bookedSlots.calendarToolbar.tagsActive' : 'bookedSlots.calendarToolbar.tags')
+                    | translate: { count: tagMatchCount() }
+                "
+                [tooltipLabel]="'bookedSlots.calendarToolbar.tags' | translate"
+                [icon]="tagIcon"
+                (click)="togglePanel('tags')"
+              ></button>
+              @if (hasTagSelection()) {
+                <span class="calendar-toolbar__badge" aria-hidden="true">{{ tagMatchCount() }}</span>
+              }
+            </span>
+          }
+          @case ('move') {
+            <ng-container [ngTemplateOutlet]="moveButton" />
+          }
+          @case ('notes') {
+            <ng-container [ngTemplateOutlet]="dayEntriesButton" />
+          }
+          @case ('plus') {
+            <ng-container [ngTemplateOutlet]="plusButton" />
+          }
+          @case ('theme') {
+            <ng-container [ngTemplateOutlet]="themeIconButton" />
+          }
+        }
+      }
+    </div>
+  </ng-template>
+}

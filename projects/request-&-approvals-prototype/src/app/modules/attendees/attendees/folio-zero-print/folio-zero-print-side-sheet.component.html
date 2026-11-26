@@ -1,0 +1,168 @@
+<ignt-dialog-header>{{ 'attendees.folioZero.sheetTitle' | translate }}</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div
+    class="folio-zero-panel__sheet"
+    role="region"
+    [attr.aria-label]="'attendees.folioZero.sheetTitle' | translate"
+    data-testid="folio-zero-panel"
+  >
+    <div class="folio-zero-panel__sheet-content">
+      <section class="folio-zero-panel__sheet-group">
+        <h3 class="folio-zero-panel__section-title">{{ 'attendees.folioZero.printDateTime' | translate }}</h3>
+        <div class="folio-zero-panel__field">
+          <app-date-time-picker
+            data-testid="folio-zero-print-datetime"
+            mode="datetime"
+            [timezone]="timezone()"
+            [value]="printDateTime()"
+            (valueChange)="onPrintDateTimeChange($event)"
+            testId="folio-zero-print"
+          />
+        </div>
+      </section>
+
+      @if (loading()) {
+        <section class="folio-zero-panel__sheet-group" aria-busy="true">
+          <h3 class="folio-zero-panel__section-title">{{ 'attendees.folioZero.ticketTypesHeading' | translate }}</h3>
+          <div class="folio-zero-panel__loading" data-testid="folio-zero-loading">
+            <ignt-icon aria-hidden="true" name="spinner" size="h1" variant="solid" [spin]="true" />
+          </div>
+        </section>
+      } @else if (loadError()) {
+        <section class="folio-zero-panel__sheet-group">
+          <h3 class="folio-zero-panel__section-title">{{ 'attendees.folioZero.ticketTypesHeading' | translate }}</h3>
+          <p class="folio-zero-panel__status folio-zero-panel__status--error" data-testid="folio-zero-error">
+            {{ 'attendees.folioZero.loadError' | translate }}
+          </p>
+        </section>
+      } @else if (rows().length === 0) {
+        <section class="folio-zero-panel__sheet-group">
+          <h3 class="folio-zero-panel__section-title">{{ 'attendees.folioZero.ticketTypesHeading' | translate }}</h3>
+          <p class="folio-zero-panel__status folio-zero-panel__status--empty" data-testid="folio-zero-empty">
+            {{ 'attendees.folioZero.noTicketTypes' | translate }}
+          </p>
+        </section>
+      } @else {
+        <section class="folio-zero-panel__sheet-group" data-testid="folio-zero-ticket-types">
+          <div class="folio-zero-panel__bulk">
+            <ignt-checkbox
+              dataTestId="folio-zero-select-all"
+              size="small"
+              [checked]="allSelected()"
+              [label]="'attendees.folioZero.selectAll' | translate"
+              (change)="onToggleAll($event)"
+            />
+
+            @if (hasAddOns()) {
+              <ignt-checkbox
+                dataTestId="folio-zero-select-addons"
+                size="small"
+                [checked]="isCategoryFullySelected('addOn')"
+                [label]="'attendees.folioZero.selectAllAddOns' | translate"
+                (change)="onToggleCategory('addOn', $event)"
+              />
+            }
+
+            @if (hasShopProducts()) {
+              <ignt-checkbox
+                dataTestId="folio-zero-select-shop"
+                size="small"
+                [checked]="isCategoryFullySelected('shop')"
+                [label]="'attendees.folioZero.selectAllShop' | translate"
+                (change)="onToggleCategory('shop', $event)"
+              />
+            }
+          </div>
+        </section>
+
+        @if (admissionRows().length > 0) {
+          <section class="folio-zero-panel__sheet-group">
+            <h3 class="folio-zero-panel__section-title">{{ 'attendees.folioZero.sectionAdmission' | translate }}</h3>
+            @for (row of admissionRows(); track row.id) {
+              <div class="folio-zero-panel__type-row">
+                <ignt-checkbox
+                  [attr.data-testid]="'folio-zero-type-' + row.id"
+                  size="small"
+                  [checked]="isSelected(row.id)"
+                  [label]="row.label"
+                  (change)="onToggleSessionType(row.id, $event)"
+                />
+                @if (row.basePrice !== null && currencyCode()) {
+                  <span class="folio-zero-panel__type-price">{{
+                    row.basePrice | currency: currencyCode() : 'symbol' : '1.2-2' : locale
+                  }}</span>
+                }
+              </div>
+            }
+          </section>
+        }
+
+        @if (addOnRows().length > 0) {
+          <section class="folio-zero-panel__sheet-group">
+            <h3 class="folio-zero-panel__section-title">{{ 'attendees.folioZero.sectionAddOns' | translate }}</h3>
+            @for (row of addOnRows(); track row.id) {
+              <div class="folio-zero-panel__type-row">
+                <ignt-checkbox
+                  [attr.data-testid]="'folio-zero-type-' + row.id"
+                  size="small"
+                  [checked]="isSelected(row.id)"
+                  [label]="row.label"
+                  (change)="onToggleSessionType(row.id, $event)"
+                />
+                @if (row.basePrice !== null && currencyCode()) {
+                  <span class="folio-zero-panel__type-price">{{
+                    row.basePrice | currency: currencyCode() : 'symbol' : '1.2-2' : locale
+                  }}</span>
+                }
+              </div>
+            }
+          </section>
+        }
+
+        @if (shopRows().length > 0) {
+          <section class="folio-zero-panel__sheet-group">
+            <h3 class="folio-zero-panel__section-title">{{ 'attendees.folioZero.sectionShop' | translate }}</h3>
+            @for (row of shopRows(); track row.id) {
+              <div class="folio-zero-panel__type-row">
+                <ignt-checkbox
+                  [attr.data-testid]="'folio-zero-type-' + row.id"
+                  size="small"
+                  [checked]="isSelected(row.id)"
+                  [label]="row.label"
+                  (change)="onToggleSessionType(row.id, $event)"
+                />
+                @if (row.basePrice !== null && currencyCode()) {
+                  <span class="folio-zero-panel__type-price">{{
+                    row.basePrice | currency: currencyCode() : 'symbol' : '1.2-2' : locale
+                  }}</span>
+                }
+              </div>
+            }
+          </section>
+        }
+      }
+    </div>
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer hideCancelButton>
+  <ignt-button
+    data-testid="folio-zero-close"
+    size="large"
+    variant="secondary"
+    [label]="'common.close' | translate"
+    (click)="closePanel()"
+  />
+  <ignt-button
+    data-testid="folio-zero-print"
+    size="large"
+    variant="primary"
+    [disabled]="loading() || loadError() || printing() || selectedCount() === 0"
+    [label]="
+      printing() ? ('attendees.folioZero.printing' | translate) : ('attendees.folioZero.print' | translate) + ' (' + selectedCount() + ')'
+    "
+    [loading]="printing()"
+    (click)="onPrintClick()"
+  />
+</ignt-dialog-footer>

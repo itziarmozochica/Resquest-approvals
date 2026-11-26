@@ -1,0 +1,273 @@
+@use 'components/fields/textfield/tokens' as field;
+@use 'components/navigation/aside-menu/tokens' as aside-menu;
+@use 'components/navigation/headerbar/tokens' as headerbar;
+@use 'foundations' as foundations;
+@use 'foundations/font/font-properties' as font-properties;
+@use 'foundations/font/font-sizes' as font-sizes;
+@use 'foundations/font/font-leadings' as font-leadings;
+@use 'abstracts/all' as *;
+
+$content-max-inline-size: 72rem;
+$content-padding-inline: max(#{foundations.$space-6}, calc((100% - #{$content-max-inline-size}) / 2));
+
+:host {
+  display: block;
+  min-height: calc(100dvh - #{headerbar.$dimensions-height});
+  background: foundations.$color-background-main;
+
+  @include media-breakpoint-up(aside-menu.$breakpoint-menu) {
+    min-height: calc(100dvh - #{headerbar.$dimensions-height-large});
+  }
+}
+
+.bulk-partial-refund-title {
+  display: flex;
+  flex-direction: column;
+  padding-block: foundations.$space-6;
+  padding-inline: $content-padding-inline;
+
+  @include media-breakpoint-down(md) {
+    padding-block: foundations.$space-4;
+  }
+
+  &__section {
+    color: foundations.$color-text-main;
+    font-size: font-sizes.$size-small;
+    font-weight: font-properties.$weight-regular;
+    line-height: font-leadings.$leading-small;
+  }
+
+  &__heading {
+    margin: 0;
+    color: foundations.$color-text-main;
+    font-size: font-sizes.$size-h3;
+    font-weight: font-properties.$weight-bold;
+    line-height: font-leadings.$leading-h3;
+  }
+}
+
+/**
+ * The header carries Fever's dark chrome, the same surface the page title sits on, so the step
+ * track, the intro and the filters read as one band. It also puts the search bar back on the
+ * background its own `--contrast` button variant was built for.
+ */
+.bulk-partial-refund-header {
+  background: foundations.$color-background-main-contrast;
+  display: flex;
+  flex-direction: column;
+  gap: foundations.$space-5;
+  padding-block: foundations.$space-4 foundations.$space-5;
+  padding-inline: $content-padding-inline;
+
+  /**
+   * The search bar below is a 96% centred container, so it starts 2% in. Matching that keeps the
+   * track and the intro on the filters' left edge at any width, where a fixed indent would drift.
+   */
+  app-refund-step-track,
+  &__intro {
+    margin-inline-start: 2%;
+  }
+
+  /**
+   * The step track and the way out, on one line. Leaving belongs to the wizard rather than to the
+   * step in hand, so it sits up in the chrome: down in the action bar it competed with `Back` for
+   * the position a hand reaches for to go back one step, and losing that race discards the draft
+   * where `Back` would only have stepped away from it.
+   */
+  &__top {
+    align-items: center;
+    display: flex;
+    gap: foundations.$space-3;
+    justify-content: space-between;
+  }
+
+  /**
+   * The `-contrast` class is how this band already dresses a control for its own dark surface, as
+   * the search bar's button does: the sentiment input has no contrast option, and without it the
+   * icon keeps the dark foreground it was given for a light one.
+   */
+  &__close {
+    flex: 0 0 auto;
+  }
+
+  &__intro {
+    color: foundations.$color-text-subtle-contrast;
+    font: foundations.$font-base-regular;
+    margin-block: 0;
+    max-width: 60rem;
+  }
+
+  &__filters {
+    /** The bar already sits on the band, so its own copy of it would double the padding. */
+    ::ng-deep app-filters .bl-filters {
+      background: transparent;
+      padding-block-end: 0;
+    }
+
+    /**
+     * `make-container()` centres this with auto margins and `make-row()` pulls back by a gutter,
+     * which together indent the first control past the band's own padding. Zeroing both lands the
+     * filters on the same left edge as the step track and the intro above them.
+     */
+    ::ng-deep app-filters .bl-filters-content {
+      margin-block-end: 0;
+      padding: 0;
+    }
+
+    /**
+     * The date field is a fixed 40px while the typeaheads beside it are sized by their floating
+     * label. Only the box needs stretching: the wrapper inside it is already
+     * `display: flex; align-items: center; height: 100%`, so the dates centre themselves.
+     */
+    ::ng-deep .filters-block--date {
+      align-items: stretch;
+      display: flex;
+
+      /**
+       * The typeahead input carries a 1px bottom margin, so it sits a pixel short of its block.
+       * The height has to stay explicit: a stretched flex item is not a definite height for the
+       * inner box's `100%` to resolve against, so it would collapse back to its 40px default.
+       */
+      app-date-range {
+        --date-range-input-height: 100%;
+        --date-range-input-min-height: 100%;
+        --date-range-input-radius: #{field.$input-dimensions-radii};
+
+        block-size: calc(100% - #{foundations.$dimension-px});
+        display: block;
+        inline-size: 100%;
+      }
+    }
+  }
+}
+
+.bulk-partial-refund {
+  display: flex;
+  flex-direction: column;
+  gap: foundations.$space-4;
+  padding-block: foundations.$space-5;
+  padding-inline: $content-padding-inline;
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-4;
+  }
+
+  /**
+   * Back and the step's own primary travel together, as `step-action-bar` groups them, so a bar too
+   * narrow for everything breaks between leaving and going on rather than stranding all three
+   * buttons on a line each.
+   */
+  &__forward {
+    display: flex;
+    flex-wrap: wrap;
+    gap: foundations.$space-3;
+    justify-content: flex-end;
+
+    /**
+     * Dissolved on a phone so `Back` and the primary rejoin the bar's own line and can be placed
+     * against the figure above them. Grouped, the two would wrap as a block and `Back` would land
+     * right-aligned above a primary narrower than the screen, reading as two stray buttons.
+     */
+    @include media-breakpoint-down(md) {
+      display: contents;
+    }
+  }
+
+  /** No `z-index`, so a dropdown near the end of a step opens over the bar instead of under it. */
+  &__actions {
+    align-items: center;
+    background: foundations.$palette-neutral-white;
+    border-block-start: foundations.$dimension-px solid foundations.$color-border-main;
+    bottom: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: foundations.$space-3;
+    justify-content: flex-end;
+    padding-block: foundations.$space-3;
+    padding-inline: $content-padding-inline;
+    position: sticky;
+  }
+}
+
+/** Pushed to the far end so it reads as context for the actions rather than a heading's subtitle. */
+.bulk-partial-refund__selection-count {
+  color: foundations.$color-text-subtle;
+  font: foundations.$font-small-regular;
+  margin: 0;
+  margin-inline-end: auto;
+  white-space: nowrap;
+
+  /**
+   * `nowrap` keeps the three figures on one line wherever there is room for them, but it also makes
+   * that line unshrinkable: on a phone it is wider than the bar, and with the buttons pinned to the
+   * end it overflows past the start edge, where nothing can scroll it back into view. Below `md` it
+   * takes a row of its own above the buttons and wraps like ordinary text.
+   */
+  @include media-breakpoint-down(md) {
+    flex-basis: 100%;
+    margin-inline-end: 0;
+    white-space: normal;
+  }
+}
+
+/**
+ * The figure the confirm button is about to send, sat next to it. One amount per currency, listed
+ * rather than summed, because a refund is executed per currency and a single total across two of
+ * them would be a number that means nothing.
+ */
+.bulk-partial-refund__total {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: foundations.$space-2;
+  margin: 0;
+  margin-inline-end: auto;
+
+  /** A line of its own above the buttons, as the selection count takes on the first step. */
+  @include media-breakpoint-down(md) {
+    flex-basis: 100%;
+    margin-inline-end: 0;
+  }
+}
+
+/**
+ * `Back` to the start and the primary across the full width: the one place a thumb rests, and a
+ * target that no longer looks a few pixels short of the bar by accident. `Back` keeps the start
+ * because that is the edge a hand reaches to go back, here as anywhere else.
+ */
+@include media-breakpoint-down(md) {
+  .bulk-partial-refund__back {
+    margin-inline-end: auto;
+  }
+
+  .bulk-partial-refund__primary {
+    flex-basis: 100%;
+
+    ::ng-deep .button {
+      inline-size: 100%;
+    }
+  }
+}
+
+/** The figure the action bar states is the answered one, so it dims while a new one is on its way. */
+.bulk-partial-refund__total--updating {
+  opacity: 0.5;
+}
+
+.bulk-partial-refund__total-label {
+  color: foundations.$color-text-subtle;
+  font: foundations.$font-small-regular;
+}
+
+.bulk-partial-refund__total-amount {
+  color: foundations.$color-text-main;
+  font: foundations.$font-h4;
+  white-space: nowrap;
+}
+
+.bulk-partial-refund__total-note {
+  color: foundations.$color-text-subtle;
+  font: foundations.$font-caption-regular;
+}

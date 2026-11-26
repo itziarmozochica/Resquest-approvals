@@ -1,0 +1,336 @@
+@if (viewOrder() && viewCartSession() !== undefined) {
+  <app-cart-header
+    [planName]="planName()"
+    [planAddress]="viewCartSession()?.sessionAddress"
+    [sessionStartAt]="viewCartSession()?.sessionStartAt"
+    [timezone]="viewCartSession()?.sessionTimezone"
+    [showSessionDate]="false"
+    [ownerEmail]="viewCartSession()?.ownerEmail"
+    [ownerPhone]="viewCartSession()?.ownerPhone"
+    [ownerFullName]="viewCartSession()?.ownerFullName"
+    [isGuest]="viewCartSession()?.isGuest ?? false"
+    [isMember]="orderHasDiscounts()"
+    (isCollapsed)="toggleIsCollapsed($event)"
+  >
+    <ng-container options>
+      <ignt-button-dropdown
+        *ngIf="shouldShowDownloadDropdown()"
+        sentiment="secondary"
+        align="right"
+        [hoverEffect]="true"
+        [options]="downloadOptions()"
+        [loading]="isGettingDeliveryNote || isGettingPartySummary"
+        (optionClick)="onDownloadOptionClick($event)"
+        data-testid="order-header__options-download"
+      >
+        {{ 'common.download' | translate }}
+      </ignt-button-dropdown>
+
+      <button
+        igntButton
+        sentiment="secondary"
+        *ngIf="shouldShowResendOrderButton()"
+        (click)="resendOrder()"
+        [leadingIcon]="['fas', 'paper-plane']"
+        data-testid="order-header__options-resend-order"
+      >
+        {{ 'validateTicketsNew.orderHeader.resendOrder' | translate | sentenceCase }}
+      </button>
+
+      <button
+        igntButton
+        sentiment="secondary"
+        *ngIf="shouldShowPrintOrderButton()"
+        (click)="printOrder()"
+        [leadingIcon]="['fas', 'print']"
+        [loading]="isPrinting"
+        [disabled]="isPrinting || (selectableTicketCount() > 0 && isNoTicketSelected())"
+        data-testid="order-header__options-print"
+      >
+        {{ 'validateTicketsNew.orderHeader.printOrder' | translate | sentenceCase }}
+        @if (!isEntitlementOrder() && selectableTicketCount() > 0) {
+          ({{ selectedTicketCount() }}/{{ selectableTicketCount() }})
+        }
+      </button>
+
+      <ng-container *permissionBased="'can_view_validation'">
+        @if (!hiddenValidation && shouldShowValidateAllButton()) {
+          <button
+            igntButton
+            sentiment="secondary"
+            (click)="validateAll()"
+            [leadingIcon]="['fas', 'check']"
+            [loading]="isValidatingAll()"
+            [disabled]="isValidatingAll() || validateAllSelectedCount() === 0"
+            data-testid="order-header__options-validate-all"
+          >
+            {{ 'validateTicketsNew.tickets.validate' | translate | sentenceCase }}
+            ({{ validateAllSelectedCount() }}/{{ validateAllTotal() }})
+          </button>
+        }
+      </ng-container>
+
+      <button
+        igntButton
+        sentiment="secondary"
+        *ngIf="shouldShowOrderHistoryButton()"
+        (click)="openOrderHistory()"
+        [leadingIcon]="['fal', 'history']"
+        data-testid="order-header__options-order-history"
+      >
+        {{ 'validateTicketsNew.orderHeader.orderHistory' | translate | sentenceCase }}
+      </button>
+
+      <ng-container *ngIf="shouldShowPrintReceiptButton()">
+        <button
+          igntButton
+          sentiment="secondary"
+          (click)="printReceipt()"
+          igntTooltip
+          tooltipPlacement="bottom"
+          [tooltipLabel]="
+            !isFiscalReprintEnabled && !showPrintReceipt ? ('validateTicketsNew.orderHeader.printReceiptTooltip' | translate) : ''
+          "
+          [leadingIcon]="['far', 'receipt']"
+          [loading]="isPrintingReceipt || isReprintingFiscalReceipt"
+          [disabled]="isPrintingReceipt || isReprintingFiscalReceipt || (!isFiscalReprintEnabled && !showPrintReceipt)"
+        >
+          {{ 'validateTicketsNew.orderHeader.printReceipt' | translate | sentenceCase }}
+        </button>
+      </ng-container>
+
+      @if (shouldShowViewCalendarButton()) {
+        <button
+          igntButton
+          sentiment="secondary"
+          (click)="viewCalendar()"
+          *permissionBased="viewCalendarPermissions"
+          [leadingIcon]="['fal', 'calendar']"
+          data-testid="order-header__options-view-calendar"
+        >
+          {{ 'validateTicketsNew.orderHeader.viewCalendar' | translate | sentenceCase }}
+        </button>
+      }
+
+      @if (shouldShowRescheduleButton() && !hiddenReschedule()) {
+        <button
+          igntButton
+          sentiment="secondary"
+          (click)="rescheduleOrder()"
+          *permissionBased="'can_reschedule_orders'"
+          [leadingIcon]="['fas', 'calendar']"
+          data-testid="order-header__options-reschedule"
+        >
+          {{ 'validateTicketsNew.orderHeader.rescheduleOrder' | translate | sentenceCase }}
+        </button>
+      }
+
+      <button
+        igntButton
+        sentiment="secondary"
+        *ngIf="shouldShowAddTicketsButton()"
+        (click)="addTickets()"
+        [leadingIcon]="['fas', 'ticket']"
+        data-testid="order-header-options-add-tickets"
+      >
+        {{ 'validateTicketsNew.orderHeader.addTickets' | translate | sentenceCase }}
+      </button>
+
+      <ng-container *permissionBased="'can_view_seating_management'">
+        @if (shouldShowReassignButton()) {
+          <button igntButton sentiment="secondary" (click)="reassignSeats()" data-testid="order-header__options-reassign">
+            <ignt-icon name="loveseat" variant="solid"></ignt-icon>
+            {{ 'seatingManagement.moveSeats' | translate | sentenceCase }}
+          </button>
+        }
+      </ng-container>
+
+      <button
+        igntButton
+        sentiment="secondary"
+        data-testid="order-header-options-cash-receipt"
+        *ngIf="shouldShowCashReceiptButton()"
+        (click)="clickCashReceipt()"
+        [leadingIcon]="['far', 'receipt']"
+      >
+        {{ 'cashReceipt.title' | translate | sentenceCase }}
+      </button>
+
+      @if (shouldShowPartialRefundButton()) {
+        <button
+          igntButton
+          sentiment="secondary"
+          [leadingIcon]="['fas', 'money-bill']"
+          [loading]="isPartialRefundInProgress"
+          [disabled]="isPartialRefundInProgress"
+          (click)="partialRefund()"
+          data-testid="order-header__options-partial-refund"
+        >
+          {{ 'validateTicketsNew.orderHeader.partialRefund' | translate | sentenceCase }}
+        </button>
+      }
+
+      <ng-container *ngIf="!hiddenCancellation && canCancel()">
+        <!--
+          The tooltip lives on a wrapper because a natively disabled button fires neither
+          mouseenter nor focusin, so the hint on the button itself would never open.
+        -->
+        <span
+          *ngIf="shouldShowCancellationButton()"
+          igntTooltip
+          tooltipPlacement="bottom"
+          [attr.tabindex]="isCancellationBlockedByPendingModification() ? 0 : null"
+          [tooltipLabel]="
+            isCancellationBlockedByPendingModification()
+              ? ('validateTicketsNew.orderHeader.cancelOrderBlockedByPendingModification' | translate)
+              : ''
+          "
+          data-testid="order-header__options-cancel-hint"
+        >
+          <button
+            igntButton
+            sentiment="secondary"
+            variant="danger"
+            (click)="cancelOrder()"
+            [disabled]="isCancellationBlockedByPendingModification()"
+            [leadingIcon]="['fas', 'ban']"
+            data-testid="order-header__options-cancel"
+          >
+            {{ 'validateTicketsNew.orderHeader.cancelOrder' | translate | sentenceCase }}
+          </button>
+        </span>
+      </ng-container>
+    </ng-container>
+
+    <ng-container extra-label>
+      <app-validation-label *ngIf="viewCartSession()?.isExpired" [label]="'expired'" data-testid="order-header-expired-tag">
+      </app-validation-label>
+      <app-validation-label
+        *ngIf="hasReschedule && rescheduleLabel"
+        [label]="rescheduleLabel"
+        data-testid="order-header-reschedule-tag"
+      ></app-validation-label>
+    </ng-container>
+
+    <ng-container identifiers>
+      @if (hasBookingTagsAccess() && tagsTarget(); as target) {
+        <app-booking-tags-row [target]="target" [sessionTypeIds]="ticketTypeIds()" data-testid="order-header-tags" />
+      }
+      <div class="order-header__id-row">
+        <div class="order-header__order-id" data-testid="order-header-order-id">
+          <span class="order-header__order-id-tag">
+            {{ 'validateTicketsNew.orderHeader.orderId' | translate }}
+          </span>
+          {{ orderExternalId() }}
+        </div>
+        <ng-container *permissionBased="'can_view_validation'">
+          <ng-container *ngIf="hasReschedule && hasRescheduleNavigation()">
+            <span class="order-header__id-separator" aria-hidden="true" data-testid="order-header-reschedule-separator">|</span>
+            <button
+              igntButton
+              sentiment="secondary"
+              size="small"
+              *ngIf="rescheduleSourceOrderId()"
+              (click)="goToOrder(rescheduleSourceOrderId())"
+              data-testid="order-header-original-order-button"
+            >
+              {{ 'boxOffice.order.reschedule.goToOriginalOrder' | translate | sentenceCase }}
+            </button>
+            @if (targetRescheduleOrderNavigationIds().length > 1) {
+              <button
+                type="button"
+                igntButton
+                sentiment="secondary"
+                size="small"
+                [igntMenuTriggerFor]="newOrdersMenu"
+                data-testid="order-header-see-new-orders-dropdown"
+              >
+                {{ 'boxOffice.order.reschedule.seeNewOrders' | translate | sentenceCase }}
+              </button>
+              <ng-template #newOrdersMenu>
+                <ignt-menu>
+                  @for (targetOrderId of targetRescheduleOrderNavigationIds(); track targetOrderId) {
+                    <ignt-menu-item
+                      value="{{ targetOrderId }}"
+                      [attr.data-testid]="'order-header-new-order-item-' + targetOrderId"
+                      [label]="'boxOffice.order.reschedule.orderNumberLabel' | translate: { orderId: targetOrderId }"
+                      (triggered)="goToOrder(targetOrderId)"
+                    />
+                  }
+                </ignt-menu>
+              </ng-template>
+            } @else if (targetRescheduleOrderNavigationIds().length === 1) {
+              <button
+                igntButton
+                sentiment="secondary"
+                size="small"
+                (click)="goToOrder(targetRescheduleOrderNavigationIds()[0])"
+                data-testid="order-header-new-order-button"
+              >
+                {{ 'boxOffice.order.reschedule.goToNewOrder' | translate | sentenceCase }}
+              </button>
+            }
+          </ng-container>
+        </ng-container>
+      </div>
+      @if (viewOrder()?.reservationId) {
+        <div class="order-header__reservation-id" data-testid="order-header-reservation-id">
+          <span class="order-header__reservation-id-tag">
+            {{ 'validateTicketsNew.orderHeader.reservationId' | translate }}
+          </span>
+          {{ viewOrder()?.reservationLocator }}
+        </div>
+      }
+      @if (showExternalReservationId() && viewOrder()?.externalOrderId) {
+        <div class="order-header__reservation-id" data-testid="order-header-external-order-id">
+          <span class="order-header__reservation-id-tag">
+            {{ 'validateTicketsNew.orderHeader.externalOrderId' | translate }}
+          </span>
+          {{ viewOrder()?.externalOrderId }}
+        </div>
+      }
+      @if (showExternalReservationId() && viewOrder()?.externalReservationId) {
+        <div class="order-header__reservation-id" data-testid="order-header-external-reservation-id">
+          <span class="order-header__reservation-id-tag">
+            {{ 'validateTicketsNew.orderHeader.externalReservationId' | translate }}
+          </span>
+          {{ viewOrder()?.externalReservationId }}
+        </div>
+      }
+    </ng-container>
+
+    <ng-container status>
+      @if (isCancelledByCoverGenius()) {
+        <ignt-tag
+          [sentiment]="orderStatusSentiment()"
+          [variant]="orderStatusVariant()"
+          data-testid="order-header-cancelled-by-cover-genius-tag"
+        >
+          {{ 'validateTicketsNew.validationStatusSummary.cancelled_by_cover_genius' | translate }}
+        </ignt-tag>
+      }
+      @if (!hiddenValidation && !isEntitlementOrder() && showValidatedCount()) {
+        <app-validated-count
+          [total]="validatedCount().total"
+          [validated]="validatedCount().validated"
+          data-testid="order-header-validated-count"
+        ></app-validated-count>
+      }
+    </ng-container>
+  </app-cart-header>
+}
+
+<button
+  class="box-office-content__button box-office-content__button--outline"
+  *ngIf="isMobilePos"
+  (click)="clickOnPrintAdyenTicket()"
+  [disabled]="isPrintingAdyenTicket || isNoTicketSelected()"
+>
+  <fa-icon [icon]="[isPrintingAdyenTicket ? 'fad' : 'fas', isPrintingAdyenTicket ? 'spinner-third' : 'print']"></fa-icon>
+  <span>
+    {{ 'boxOffice.order.adyenPrinter.buttons.printTickets' | translate | sentenceCase }}
+    @if (selectableTicketCount() > 0) {
+      ({{ selectedTicketCount() }}/{{ selectableTicketCount() }})
+    }
+  </span>
+</button>

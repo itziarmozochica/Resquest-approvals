@@ -1,0 +1,60 @@
+<div class="membership-connect-field" data-hj-suppress data-testid="membership-connect-field">
+  @if (field().type === fieldType.SELECT) {
+    <span class="membership-connect-field__label">{{ label() }}</span>
+    <app-multi-select
+      class="membership-connect-field__select"
+      data-testid="membership-connect-field-select"
+      [disabled]="control().disabled"
+      [displayInPlaceMaximum]="1"
+      [errorMessage]="errorMessage()"
+      [helpText]="field().helpText"
+      [maxSelectedOptions]="1"
+      [options]="selectOptions()"
+      [placeholder]="copy.form.selectPlaceholder"
+      [searchPlaceholder]="field().label"
+      [selectedOptions]="selectedOptions()"
+      (selected)="onSelectOption($event)"
+    />
+  } @else {
+    <!--
+      `field` on the wrapper, not just decoration: the global `textfield` rules key the reveal button's
+      position and the matching `padding-inline-end` on the input off `.field:has(.field__icon--trail)`,
+      and `ignt-input-field` has no trailing-icon slot of its own to hang it on. Same shape as the
+      search-icon wrapper in `oss-search`, on a `<div>` because a `<button>` inside a `<label>` would
+      forward its click to the input.
+    -->
+    <div class="membership-connect-field__control field">
+      <ignt-input-field
+        [customFormErrors]="formErrors()"
+        [formControl]="control()"
+        [helperText]="field().helpText ?? ''"
+        [id]="inputId()"
+        [label]="label()"
+        [maxlength]="field().maxLength"
+        [placeholder]="field().placeholder ?? ''"
+        [type]="inputType()"
+      />
+      @if (field().type === fieldType.SECRET) {
+        <button
+          ignt-icon-button
+          class="membership-connect-field__reveal field__icon field__icon--trail"
+          data-testid="membership-connect-field-reveal"
+          sentiment="tertiary"
+          size="small"
+          type="button"
+          variant="sharp"
+          [attr.aria-label]="isRevealed() ? copy.form.hideSecretLabel(field().label) : copy.form.showSecretLabel(field().label)"
+          [icon]="isRevealed() ? ['fal', 'eye'] : ['fal', 'eye-slash']"
+          (click)="onToggleReveal()"
+        ></button>
+      }
+    </div>
+  }
+
+  <!--
+    The message the control's `aria-describedby` points at. Visually hidden because both design-system
+    components already render it on screen; this copy exists only so a screen reader announces it when
+    the control has focus.
+  -->
+  <span class="visually-hidden" data-testid="membership-connect-field-error-description" [id]="errorId()">{{ errorMessage() }}</span>
+</div>

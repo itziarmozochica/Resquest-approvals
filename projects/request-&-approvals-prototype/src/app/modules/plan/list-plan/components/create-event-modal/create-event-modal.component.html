@@ -1,0 +1,124 @@
+<app-lateral-slider
+  [showDetails]="isOpen()"
+  [title]="'menu.createNewEvent' | translate"
+  [titleTemplate]="isCreatingVenue() ? createVenueTitleTemplate : undefined"
+  [contentTemplate]="contentTemplate"
+  [closeOnBackdropClick]="!isSaving() && !isCreatingVenueSaving()"
+  [disableCloseButton]="isSaving() || isCreatingVenueSaving()"
+  (closeSlider)="onClose()"
+>
+</app-lateral-slider>
+
+<ng-template #createVenueTitleTemplate>
+  <div class="create-event-modal__venue-title">
+    <button
+      type="button"
+      ignt-icon-button
+      variant="sharp"
+      sentiment="tertiary"
+      size="small"
+      data-testid="create-event-venue-back"
+      [disabled]="isCreatingVenueSaving()"
+      [attr.aria-label]="'common.back' | translate"
+      [icon]="['fas', 'chevron-left']"
+      (click)="onVenueCreateCancel()"
+    ></button>
+    <span>{{ 'createEvent.createVenue' | translate }}</span>
+  </div>
+</ng-template>
+
+<ng-template #contentTemplate>
+  @if (isCreatingVenue()) {
+    <app-create-venue-form
+      class="create-event-modal__venue-form"
+      variant="advanced"
+      (cancelled)="onVenueCreateCancel()"
+      (createFailed)="onVenueCreateFailed()"
+      (savingChange)="isCreatingVenueSaving.set($event)"
+      (existingVenueSelected)="onExistingVenueSelected($event)"
+      (venueCreated)="onVenueCreated($event)"
+    />
+  }
+
+  <div class="create-event-modal" [hidden]="isCreatingVenue()">
+    <form [formGroup]="form" class="create-event-modal__form">
+      <div class="create-event-modal__field">
+        <label class="create-event-modal__label">
+          <span class="create-event-modal__label-text">{{ 'createEvent.title' | translate }}*</span>
+        </label>
+        <ignt-input-field
+          id="title"
+          [label]="'createEvent.title' | translate"
+          [required]="true"
+          [hideErrorLabels]="true"
+          formControlName="title"
+          class="create-event-title-input"
+          type="text"
+        />
+      </div>
+
+      @if (!isTypePreset()) {
+        <div class="create-event-modal__field">
+          <label class="create-event-modal__label">
+            <span class="create-event-modal__label-text">{{ 'createEvent.type' | translate }}*</span>
+            <span class="create-event-modal__helper-text">{{ 'createEvent.typeHelper' | translate }}</span>
+          </label>
+          <div class="create-event-modal__select-wrapper">
+            <ignt-typeahead
+              [fieldLabel]="'createEvent.selectOption' | translate"
+              [options]="typeOptions()"
+              [selectedOption]="selectedTypeOption()"
+              (selected)="onTypeSelect($event)"
+              data-testid="create-event-type-select"
+            ></ignt-typeahead>
+          </div>
+        </div>
+      }
+
+      @if (isShowcaseType()) {
+        <app-plan-select [planKind]="planKindStandard" (planIdChange)="onPlanIdChange($event)" />
+      }
+
+      @if (showVenueSelect()) {
+        <div class="create-event-modal__field">
+          <app-venue-select
+            [allowCreateVenue]="true"
+            [required]="isVenueRequired()"
+            (createVenue)="onVenueCreateRequested()"
+            (venueChange)="onVenueChange($event)"
+          />
+          <ignt-alert class="create-event-modal__venue-hint-banner" data-testid="create-event-venue-hint-alert">
+            <ng-template #igntAlertContent>
+              {{ 'createEvent.venueNotListedHint' | translate }}
+              <ul class="create-event-modal__venue-hint-list">
+                <li>{{ 'createEvent.venueNotListedProjectManager' | translate }}</li>
+                <li>
+                  <a [href]="'mailto:' + partnersSupportEmail">{{ partnersSupportEmail }}</a>
+                </li>
+              </ul>
+            </ng-template>
+          </ignt-alert>
+        </div>
+      }
+    </form>
+
+    <div class="lateral-slider-body__footer create-event-modal__actions">
+      <ignt-button
+        fill
+        data-testid="create-event-save-button"
+        [loading]="isSaving()"
+        [disabled]="isSaving() || form.invalid"
+        [label]="(isSaving() ? 'createEvent.saving' : 'common.save') | translate"
+        (click)="onSave()"
+      />
+      <ignt-button
+        fill
+        variant="tertiary"
+        data-testid="create-event-cancel-button"
+        [disabled]="isSaving()"
+        [label]="'common.cancel' | translate"
+        (click)="onClose()"
+      />
+    </div>
+  </div>
+</ng-template>

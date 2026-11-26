@@ -1,0 +1,118 @@
+<ng-template #questionTpl let-question>
+  @if (fieldEditing(); as fieldEditingState) {
+    <app-ir-question-field-actions [question]="question" [state]="fieldEditingState" (action)="fieldAction.emit($event)" />
+  }
+  <app-information-request-question
+    [class.ir-form-layout__question--pending-removal]="fieldEditing()?.pendingRemove?.includes(question.id)"
+    [question]="question"
+    [control]="controlFor(question.id)"
+    [locked]="locked()"
+    [partnerId]="partnerId()"
+    [launchId]="launchId()"
+    [informationRequestId]="informationRequestId()"
+    [referencedStepperTemplates]="referencedStepperTemplates()"
+    [siblingAnswers]="answersById()"
+    (siblingAnswerChange)="onSiblingAnswer($event.questionId, $event.value)"
+    (fileUploaded)="fileUploaded.emit($event)"
+  />
+</ng-template>
+
+@if (hasLayout()) {
+  <div class="ir-form-layout" [formGroup]="form()">
+    <nav class="ir-form-layout__tabs" role="tablist">
+      @for (section of layout()!.sections; track $index) {
+        <button
+          type="button"
+          role="tab"
+          class="ir-form-layout__tab"
+          [class.ir-form-layout__tab--active]="$index === activeSectionIndex"
+          [class.ir-form-layout__tab--complete]="sectionStatus(section).complete"
+          [attr.aria-selected]="$index === activeSectionIndex"
+          [attr.tabindex]="$index === activeSectionIndex ? 0 : -1"
+          (click)="selectSection($index)"
+          (keydown)="onTabKeydown($event, $index)"
+          data-testid="ir-form-layout-tab"
+        >
+          <span class="ir-form-layout__tab-label">{{ section.title | irCatalogKey | translate }}</span>
+          @if (sectionStatus(section).complete) {
+            <svg
+              class="ir-form-layout__tab-check"
+              data-testid="ir-form-layout-tab-check"
+              viewBox="0 0 16 16"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M6.2 11.3 3 8.1l1.1-1.1 2.1 2.1 5-5L12.3 5.2z" />
+            </svg>
+          }
+        </button>
+      }
+    </nav>
+
+    @if (activeSection(); as section) {
+      <section class="ir-form-layout__section" role="tabpanel" data-testid="ir-form-layout-section">
+        @for (row of section.rows; track $index) {
+          <div class="ir-form-layout__row" [style.--ir-layout-cols]="rowColumns(row)">
+            @for (column of row.columns; track $index) {
+              @if (columnHasVisibleQuestions(column)) {
+                <div class="ir-form-layout__column">
+                  @for (id of column; track id) {
+                    @if (questionById(id); as question) {
+                      <ng-container [ngTemplateOutlet]="questionTpl" [ngTemplateOutletContext]="{ $implicit: question }" />
+                    }
+                  }
+                </div>
+              }
+            }
+          </div>
+        }
+      </section>
+    }
+  </div>
+} @else if (hasSectionTabs()) {
+  <div class="ir-form-layout" [formGroup]="form()">
+    <nav class="ir-form-layout__tabs" role="tablist">
+      @for (group of sectionGroups(); track group.title) {
+        <button
+          type="button"
+          role="tab"
+          class="ir-form-layout__tab"
+          [class.ir-form-layout__tab--active]="$index === activeSectionIndex"
+          [class.ir-form-layout__tab--complete]="groupStatus(group).complete"
+          [attr.aria-selected]="$index === activeSectionIndex"
+          [attr.tabindex]="$index === activeSectionIndex ? 0 : -1"
+          (click)="selectSection($index)"
+          (keydown)="onTabKeydown($event, $index)"
+          data-testid="ir-form-layout-tab"
+        >
+          <span class="ir-form-layout__tab-label">{{ group.title | irCatalogKey | translate }}</span>
+          @if (groupStatus(group).complete) {
+            <svg
+              class="ir-form-layout__tab-check"
+              data-testid="ir-form-layout-tab-check"
+              viewBox="0 0 16 16"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path d="M6.2 11.3 3 8.1l1.1-1.1 2.1 2.1 5-5L12.3 5.2z" />
+            </svg>
+          }
+        </button>
+      }
+    </nav>
+
+    @if (activeGroup(); as group) {
+      <section class="ir-form-layout__section" role="tabpanel" data-testid="ir-form-layout-section">
+        @for (question of group.questions; track question.id) {
+          <ng-container [ngTemplateOutlet]="questionTpl" [ngTemplateOutletContext]="{ $implicit: question }" />
+        }
+      </section>
+    }
+  </div>
+} @else {
+  <div class="ir-form-layout__flat" [formGroup]="form()" data-testid="ir-form-layout-flat">
+    @for (question of questions(); track question.id) {
+      <ng-container [ngTemplateOutlet]="questionTpl" [ngTemplateOutletContext]="{ $implicit: question }" />
+    }
+  </div>
+}

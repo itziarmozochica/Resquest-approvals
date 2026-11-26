@@ -1,0 +1,265 @@
+@use 'foundations' as foundations;
+@use '../../styles/layout' as layout;
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/mixins';
+
+// What the desktop page keeps around a tab body: header, card and tab bar. Legacy's 9rem less the
+// 8 px the body gained when it moved up to 16 px under the tab bar. See AGENTS.md, "One body component per tab kind".
+$tab-body-chrome: foundations.$dimension-36 - foundations.$space-2;
+// The tickets section also takes the 16 px legacy left free above the card's bottom padding.
+$tickets-section-chrome: $tab-body-chrome - foundations.$space-4;
+
+:host {
+  display: contents;
+
+  // Port of the legacy `app-oss-tickets-section` host rule.
+  @include media-breakpoint-down(lg) {
+    display: block;
+    height: 100%;
+  }
+}
+
+.spinner-container {
+  display: flex;
+  height: 60dvh;
+  width: 100%;
+
+  .spinner {
+    margin: auto;
+  }
+}
+
+.oss-hierarchy-tiles-host {
+  --hierarchy-tiles-height: calc(100dvh - #{$tab-body-chrome});
+
+  display: flex;
+  flex-direction: column;
+  gap: foundations.$space-2;
+  height: var(--hierarchy-tiles-height);
+  min-height: 0;
+
+  &--mobile-breadcrumb {
+    margin-top: -#{foundations.$space-4};
+  }
+
+  @include media-breakpoint-down(lg) {
+    height: 100%;
+  }
+
+  @include media-breakpoint-up(lg) {
+    height: calc(var(--hierarchy-tiles-height) - #{layout.$headerbar-height});
+  }
+
+  fzt-tile-grid {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+}
+
+.tickets-oss-section {
+  --ticket-oss-section-height: calc(100dvh - #{$tickets-section-chrome});
+
+  display: flex;
+  flex-direction: column;
+  gap: foundations.$space-4;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+
+  @include media-breakpoint-down(lg) {
+    height: 100%;
+  }
+
+  // From `lg` up the section is the containing block of the taxes note, see `.ticket-selector__taxes-included`.
+  @include media-breakpoint-up(lg) {
+    position: relative;
+    flex-direction: row;
+    height: calc(var(--ticket-oss-section-height) - #{layout.$headerbar-height});
+  }
+
+  @include media-breakpoint-up(layout.$aside-menu-breakpoint) {
+    height: calc(var(--ticket-oss-section-height) - #{layout.$headerbar-height-large});
+  }
+}
+
+.date-selector {
+  flex: 1 0 auto;
+  height: 100%;
+  max-width: foundations.$dimension-65;
+  background-color: foundations.$palette-neutral-100;
+  padding: foundations.$space-3 foundations.$space-4;
+  border-radius: foundations.$radii-2;
+
+  &:empty {
+    display: none;
+  }
+
+  ::ng-deep .date-time-selector {
+    height: 100%;
+
+    &__hours {
+      overflow-y: auto;
+    }
+
+    .availability-from-date {
+      width: 100%;
+    }
+
+    .time-selector {
+      gap: 0;
+    }
+
+    .tile-wrapper--grid,
+    .date-time-selector__dates > .skeleton__dates,
+    .skeleton__sessions > .skeleton__hours {
+      @media (max-width: 1199px) {
+        grid-template-columns: repeat(1, 1fr);
+      }
+
+      @media (min-width: 1200px) and (max-width: 1396px) {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      @media (min-width: 1397px) and (max-width: 1919px) {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .skeleton__dates > *,
+    .skeleton__hours > * {
+      min-height: 3.5rem;
+      min-width: 4rem;
+    }
+
+    .tile-wrapper--grid {
+      .tile-wrapper__item {
+        min-height: 3.5rem;
+        min-width: 4rem;
+      }
+    }
+  }
+}
+
+.ticket-selector {
+  width: 100%;
+  overflow-y: auto;
+  @include layout.scroll-shadow-mask;
+  flex: 1 1 0;
+  min-height: 0;
+
+  @include media-breakpoint-down(lg) {
+    flex: 1;
+    min-height: 0;
+  }
+
+  // Desktop paging replaces scrolling.
+  @include media-breakpoint-up(lg) {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  // The tickets column shows no scroll-edge fade: nothing scrolls in it on desktop and the fade
+  // blurred the first level row and the taxes note. See AGENTS.md, "One body component per tab kind".
+  &--tickets {
+    @include layout.scroll-shadow-mask-none;
+  }
+
+  // The level strip and the tile grid stack 12 px apart: the last level row's 8 px scrollbar band plus this gap.
+  &--grid {
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-1;
+    overflow: visible;
+    @include layout.scroll-shadow-mask-none;
+  }
+
+  // Below `lg` the strip starts where legacy's did: its 6 px margin plus the first row's 8 px padding.
+  // From `lg` up it starts level with the date panel, at the section top.
+  &__levels {
+    flex: 0 0 auto;
+    margin-top: foundations.$space-3-5;
+
+    @include media-breakpoint-up(lg) {
+      margin-top: foundations.$space-0;
+    }
+  }
+
+  // A grid with no strip above it keeps the legacy 14 px slide margin below `lg`, and from `lg` up
+  // starts level with the date panel too.
+  &--grid > fzt-tile-grid:first-child {
+    margin-top: foundations.$space-3-5;
+
+    @include media-breakpoint-up(lg) {
+      margin-top: foundations.$space-0;
+    }
+  }
+
+  // Below `lg` the party column is at least as tall as the scroller around it, so the awaiting-party
+  // empty state can sit in the middle of the tab body (frame 4 of B2BS-1879) with the taxes note at
+  // the bottom; a day with tiles still grows past it and scrolls.
+  &--party {
+    gap: foundations.$space-2;
+
+    @include media-breakpoint-down(lg) {
+      min-height: 100%;
+      // Room under the note at the end of the scroll: 8 px, or the host's cart bar past it.
+      padding-block-end: var(--fzt-tickets-section-bottom-clearance, #{foundations.$space-2});
+    }
+  }
+
+  // Below `lg` the party note closes the column in flow (QA 2026-10-19, B2BS-1879: pinned to the
+  // viewport it floated over the tiles): it follows the last tile and scrolls with it, and on a short
+  // day (the awaiting-party empty state) `margin-block-start: auto` pushes it to the bottom of the
+  // min-height column, 8 px from the viewport. A host whose page overlays a bar on the viewport bottom
+  // (the POS phone cart bar) sets `--fzt-tickets-section-bottom-clearance` on any ancestor to the
+  // bar's height plus 8 px, only while the bar shows; the column's end padding follows it, so the end
+  // of the scroll clears the bar and the section never knows about it.
+  &--party > &__taxes-included {
+    @include media-breakpoint-down(lg) {
+      margin-block-start: auto;
+      margin-block-end: 0;
+    }
+  }
+
+  // From `lg` up the party grid fills the column and pages (`flex: 1 1 0`). Below it the column's
+  // height is its content's (the outer `.ticket-selector` is a block scroller there), and a
+  // flex-basis-0 item of an auto-height column gets no height at all: the tiles then overflowed a
+  // 0 px host over the taxes note. The grid keeps its content height there and only grows into the
+  // column's spare height (B2BS-1879).
+  &--party > fzt-party-tile-grid {
+    @include media-breakpoint-down(lg) {
+      flex: 1 1 auto;
+    }
+
+    @include media-breakpoint-up(lg) {
+      flex: 1 1 0;
+      min-height: 0;
+    }
+  }
+
+  // From `lg` up the note's bottom and end edges hang one grid gap past the section's instead of
+  // closing the column, so the grid ends level with the date panel and the note sits as far from the
+  // host card's bottom border as from its end border. The section is its containing block, which is
+  // what keeps the outer `.ticket-selector`'s `overflow: hidden` from clipping it. See AGENTS.md,
+  // "One body component per tab kind".
+  &__taxes-included {
+    align-self: flex-end;
+    font: foundations.$font-caption-regular;
+    color: foundations.$color-text-subtle;
+
+    @include media-breakpoint-down(lg) {
+      margin-block-start: foundations.$space-3;
+      margin-block-end: foundations.$space-22;
+    }
+
+    @include media-breakpoint-up(lg) {
+      position: absolute;
+      inset-block-end: -#{foundations.$dimension-3};
+      inset-inline-end: -#{foundations.$dimension-3};
+      // The line box keeps 4 px under the text and the last glyph 1 px of side bearing: 3 px of end
+      // padding puts the text 8 px from the card's end border, as far as from its bottom border.
+      padding-inline-end: foundations.$dimension-1 - foundations.$dimension-px;
+    }
+  }
+}

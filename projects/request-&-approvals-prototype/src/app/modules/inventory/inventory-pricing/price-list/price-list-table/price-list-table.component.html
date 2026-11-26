@@ -1,0 +1,668 @@
+<div class="table-layout--horizontal-scroll-container">
+  <table class="price-list-table">
+    <thead class="price-list-table__header">
+      <tr class="price-list-table__row">
+        <th class="price-list-table__cell">
+          {{ 'sessions.pricing.priceList.table.headers.ticketType' | translate }}
+          <ng-container *ngTemplateOutlet="sortingControl; context: { column: 'ticketType' }"></ng-container>
+        </th>
+        <th class="price-list-table__cell">
+          {{ 'sessions.pricing.priceList.table.headers.group' | translate }}
+          <ng-container
+            *ngTemplateOutlet="
+              sortingControl;
+              context: {
+                column: 'group',
+              }
+            "
+          ></ng-container>
+        </th>
+        @if (currencyMode !== 'points') {
+          <th class="price-list-table__cell">
+            {{ 'sessions.pricing.priceList.table.headers.strikethroughPrice' | translate }}
+          </th>
+        }
+        <th class="price-list-table__cell">
+          @if (currencyMode === 'points') {
+            {{ 'sessions.pricing.priceList.table.headers.pointsPrice' | translate }}
+          } @else {
+            {{ 'sessions.pricing.priceList.table.headers.price' | translate }}
+          }
+        </th>
+        @if (currencyMode !== 'points') {
+          <th class="price-list-table__cell">
+            {{ 'sessions.pricing.priceList.table.headers.surcharge' | translate }}
+          </th>
+        }
+        @if (currencyMode !== 'points' && canEditB2bDiscount()) {
+          <th class="price-list-table__cell">
+            {{ 'sessions.pricing.priceList.table.headers.b2bDiscount' | translate }}
+          </th>
+        }
+      </tr>
+    </thead>
+
+    <tbody data-testid="price-list-items-table-body" class="price-list-table__body price-list-table__body--spacing">
+      @for (row of rowsToDisplay; track row.item.id; let i = $index) {
+        @let item = row.item;
+        <tr
+          data-testid="price-list-table-row"
+          class="price-list-table__row"
+          [class.price-list-table__row--accent]="row.item.rule.pricingType === pricingType.Unspecified"
+          [class.price-list-table__row--archived]="isArchivedSessionType(row.item.sessionType.id)"
+          [class.price-list-table__row--linked]="row.depth > 0"
+        >
+          <td data-testid="price-list-table-name-cell" class="price-list-table__cell session-type-name-cell">
+            @if (isIdpTableEnabled) {
+              @for (guide of row.guides; track guide.level) {
+                <span
+                  aria-hidden="true"
+                  class="tree-guide"
+                  [class.tree-guide--elbow]="guide.kind === 'elbow'"
+                  [class.tree-guide--tee]="guide.kind === 'tee'"
+                  [class.tree-guide--to-icon]="!row.linkedCount"
+                  [style.--tree-guide-level]="guide.level"
+                ></span>
+              }
+              @if (row.linkedCount && !isRowCollapsed(row)) {
+                <span aria-hidden="true" class="tree-guide tree-guide--stem" [style.--tree-guide-level]="row.depth"></span>
+              }
+            }
+            <span class="session-type-name-cell__wrapper">
+              @if (isIdpTableEnabled) {
+                <span class="session-type-name-cell__tree" [style.--price-list-table-row-depth]="row.depth">
+                  @if (row.linkedCount) {
+                    <button
+                      ignt-icon-button
+                      class="session-type-name-cell__toggle"
+                      data-testid="price-list-table-row-toggle"
+                      sentiment="tertiary"
+                      size="small"
+                      type="button"
+                      [icon]="['fal', isRowCollapsed(row) ? 'chevron-right' : 'chevron-down']"
+                      [attr.aria-expanded]="!isRowCollapsed(row)"
+                      [attr.aria-label]="
+                        (isRowCollapsed(row)
+                          ? 'sessions.pricing.priceList.table.linked.expand'
+                          : 'sessions.pricing.priceList.table.linked.collapse'
+                        ) | translate: { ticketType: item.sessionType.label }
+                      "
+                      (click)="onToggleRow(row)"
+                    ></button>
+                  }
+                </span>
+              }
+              <span class="session-type-name-cell__icon" data-testid="price-list-table-session-icon">
+                @if (getTicketType(item.sessionType.id) === ticketType.REGULAR) {
+                  <ignt-icon name="ticket" variant="regular" />
+                }
+                @if (getTicketType(item.sessionType.id) === ticketType.ADD_ON) {
+                  <ignt-icon name="cart-plus" variant="light" />
+                }
+                @if (getTicketType(item.sessionType.id) === ticketType.PACK) {
+                  <ignt-icon name="box-open" variant="light" />
+                }
+                @if (getTicketType(item.sessionType.id) === ticketType.SHOP_PRODUCT) {
+                  <ignt-icon name="store" variant="light" />
+                }
+              </span>
+              <span class="session-type-name-cell__text">
+                {{ item.sessionType.label }}
+                @if (isArchivedSessionType(item.sessionType.id)) {
+                  <app-archived-ticket-type-badge />
+                }
+                @if (isIdpTableEnabled && row.linkedCount) {
+                  <span class="linked-badge" data-testid="price-list-table-linked-badge">
+                    {{
+                      (row.linkedCount === 1
+                        ? 'sessions.pricing.priceList.table.linked.badgeOne'
+                        : 'sessions.pricing.priceList.table.linked.badgeMany'
+                      ) | translate: { count: row.linkedCount }
+                    }}
+                  </span>
+                }
+              </span>
+            </span>
+          </td>
+          <td data-testid="price-list-table-group-cell" class="price-list-table__cell session-type-group-cell">
+            <span>{{ item.sessionType.groups.length ? (item.sessionType.groups | pluck: 'name').join(', ') : '-' }}</span>
+          </td>
+          @if (currencyMode !== 'points') {
+            <td
+              data-testid="price-list-table-strikethrough-price-cell"
+              class="price-list-table__cell strikethrough-price-cell"
+              [class.price-list-table__cell--live-editor-edited]="isLiveEditorCellEdited(item)"
+            >
+              @if (liveEditor.canLiveEditItem(item)) {
+                <span class="live-editor-field">
+                  <input
+                    appAutoformatNumericInput
+                    autocomplete="off"
+                    class="live-editor-input"
+                    data-testid="price-list-table-live-strikethrough-input"
+                    min="0"
+                    [currency]="getLiveEditorCurrency(item)"
+                    [class.live-editor-input--edited]="liveEditor.isFieldEdited(item, 'strikethroughPrice')"
+                    [class.live-editor-input--invalid]="liveEditor.isFieldInvalid(item, 'strikethroughPrice')"
+                    [formControl]="liveEditor.getFieldControl(item, 'strikethroughPrice')"
+                  />
+                </span>
+              } @else {
+                @if (!isPrpItem(item) && getStrikethroughPrice(item); as strikethroughPrice) {
+                  <span class="strikethrough-price-cell__content">
+                    <span class="strikethrough-price-cell__value">{{
+                      strikethroughPrice.amount | currency: strikethroughPrice.currency
+                    }}</span>
+                    @if (getDiscountPercentage(item); as discount) {
+                      <app-discount-tag data-testid="price-list-table-discount-badge" [percentage]="discount" />
+                    }
+                  </span>
+                } @else if (!isPrpItem(item) && getStrikethroughRule(item); as strikethroughRule) {
+                  <span data-testid="price-list-table-strikethrough-rule">
+                    @if (strikethroughRule.kind === 'percentage') {
+                      {{
+                        'sessions.pricing.priceList.priceEditForm.strikethroughDefinition.discountTag'
+                          | translate: { percentage: strikethroughRule.percentage }
+                      }}
+                    } @else if (strikethroughRule.kind === 'amount') {
+                      {{
+                        'sessions.pricing.priceList.priceEditForm.strikethroughDefinition.abovePrice'
+                          | translate: { amount: strikethroughRule.amount.amount | currency: strikethroughRule.amount.currency }
+                      }}
+                    } @else {
+                      {{ 'sessions.pricing.priceList.priceEditForm.strikethroughDefinition.types.parent_ticket_price' | translate }}
+                    }
+                  </span>
+                } @else if (!isPrpItem(item)) {
+                  <span>-</span>
+                }
+              }
+            </td>
+          }
+          <td
+            data-testid="price-list-table-price-cell"
+            class="price-list-table__cell price-cell"
+            [class.price-list-table__cell--live-editor-edited]="isLiveEditorCellEdited(item)"
+          >
+            <span class="price-cell__layout">
+              <span class="price-cell__content">
+                <ng-container *ngTemplateOutlet="pricesLabel; context: { item, rowIndex: i }"></ng-container>
+              </span>
+              @if (isIdpTableEnabled && currencyMode !== 'points' && !isPrpItem(item) && !liveEditor.canLiveEditPriceCell(item)) {
+                @if (getPriceDisplay(item); as priceDisplay) {
+                  <ng-container *ngTemplateOutlet="priceSourceDetails; context: { $implicit: priceDisplay }"></ng-container>
+                }
+              }
+            </span>
+          </td>
+          @if (currencyMode !== 'points') {
+            <td
+              data-testid="price-list-table-surcharge-cell"
+              class="price-list-table__cell surcharge-cell"
+              [class.price-list-table__cell--live-editor-edited]="isLiveEditorCellEdited(item)"
+            >
+              @if (liveEditor.canLiveEditItem(item) && canEditSurcharge()) {
+                <span class="surcharge-cell__content surcharge-cell__content--live-editor">
+                  <span class="live-editor-field">
+                    <input
+                      appAutoformatNumericInput
+                      autocomplete="off"
+                      class="live-editor-input"
+                      data-testid="price-list-table-live-fixed-surcharge-input"
+                      min="0"
+                      [currency]="getLiveEditorCurrency(item)"
+                      [class.live-editor-input--edited]="liveEditor.isFieldEdited(item, 'fixedSurcharge')"
+                      [class.live-editor-input--invalid]="liveEditor.isFieldInvalid(item, 'fixedSurcharge')"
+                      [formControl]="liveEditor.getFieldControl(item, 'fixedSurcharge')"
+                      (blur)="onLiveEditorSurchargeBlur(item, liveEditor.getFieldControl(item, 'fixedSurcharge'), 'fixedSurcharge')"
+                    />
+                  </span>
+                  <span class="live-editor-field">
+                    <input
+                      appAutoformatNumericInput
+                      autocomplete="off"
+                      class="live-editor-input live-editor-input--percentage"
+                      data-testid="price-list-table-live-percentage-surcharge-input"
+                      min="0"
+                      max="100"
+                      [decimalPlaces]="2"
+                      [suffixText]="' %'"
+                      [class.live-editor-input--edited]="liveEditor.isFieldEdited(item, 'percentageSurcharge')"
+                      [class.live-editor-input--invalid]="liveEditor.isFieldInvalid(item, 'percentageSurcharge')"
+                      [formControl]="liveEditor.getFieldControl(item, 'percentageSurcharge')"
+                      (blur)="
+                        onLiveEditorSurchargeBlur(item, liveEditor.getFieldControl(item, 'percentageSurcharge'), 'percentageSurcharge')
+                      "
+                    />
+                  </span>
+                </span>
+              } @else {
+                @let surcharge = getSurchargeCellDisplay(item);
+                @if (surcharge.fixed || surcharge.percentage) {
+                  <span class="surcharge-cell__content">
+                    @if (surcharge.fixed; as fixedSurcharge) {
+                      <span data-testid="price-list-table-fixed-surcharge">{{
+                        fixedSurcharge.amount | currency: fixedSurcharge.currency
+                      }}</span>
+                    }
+                    @if (surcharge.fixed && surcharge.percentage) {
+                      <span class="surcharge-cell__separator">+</span>
+                    }
+                    @if (surcharge.percentage; as percentageSurcharge) {
+                      <span data-testid="price-list-table-percentage-surcharge">{{ percentageSurcharge }}%</span>
+                    }
+                  </span>
+                } @else if (!isPrpItem(item)) {
+                  <span>-</span>
+                }
+              }
+            </td>
+          }
+          @if (currencyMode !== 'points' && canEditB2bDiscount()) {
+            <td
+              data-testid="price-list-table-b2b-discount-cell"
+              class="price-list-table__cell b2b-discount-cell"
+              [class.price-list-table__cell--live-editor-edited]="isLiveEditorCellEdited(item)"
+            >
+              @if (liveEditor.canLiveEditItem(item) && canEditB2bDiscount()) {
+                <span class="b2b-discount-cell__content b2b-discount-cell__content--live-editor">
+                  <span class="live-editor-field">
+                    <input
+                      appAutoformatNumericInput
+                      autocomplete="off"
+                      class="live-editor-input live-editor-input--percentage"
+                      data-testid="price-list-table-live-b2b-discount-input"
+                      min="0"
+                      max="100"
+                      [decimalPlaces]="2"
+                      [suffixText]="' %'"
+                      [class.live-editor-input--edited]="liveEditor.isFieldEdited(item, 'b2bDiscount')"
+                      [class.live-editor-input--invalid]="liveEditor.isFieldInvalid(item, 'b2bDiscount')"
+                      [formControl]="liveEditor.getFieldControl(item, 'b2bDiscount')"
+                    />
+                  </span>
+                </span>
+              } @else {
+                <a
+                  class="price-list-price-control"
+                  [class.price-list-price-control--disabled]="!canModifyPriceLists()"
+                  [attr.aria-disabled]="!canModifyPriceLists()"
+                  [attr.tabindex]="canModifyPriceLists() ? 0 : -1"
+                  [attr.data-testid]="
+                    canModifyPriceLists() ? 'price-list-table-b2b-discount-link' : 'price-list-table-b2b-discount-readonly'
+                  "
+                  (click)="$event.preventDefault(); onClickPriceListItem(i)"
+                >
+                  @let b2bDiscount = getB2bDiscountPercentage(item);
+                  @if (b2bDiscount !== null) {
+                    {{ b2bDiscount }}%
+                  } @else {
+                    -
+                  }
+                </a>
+              }
+            </td>
+          }
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<ng-template #sortingControl let-column="column">
+  <button
+    (click)="onClickSorting(column)"
+    [attr.data-testid]="'price-list-items-table-' + column + '-sort-control'"
+    class="price-list-table__header-sort"
+    [class.price-list-table__header-sort--disabled]="!listToDisplay.length"
+  >
+    <ignt-icon
+      [fixedWidth]="true"
+      [name]="
+        currentSorting.column !== column || !currentSorting.direction
+          ? 'sort-alt'
+          : currentSorting.direction === SortingDirection.asc
+            ? 'sort-amount-down-alt'
+            : 'sort-amount-up-alt'
+      "
+      variant="regular"
+    />
+  </button>
+</ng-template>
+
+<ng-template #pricesLabel let-item="item" let-rowIndex="rowIndex">
+  @if (currencyMode === 'points') {
+    <span
+      class="price-label"
+      data-testid="price-list-table-points-price-cell"
+      [ngClass]="{
+        'price-label--accent': getPointsPrice(item.sessionType.id) === null,
+        'price-label--edited': isPriceLabelEdited(item),
+      }"
+    >
+      <a
+        class="price-list-price-control"
+        [class.price-list-price-control--disabled]="!canModifyPriceLists()"
+        [attr.aria-disabled]="!canModifyPriceLists()"
+        [attr.tabindex]="canModifyPriceLists() ? 0 : -1"
+        [attr.data-testid]="
+          canModifyPriceLists() ? 'price-list-table-points-price-cell-link' : 'price-list-table-points-price-cell-readonly'
+        "
+        (click)="$event.preventDefault(); onClickPriceListItem(rowIndex)"
+      >
+        @if (getPointsPrice(item.sessionType.id) === null) {
+          {{ 'sessions.pricing.priceList.table.setPriceLink' | translate }}
+        } @else {
+          {{ 'sessions.pricing.priceList.table.pointsValue' | translate: { value: getPointsPrice(item.sessionType.id) } }}
+        }
+      </a>
+    </span>
+  } @else {
+    <span
+      class="price-label"
+      data-testid="price-list-table-price-cell-prices-label"
+      [ngClass]="{
+        'price-label--accent': item.rule.pricingType === pricingType.Unspecified,
+        'price-label--edited': isPriceLabelEdited(item),
+      }"
+    >
+      <ng-container *ngIf="item.rule.pricingType === pricingType.Unspecified; else priceDefined">
+        <a
+          class="price-list-price-control"
+          [class.price-list-price-control--disabled]="!canModifyPriceLists()"
+          [attr.aria-disabled]="!canModifyPriceLists()"
+          [attr.tabindex]="canModifyPriceLists() ? 0 : -1"
+          [attr.data-testid]="
+            canModifyPriceLists() ? 'price-list-table-price-cell-set-price-link' : 'price-list-table-price-cell-set-price-readonly'
+          "
+          (click)="$event.preventDefault(); onClickPriceListItem(rowIndex)"
+        >
+          {{ 'sessions.pricing.priceList.table.setPriceLink' | translate }}
+        </a>
+      </ng-container>
+
+      <ng-template #priceDefined>
+        @if (liveEditor.canLiveEditPriceCell(item)) {
+          @if (liveEditor.isPrpPriceItem(item)) {
+            <span class="live-editor-field">
+              <ng-container *ngTemplateOutlet="liveEditorPrpPricingTypeIcon"></ng-container>
+              <input
+                appAutoformatNumericInput
+                autocomplete="off"
+                class="live-editor-input live-editor-input--percentage"
+                data-testid="price-list-table-live-prp-percentage-input"
+                min="0"
+                max="100"
+                [decimalPlaces]="0"
+                [suffixText]="' %'"
+                [class.live-editor-input--edited]="isLiveEditorPrpFieldEdited(item)"
+                [class.live-editor-input--invalid]="liveEditor.isFieldInvalid(item, 'prpPrice')"
+                [formControl]="liveEditor.getPrpPriceControl(item)"
+                (blur)="onLiveEditorPrpPriceBlur(item)"
+              />
+            </span>
+          } @else {
+            <span class="live-editor-field">
+              <ng-container *ngTemplateOutlet="liveEditorPricingTypeIcon; context: { item }"></ng-container>
+              @if (liveEditor.isPercentagePriceItem(item)) {
+                <input
+                  appAutoformatNumericInput
+                  autocomplete="off"
+                  class="live-editor-input live-editor-input--percentage"
+                  data-testid="price-list-table-live-percentage-increment-input"
+                  min="0"
+                  max="100"
+                  [decimalPlaces]="2"
+                  [suffixText]="' %'"
+                  [class.live-editor-input--edited]="liveEditor.isFieldEdited(item, 'percentageIncrement')"
+                  [class.live-editor-input--invalid]="liveEditor.isFieldInvalid(item, 'percentageIncrement')"
+                  [formControl]="liveEditor.getFieldControl(item, 'percentageIncrement')"
+                  (blur)="setLiveEditorZeroIfEmpty(liveEditor.getFieldControl(item, 'percentageIncrement'))"
+                />
+              } @else if (liveEditor.isMoneyPriceItem(item)) {
+                @if (item.rule.pricingType === pricingType.FixedOverride) {
+                  <input
+                    appAutoformatNumericInput
+                    autocomplete="off"
+                    class="live-editor-input"
+                    data-testid="price-list-table-live-ticket-price-input"
+                    min="0"
+                    [currency]="getLiveEditorCurrency(item)"
+                    [class.live-editor-input--edited]="liveEditor.isFieldEdited(item, 'ticketPrice')"
+                    [class.live-editor-input--invalid]="liveEditor.isFieldInvalid(item, 'ticketPrice')"
+                    [formControl]="liveEditor.getFieldControl(item, 'ticketPrice')"
+                    (blur)="onLiveEditorTicketPriceBlur(item)"
+                  />
+                } @else {
+                  <input
+                    appAutoformatNumericInput
+                    autocomplete="off"
+                    class="live-editor-input"
+                    data-testid="price-list-table-live-fixed-adjustment-input"
+                    min="0"
+                    [currency]="getLiveEditorCurrency(item)"
+                    [class.live-editor-input--edited]="liveEditor.isFieldEdited(item, 'fixedAdjustmentIncrement')"
+                    [class.live-editor-input--invalid]="liveEditor.isFieldInvalid(item, 'fixedAdjustmentIncrement')"
+                    [formControl]="liveEditor.getFieldControl(item, 'fixedAdjustmentIncrement')"
+                    (blur)="setLiveEditorZeroIfEmpty(liveEditor.getFieldControl(item, 'fixedAdjustmentIncrement'))"
+                  />
+                }
+              }
+            </span>
+          }
+        } @else {
+          <a
+            class="price-list-price-control"
+            [class.price-list-price-control--disabled]="!canModifyPriceLists()"
+            [attr.aria-disabled]="!canModifyPriceLists()"
+            [attr.tabindex]="canModifyPriceLists() ? 0 : -1"
+            [attr.data-testid]="
+              canModifyPriceLists() ? 'price-list-table-price-cell-price-link' : 'price-list-table-price-cell-price-readonly'
+            "
+            (click)="$event.preventDefault(); onClickPriceListItem(rowIndex)"
+          >
+            <ng-container *ngTemplateOutlet="priceDefinedDisplay; context: { $implicit: item }"></ng-container>
+          </a>
+        }
+      </ng-template>
+    </span>
+  }
+
+  <ng-template #priceDefinedDisplay let-item>
+    <ng-container *ngIf="isPrpItem(item); else priceDefinedStandardPricing">
+      <ng-container
+        [ngTemplateOutlet]="prpPercentageDisplay"
+        [ngTemplateOutletContext]="{ $implicit: item.rule, priceTooltip: generalPriceTooltip }"
+      >
+      </ng-container>
+    </ng-container>
+
+    <ng-template #priceDefinedStandardPricing>
+      @let priceDisplay = isIdpTableEnabled ? getPriceDisplay(item) : null;
+      @if (priceDisplay && priceDisplay.price !== null) {
+        <span class="price-rule-icon-container" data-testid="price-list-table-resolved-price">
+          <span
+            igntTooltip
+            [tooltipTemplate]="
+              item.rule.pricingType === pricingType.PercentageAdjustment
+                ? percentageAdjustmentPricingTypeTooltip
+                : item.rule.pricingType === pricingType.FixedAdjustment
+                  ? fixedAdjustmentPricingTypeTooltip
+                  : fixedOverridePricingTypeTooltip
+            "
+            tooltipPlacement="bottom"
+          >
+            <ignt-icon name="tag" variant="solid" size="caption" class="tag-icon" />
+          </span>
+          <span igntTooltip [tooltipTemplate]="generalPriceTooltip">{{ priceDisplay.price | currency: getLiveEditorCurrency(item) }}</span>
+        </span>
+      } @else {
+        @switch (item.rule.pricingType) {
+          @case (pricingType.FixedOverride) {
+            <ng-container
+              [ngTemplateOutlet]="fixedOverridePercentage"
+              [ngTemplateOutletContext]="{ $implicit: item.rule, priceTooltip: generalPriceTooltip }"
+            ></ng-container>
+          }
+          @case (pricingType.PercentageAdjustment) {
+            <ng-container
+              [ngTemplateOutlet]="percentageOverridePercentage"
+              [ngTemplateOutletContext]="{ $implicit: item.rule, priceTooltip: generalPriceTooltip }"
+            ></ng-container>
+          }
+          @case (pricingType.FixedAdjustment) {
+            <ng-container
+              [ngTemplateOutlet]="fixedAdjustmentOverridePercentage"
+              [ngTemplateOutletContext]="{ $implicit: item.rule, priceTooltip: generalPriceTooltip }"
+            ></ng-container>
+          }
+        }
+      }
+    </ng-template>
+
+    <ng-template #generalPriceTooltip>
+      <ng-container *ngTemplateOutlet="onePriceTooltipTemplate; context: { isGeneralPrice: true }"></ng-container>
+    </ng-template>
+  </ng-template>
+
+  <ng-template #fixedOverridePercentage let-rule let-priceTooltip="priceTooltip">
+    <span class="price-rule-icon-container">
+      <span igntTooltip [tooltipTemplate]="fixedOverridePricingTypeTooltip" tooltipPlacement="bottom">
+        <ignt-icon name="tag" variant="solid" size="caption" class="tag-icon" />
+      </span>
+      <span igntTooltip [tooltipTemplate]="priceTooltip">
+        {{
+          rule.mustUseTaxBase
+            ? (rule.ticketPriceTaxBase.amount | currency: rule.ticketPriceTaxBase.currency)
+            : (rule.ticketPrice.amount | currency: rule.ticketPrice.currency)
+        }}
+      </span>
+    </span>
+  </ng-template>
+
+  <ng-template #percentageOverridePercentage let-rule let-priceTooltip="priceTooltip">
+    <span class="price-rule-icon-container">
+      <span igntTooltip [tooltipTemplate]="percentageAdjustmentPricingTypeTooltip" tooltipPlacement="bottom">
+        <ignt-icon
+          [name]="rule.percentageIncrement >= 0 ? 'plus-circle' : 'minus-circle'"
+          variant="solid"
+          size="caption"
+          class="tag-icon"
+        />
+      </span>
+      <span igntTooltip [tooltipTemplate]="priceTooltip"> {{ rule.percentageIncrement | absoluteValue }}% </span>
+    </span>
+  </ng-template>
+
+  <ng-template #fixedAdjustmentOverridePercentage let-rule let-priceTooltip="priceTooltip">
+    <span class="price-rule-icon-container">
+      <span igntTooltip [tooltipTemplate]="fixedAdjustmentPricingTypeTooltip" tooltipPlacement="bottom">
+        <ignt-icon
+          [name]="rule.ticketPriceTaxBaseIncrement.amount >= 0 ? 'plus-circle' : 'minus-circle'"
+          variant="solid"
+          size="caption"
+          class="tag-icon"
+        />
+      </span>
+      <span igntTooltip [tooltipTemplate]="priceTooltip">
+        {{
+          rule.mustUseTaxBase
+            ? (rule.ticketPriceTaxBaseIncrement.amount | absoluteValue | currency: rule.ticketPriceTaxBaseIncrement.currency)
+            : (rule.ticketPriceIncrement.amount | absoluteValue | currency: rule.ticketPriceIncrement.currency)
+        }}
+      </span>
+    </span>
+  </ng-template>
+</ng-template>
+
+<ng-template #priceSourceDetails let-display>
+  @if (display.source === priceSource.AnotherTicket && display.baseLabel) {
+    <span class="price-cell__details">
+      <span class="price-cell__detail" data-testid="price-list-table-price-source">
+        {{ 'sessions.pricing.priceList.table.priceSource.anotherTicket' | translate: { ticketType: display.baseLabel } }}
+      </span>
+    </span>
+  } @else if (display.source === priceSource.ParentList) {
+    <span class="price-cell__details">
+      <span class="price-cell__detail" data-testid="price-list-table-price-source">
+        @if (parentPriceListName(); as priceListName) {
+          {{ 'sessions.pricing.priceList.table.priceSource.parentListNamed' | translate: { priceList: priceListName } }}
+        } @else {
+          {{ 'sessions.pricing.priceList.table.priceSource.parentList' | translate }}
+        }
+      </span>
+    </span>
+  }
+</ng-template>
+
+<ng-template #onePriceTooltipTemplate>
+  <p
+    class="pricing-type-tooltip__text pricing-type-tooltip__text--highlight"
+    [innerHTML]="'sessions.pricing.priceList.table.generalPrice' | translate"
+  ></p>
+</ng-template>
+
+<ng-template #liveEditorPrpPricingTypeIcon>
+  <span class="price-rule-icon-container">
+    <span igntTooltip [tooltipTemplate]="prpPricingTypeTooltip" tooltipPlacement="bottom">
+      <ignt-icon name="tag" variant="solid" size="caption" class="tag-icon" />
+    </span>
+  </span>
+</ng-template>
+
+<ng-template #liveEditorPricingTypeIcon let-item="item">
+  <span class="price-rule-icon-container">
+    @switch (item.rule.pricingType) {
+      @case (pricingType.FixedOverride) {
+        <span igntTooltip [tooltipTemplate]="fixedOverridePricingTypeTooltip" tooltipPlacement="bottom">
+          <ignt-icon [name]="liveEditor.getPricingTypeIconName(item)" variant="solid" size="caption" class="tag-icon" />
+        </span>
+      }
+      @case (pricingType.PercentageAdjustment) {
+        <span igntTooltip [tooltipTemplate]="percentageAdjustmentPricingTypeTooltip" tooltipPlacement="bottom">
+          <ignt-icon [name]="liveEditor.getPricingTypeIconName(item)" variant="solid" size="caption" class="tag-icon" />
+        </span>
+      }
+      @case (pricingType.FixedAdjustment) {
+        <span igntTooltip [tooltipTemplate]="fixedAdjustmentPricingTypeTooltip" tooltipPlacement="bottom">
+          <ignt-icon [name]="liveEditor.getPricingTypeIconName(item)" variant="solid" size="caption" class="tag-icon" />
+        </span>
+      }
+    }
+  </span>
+</ng-template>
+
+<ng-template #fixedOverridePricingTypeTooltip>
+  <ng-container *ngTemplateOutlet="pricingTypeTooltip; context: { $implicit: pricingType.FixedOverride }"></ng-container>
+</ng-template>
+
+<ng-template #percentageAdjustmentPricingTypeTooltip>
+  <ng-container *ngTemplateOutlet="pricingTypeTooltip; context: { $implicit: pricingType.PercentageAdjustment }"></ng-container>
+</ng-template>
+
+<ng-template #fixedAdjustmentPricingTypeTooltip>
+  <ng-container *ngTemplateOutlet="pricingTypeTooltip; context: { $implicit: pricingType.FixedAdjustment }"></ng-container>
+</ng-template>
+
+<ng-template #pricingTypeTooltip let-ruleType>
+  <p class="pricing-type-tooltip__text" [innerHTML]="'sessions.pricing.priceList.table.pricingTypeTooltipLabel' | translate"></p>
+  <p class="pricing-type-tooltip__text pricing-type-tooltip__text--highlight">
+    {{ 'sessions.pricing.priceList.pricingType.' + ruleType | translate }}
+  </p>
+</ng-template>
+
+<ng-template #prpPercentageDisplay let-rule let-priceTooltip="priceTooltip">
+  <span class="price-rule-icon-container">
+    <span igntTooltip [tooltipTemplate]="prpPricingTypeTooltip" tooltipPlacement="bottom">
+      <ignt-icon name="tag" variant="solid" size="caption" class="tag-icon" />
+    </span>
+    <span igntTooltip [tooltipTemplate]="priceTooltip"> {{ getPrpPercentageAmount(rule) }}% </span>
+  </span>
+</ng-template>
+
+<ng-template #prpPricingTypeTooltip>
+  <p class="pricing-type-tooltip__text" [innerHTML]="'sessions.pricing.priceList.table.pricingTypeTooltipLabel' | translate"></p>
+  <p class="pricing-type-tooltip__text pricing-type-tooltip__text--highlight">
+    {{ 'sessions.pricing.priceList.pricingType.percentage_over_base_price' | translate }}
+  </p>
+</ng-template>

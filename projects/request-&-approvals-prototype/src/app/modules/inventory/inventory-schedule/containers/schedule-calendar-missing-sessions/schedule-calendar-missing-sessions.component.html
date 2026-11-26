@@ -1,0 +1,103 @@
+<div class="schedule-calendar-missing-sessions" data-testid="schedule-calendar-missing-sessions">
+  <ignt-wrapper-card>
+    <div class="schedule-calendar-missing-sessions__header">
+      <h4 class="font-h6 schedule-calendar-missing-sessions__title">
+        {{ 'inventory.schedule.missingSessions.title' | translate }}
+        <app-fever-only-marker />
+      </h4>
+      <p class="font-small-regular">{{ 'inventory.schedule.missingSessions.description' | translate }}</p>
+    </div>
+
+    <ignt-switch
+      class="schedule-calendar-missing-sessions__include-past"
+      data-testid="missing-sessions-include-past"
+      [checked]="includePast()"
+      [description]="'inventory.schedule.missingSessions.includePast.description' | translate"
+      [disabled]="isLoading() || isGenerating()"
+      [label]="'inventory.schedule.missingSessions.includePast.label' | translate"
+      (checkedChange)="onIncludePastChange($event)"
+    />
+
+    @if (isLoading()) {
+      <p class="font-small-regular" data-testid="missing-sessions-loading">
+        {{ 'inventory.schedule.missingSessions.loading' | translate }}
+      </p>
+    }
+
+    @if (report(); as currentReport) {
+      <ul class="schedule-calendar-missing-sessions__summary" data-testid="missing-sessions-summary">
+        <li class="font-small-bold" data-testid="missing-sessions-missing-count">
+          {{ 'inventory.schedule.missingSessions.missing' | translate: { count: currentReport.missingSessions } }}
+        </li>
+        <li class="font-small-regular" data-testid="missing-sessions-declared-count">
+          {{ 'inventory.schedule.missingSessions.declared' | translate: { count: currentReport.declaredSessions } }}
+        </li>
+        <li class="font-small-regular" data-testid="missing-sessions-inactive-count">
+          {{ 'inventory.schedule.missingSessions.inactive' | translate: { count: currentReport.storedInactiveSessions } }}
+        </li>
+        <li class="font-small-regular" data-testid="missing-sessions-groups-count">
+          {{
+            'inventory.schedule.missingSessions.groups'
+              | translate: { toCreate: currentReport.groupsToCreate.length, alreadyStored: currentReport.groupsAlreadyStored }
+          }}
+        </li>
+      </ul>
+
+      @if (currentReport.blockers.length > 0) {
+        <ignt-alert
+          class="schedule-calendar-missing-sessions__alert"
+          data-testid="missing-sessions-blockers"
+          sentiment="danger"
+          [title]="'inventory.schedule.missingSessions.blocked' | translate"
+        >
+          <ng-template #igntAlertContent>
+            <ul class="schedule-calendar-missing-sessions__blockers">
+              @for (blocker of currentReport.blockers; track $index) {
+                <li class="font-small-regular" data-testid="missing-sessions-blocker">{{ blocker.message }}</li>
+              }
+            </ul>
+          </ng-template>
+        </ignt-alert>
+      }
+    }
+
+    @if (generationOutcome() === outcomes.NothingMissing) {
+      <ignt-alert
+        class="schedule-calendar-missing-sessions__alert"
+        data-testid="missing-sessions-nothing-missing"
+        sentiment="info"
+        [description]="'inventory.schedule.missingSessions.nothingMissing' | translate"
+      />
+    }
+
+    @if (hasLoadFailed()) {
+      <ignt-alert
+        class="schedule-calendar-missing-sessions__alert"
+        data-testid="missing-sessions-load-error"
+        sentiment="danger"
+        [description]="'inventory.schedule.missingSessions.loadError' | translate"
+      />
+    }
+
+    @if (hasGenerationFailed()) {
+      <ignt-alert
+        class="schedule-calendar-missing-sessions__alert"
+        data-testid="missing-sessions-generation-error"
+        sentiment="danger"
+        [description]="'inventory.schedule.missingSessions.generationError' | translate"
+      />
+    }
+
+    <div class="schedule-calendar-missing-sessions__actions">
+      <ignt-button
+        data-testid="missing-sessions-generate-button"
+        size="small"
+        variant="secondary"
+        [disabled]="!canGenerate()"
+        [label]="'inventory.schedule.missingSessions.generate' | translate"
+        [loading]="isGenerating()"
+        (click)="onGenerateClick()"
+      />
+    </div>
+  </ignt-wrapper-card>
+</div>

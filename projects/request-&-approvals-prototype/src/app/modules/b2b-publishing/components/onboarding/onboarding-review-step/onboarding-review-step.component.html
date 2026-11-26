@@ -1,0 +1,146 @@
+<div class="onboarding-review-step">
+  @if (isLoading()) {
+    <div class="onboarding-review-step__loading" aria-busy="true" aria-live="polite" data-testid="onboarding-review-loading">
+      <span class="onboarding-review-step__message">{{ 'marketplaceEvents.onboarding.review.marketplace.loading' | translate }}</span>
+      <ignt-skeleton type="list" [animation]="true" [numElements]="3" />
+    </div>
+  } @else {
+    <ignt-tabs class="onboarding-review-step__tabs" [hasExtraLine]="true">
+      <ignt-tabs-item [label]="marketplaceTabLabel()">
+        <div class="onboarding-review-step__tab" data-testid="onboarding-review-marketplace">
+          <p class="onboarding-review-step__intro" data-testid="onboarding-review-marketplace-intro">
+            {{ 'marketplaceEvents.onboarding.review.marketplace.intro' | translate }}
+            @if (keptChannels().length) {
+              {{ 'marketplaceEvents.onboarding.review.marketplace.importedStayUnpublished' | translate }}
+            }
+          </p>
+
+          @if (hasError()) {
+            <div class="onboarding-review-step__failure" role="alert" data-testid="onboarding-review-error">
+              <p class="onboarding-review-step__message">{{ 'marketplaceEvents.onboarding.review.marketplace.error' | translate }}</p>
+              <ignt-button
+                data-testid="onboarding-review-retry"
+                variant="secondary"
+                [label]="'marketplaceEvents.onboarding.review.marketplace.retry' | translate"
+                (click)="retried.emit()"
+              />
+            </div>
+          } @else if (events().length) {
+            @if (isTruncated()) {
+              <ignt-alert
+                data-testid="onboarding-review-truncated"
+                sentiment="warning"
+                [description]="'distributors.groups.wizard.review.truncatedPublication' | translate: { max: maxEventsLabel() }"
+              />
+            }
+
+            <ignt-table
+              data-testid="onboarding-review-events"
+              layout="table"
+              [data]="visibleEvents()"
+              [hasFullWidthSearch]="true"
+              [hasPagination]="true"
+              [pageSize]="eventsPageSize"
+              [searchConfig]="eventSearchConfig()"
+              (searchChanged)="searchEvents($event)"
+            >
+              <ignt-table-column
+                key="name"
+                columnType="primary"
+                [header]="'marketplaceEvents.onboarding.review.marketplace.columns.event' | translate"
+              >
+                <ng-template [igntTableColumnTemplateType]="eventSample" let-item="item">
+                  <span class="onboarding-review-step__text" [attr.data-testid]="'onboarding-review-event-' + item.id">
+                    <span class="onboarding-review-step__name">{{ item.name }}</span>
+                    <span class="onboarding-review-step__detail">{{ eventSummaries().get(item.id) }}</span>
+                  </span>
+                </ng-template>
+              </ignt-table-column>
+
+              <ignt-table-column [header]="'marketplaceEvents.onboarding.review.marketplace.columns.publish' | translate" [width]="360">
+                <ng-template [igntTableColumnTemplateType]="eventSample" let-item="item">
+                  <span class="onboarding-review-step__publish" [attr.data-testid]="'onboarding-review-publish-' + item.id">
+                    <ignt-checkbox
+                      size="small"
+                      [ariaLabel]="'marketplaceEvents.onboarding.review.marketplace.publishNowFor' | translate: { name: item.name }"
+                      [checked]="publishNowIds().has(item.id)"
+                      [dataTestId]="'onboarding-review-publish-now-' + item.id"
+                      (change)="publishNowToggled.emit(item.id)"
+                    />
+                    @if (publishNowIds().has(item.id)) {
+                      <ignt-tag sentiment="positive">{{
+                        'marketplaceEvents.onboarding.review.marketplace.goingLive' | translate
+                      }}</ignt-tag>
+                    } @else {
+                      <ignt-tag sentiment="sharp">{{ 'marketplaceEvents.onboarding.review.marketplace.keptAsDraft' | translate }}</ignt-tag>
+                      <span class="onboarding-review-step__detail onboarding-review-step__publish-hint">{{
+                        'marketplaceEvents.onboarding.review.marketplace.keptAsDraftHint' | translate
+                      }}</span>
+                    }
+                  </span>
+                </ng-template>
+              </ignt-table-column>
+
+              <ignt-table-column align="right" columnType="action" [header]="''" [width]="160">
+                <ng-template [igntTableColumnTemplateType]="eventSample" let-item="item">
+                  @if (defaultGroup(item); as group) {
+                    <ignt-button
+                      size="small"
+                      variant="tertiary"
+                      [ariaLabel]="'marketplaceEvents.actions.seeDetailsOf' | translate: { event: item.name, group: group.name }"
+                      [attr.data-testid]="'onboarding-review-details-' + item.id"
+                      [label]="'marketplaceEvents.actions.seeDetails' | translate"
+                      (click)="detailsOpened.emit({ event: item, group })"
+                    />
+                  }
+                </ng-template>
+              </ignt-table-column>
+            </ignt-table>
+          } @else {
+            <p class="onboarding-review-step__message" data-testid="onboarding-review-no-events">
+              {{ 'marketplaceEvents.onboarding.review.marketplace.empty' | translate }}
+            </p>
+          }
+        </div>
+      </ignt-tabs-item>
+
+      <ignt-tabs-item [label]="importedTabLabel()">
+        <div class="onboarding-review-step__tab" data-testid="onboarding-review-imported">
+          @if (keptChannels().length) {
+            <p class="onboarding-review-step__intro" data-testid="onboarding-review-imported-intro">
+              {{ 'marketplaceEvents.onboarding.review.imported.intro' | translate }}
+            </p>
+
+            <ignt-table
+              data-testid="onboarding-review-imported-groups"
+              layout="table"
+              [data]="channelRows()"
+              [hasFullWidthSearch]="true"
+              [hasPagination]="true"
+              [pageSize]="channelsPageSize"
+              [searchConfig]="channelSearchConfig()"
+              (searchChanged)="searchChannels($event)"
+            >
+              <ignt-table-column
+                key="name"
+                columnType="primary"
+                [header]="'marketplaceEvents.onboarding.channels.columns.channel' | translate"
+              >
+                <ng-template [igntTableColumnTemplateType]="channelSample" let-item="item">
+                  <span class="onboarding-review-step__text" [attr.data-testid]="'onboarding-review-imported-group-' + item.id">
+                    <span class="onboarding-review-step__name">{{ item.name }}</span>
+                    <span class="onboarding-review-step__detail">{{ item.summary }}</span>
+                  </span>
+                </ng-template>
+              </ignt-table-column>
+            </ignt-table>
+          } @else {
+            <p class="onboarding-review-step__message" data-testid="onboarding-review-imported-empty">
+              {{ 'marketplaceEvents.onboarding.review.imported.empty' | translate }}
+            </p>
+          }
+        </div>
+      </ignt-tabs-item>
+    </ignt-tabs>
+  }
+</div>

@@ -1,0 +1,230 @@
+// ViewEncapsulation.None — selectors are global on purpose (see component).
+app-db-info-card-canvas {
+  display: contents;
+}
+
+.block-info-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: -14px -16px;
+  width: calc(100% + 32px);
+
+  &:not(.block-info-cards--carousel) {
+    align-items: center;
+
+    .block-info-card {
+      width: 272px;
+      max-width: 100%;
+    }
+  }
+
+  &--carousel {
+    display: block;
+    position: relative;
+    overflow: hidden;
+  }
+}
+
+.block-info-cards-track {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  // A thin native scrollbar IS the discoverability affordance for the
+  // carousel. The previous incarnation hid it (`scrollbar-width: none` +
+  // `::-webkit-scrollbar { display: none; }`) because JS-driven drag was
+  // the affordance. With that JS gone (the published HTML never had it,
+  // and the editor now mirrors the published HTML), the scrollbar is what
+  // tells the user "this scrolls". Touch / swipe / two-finger trackpad /
+  // mouse-wheel + Shift all keep working as before.
+  scrollbar-width: thin;
+  // Scroll-snap: any scroll gesture (touchpad, swipe, scrollbar drag, even
+  // momentum scroll on macOS) lands aligned with a card's start edge.
+  // `mandatory` (vs `proximity`) forces the snap regardless of where the
+  // user released — the user said "must end on the nearest card", which is
+  // exactly the `mandatory` behavior.
+  scroll-snap-type: x mandatory;
+  // Natural cursor — no `grab` because there is no JS drag handler to back
+  // that affordance up. Showing a grab cursor without an actual drag would
+  // be misleading.
+  cursor: auto;
+
+  // WebKit-specific scrollbar styling. Matches the override rules emitted
+  // by `HtmlExportService` for the published HTML so the editor preview
+  // and the published page look identical (same height, same colors).
+  &::-webkit-scrollbar {
+    display: block;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  .block-info-card {
+    flex: 0 0 auto;
+    width: 272px;
+    // Each card's left edge is a snap point. The track's `scrollLeft`
+    // will only stop at multiples of `card.offsetLeft`.
+    scroll-snap-align: start;
+  }
+}
+
+// Carousel layout: the track fills the full width of the block. No nav
+// arrows on either side anymore — they're gone from the DOM (see the
+// component .ts / .html). Users scroll via the native scrollbar / touch
+// swipe / trackpad / mouse-wheel + Shift.
+.block-info-cards--carousel .block-info-cards-track {
+  width: 100%;
+}
+
+.block-info-card {
+  --ic-accent: #e31b23;
+  --ic-readable-accent: var(--ic-accent);
+  --ic-cta-fg: #ffffff;
+
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--border-subtle, #e8e8e8);
+
+  &--highlight {
+    border-color: var(--ic-accent);
+    box-shadow:
+      0 0 0 1px var(--ic-accent),
+      0 4px 14px rgba(227, 27, 35, 0.12);
+  }
+}
+
+.block-info-card-top {
+  position: relative;
+}
+
+.block-info-card-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.block-info-card-header {
+  position: relative;
+  min-height: 92px;
+  background: linear-gradient(165deg, #fdeef2 0%, #ffffff 72%);
+  overflow: hidden;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.45);
+    pointer-events: none;
+  }
+
+  &::before {
+    width: 120px;
+    height: 120px;
+    right: -28px;
+    top: -40px;
+  }
+
+  &::after {
+    width: 72px;
+    height: 72px;
+    left: 12px;
+    bottom: -18px;
+    opacity: 0.85;
+  }
+}
+
+.block-info-card-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #fff;
+  background: var(--ic-accent);
+}
+
+.block-info-card-main {
+  padding: 14px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.block-info-card-heading {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.block-info-card-price {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ic-readable-accent);
+}
+
+.block-info-card-features {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+}
+
+.block-info-card-check {
+  font-size: 16px !important;
+  width: 16px;
+  height: 16px;
+  color: var(--ic-accent) !important;
+  flex-shrink: 0;
+  margin-top: 1px;
+  font-variation-settings: 'FILL' 1;
+}
+
+.block-info-card-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ic-cta-fg, #ffffff);
+  background: var(--ic-accent);
+  margin-top: 2px;
+
+  .ms {
+    font-size: 18px !important;
+  }
+}

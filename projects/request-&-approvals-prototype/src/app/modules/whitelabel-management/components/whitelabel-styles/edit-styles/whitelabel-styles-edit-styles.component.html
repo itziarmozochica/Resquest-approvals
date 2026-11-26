@@ -1,0 +1,61 @@
+<app-go-back
+  [goBackTitle]="(whitelabel ? (whitelabel.name | uppercase) + ' ' : '') + ('menu.whitelabelStyles' | translate)"
+  [urlGoBack]="whitelabel?.id ? '/whitelabels/styles/' + whitelabel!.id : '/whitelabels'"
+/>
+<app-page-title
+  [title]="
+    ((isReadOnly ? 'whitelabelManagement.viewWhitelabelStyles' : 'whitelabelManagement.editWhitelabelStyles') | translate) +
+    (mergedStyles?.style_name ? ' - ' + mergedStyles.style_name : '')
+  "
+  class="new-design"
+/>
+
+<div class="whitelabel-styles">
+  <div class="whitelabel-styles__container">
+    @if (auditFetchParams) {
+      <div class="whitelabel-styles__header">
+        <div class="whitelabel-styles__header-buttons">
+          <button igntButton sentiment="secondary" (click)="toggleAuditHistory()">
+            {{
+              auditHistoryShow
+                ? ('whitelabelConfiguration.hideVersionHistory' | translate)
+                : ('whitelabelConfiguration.showVersionHistory' | translate)
+            }}
+          </button>
+        </div>
+      </div>
+    }
+
+    <div class="whitelabel-styles__form" [hidden]="auditHistoryShow">
+      <div class="whitelabel-styles__form-item">
+        <div class="whitelabel-styles__title-label">CSS Stylesheet</div>
+        <textarea
+          [(ngModel)]="cssContent"
+          [readOnly]="isReadOnly"
+          data-testid="wl-styles-css-editor"
+          class="whitelabel-styles__editor"
+          spellcheck="false"
+        ></textarea>
+      </div>
+
+      @if (!isReadOnly) {
+        <div class="whitelabel-styles__footer">
+          <button igntButton data-testid="wl-styles-save" [disabled]="isSaving() || !hasChanges" [loading]="isSaving()" (click)="onSave()">
+            {{ 'whitelabelConfiguration.save' | translate }}
+          </button>
+        </div>
+      }
+    </div>
+
+    @if (auditFetchParams) {
+      <app-whitelabel-audit
+        [hidden]="!auditHistoryShow"
+        [fetchParams]="auditFetchParams"
+        [entityConfig]="auditEntityConfig"
+        [readOnly]="isReadOnly"
+        [restorePreviewBuilder]="buildRestorePreview"
+        (recordRestored)="onRecordRestored()"
+      />
+    }
+  </div>
+</div>

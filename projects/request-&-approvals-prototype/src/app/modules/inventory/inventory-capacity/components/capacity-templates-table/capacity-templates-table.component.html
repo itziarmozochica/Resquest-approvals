@@ -1,0 +1,101 @@
+@if (showTable()) {
+  <table class="capacity-templates-table">
+    <thead>
+      <tr
+        appCapacityTemplatesTableHeader
+        class="capacity-templates-table__row--start"
+        [canViewQuotas]="canViewQuotas()"
+        [capacityTemplates]="layout().templates"
+        [disabled]="disabled()"
+        [narrow]="narrow()"
+        (viewQuotas)="viewCapacityTemplateQuotas.emit($event)"
+      ></tr>
+      <tr
+        appCapacityTemplatesTableTimeSlotCapacityRow
+        class="capacity-templates-table__row--end capacity-templates-table__timeslot-capacity-row"
+        [timeSlotCapacities]="layout().timeSlotCapacities"
+      ></tr>
+    </thead>
+    <tbody>
+      @for (group of layout().nonAssetBasedGroups; track group.groupId) {
+        <tr class="capacity-templates-table__spacer" aria-hidden="true">
+          <td [attr.colspan]="columnCount()"></td>
+        </tr>
+        <tr
+          appCapacityTemplatesTableSessionTypeGroupRow
+          class="capacity-templates-table__session-type-group-row capacity-templates-table__row--start"
+          [class.capacity-templates-table__row--end]="isGroupCollapsed(group.groupId) || group.sessionTypes.length === 0"
+          [group]="group"
+          [isCollapsed]="isGroupCollapsed(group.groupId)"
+          (toggleCollapse)="onToggleSessionTypeGroupCollapse(group.groupId)"
+        ></tr>
+        @if (!isGroupCollapsed(group.groupId)) {
+          @for (sessionType of group.sessionTypes; track sessionType.sessionTypeId; let lastSessionType = $last) {
+            <tr
+              appCapacityTemplatesTableSessionTypeRow
+              class="capacity-templates-table__session-type-row"
+              [class.capacity-templates-table__row--end]="lastSessionType"
+              [sessionType]="sessionType"
+            ></tr>
+          }
+        }
+      }
+    </tbody>
+  </table>
+}
+
+@if (showAssetSection() && layout().assetBasedGroups.length > 0) {
+  <div class="capacity-templates-table__asset-section">
+    <div class="capacity-templates-table__asset-section-header" (click)="onToggleAssetSectionCollapse()">
+      <ignt-icon class="pointer" [name]="isAssetSectionCollapsed() ? 'chevron-up' : 'chevron-down'" variant="light"></ignt-icon>
+      <span>{{ 'inventory.capacity.templates.sections.assetBased' | translate }}</span>
+    </div>
+    @if (!isAssetSectionCollapsed()) {
+      <div class="capacity-templates-table__asset-info-banner">
+        <ignt-icon name="info-circle" variant="solid"></ignt-icon>
+        {{ 'inventory.capacity.templates.sections.assetBasedInfo' | translate }}
+      </div>
+      <div class="capacity-templates-table__asset-table" role="table">
+        @for (group of layout().assetBasedGroups; track group.groupId; let firstGroup = $first) {
+          @if (!firstGroup) {
+            <div class="capacity-templates-table__asset-spacer" aria-hidden="true"></div>
+          }
+          <div
+            class="capacity-templates-table__asset-pack-row capacity-templates-table__asset-pack-row--start"
+            [class.capacity-templates-table__asset-pack-row--end]="isGroupCollapsed(group.groupId) || group.sessionTypes.length === 0"
+            role="row"
+          >
+            <div class="capacity-templates-table__asset-pack-label capacity-templates-table__asset-pack-label--group" role="rowheader">
+              <span class="collapse-group-icon" (click)="onToggleSessionTypeGroupCollapse(group.groupId!)">
+                <ignt-icon [name]="isGroupCollapsed(group.groupId) ? 'chevron-up' : 'chevron-down'" variant="light"></ignt-icon>
+                {{ group.groupName }}
+              </span>
+            </div>
+            <div class="capacity-templates-table__asset-pack-value" role="cell">{{ group.maxCapacity }}</div>
+          </div>
+          @if (!isGroupCollapsed(group.groupId)) {
+            @for (sessionType of group.sessionTypes; track sessionType.sessionTypeId; let lastSessionType = $last) {
+              <div
+                class="capacity-templates-table__asset-pack-row"
+                [class.capacity-templates-table__asset-pack-row--end]="lastSessionType"
+                role="row"
+              >
+                <div
+                  class="capacity-templates-table__asset-pack-label capacity-templates-table__asset-pack-label--session"
+                  role="rowheader"
+                >
+                  <ignt-icon name="ticket-alt" variant="light"></ignt-icon>
+                  {{ sessionType.sessionTypeLabel }}
+                  @if (sessionType.isNew) {
+                    <span class="tag tag--warning-outline-contrast">{{ 'tags.new' | translate }}</span>
+                  }
+                </div>
+                <div class="capacity-templates-table__asset-pack-value" role="cell">{{ group.maxCapacity }}</div>
+              </div>
+            }
+          }
+        }
+      </div>
+    }
+  </div>
+}

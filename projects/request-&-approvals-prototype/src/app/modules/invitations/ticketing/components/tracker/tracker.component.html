@@ -1,0 +1,227 @@
+<ignt-table
+  class="tracker-table"
+  data-testid="invitation-tracker-table-data"
+  [data]="rows()"
+  [interactiveRows]="hasValidationPermission"
+  [isLoading]="loading()"
+  (rowInteraction)="openDetails($event)"
+>
+  <ignt-table-column key="fullName" columnType="primary" [header]="'invitations.tracker.fullName' | translate">
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      <div class="tracker-table__cell" [class.tracker-table__cell--cancelled]="item.isCancelled">
+        <span data-testid="invitation-tracker-table-full-name">{{ item.fullName }}</span>
+        <span class="tracker-table__secondary" data-testid="invitation-tracker-table-email">{{ item.email }}</span>
+      </div>
+    </ng-template>
+  </ignt-table-column>
+
+  <ignt-table-column key="startDate" columnType="secondary" [header]="'invitations.tracker.session' | translate">
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      @if (item.startDate) {
+        <div
+          class="tracker-table__cell"
+          data-testid="invitation-tracker-table-session-date"
+          [class.tracker-table__cell--cancelled]="item.isCancelled"
+        >
+          <span>{{ item.startDate | momentDate: 'd MMM yyyy' : timezone() }}</span>
+          <span class="tracker-table__secondary">{{ item.startDate | momentDate: 'hh:mm a' : timezone() }}</span>
+        </div>
+      } @else {
+        <span>-</span>
+      }
+    </ng-template>
+  </ignt-table-column>
+
+  <ignt-table-column columnType="secondary" [header]="'invitations.tracker.ticketDetails' | translate">
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      @if (item.isProcessing) {
+        <span data-testid="invitation-tracker-table-processing">{{ 'invitations.tracker.processing' | translate }}</span>
+      } @else if (item.hasTickets) {
+        <ignt-button
+          variant="tertiary"
+          size="small"
+          class="tracker-table__count-button"
+          data-testid="invitation-tracker-tickets-button"
+          [leadingIcon]="{ name: 'ticket', variant: 'light' }"
+          [label]="item.ticketCountLabel"
+          [ariaLabel]="'orders.tableColumns.ticketsAriaLabel' | translate: { count: item.ticketCountLabel }"
+          (click)="$event.stopPropagation(); viewTickets(item)"
+          (keydown)="$event.stopPropagation()"
+        />
+      } @else {
+        <span>-</span>
+      }
+    </ng-template>
+  </ignt-table-column>
+
+  @if (hasSeats()) {
+    <ignt-table-column columnType="secondary" [header]="'invitations.tracker.seats' | translate">
+      <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+        @if (item.hasSeats) {
+          <ignt-button
+            variant="tertiary"
+            size="small"
+            class="tracker-table__count-button"
+            data-testid="invitation-tracker-seats-button"
+            [leadingIcon]="{ name: 'loveseat', variant: 'solid' }"
+            [label]="item.seatCountLabel"
+            [ariaLabel]="'orders.tableColumns.seatsAriaLabel' | translate: { count: item.seatCountLabel }"
+            (click)="$event.stopPropagation(); viewSeats(item)"
+            (keydown)="$event.stopPropagation()"
+          />
+        } @else {
+          <span>-</span>
+        }
+      </ng-template>
+    </ignt-table-column>
+  }
+
+  <ignt-table-column key="createdAt" [columnType]="createdAtColumnType()" [header]="'invitations.tracker.creationDate' | translate">
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      <span data-testid="invitation-tracker-table-creation-date">{{ item.createdAt | momentDate: 'd MMM yyyy' : timezone() }}</span>
+    </ng-template>
+  </ignt-table-column>
+
+  <ignt-table-column key="requester" [header]="'common.createdBy' | translate">
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      @if (item.requester; as requester) {
+        <div class="tracker-table__cell">
+          <span data-testid="invitation-tracker-requester-name">{{ requester.name }}</span>
+          <span class="tracker-table__secondary" data-testid="invitation-tracker-requester-email">{{ requester.email }}</span>
+        </div>
+      } @else {
+        <span>-</span>
+      }
+    </ng-template>
+  </ignt-table-column>
+
+  <ignt-table-column key="stateName" columnType="secondary" [header]="'invitations.tracker.invitationState' | translate">
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      <div class="tracker-table__state" data-testid="invitation-tracker-invitation-state">
+        <ignt-tag
+          [sentiment]="item.stateSentiment"
+          [variant]="item.stateVariant"
+          [attr.data-testid]="'invitation-tracker-state-' + item.stateName"
+        >
+          {{ 'invitations.tracker.state.' + item.stateName | translate }}
+        </ignt-tag>
+        @if (item.hasDeliveryStatus) {
+          <button
+            ignt-icon-button
+            type="button"
+            sentiment="tertiary"
+            size="small"
+            igntTooltip
+            tooltipPlacement="left"
+            data-testid="invitation-tracker-delivery-status-button"
+            [icon]="['fal', 'envelope-open-text']"
+            [attr.aria-label]="'invitations.tracker.deliveryStatus' | translate"
+            [tooltipLabel]="'invitations.tracker.deliveryStatusTooltip' | translate"
+            (click)="$event.stopPropagation(); deliveryStatus(item)"
+            (keydown)="$event.stopPropagation()"
+          ></button>
+        }
+      </div>
+    </ng-template>
+  </ignt-table-column>
+
+  @if (hasAttribution()) {
+    <ignt-table-column [header]="'common.attribution' | translate">
+      <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+        @if (item.hasAttribution) {
+          <div class="tracker-table__cell">
+            @if (item.b2bBusinessName) {
+              <span data-testid="invitation-tracker-b2b-business-name">{{ item.b2bBusinessName }}</span>
+            }
+            @if (item.guestGroup) {
+              <span class="tracker-table__secondary" data-testid="invitation-tracker-guest-group">
+                {{ 'invitations.guestDetails.form.guestGroup.options.' + item.guestGroup | translate }}
+              </span>
+            }
+            @if (item.requestor) {
+              <span class="tracker-table__secondary" data-testid="invitation-tracker-requestor">{{ item.requestor }}</span>
+            }
+          </div>
+        } @else {
+          <span>-</span>
+        }
+      </ng-template>
+    </ignt-table-column>
+  }
+
+  <ignt-table-column columnType="action" [header]="'common.actions' | translate" [width]="96">
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      @if (item.canRetry) {
+        <a
+          igntLink
+          href="#"
+          role="button"
+          size="small"
+          data-testid="invitation-tracker-retry-button"
+          (click)="$event.stopPropagation(); $event.preventDefault(); resend(item)"
+          (keydown)="$event.stopPropagation()"
+        >
+          {{ 'invitations.tracker.retry' | translate }}
+        </a>
+      }
+      @if (item.canPrint) {
+        <button
+          ignt-icon-button
+          type="button"
+          sentiment="tertiary"
+          size="small"
+          data-testid="invitation-actions-dropdown-button"
+          [attr.aria-label]="'common.actions' | translate"
+          [icon]="['far', 'ellipsis-h']"
+          [igntMenuTriggerFor]="invitationActionsMenu"
+          (click)="$event.stopPropagation()"
+          (keydown)="$event.stopPropagation()"
+        ></button>
+        <ng-template #invitationActionsMenu>
+          <ignt-menu data-testid="invitation-actions-menu">
+            <ignt-menu-item
+              data-testid="invitation-actions-print"
+              value="print"
+              [label]="'invitations.tracker.printTickets' | translate"
+              (triggered)="print(item)"
+            >
+              <ignt-icon aria-hidden="true" name="print" variant="light" [fixedWidth]="true" />
+            </ignt-menu-item>
+            @if (item.canManage) {
+              <ignt-menu-item
+                data-testid="invitation-actions-resend"
+                value="resend"
+                [label]="'invitations.tracker.resendInvitation' | translate"
+                (triggered)="resend(item)"
+              >
+                <ignt-icon aria-hidden="true" name="paper-plane" variant="light" [fixedWidth]="true" />
+              </ignt-menu-item>
+            }
+            @if (item.canManage) {
+              <ignt-menu-item
+                data-testid="invitation-actions-duplicate"
+                value="duplicate"
+                [label]="'invitations.tracker.duplicateInvitation' | translate"
+                [disabled]="!item.canDuplicate"
+                (triggered)="duplicate(item)"
+              >
+                <ignt-icon aria-hidden="true" name="copy" variant="light" [fixedWidth]="true" />
+              </ignt-menu-item>
+            }
+            @if (item.canManage) {
+              <ignt-menu-item
+                data-testid="invitation-actions-cancel"
+                sentiment="danger"
+                value="cancel"
+                [label]="'invitations.tracker.cancelInvitation' | translate"
+                (triggered)="cancel(item)"
+              >
+                <ignt-icon aria-hidden="true" name="trash-alt" variant="light" [fixedWidth]="true" />
+              </ignt-menu-item>
+            }
+          </ignt-menu>
+        </ng-template>
+      }
+    </ng-template>
+  </ignt-table-column>
+</ignt-table>

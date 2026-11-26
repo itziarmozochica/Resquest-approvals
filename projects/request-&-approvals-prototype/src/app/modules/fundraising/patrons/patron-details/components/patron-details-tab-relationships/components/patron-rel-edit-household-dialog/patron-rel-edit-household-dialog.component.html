@@ -1,0 +1,81 @@
+<ignt-dialog-header>
+  {{ 'fundraising.patronDetails.relationships.editHouseholdDialog.title' | translate }}
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <form id="edit-household-form" class="patron-rel-edit-household-dialog" [formGroup]="editHouseholdForm" (ngSubmit)="onSubmit()">
+    <ignt-input-field
+      formControlName="householdName"
+      [customFormErrors]="requiredFieldErrors()"
+      [label]="'fundraising.patronDetails.relationships.editHouseholdDialog.householdName.label' | translate"
+      [helperText]="'fundraising.patronDetails.relationships.editHouseholdDialog.householdName.hint' | translate"
+      type="text"
+    />
+
+    <div>
+      <div class="patron-rel-edit-household-dialog__head-label">
+        {{ 'fundraising.patronDetails.relationships.graph.headOfHousehold' | translate }}
+      </div>
+      <div class="patron-rel-edit-household-dialog__members">
+        @for (member of memberOptions; track member.id) {
+          <ignt-list-item
+            class="patron-rel-edit-household-dialog__member"
+            data-testid="edit-household-member"
+            [class.patron-rel-edit-household-dialog__member--selected]="isSelectedHead(member.id)"
+            [title]="member.name"
+            [description]="member.relationshipLabel"
+            [leadingIconTemplate]="avatarTpl"
+            [clickable]="true"
+            type="unwrapped"
+            (click)="onHeadSelection(member.id)"
+          >
+            <ng-template #avatarTpl>
+              <app-avatar-initials
+                class="patron-rel-edit-household-dialog__avatar-initials"
+                [avatarUrl]="member.avatarUrl"
+                [name]="member.name"
+                [size]="36"
+              />
+            </ng-template>
+            <div trailing-modifier class="patron-rel-edit-household-dialog__member-trailing">
+              @if (member.isCurrentHead) {
+                <ignt-tag sentiment="info" variant="solid">
+                  {{ 'fundraising.patronDetails.relationships.editHouseholdDialog.currentBadge' | translate }}
+                </ignt-tag>
+              }
+              <ignt-radio [checked]="isSelectedHead(member.id)" />
+            </div>
+          </ignt-list-item>
+
+          @if (!$last) {
+            <ignt-divider [margin]="false" />
+          }
+        }
+      </div>
+    </div>
+
+    <div>
+      <button
+        type="button"
+        igntButton
+        sentiment="tertiary"
+        variant="danger"
+        [leadingIcon]="['fal', 'trash-alt']"
+        [disabled]="isSubmitting()"
+        data-testid="edit-household-delete-btn"
+        (click)="onDeleteHousehold()"
+      >
+        {{ 'fundraising.patronDetails.relationships.editHouseholdDialog.deleteHousehold' | translate }}
+      </button>
+    </div>
+  </form>
+</ignt-dialog-content>
+
+<ignt-dialog-footer [hideCancelButton]="true">
+  <button type="button" igntButton sentiment="tertiary" (click)="dismiss()" [disabled]="isSubmitting()">
+    {{ 'common.cancel' | translate }}
+  </button>
+  <button type="submit" form="edit-household-form" igntButton sentiment="primary" [disabled]="isSaveDisabled">
+    {{ 'common.save' | translate }}
+  </button>
+</ignt-dialog-footer>

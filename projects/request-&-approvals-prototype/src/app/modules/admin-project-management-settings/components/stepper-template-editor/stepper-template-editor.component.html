@@ -1,0 +1,96 @@
+<div class="ste-editor">
+  <header class="ste-editor__head">
+    <button
+      type="button"
+      class="ste-editor__back"
+      igntButton
+      sentiment="tertiary"
+      size="small"
+      (click)="emitBack()"
+      data-testid="stepper-editor-back"
+    >
+      ← {{ 'adminServiceCatalog.stepperTemplates.backToCatalog' | translate }}
+    </button>
+    <div class="ste-editor__head-fields">
+      <label class="ste-editor__field">
+        <span>{{ 'adminServiceCatalog.stepperTemplates.label' | translate }}</span>
+        <input
+          type="text"
+          class="form-control"
+          [ngModel]="label()"
+          (ngModelChange)="onLabelChange($event)"
+          data-testid="stepper-editor-label"
+        />
+      </label>
+      <label class="ste-editor__field ste-editor__field--inline">
+        <input
+          type="checkbox"
+          [ngModel]="multiInstance()"
+          (ngModelChange)="onMultiInstanceChange($event)"
+          data-testid="stepper-editor-multi"
+        />
+        <span>{{ 'adminServiceCatalog.stepperTemplates.multiInstance' | translate }}</span>
+      </label>
+    </div>
+    <button type="button" igntButton sentiment="primary" size="small" (click)="emitSave()" data-testid="stepper-editor-save">
+      {{ 'adminServiceCatalog.save' | translate }}
+    </button>
+  </header>
+
+  <section class="ste-editor__fields">
+    <header class="ste-editor__fields-head">
+      <h4>{{ 'adminServiceCatalog.stepperTemplates.fields' | translate }}</h4>
+      <button
+        type="button"
+        igntButton
+        sentiment="tertiary"
+        size="small"
+        (click)="openCreateDialog()"
+        data-testid="stepper-editor-add-field"
+      >
+        + {{ 'adminServiceCatalog.stepperTemplates.addField' | translate }}
+      </button>
+    </header>
+
+    @if (!groups().length) {
+      <p class="ste-editor__empty">{{ 'adminServiceCatalog.stepperTemplates.noFields' | translate }}</p>
+    } @else {
+      @for (group of groups(); track group.section; let i = $index) {
+        <article class="ste-editor__step">
+          <header class="ste-editor__step-head">
+            <span class="ste-editor__step-number">{{ 'adminServiceCatalog.stepperTemplates.stepN' | translate: { n: i + 1 } }}</span>
+            <span class="ste-editor__step-title">{{ group.section }}</span>
+          </header>
+          <ul class="ste-editor__field-list">
+            @for (field of group.fields; track field.id) {
+              <li class="ste-editor__field-row">
+                <app-field-card
+                  [row]="rowFor(field)"
+                  (customFieldPatch)="onCustomFieldPatch($event.fieldId, $event.patch)"
+                  (removeField)="removeField($event)"
+                />
+              </li>
+            }
+          </ul>
+        </article>
+      }
+    }
+  </section>
+
+  @if (groups().length) {
+    <section class="ste-editor__layout">
+      <h4>{{ 'adminServiceCatalog.stepperTemplates.layout' | translate }}</h4>
+      <app-layout-editor [layout]="layout()" [fieldLabels]="fieldLabels()" (layoutChange)="onLayoutChange($event)" />
+    </section>
+  }
+
+  @if (createDialogOpen()) {
+    <app-create-field-dialog
+      [defaultSection]="defaultSectionForDialog()"
+      [availableStepperTemplates]="availableStepperTemplates"
+      [excludeStepperKey]="currentKey()"
+      (confirm)="confirmCreateField($event)"
+      (cancelled)="closeCreateDialog()"
+    />
+  }
+</div>

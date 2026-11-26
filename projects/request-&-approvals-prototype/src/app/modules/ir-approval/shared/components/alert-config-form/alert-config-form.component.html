@@ -1,0 +1,206 @@
+<form [formGroup]="form" class="alert-config-form">
+  <div class="alert-config-form__reminders-switch">
+    <span class="alert-config-form__reminders-label">{{ 'alertConfigForm.alertsEnabled.label' | translate }}</span>
+    <ignt-toggle
+      id="alert-config-alerts-enabled"
+      data-testid="alert-config-alerts-enabled"
+      [checked]="form.controls.alertsEnabled.value"
+      [disabled]="form.controls.alertsEnabled.disabled"
+      (change)="onAlertsEnabledChange($event)"
+    />
+  </div>
+
+  @if (showSchedule()) {
+    <section class="alert-config-form__section">
+      <h4 class="alert-config-form__section-title">{{ 'alertConfigForm.schedule.title' | translate }}</h4>
+      <div class="alert-config-form__schedule-grid">
+        <div class="alert-config-form__field">
+          <label for="alert-config-frequency">{{ 'alertConfigForm.frequency.label' | translate }}</label>
+          <ng-select
+            labelForId="alert-config-frequency"
+            formControlName="frequency"
+            data-testid="alert-config-frequency"
+            [clearable]="false"
+            [searchable]="false"
+          >
+            @for (option of frequencyOptions; track option) {
+              <ng-option [value]="option">{{ 'alertConfigForm.frequency.options.' + option | translate }}</ng-option>
+            }
+          </ng-select>
+        </div>
+
+        <div class="alert-config-form__field">
+          <label for="alert-config-timezone">{{ 'alertConfigForm.timezone.label' | translate }}</label>
+          <ng-select
+            labelForId="alert-config-timezone"
+            formControlName="reminderTimezone"
+            data-testid="alert-config-timezone"
+            [items]="timezoneOptions"
+          />
+        </div>
+
+        <div class="alert-config-form__field">
+          <label for="alert-config-local-hour">{{ 'alertConfigForm.localHour.label' | translate }}</label>
+          <ng-select
+            labelForId="alert-config-local-hour"
+            formControlName="reminderLocalHour"
+            data-testid="alert-config-local-hour"
+            placeholder="—"
+            [items]="hourOptions"
+            [searchable]="false"
+          />
+        </div>
+      </div>
+
+      @if (showCustomDays()) {
+        <div class="alert-config-form__field">
+          <ignt-input-field
+            id="alert-config-custom-days"
+            type="number"
+            formControlName="customReminderIntervalDays"
+            [label]="'alertConfigForm.customDays.label' | translate"
+          />
+          @if (form.errors?.['customDaysRange']) {
+            <p class="alert-config-form__error">{{ 'alertConfigForm.errors.customDaysRange' | translate }}</p>
+          }
+        </div>
+      }
+
+      @if (form.errors?.['tzAndHourPaired']) {
+        <p class="alert-config-form__error">{{ 'alertConfigForm.errors.tzAndHourPaired' | translate }}</p>
+      }
+    </section>
+  }
+
+  <section class="alert-config-form__section">
+    <h4 class="alert-config-form__section-title">{{ 'alertConfigForm.directory.partnerTitle' | translate }}</h4>
+    @if (showValidationMode) {
+      <div class="alert-config-form__validation-mode">
+        <label class="visually-hidden" for="alert-config-validation-mode">
+          {{ 'alertConfigForm.validationMode.label' | translate }}
+        </label>
+        <ng-select
+          class="alert-config-form__validation-mode-select"
+          labelForId="alert-config-validation-mode"
+          formControlName="validationMode"
+          data-testid="alert-config-validation-mode"
+          [clearable]="false"
+          [searchable]="false"
+        >
+          @for (option of validationModeOptions; track option) {
+            <ng-option [value]="option">{{ 'alertConfigForm.validationMode.options.' + option | translate }}</ng-option>
+          }
+        </ng-select>
+        <button
+          ignt-icon-button
+          type="button"
+          size="small"
+          sentiment="tertiary"
+          [icon]="['fal', 'info-circle']"
+          data-testid="alert-config-validation-mode-info"
+          [attr.aria-label]="'alertConfigForm.validationMode.infoLabel' | translate"
+          igntTooltip
+          tooltipPlacement="right"
+          [tooltipTemplate]="validationModeHelp"
+        ></button>
+      </div>
+      <p class="alert-config-form__hint" data-testid="alert-config-validation-mode-hint">
+        @if (!nobodySelected()) {
+          {{ 'alertConfigForm.validationMode.hint' | translate }}
+        } @else if (validationModeValue() === 'everyone') {
+          {{ 'alertConfigForm.validationMode.hintEveryoneNeedsSomebody' | translate }}
+        } @else {
+          {{ 'alertConfigForm.validationMode.hintNobodySelected' | translate }}
+        }
+      </p>
+      <ng-template #validationModeHelp>
+        <p class="alert-config-form__tooltip-line">{{ 'alertConfigForm.validationMode.help.onlyOne' | translate }}</p>
+        <p class="alert-config-form__tooltip-line">{{ 'alertConfigForm.validationMode.help.everyone' | translate }}</p>
+      </ng-template>
+    }
+    @if (isWaitForContactsVisible()) {
+      <p class="alert-config-form__hint" data-testid="alert-config-wait-for-contacts">
+        {{ 'alertConfigForm.directory.waitForContacts' | translate }}
+      </p>
+    }
+    @if (loadingDir()) {
+      <p class="alert-config-form__hint" data-testid="alert-config-partner-loading">
+        {{ 'alertConfigForm.directory.loadingContacts' | translate }}
+      </p>
+    } @else if (hasDirectoryLoadFailed()) {
+      <div class="alert-config-form__load-error" data-testid="alert-config-partner-load-error">
+        <p class="alert-config-form__error">{{ 'alertConfigForm.directory.loadError' | translate }}</p>
+        <ignt-button
+          variant="secondary"
+          size="small"
+          [label]="'common.retry' | translate"
+          (click)="retryDirectory()"
+          data-testid="alert-config-partner-retry"
+        />
+      </div>
+    } @else if (partnerDirectory().length === 0) {
+      <p class="alert-config-form__hint" data-testid="alert-config-partner-empty">
+        {{ 'alertConfigForm.directory.noPartnerContacts' | translate }}
+      </p>
+    } @else {
+      <app-recipient-delivery-table
+        idPrefix="partner"
+        [rows]="partnerDirectory()"
+        [delivery]="recipientDelivery()"
+        [overrides]="slackUserIdOverrides()"
+        [slackChannels]="slackChannels()"
+        [defaultLocale]="form.controls.locale.value"
+        [localeOptions]="localeOptions"
+        [disabled]="disabled"
+        [emailDefaultsOn]="false"
+        [isPermissionVisible]="isHubPermissionsEnabled()"
+        (rowPatch)="patchPartner($event)"
+        (overridePatch)="patchOverride($event)"
+        (overrideCommit)="commitOverride($event)"
+        (applyLocaleToAll)="applyLocaleToAll($event)"
+      />
+    }
+  </section>
+
+  <section class="alert-config-form__section">
+    <header class="alert-config-form__pm-header">
+      <h4 class="alert-config-form__section-title">{{ 'alertConfigForm.directory.pmTitle' | translate }}</h4>
+    </header>
+
+    <app-fever-contact-picker
+      [partnerId]="partnerId"
+      [excludeEmails]="pmDirectoryEmails()"
+      [disabled]="disabled"
+      (usersPicked)="addFeverContacts($event)"
+      (termChange)="pmFilter.set($event)"
+    />
+
+    @if (loadingDir()) {
+      <p class="alert-config-form__hint" data-testid="alert-config-pm-loading">
+        {{ 'alertConfigForm.directory.loadingContacts' | translate }}
+      </p>
+    } @else if (pmDirectory().length === 0) {
+      <p class="alert-config-form__hint" data-testid="alert-config-pm-empty">
+        {{ 'alertConfigForm.directory.noPmContacts' | translate }}
+      </p>
+    } @else {
+      <app-recipient-delivery-table
+        idPrefix="pm"
+        [rows]="sortedPmDirectory()"
+        [delivery]="pmRecipientDelivery()"
+        [overrides]="slackUserIdOverrides()"
+        [slackChannels]="slackChannels()"
+        [defaultLocale]="form.controls.locale.value"
+        [localeOptions]="localeOptions"
+        [disabled]="disabled"
+        [emailDefaultsOn]="false"
+        [showFilter]="false"
+        [externalFilter]="pmFilter()"
+        (applyLocaleToAll)="applyLocaleToAll($event)"
+        (rowPatch)="patchPm($event)"
+        (overridePatch)="patchOverride($event)"
+        (overrideCommit)="commitOverride($event)"
+      />
+    }
+  </section>
+</form>

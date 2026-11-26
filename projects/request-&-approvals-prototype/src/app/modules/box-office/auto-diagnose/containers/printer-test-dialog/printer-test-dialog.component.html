@@ -1,0 +1,109 @@
+<ignt-dialog-header data-testid="printer-test-dialog">
+  {{ 'boxOffice.autoDiagnose.printer.dialog.title' | translate }}
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="printer-test-dialog">
+    <p class="printer-test-dialog__intro">{{ 'boxOffice.autoDiagnose.printer.dialog.intro' | translate }}</p>
+
+    @if (data.ticketPrinter !== null) {
+      <section class="printer-test-dialog__option" data-testid="printer-test-ticket">
+        <div class="printer-test-dialog__option-header">
+          <span class="printer-test-dialog__option-icon" aria-hidden="true">
+            <ignt-icon name="ticket" variant="regular" size="base" />
+          </span>
+          <div class="printer-test-dialog__option-text">
+            <h3 class="printer-test-dialog__option-title">{{ 'boxOffice.autoDiagnose.printer.dialog.ticket.title' | translate }}</h3>
+            <p class="printer-test-dialog__option-description">
+              {{ 'boxOffice.autoDiagnose.printer.dialog.ticket.description' | translate }}
+            </p>
+          </div>
+        </div>
+        <ignt-button
+          variant="secondary"
+          data-testid="printer-test-ticket-action"
+          [label]="'boxOffice.autoDiagnose.printer.dialog.ticket.action' | translate"
+          [leadingIcon]="{ name: 'print', variant: 'solid' }"
+          [loading]="isPrintingTicket()"
+          (click)="printTicket()"
+        />
+        <div aria-live="polite">
+          @if (ticketResult(); as result) {
+            @if (!isPrintingTicket()) {
+              <ignt-alert
+                data-testid="printer-test-ticket-result"
+                [sentiment]="result.sentiment"
+                [description]="result.messageKey | translate"
+              />
+            }
+          }
+        </div>
+      </section>
+    }
+
+    @if (data.hasReceiptPrinter) {
+      <section class="printer-test-dialog__option" data-testid="printer-test-receipt">
+        <div class="printer-test-dialog__option-header">
+          <span class="printer-test-dialog__option-icon" aria-hidden="true">
+            <ignt-icon name="receipt" variant="regular" size="base" />
+          </span>
+          <div class="printer-test-dialog__option-text">
+            <h3 class="printer-test-dialog__option-title">{{ 'boxOffice.autoDiagnose.printer.dialog.receipt.title' | translate }}</h3>
+            <p class="printer-test-dialog__option-description">
+              {{ 'boxOffice.autoDiagnose.printer.dialog.receipt.description' | translate }}
+            </p>
+          </div>
+        </div>
+
+        @if (receiptPhase() === receiptTestPhase.awaitingConfirmation) {
+          <div class="printer-test-dialog__confirm" role="group" aria-live="polite" data-testid="printer-test-receipt-confirm">
+            <span class="printer-test-dialog__confirm-question">{{
+              'boxOffice.autoDiagnose.printer.dialog.receipt.question' | translate
+            }}</span>
+            <div class="printer-test-dialog__confirm-actions">
+              <ignt-button
+                size="small"
+                variant="secondary"
+                sentiment="danger"
+                data-testid="printer-test-receipt-no"
+                [label]="'boxOffice.autoDiagnose.printer.dialog.receipt.no' | translate"
+                (click)="confirmReceipt(false)"
+              />
+              <ignt-button
+                size="small"
+                sentiment="positive"
+                data-testid="printer-test-receipt-yes"
+                [label]="'boxOffice.autoDiagnose.printer.dialog.receipt.yes' | translate"
+                (click)="confirmReceipt(true)"
+              />
+            </div>
+          </div>
+        } @else {
+          <ignt-button
+            variant="secondary"
+            data-testid="printer-test-receipt-action"
+            [label]="'boxOffice.autoDiagnose.printer.dialog.receipt.action' | translate"
+            [leadingIcon]="{ name: 'print', variant: 'solid' }"
+            (click)="printReceipt()"
+          />
+          @if (receiptResult(); as result) {
+            <ignt-alert
+              data-testid="printer-test-receipt-result"
+              [sentiment]="result.sentiment"
+              [description]="result.messageKey | translate"
+            />
+          }
+        }
+      </section>
+    }
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer hideCancelButton>
+  <ignt-button
+    igntDialogClose
+    variant="tertiary"
+    data-testid="printer-test-dialog-close"
+    [label]="'boxOffice.autoDiagnose.close' | translate"
+  />
+</ignt-dialog-footer>

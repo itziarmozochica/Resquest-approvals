@@ -1,0 +1,513 @@
+<div class="common-session-edit lateral-slider-body__wrapper">
+  <form *ngIf="formGroup" [formGroup]="formGroup" class="common-session-edit__form" data-testid="price-list-details-form">
+    @if (isDerivedFamilyLevel) {
+      <ignt-alert
+        class="common-session-edit__message-banner"
+        data-testid="message-banner-derived-family-level"
+        [description]="'sessions.pricing.newListForm.derivedFamilyLevelNotice' | translate"
+      ></ignt-alert>
+    }
+
+    @if (isFamilyRoot) {
+      <ignt-alert
+        class="common-session-edit__message-banner"
+        data-testid="message-banner-family-root"
+        [description]="'sessions.pricing.newListForm.familyRootSettingsNotice' | translate"
+      ></ignt-alert>
+    }
+
+    <fieldset class="locked-fieldset" [disabled]="isDerivedFamilyLevel" data-testid="price-list-settings-fieldset">
+      <div class="form-group form-group--white form-group--fix-height form-group--flex">
+        <label class="form-label">
+          {{ 'sessions.pricing.newListForm.nameLabel' | translate }}
+        </label>
+        <input
+          class="form-input"
+          formControlName="name"
+          data-testid="name-input"
+          [placeholder]="'sessions.pricing.newListForm.nameLabel' | translate"
+        />
+      </div>
+
+      <div class="channels" data-testid="channels-container">
+        <span class="section-title--bold">
+          {{ 'sessions.pricing.newListForm.channels.title' | translate }}
+        </span>
+
+        <div class="channel-type-selection">
+          <label
+            *ngFor="
+              let radioOption of [
+                { translateKey: 'allChannels', value: false },
+                { translateKey: 'specificSelection', value: true },
+              ]
+            "
+          >
+            <input
+              [attr.data-testid]="'channel-radio-' + radioOption.translateKey"
+              type="radio"
+              [value]="radioOption.value"
+              formControlName="hasSpecificChannel"
+            />
+            {{ 'sessions.pricing.newListForm.channels.' + radioOption.translateKey | translate }}
+          </label>
+        </div>
+        <app-multi-select
+          *ngIf="formGroup.value.hasSpecificChannel"
+          [options]="channelOptions"
+          [selectedOptions]="selectedChannelOptions"
+          [displayInPlaceMaximum]="1"
+          [placeholder]="'sessions.pricing.newListForm.channels.multiSelectPlaceholder' | translate"
+          (selected)="updateSelectedChannels($event)"
+        >
+        </app-multi-select>
+      </div>
+
+      <div class="timeslots">
+        <span class="section-title--bold">
+          {{ 'sessions.pricing.newListForm.timeslots.title' | translate }}
+        </span>
+
+        <div class="timeslot-type-selection">
+          <label
+            *ngFor="
+              let radioOption of [
+                { translateKey: 'typeAll', value: false },
+                { translateKey: 'typeSpecificSelection', value: true },
+              ];
+              trackBy: trackByValue
+            "
+          >
+            <input
+              [attr.data-testid]="'timeslots-radio-' + radioOption.translateKey"
+              type="radio"
+              [value]="radioOption.value"
+              formControlName="hasSpecificTimeslot"
+            />
+            {{ 'sessions.pricing.newListForm.timeslots.' + radioOption.translateKey | translate }}
+          </label>
+        </div>
+
+        <ng-container *ngIf="formGroup.value.hasSpecificTimeslot">
+          <div class="timeslots-selection" [class.form-group]="timeSlotTiers?.length">
+            <ng-container *ngIf="timeSlotTiers?.length">
+              <div>
+                <input
+                  class="tier-enable-checkbox"
+                  type="checkbox"
+                  id="tier-enable-checkbox"
+                  data-testid="tier-enable-checkbox"
+                  formControlName="useTargetedTierId"
+                />
+                <label for="tier-enable-checkbox">{{ 'sessions.pricing.newListForm.timeslots.selectTier' | translate }}</label>
+              </div>
+
+              @if (formGroup.value.useTargetedTierId) {
+                <div class="tier-selector-field">
+                  <app-time-slot-tier-selector
+                    data-testid="tier-selector"
+                    [label]="'sessions.pricing.newListForm.targetedTier.label' | translate"
+                    [formControl]="formGroup.controls.targetedTierId"
+                    [options]="timeSlotTiers"
+                  >
+                  </app-time-slot-tier-selector>
+                </div>
+              }
+            </ng-container>
+
+            <ng-container formArrayName="specificTimeslots">
+              <div
+                class="blue-container-layout specific-timeslot-container"
+                *ngFor="let timeslotForm of formGroup.controls.specificTimeslots.controls; let indexInFormArray = index"
+              >
+                <div class="specific-timeslot-container__header">
+                  <span class="section-title--bold">
+                    {{ 'sessions.pricing.newListForm.timeslots.dates' | translate }}
+                  </span>
+                  <div *ngIf="timeSlotTiers?.length || indexInFormArray > 0" class="remove-timeslot-button-container">
+                    <fa-icon
+                      [icon]="['fal', 'trash-alt']"
+                      class="remove-timeslot-button"
+                      (click)="onClickRemoveTimeslot(indexInFormArray)"
+                    ></fa-icon>
+                  </div>
+                </div>
+                <div class="date-inputs-container-plus-errors">
+                  <div class="date-inputs-container">
+                    <ng-container
+                      *ngTemplateOutlet="
+                        datePicker;
+                        context: {
+                          control: timeslotForm.controls.startDate,
+                          relatedControl: timeslotForm.controls.endDate,
+                          label: 'sessions.pricing.newListForm.timeslots.startDate' | translate,
+                          dataTestId: 'timeslot-start-date',
+                          isDateInThePast: timeslotDatesInThePastMap.get(timeslotForm)?.startDate,
+                        }
+                      "
+                    ></ng-container>
+                    <ng-container
+                      *ngTemplateOutlet="
+                        datePicker;
+                        context: {
+                          control: timeslotForm.controls.endDate,
+                          relatedControl: timeslotForm.controls.startDate,
+                          label: 'sessions.pricing.newListForm.timeslots.endDate' | translate,
+                          dataTestId: 'timeslot-end-date',
+                          isDateInThePast: timeslotDatesInThePastMap.get(timeslotForm)?.endDate,
+                        }
+                      "
+                    ></ng-container>
+                  </div>
+                  <ng-container
+                    *ngTemplateOutlet="
+                      dateValidationErrors;
+                      context: {
+                        startDateControl: timeslotForm.controls.startDate,
+                        endDateControl: timeslotForm.controls.endDate,
+                        dataTestId: 'timeslot-dates-errors',
+                      }
+                    "
+                  >
+                  </ng-container>
+                </div>
+
+                <span class="section-title--bold">
+                  {{ 'sessions.pricing.newListForm.timeslots.weekDays.title' | translate }}
+                </span>
+
+                <div class="week-days-selector">
+                  <div class="week-days-selector__buttons" data-testid="week-days-selector">
+                    <div
+                      *ngFor="let weekday of weekDaysList"
+                      [attr.data-testid]="'week-day-' + weekday"
+                      class="week-day-button"
+                      [ngClass]="{ 'week-day-button--active': timeslotForm.value.weekDays[weekday] }"
+                      [class.week-day-button--error]="timeslotForm.errors?.invalidWeekDaysNotIncludedInRange.includes(weekday)"
+                      (click)="onClickWeekDay(weekday, timeslotForm)"
+                    >
+                      <span>{{ 'sessions.pricing.newListForm.timeslots.weekDays.labels.' + weekday | translate }}</span>
+                    </div>
+                  </div>
+                  <div
+                    class="form-error"
+                    *ngIf="
+                      (timeslotForm.controls.weekDays.dirty && timeslotForm.controls.weekDays.errors) ||
+                      timeslotForm.errors?.invalidWeekDaysNotIncludedInRange
+                    "
+                  >
+                    <fa-icon [icon]="['fas', 'exclamation-circle']" class="form-error--icon"></fa-icon>
+                    <ng-container>
+                      {{
+                        (timeslotForm.controls.weekDays.errors
+                          ? 'sessions.pricing.newListForm.errorMessages.atLeastOneWeekDay'
+                          : 'sessions.pricing.newListForm.errorMessages.weekDaysNotInRange'
+                        ) | translate
+                      }}
+                    </ng-container>
+                  </div>
+                </div>
+
+                <span class="section-title--bold">
+                  {{ 'sessions.pricing.newListForm.timeslots.times' | translate }}
+                </span>
+
+                <div class="time-inputs-container">
+                  <div class="form-group form-group--white form-group--fix-height form-group--flex">
+                    <label class="form-label">{{ 'sessions.pricing.newListForm.timeslots.startTime' | translate }}</label>
+                    <ng-container
+                      *ngTemplateOutlet="
+                        timePicker;
+                        context: {
+                          control: timeslotForm.controls.startTime,
+                          relatedControl: timeslotForm.controls.endTime,
+                          testid: 'timeslot-start-time',
+                        }
+                      "
+                    >
+                    </ng-container>
+                  </div>
+                  <div class="form-group form-group--white form-group--fix-height form-group--flex">
+                    <label class="form-label">{{ 'sessions.pricing.newListForm.timeslots.lastSession' | translate }}</label>
+                    <ng-container
+                      *ngTemplateOutlet="
+                        timePicker;
+                        context: {
+                          control: timeslotForm.controls.endTime,
+                          relatedControl: timeslotForm.controls.startTime,
+                          testid: 'timeslot-end-time',
+                        }
+                      "
+                    >
+                    </ng-container>
+                  </div>
+                </div>
+                <ng-container
+                  *ngTemplateOutlet="
+                    timeValidationErrors;
+                    context: {
+                      startTimeControl: timeslotForm.controls.startTime,
+                      endTimeControl: timeslotForm.controls.endTime,
+                      dataTestId: 'timeslot-times-errors',
+                    }
+                  "
+                >
+                </ng-container>
+                <ignt-alert
+                  class="message-banner-dates-warning"
+                  data-testid="message-banner-dates-warning"
+                  sentiment="warning"
+                  showCloseButton
+                  [description]="'sessions.pricing.newListForm.warningMessages.oneDateInThePast' | translate"
+                  (closeAlert)="isDateInThePastWarningDismissed.set(timeslotForm, true)"
+                  *ngIf="
+                    !isDateInThePastWarningDismissed.get(timeslotForm) &&
+                    (timeslotDatesInThePastMap.get(timeslotForm)?.startDate || timeslotDatesInThePastMap.get(timeslotForm)?.endDate)
+                  "
+                ></ignt-alert>
+              </div>
+            </ng-container>
+
+            <span
+              *ngIf="formGroup.value.hasSpecificTimeslot"
+              data-testid="timeslot-add-selection-button"
+              class="timeslot-add-selection-button"
+              (click)="onClickAddTimeslot()"
+            >
+              <fa-icon [icon]="['fal', 'plus']" class="timeslot-add-selection-button__icon"></fa-icon>
+              <span class="timeslot-add-selection-button__text">
+                {{ 'sessions.pricing.newListForm.timeslots.addSelection' | translate }}
+              </span>
+            </span>
+          </div>
+        </ng-container>
+      </div>
+
+      <div class="inherit-prices" data-testid="inherited-list-selector-container" *ngIf="!priceListToEdit">
+        <span
+          class="section-title section-title--bold section-title--dashed-underline"
+          igntTooltip
+          [tooltipLabel]="'sessions.pricing.newListForm.inheritPrices.tooltip' | translate"
+          tooltipPlacement="right"
+        >
+          {{ 'sessions.pricing.newListForm.inheritPrices.title' | translate }}
+        </span>
+
+        <ignt-typeahead
+          data-testid="inherit-price-list-typeahead"
+          [fieldLabel]="'sessions.pricing.newListForm.inheritPrices.label' | translate"
+          [options]="priceListSelectOptions"
+          [selectedOption]="formGroup.value.inheritedList"
+          [editable]="false"
+          (selected)="formGroup.controls.inheritedList.setValue($event)"
+        ></ignt-typeahead>
+        <div class="divider--dotted"></div>
+      </div>
+    </fieldset>
+
+    <div class="form-group">
+      <div class="form-switch-group">
+        <div class="horizontal-switch-container">
+          <div>
+            <label for="status" class="form-label">
+              {{ 'sessions.pricing.newListForm.status.label' | translate }}
+            </label>
+            <div class="form-value">
+              <span [class.form-value--checked]="!formGroup.value.status">{{
+                'sessions.pricing.newListForm.status.inactive' | translate
+              }}</span>
+              /
+              <span [class.form-value--checked]="formGroup.value.status">{{
+                'sessions.pricing.newListForm.status.active' | translate
+              }}</span>
+            </div>
+          </div>
+
+          <div class="form-check form-switch form-switch-lg" data-testid="capacity-card-switch-button">
+            <input data-testid="status-switch-input" id="status-switch" class="form-check-input" formControlName="status" type="checkbox" />
+            <label class="form-check-label" for="status-switch"></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <fieldset class="locked-fieldset" [disabled]="isDerivedFamilyLevel" data-testid="price-list-activation-period-fieldset">
+        <div class="activation-period">
+          <div class="form-switch-group">
+            <div class="horizontal-switch-container">
+              <div>
+                <label for="status" class="form-label">
+                  {{ 'sessions.pricing.newListForm.activationPeriod.title' | translate }}
+                </label>
+                <div class="form-value">
+                  <span class="form-value">{{ 'sessions.pricing.newListForm.activationPeriod.tooltip' | translate }}</span>
+                </div>
+              </div>
+
+              <div
+                class="form-check form-switch form-switch-lg"
+                [class.form-switch-lg--disabled]="formGroup.controls.useActivationRange.disabled"
+                data-testid="validity-period-switch-button"
+              >
+                <input
+                  formControlName="useActivationRange"
+                  class="form-check-input"
+                  data-testid="validity-period-switch-input"
+                  id="validity-period-switch"
+                  type="checkbox"
+                />
+                <label class="form-check-label" for="validity-period-switch"></label>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="formGroup.controls.useActivationRange.value" class="date-inputs-container">
+            <ng-container
+              *ngTemplateOutlet="
+                datePicker;
+                context: {
+                  control: formGroup.controls.activationStartDate,
+                  relatedControl: formGroup.controls.activationEndDate,
+                  label:
+                    ('sessions.pricing.newListForm.activationPeriod.startDate' | translate) +
+                    (formGroup.controls.activationStartDate.value
+                      ? ' (' + getMemoizedUtcOffset(formGroup.controls.activationStartDate.value) + ')'
+                      : ''),
+                  dataTestId: 'activation-start-date',
+                  toggleControl: formGroup.controls.useActivationRange,
+                  isDateInThePast: areValidityPeriodDatesInThePast?.startDate,
+                  inputWithTime: true,
+                }
+              "
+            ></ng-container>
+            <ng-container
+              *ngTemplateOutlet="
+                datePicker;
+                context: {
+                  control: formGroup.controls.activationEndDate,
+                  relatedControl: formGroup.controls.activationStartDate,
+                  label:
+                    ('sessions.pricing.newListForm.activationPeriod.endDate' | translate) +
+                    (formGroup.controls.activationEndDate.value
+                      ? ' (' + getMemoizedUtcOffset(formGroup.controls.activationEndDate.value) + ')'
+                      : ''),
+                  dataTestId: 'activation-end-date',
+                  toggleControl: formGroup.controls.useActivationRange,
+                  isDateInThePast: areValidityPeriodDatesInThePast?.endDate,
+                  inputWithTime: true,
+                }
+              "
+            ></ng-container>
+          </div>
+
+          <ignt-alert
+            class="message-banner-dates-warning"
+            data-testid="message-banner-validity-period-dates-warning"
+            sentiment="warning"
+            showCloseButton
+            [description]="'sessions.pricing.newListForm.warningMessages.oneDateInThePast' | translate"
+            (closeAlert)="isValidityPeriodDatesInThePastWarningDismissed = true"
+            *ngIf="
+              !isValidityPeriodDatesInThePastWarningDismissed &&
+              (areValidityPeriodDatesInThePast?.startDate || areValidityPeriodDatesInThePast?.endDate)
+            "
+          ></ignt-alert>
+        </div>
+      </fieldset>
+    </div>
+  </form>
+</div>
+<div class="lateral-slider-body__footer" data-testid="price-list-details-form-footer">
+  <button data-testid="discard-button" class="button button--large button--tertiary" (click)="discardClicked.emit()">
+    {{ 'sessions.pricing.newListForm.discardButton' | translate }}
+  </button>
+
+  <button
+    data-testid="save-button"
+    class="button button--large button--primary"
+    [disabled]="!formGroup?.valid || (priceListToEdit && !formGroup?.dirty)"
+    (click)="priceListToEdit ? onClickUpdate() : onClickCreate()"
+  >
+    {{ (priceListToEdit ? 'sessions.pricing.newListForm.updateButton' : 'sessions.pricing.newListForm.createButton') | translate }}
+  </button>
+</div>
+
+<ng-template #dateValidationErrors let-startDateControl="startDateControl" let-endDateControl="endDateControl" let-dataTestId="dataTestId">
+  <div
+    [attr.data-testid]="dataTestId"
+    class="form-error"
+    *ngIf="
+      ((startDateControl?.errors || endDateControl?.errors) && startDateControl?.dirty && endDateControl?.dirty) ||
+      startDateControl.errors?.dateInThePast ||
+      endDateControl?.errors?.dateInThePast
+    "
+  >
+    <fa-icon [icon]="['fas', 'exclamation-circle']" class="form-error--icon"></fa-icon>
+    <span *ngIf="startDateControl.errors?.invalidDate || endDateControl.errors?.invalidDate">
+      {{ 'sessions.pricing.newListForm.errorMessages.startDateLaterThanEndDate' | translate }}
+    </span>
+    <span
+      *ngIf="startDateControl?.dirty && endDateControl?.dirty && (startDateControl.errors?.required || endDateControl.errors?.required)"
+    >
+      {{ 'sessions.pricing.newListForm.errorMessages.bothDatesFilledOrEmpty' | translate }}
+    </span>
+    <span *ngIf="startDateControl.errors?.dateInThePast || endDateControl.errors?.dateInThePast">
+      {{ 'sessions.pricing.newListForm.errorMessages.datesCannotBeInThePast' | translate }}
+    </span>
+  </div>
+</ng-template>
+
+<ng-template #timeValidationErrors let-startTimeControl="startTimeControl" let-endTimeControl="endTimeControl" let-dataTestId="dataTestId">
+  <div
+    [attr.data-testid]="dataTestId"
+    class="form-error"
+    *ngIf="(startTimeControl?.errors || endTimeControl?.errors) && startTimeControl?.dirty && endTimeControl?.dirty"
+  >
+    <fa-icon [icon]="['fas', 'exclamation-circle']" class="form-error--icon"></fa-icon>
+
+    <span *ngIf="startTimeControl.errors?.invalidTime || endTimeControl.errors?.invalidTime">
+      {{ 'sessions.pricing.newListForm.errorMessages.startTimeLaterThanEndTime' | translate }}
+    </span>
+    <span *ngIf="startTimeControl.errors?.required || endTimeControl.errors?.required">
+      {{ 'sessions.pricing.newListForm.errorMessages.timesShouldBeFilled' | translate }}
+    </span>
+  </div>
+</ng-template>
+
+<ng-template #timePicker let-control="control" let-relatedControl="relatedControl" let-testid="testid">
+  <input
+    class="time-picker"
+    type="time"
+    [attr.data-testid]="testid"
+    (change)="control.updateValueAndValidity(); relatedControl?.updateValueAndValidity()"
+    [formControl]="control"
+  />
+</ng-template>
+
+<ng-template
+  #datePicker
+  let-label="label"
+  let-dataTestId="dataTestId"
+  let-control="control"
+  let-relatedControl="relatedControl"
+  let-toggleControl="toggleControl"
+  let-isDateInThePast="isDateInThePast"
+  let-inputWithTime="inputWithTime"
+>
+  <label class="field date-input" [ngClass]="{ 'field--warning': isDateInThePast }">
+    <input
+      #datePickerInput
+      class="field__input"
+      [attr.data-testid]="dataTestId"
+      [type]="inputWithTime ? 'datetime-local' : 'date'"
+      [min]="todayDate | momentDate: (inputWithTime ? 'yyyy-MM-ddTHH:mm' : 'yyyy-MM-dd') : timezone"
+      [max]="inputWithTime ? maxAllowedDateWithTime : maxAllowedDate"
+      [formControl]="control"
+      (change)="
+        control.updateValueAndValidity(); relatedControl.updateValueAndValidity(); toggleControl && toggleControl.updateValueAndValidity()
+      "
+    />
+    <span class="field__label" [attr.data-testid]="dataTestId + '-label-span'">{{ label }}</span>
+    <fa-icon class="field__icon field__icon--trail" [icon]="['fal', 'calendar']" (click)="datePickerInput.showPicker()"> </fa-icon>
+  </label>
+</ng-template>

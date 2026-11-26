@@ -1,0 +1,62 @@
+<ignt-wrapper-card class="setup-card" [fullHeight]="true" [class.setup-card--completed]="isCompleted()" [attr.data-testid]="testIdPrefix()">
+  <div class="setup-card__header">
+    <h3 class="setup-card__title">{{ card().title | translate }}</h3>
+    <span
+      class="setup-card__status"
+      [class.setup-card__status--in-progress]="isInProgress()"
+      [class.setup-card__status--completed]="isCompleted()"
+    >
+      <ng-container [ngSwitch]="card().status">
+        <ng-container *ngSwitchCase="'completed'">{{ 'planSetup.status.completed' | translate }}</ng-container>
+        <ng-container *ngSwitchCase="'in-progress'">{{ 'planSetup.status.inProgress' | translate }}</ng-container>
+        <ng-container *ngSwitchDefault>{{ 'planSetup.status.notStarted' | translate }}</ng-container>
+      </ng-container>
+    </span>
+  </div>
+
+  <div class="setup-card__progress">
+    <app-progress-bar [percentage]="card().progress" sentiment="primary"></app-progress-bar>
+  </div>
+
+  @if (isProvisioning()) {
+    <div class="setup-card__provisioning" data-testid="setup-card-provisioning">
+      <ignt-icon name="spinner" variant="solid" [spin]="true" aria-hidden="true"></ignt-icon>
+      <span>{{ 'planSetup.provisioning' | translate }}</span>
+    </div>
+  }
+
+  <ul class="setup-card__checklist">
+    <li *ngFor="let item of visibleItems(); let i = index" class="setup-card__item" [attr.data-testid]="getItemTestId(i, item.label)">
+      <ng-container *ngIf="item.completed; else uncheckedIndicator">
+        <ignt-icon
+          class="setup-card__check"
+          name="check-circle"
+          variant="solid"
+          aria-hidden="true"
+          [class.setup-card__label--optional]="item.optional"
+        ></ignt-icon>
+      </ng-container>
+      <ng-template #uncheckedIndicator>
+        <span class="setup-card__circle"></span>
+      </ng-template>
+      <span class="setup-card__label" [class.setup-card__label--optional]="item.optional">
+        {{ item.label | translate }}
+      </span>
+    </li>
+  </ul>
+
+  <div class="setup-card__action">
+    <button
+      igntButton
+      type="button"
+      [sentiment]="buttonSentiment()"
+      size="small"
+      [fill]="true"
+      [disabled]="card().disabled"
+      [attr.data-testid]="testIdPrefix() + '-button'"
+      (click)="onButtonClick()"
+    >
+      {{ buttonText() | translate }}
+    </button>
+  </div>
+</ignt-wrapper-card>

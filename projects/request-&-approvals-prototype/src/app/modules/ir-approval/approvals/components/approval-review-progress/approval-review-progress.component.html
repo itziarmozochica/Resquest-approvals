@@ -1,0 +1,63 @@
+@if (visible()) {
+  <div class="review-progress" data-testid="approval-review-progress">
+    <div class="review-progress__header">
+      <!-- No aria-expanded: it would land on the ignt-button host and never reach the inner button
+           assistive tech reads. Exposing it needs an input on IgntButtonComponent, so the expanded
+           state is carried by the chevron alone, like the selection checkboxes' missing name below. -->
+      <ignt-button
+        variant="tertiary"
+        sentiment="neutral"
+        size="small"
+        class="review-progress__summary"
+        [leadingIcon]="summaryIcon()"
+        [trailingIcon]="chevron()"
+        [label]="summaryLabel()"
+        (click)="toggle()"
+        data-testid="approval-review-progress-toggle"
+      ></ignt-button>
+      @if (unreachable()) {
+        <span class="review-progress__note" data-testid="approval-review-progress-unreachable">
+          {{ 'approvals.detail.reviewProgress.decisionNotInZiflow' | translate }}
+        </span>
+      }
+    </div>
+    @if (expanded()) {
+      <ul class="review-progress__reviewers" data-testid="approval-review-progress-reviewers">
+        @for (reviewer of reviewers(); track reviewer.email) {
+          <li
+            class="review-progress__reviewer"
+            [class.review-progress__reviewer--decided]="!!reviewer.decision"
+            [attr.data-testid]="'approval-review-progress-reviewer-' + reviewer.email"
+          >
+            <ignt-icon
+              aria-hidden="true"
+              [name]="reviewer.decision ? 'check' : 'circle'"
+              [variant]="reviewer.decision ? 'solid' : 'light'"
+              size="h5"
+            ></ignt-icon>
+            <span class="review-progress__email">{{ reviewer.email }}</span>
+            @if (reviewer.decision) {
+              <span [class]="'review-progress__decision review-progress__decision--' + reviewer.decisionSentiment">{{
+                reviewer.decision
+              }}</span>
+              @if (reviewer.decidedAt) {
+                <span class="review-progress__decided-at">
+                  {{ 'approvals.detail.reviewProgress.decidedAt' | translate: { date: reviewer.decidedAt | date: 'short' } }}
+                </span>
+              }
+            } @else {
+              <span class="review-progress__undecided">
+                {{ 'approvals.detail.reviewProgress.undecided' | translate }}
+              </span>
+            }
+            @if (!hideFeedback() && reviewer.feedback) {
+              <p class="review-progress__feedback" [attr.data-testid]="'approval-review-progress-feedback-' + reviewer.email">
+                {{ reviewer.feedback }}
+              </p>
+            }
+          </li>
+        }
+      </ul>
+    }
+  </div>
+}

@@ -1,0 +1,60 @@
+<div class="coupon">
+  <div class="content__title" data-testid="box-office-coupon-information">
+    {{ 'boxOffice.coupon.title' | translate }}
+  </div>
+  <form class="coupon-form" [formGroup]="couponForm">
+    <div class="coupon-form-group">
+      <input
+        data-testid="coupon-input"
+        type="text"
+        class="coupon-form__code-input"
+        [placeholder]="'boxOffice.coupon.codePlaceholder' | translate"
+        formControlName="couponInput"
+      />
+      <div class="coupon-form__action-input" (click)="openScanner()" data-testid="coupon-scan-icon">
+        <fa-icon [icon]="['fas', 'qrcode']"></fa-icon>
+      </div>
+    </div>
+    <button
+      data-testid="coupon-add-button"
+      sentiment="secondary"
+      igntButton
+      [disabled]="appliedCoupon || !getCouponInput().value?.trim() || isApplyingCouponInProgress"
+      (click)="applyCoupon()"
+    >
+      <fa-icon *ngIf="isCurrentlyApplyingCoupon()" [icon]="spinnerIcon" class="coupon-form__apply-button--loading"></fa-icon>
+      <span [class.invisible]="isCurrentlyApplyingCoupon()">
+        {{ 'boxOffice.coupon.applyButton' | translate }}
+      </span>
+    </button>
+  </form>
+  <ignt-alert *ngIf="appliedCoupon" class="coupon__alert coupon__alert--success" sentiment="positive" data-testid="coupon-applied-success">
+    <ng-template #igntAlertContent>
+      <div class="coupon__alert-content">
+        <span class="coupon__alert-message" [innerHTML]="'boxOffice.coupon.couponAdded' | translate: { code: appliedCoupon?.code }"> </span>
+        <span>
+          {{ -appliedCoupon.discount.amount | currency: appliedCoupon.discount.currency : 'symbol-narrow' : null : locale }}
+        </span>
+      </div>
+    </ng-template>
+    <ng-template #igntAlertActions>
+      <fa-icon
+        data-testid="coupon-remove-coupon"
+        (click)="clearCoupon()"
+        class="coupon__alert-dismiss coupon__alter-dismiss--loading"
+        [icon]="isApplyingCouponInProgress ? spinnerIcon : ['fas', 'trash']"
+      >
+      </fa-icon>
+    </ng-template>
+  </ignt-alert>
+  <ignt-alert
+    *ngIf="errorMessage"
+    class="coupon__alert coupon__alert--failure"
+    sentiment="danger"
+    [description]="errorMessage | translate: { lazyCouponType: errorMessageLazyCouponType }"
+    showCloseButton
+    [closeButtonAriaLabel]="'common.close' | translate"
+    (closeAlert)="errorMessage = null"
+    data-testid="coupon-applied-error"
+  />
+</div>

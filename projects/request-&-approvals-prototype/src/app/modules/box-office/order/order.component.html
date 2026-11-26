@@ -1,0 +1,94 @@
+<ignt-expansion-panel variant="menu" [label]="selectedPlan?.title || ''" [closeIt]="closeIt()" [isCollapsed]="false">
+  <app-page-title page-title [title]="'menu.transactions' | translate" class="new-design"></app-page-title>
+  <app-search-bar
+    [searchButtonLabel]="'boxOffice.show'"
+    [showVenue]="true"
+    [disabled]="true"
+    [screen]="screen.boxOffice"
+    (searchEmitter)="loadNewSearch($event)"
+    (hasAllMandatoryFilters)="hasAllMandatoryFilters($event)"
+  >
+  </app-search-bar>
+</ignt-expansion-panel>
+
+<div class="box-office-content">
+  <div class="box-office-content__container">
+    <app-start-end-shift
+      data-testid="order-start-end-shift"
+      *ngIf="hasShiftsEnabled && shouldDisplayShiftControls()"
+      class="box-office-content__shifts"
+      [cityId]="selectedCity?.id"
+      [placeId]="selectedPlace?.id"
+      [currency]="currency"
+      [onsiteSetup]="onsiteSetupStorage"
+    >
+    </app-start-end-shift>
+    <div class="box-office-content__row box-office-content__row">
+      <div class="box-office-content__sidebar" data-testid="box-office-sidebar">
+        <app-plan-detail-card [plan]="plan" *ngIf="plan"></app-plan-detail-card>
+        <ng-container *ngIf="order && order.cart">
+          <cart-detail
+            [cart]="order?.cart"
+            [orderId]="order?.id"
+            [orderCancellationRecords]="order?.userCancellationRecords ?? null"
+            [showClearAll]="false"
+            [showSeatingInModal]="true"
+          ></cart-detail>
+        </ng-container>
+      </div>
+      <div class="box-office-content__content">
+        <div class="only-in-mobile">
+          <app-plan-detail-card [plan]="plan" *ngIf="plan"></app-plan-detail-card>
+        </div>
+        <div class="box-office-content__content-card">
+          <order-detail
+            [order]="order"
+            (printAdyenEvent)="printAdyen($event)"
+            (newOrderEvent)="navigateToNewOrder()"
+            (showTicketEvent)="showTickets()"
+            (validateTicketEvent)="validateTickets()"
+            (printDeliveryNote)="getDeliveryNote()"
+            (openAgreementList)="openAgreementList()"
+            (goToOrderDetailClicked)="navigateToValidationsWithOrderId()"
+            [showValidateButton]="showValidateButton"
+            [loadingDeliveryNote]="loadingDeliveryNote"
+            [hasViewTicketDisabled]="hasViewTicketDisabled"
+            [agreementAction]="agreementAction()"
+            [agreementBlocked]="agreementBlocked()"
+          >
+          </order-detail>
+        </div>
+        <div class="only-in-mobile" *ngIf="order && order.cart">
+          <div class="cart-detail--mobile" data-testid="mobile-order-cart">
+            <cart-detail
+              [cart]="order?.cart"
+              [orderId]="order?.id"
+              [orderCancellationRecords]="order?.userCancellationRecords ?? null"
+              [showClearAll]="false"
+            ></cart-detail>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="only-in-mobile">
+  <bottom-slider [buttonsTemplate]="buttonsOrderTemplate" />
+</div>
+
+<ng-template #buttonsOrderTemplate>
+  <button
+    igntButton
+    sentiment="secondary"
+    [fill]="true"
+    *ngIf="!isMobilePoS && !isDualScreen && !hasViewTicketDisabled"
+    [disabled]="agreementBlocked()"
+    (click)="showTickets()"
+  >
+    <span>{{ 'boxOffice.order.details.viewTickets' | translate }}</span>
+  </button>
+  <button igntButton [fill]="true" (click)="navigateToNewOrder()">
+    <span>{{ 'boxOffice.order.details.newOrder' | translate }}</span>
+  </button>
+</ng-template>

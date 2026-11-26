@@ -1,0 +1,73 @@
+@if (!embedded()) {
+  <header class="chatbot-threads-sidebar__header">
+    <div class="chatbot-threads-sidebar__branding">
+      <span class="chatbot-threads-sidebar__ai-label">AI</span>
+      <img ngSrc="assets/images/icons/logo-fevia-time.svg" alt="" width="18" height="18" />
+    </div>
+
+    <div class="chatbot-threads-sidebar__header-actions">
+      <button
+        type="button"
+        class="chatbot-threads-sidebar__new-chat-btn"
+        data-testid="chatbot-threads-sidebar-new-chat"
+        [attr.aria-label]="'chatbot.threads.newChat' | translate"
+        [title]="'chatbot.threads.newChat' | translate"
+        (click)="onNewChat()"
+      >
+        <ignt-icon name="plus" variant="light" [fixedWidth]="true" />
+        <span class="chatbot-threads-sidebar__new-chat-label">{{ 'chatbot.threads.newChat' | translate }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="chatbot-threads-sidebar__collapse-btn"
+        data-testid="chatbot-threads-sidebar-collapse"
+        [attr.aria-label]="(isCollapsed() ? 'chatbot.threads.expand' : 'chatbot.threads.collapse') | translate"
+        [title]="(isCollapsed() ? 'chatbot.threads.expand' : 'chatbot.threads.collapse') | translate"
+        [attr.aria-expanded]="!isCollapsed()"
+        (click)="onCollapseToggle()"
+      >
+        <ignt-icon name="sidebar" variant="regular" [fixedWidth]="true" />
+      </button>
+    </div>
+  </header>
+}
+
+@if (embedded() || !isCollapsed()) {
+  <div class="chatbot-threads-sidebar__search" data-testid="chatbot-threads-sidebar-search">
+    <ignt-input-field
+      id="chatbot-threads-search"
+      type="text"
+      [formControl]="searchControl"
+      [label]="'chatbot.threads.searchLabel' | translate"
+      [leadIcon]="['fal', 'search']"
+      [placeholder]="'chatbot.threads.searchPlaceholder' | translate"
+    />
+  </div>
+
+  <h2 class="chatbot-threads-sidebar__section-title" data-testid="chatbot-threads-sidebar-regular-title">
+    {{ 'chatbot.threads.regular.title' | translate }}
+  </h2>
+
+  <app-chatbot-thread-list
+    class="chatbot-threads-sidebar__list"
+    [threads]="displayThreads()"
+    [isLoading]="isLoading()"
+    [activeThreadId]="activeThreadId()"
+    [pendingTitleThreadId]="pendingTitleThreadId()"
+    [renamingThreadId]="renamingThreadId()"
+    [searchActive]="isSearchActive()"
+    [searchQuery]="searchQuery()"
+    (loadMore)="onListLoadMore()"
+    (selectThread)="onThreadSelect($event)"
+    (menuAction)="onListMenuAction($event)"
+    (renameSave)="onListRenameSave($event)"
+    (renameCancel)="onRenameCancel()"
+  />
+
+  @if (!isLoading() && threads().length > 0) {
+    <p class="chatbot-threads-sidebar__disclaimer">
+      {{ 'chatbot.threads.historyDisclaimer' | translate }}
+    </p>
+  }
+}

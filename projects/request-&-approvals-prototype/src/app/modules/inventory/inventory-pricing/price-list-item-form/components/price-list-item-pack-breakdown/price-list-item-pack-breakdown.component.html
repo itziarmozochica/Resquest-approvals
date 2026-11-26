@@ -1,0 +1,68 @@
+@if (priceRuleType() !== pricingType.PercentageAdjustment && priceRuleType() !== pricingType.FixedAdjustment) {
+  @if (isPackBreakdownReady()) {
+    <div class="title-row">
+      <span class="title-row__text">{{ 'sessions.pricing.priceList.priceEditForm.packsBreakdown.title' | translate }}</span>
+
+      <button class="button button--icon" data-testid="price-split-toggle-button" (click)="onToggleView()">
+        <ignt-icon variant="light" [name]="isFolded() ? 'chevron-down' : 'chevron-up'" />
+      </button>
+    </div>
+
+    <div class="grey-bordered-container" data-testid="packs-split-container" [class.grey-bordered-container--hidden]="isFolded()">
+      @for (sessionType of breakdownSessionTypes(); track sessionType.id) {
+        <div class="breakdown-item">
+          <div class="session-type">
+            <ignt-icon name="ticket" variant="light" />
+            <div class="session-type__text">
+              <span class="session-type__text__name-and-units" data-testid="packed-session-type-name-and-units">
+                {{ sessionType.label }} x {{ quantitiesMap()[sessionType.id] }}
+              </span>
+              <span class="session-type__text__total-price" data-testid="packed-session-type-total-price">
+                {{ 'sessions.pricing.priceList.priceEditForm.packsBreakdown.total' | translate }}:
+                {{
+                  breakdownFormBySessionTypeId()[sessionType.id].value.pricePerUnit === null ||
+                  breakdownFormBySessionTypeId()[sessionType.id].value.pricePerUnit === undefined
+                    ? '-'
+                    : ((breakdownFormBySessionTypeId()[sessionType.id].value.pricePerUnit ?? 0) * quantitiesMap()[sessionType.id]
+                      | currency: currency())
+                }}
+              </span>
+            </div>
+          </div>
+
+          <label class="field price-per-unit-field">
+            <input
+              data-testid="price-per-unit-input"
+              class="field__input"
+              appAutoformatNumericInput
+              min="0"
+              [decimalPlaces]="2"
+              [formControl]="breakdownFormBySessionTypeId()[sessionType.id].controls.pricePerUnit"
+              [currency]="currency()"
+            />
+            <span class="field__label">{{ 'sessions.pricing.priceList.priceEditForm.packsBreakdown.inputLabel' | translate }}</span>
+          </label>
+        </div>
+      }
+
+      @if (shouldShowSplitDiscrepanciesError()) {
+        <ignt-alert
+          sentiment="danger"
+          [description]="'sessions.pricing.priceList.priceEditForm.packsBreakdown.splitDiscrepanciesWarning' | translate"
+          data-testid="split-discrepancies-error-banner"
+        ></ignt-alert>
+      }
+    </div>
+  } @else {
+    <ignt-icon class="loader loader--flex-centered" name="spinner" variant="solid" size="display" />
+  }
+} @else {
+  <div data-testid="pack-breakdown-automatic-split-message" class="automatic-split-message">
+    {{
+      (priceRuleType() === pricingType.PercentageAdjustment
+        ? 'sessions.pricing.priceList.priceEditForm.packsBreakdown.automaticSplitForPercentageRuleMessage'
+        : 'sessions.pricing.priceList.priceEditForm.packsBreakdown.automaticSplitForFixedAdjustmentRuleMessage'
+      ) | translate
+    }}
+  </div>
+}

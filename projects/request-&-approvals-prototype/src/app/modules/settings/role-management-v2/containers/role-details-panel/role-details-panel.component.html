@@ -1,0 +1,71 @@
+@if (selectedRole()) {
+  <div class="role-details-panel" data-testid="role-details-panel">
+    <header class="role-details-panel__header">
+      <div class="role-details-panel__header-inner">
+        <div class="role-details-panel__header-copy">
+          <p class="role-details-panel__title-line">
+            @if (isAdmin()) {
+              <ignt-icon class="role-details-panel__admin-icon" name="star" variant="solid" />
+            }
+            <span class="role-details-panel__role-name">{{ roleDisplayName() }}</span>
+            @if (hasRoleUserCount()) {
+              <a
+                class="role-details-panel__user-count-accent"
+                [routerLink]="['/settings/users']"
+                [queryParams]="{ role_id: selectedRole()?.id }"
+              >
+                ({{ roleUserCount() }} {{ userCountLabelKey() | translate }})
+              </a>
+            }
+          </p>
+          @if (hasRoleDescription()) {
+            <p class="role-details-panel__description">{{ roleDescriptionText() }}</p>
+          }
+        </div>
+        <div class="role-details-panel__header-actions">
+          @if (isCustomRole()) {
+            @if (showEditRoleButton()) {
+              <ignt-button
+                variant="secondary"
+                size="large"
+                [leadingIcon]="editLeadingIcon"
+                [label]="'common.edit' | translate"
+                data-testid="role-details-edit-button"
+                (click)="onEditRole()"
+              />
+            }
+            @if (showDeleteRoleButton()) {
+              <button
+                type="button"
+                class="role-details-panel__delete-action"
+                ignt-icon-button
+                [icon]="deleteIcon"
+                [fab]="false"
+                [size]="'small'"
+                [variant]="'sharp'"
+                [sentiment]="'tertiary'"
+                [attr.aria-label]="'roleManagement.deleteRole' | translate"
+                data-testid="role-details-delete-button"
+                (click)="onDeleteRole()"
+              ></button>
+            }
+          }
+        </div>
+      </div>
+    </header>
+
+    <div class="role-details-panel__body">
+      <app-role-permissions-section
+        [categories]="categories()"
+        [expandedCategoryIds]="expandedCategoryIds()"
+        [permissionsReadOnly]="permissionsSectionReadOnly()"
+        (categoryExpandToggle)="onCategoryExpandToggle($event)"
+        (savePermissions)="onSavePermissions($event)"
+      />
+    </div>
+  </div>
+} @else {
+  <div class="role-details-panel role-details-panel--empty" data-testid="role-details-panel-empty">
+    <p>{{ 'roleManagement.selectRoleToViewDetails' | translate }}</p>
+  </div>
+}

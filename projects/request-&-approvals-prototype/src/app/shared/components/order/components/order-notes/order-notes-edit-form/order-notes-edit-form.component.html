@@ -1,0 +1,87 @@
+<div class="lateral-slider-body__wrapper common-session-edit">
+  <div class="common-session-edit__header" *ngIf="mode === OrderNoteEditFormMode.Update">
+    <div class="common-session-edit__header-date">
+      <div class="common-session-edit__header-date-updated">
+        <div class="title">{{ 'boxOffice.order.notes.lastUpdate' | translate }}</div>
+        <div class="user">{{ orderNote?.username }}</div>
+        <div class="time" data-testid="order-notes-date-updated">
+          {{ orderNote?.modifiedAt | momentDate: 'dd/MM/yyyy - HH:mm' : timezone }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ng-container *ngIf="formLoaded">
+    <form [formGroup]="formGroup" class="common-session-edit__form">
+      <div class="note-form__item">
+        <div class="form-group" [class.form-group--error]="getControlError(formGroup.get('title'))">
+          <label for="title" class="form-label">{{ 'boxOffice.order.notes.titlePlaceholder' | translate }}</label>
+
+          <input
+            id="title"
+            data-testid="order-notes-title"
+            class="form-input"
+            type="text"
+            min="0"
+            maxlength="50"
+            [formControl]="formGroup.get('title')"
+            [placeholder]="'boxOffice.order.notes.titlePlaceholder' | translate"
+          />
+        </div>
+        <ng-container *ngTemplateOutlet="validationErrors; context: { error: getControlError(formGroup.get('title')) }"></ng-container>
+      </div>
+      <div class="note-form__item">
+        <div class="form-group" [class.form-group--error]="getControlError(formGroup.get('message'))">
+          <label for="message" class="form-label">{{ 'boxOffice.order.notes.descriptionPlaceholder' | translate }}</label>
+
+          <textarea
+            id="message"
+            data-testid="order-notes-message"
+            class="form-input"
+            type="text"
+            rows="8"
+            [formControl]="formGroup.get('message')"
+            [placeholder]="'boxOffice.order.notes.descriptionPlaceholder' | translate"
+          >
+          </textarea>
+        </div>
+        <ng-container *ngTemplateOutlet="validationErrors; context: { error: getControlError(formGroup.get('message')) }"></ng-container>
+      </div>
+    </form>
+  </ng-container>
+</div>
+
+<div class="lateral-slider-body__footer">
+  <ng-container [ngSwitch]="mode">
+    <ng-container *ngSwitchCase="OrderNoteEditFormMode.Create">
+      <button data-testid="order-notes-cancel-button" class="button button--secondary button--large" (click)="cancel()">
+        {{ 'boxOffice.order.notes.closeButton' | translate }}
+      </button>
+    </ng-container>
+    <ng-container *ngSwitchCase="OrderNoteEditFormMode.Update">
+      <button data-testid="order-notes-delete-button" class="button button--danger-tertiary button--large" (click)="delete()">
+        {{ 'boxOffice.order.notes.deleteButton' | translate }}
+      </button>
+    </ng-container>
+  </ng-container>
+
+  <button
+    class="button button--primary button--large"
+    data-testid="order-notes-save-button"
+    [disabled]="isSaveButtonDisabled()"
+    (click)="save()"
+  >
+    {{ 'boxOffice.order.notes.saveButton' | translate }}
+  </button>
+</div>
+
+<ng-template #validationErrors let-error="error">
+  <ng-container *ngIf="error">
+    <div class="form-error" [ngSwitch]="error">
+      <fa-icon class="form-error--icon" [icon]="['fas', 'exclamation-circle']"></fa-icon>
+      <span class="form-error--message" *ngSwitchCase="'maxlength'" data-testid="error-max-value-field">
+        {{ 'form.error.maxLength' | translate: { value: '50' } }}
+      </span>
+    </div>
+  </ng-container>
+</ng-template>

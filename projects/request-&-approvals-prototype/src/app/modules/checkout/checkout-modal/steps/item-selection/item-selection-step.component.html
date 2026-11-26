@@ -1,0 +1,67 @@
+<div class="item-selection-step">
+  <app-split-summary-panel
+    class="item-selection-step__summary"
+    [toPay]="store.remainingAmount()"
+    [paid]="store.paidAmount()"
+    [locale]="store.context().locale"
+    [activeRow]="'toPay'"
+    [toPayLabelKey]="store.summaryToPayLabelKey()"
+    (paidClick)="onViewHistory()"
+  />
+
+  <div class="item-selection-step__vertical-divider"></div>
+
+  <div class="item-selection-step__content">
+    <div class="item-selection-step__header">
+      <h3 class="item-selection-step__title">{{ 'checkout.custom.title' | translate }}</h3>
+      <p class="item-selection-step__description">{{ 'checkout.custom.description' | translate }}</p>
+    </div>
+
+    <div class="item-selection-step__items">
+      @for (item of store.unpaidCartItems(); track item.id) {
+        <div
+          role="button"
+          tabindex="0"
+          class="item-selection-step__item"
+          [class.item-selection-step__item--selected]="isSelected(item.id)"
+          [attr.aria-pressed]="isSelected(item.id)"
+          [attr.data-testid]="'checkout-item-' + item.id"
+          (click)="toggleItem(item.id)"
+          (keydown.enter)="toggleItem(item.id)"
+          (keydown.space)="$event.preventDefault(); toggleItem(item.id)"
+        >
+          <span class="item-selection-step__item-info">
+            <span class="item-selection-step__item-name">{{ item.name | translate }}</span>
+            <span class="item-selection-step__item-price">
+              {{ item.price.amount | currency: item.price.currency : 'symbol-narrow' : null : store.context().locale }}
+            </span>
+          </span>
+          @if (isSelected(item.id)) {
+            <ignt-icon name="check" variant="solid" class="item-selection-step__item-check" aria-hidden="true" />
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="item-selection-step__vertical-divider"></div>
+
+  <div class="item-selection-step__payment-summary">
+    <app-payment-summary-panel
+      [amountToPay]="store.currentSplitAmount()"
+      [currentSplitNumber]="store.currentSplitNumber()"
+      [splitCount]="store.context().splitCount"
+      [total]="store.context().cartTotal ?? store.remainingAmount()"
+      [showPaymentMethod]="false"
+      [locale]="store.context().locale"
+    />
+
+    <ignt-checkbox
+      class="item-selection-step__pay-remaining"
+      dataTestId="checkout-custom-pay-remaining"
+      [label]="'checkout.split.paymentSummary.payRemaining' | translate"
+      [checked]="store.context().payRemaining"
+      (change)="onPayRemainingChange($event)"
+    />
+  </div>
+</div>

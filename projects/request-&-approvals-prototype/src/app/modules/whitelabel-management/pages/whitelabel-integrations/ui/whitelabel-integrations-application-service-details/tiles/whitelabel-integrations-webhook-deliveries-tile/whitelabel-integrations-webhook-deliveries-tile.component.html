@@ -1,0 +1,151 @@
+<section class="whitelabel-integrations-hub-panel" aria-labelledby="webhook-deliveries-heading">
+  <div class="whitelabel-integrations-hub-panel__head">
+    <h2 class="whitelabel-integrations-hub-panel__title" id="webhook-deliveries-heading">
+      {{ 'whitelabelManagement.integrations.webhookDeliveries.section' | translate }}
+    </h2>
+  </div>
+  <div class="whitelabel-integrations-hub-panel__separator" aria-hidden="true"></div>
+  <div class="whitelabel-integrations-hub-panel__filters">
+    <div class="whitelabel-integrations-hub-panel__filter-field">
+      <label class="form-label mb-0" for="webhook-deliveries-topic-filter">
+        {{ 'whitelabelManagement.integrations.webhookDeliveries.filterTopic' | translate }}
+      </label>
+      <ng-select
+        inputId="webhook-deliveries-topic-filter"
+        class="whitelabel-integrations-webhook-deliveries-tile__ng-select"
+        [clearable]="true"
+        [deselectOnClick]="true"
+        [disabled]="topics().length === 0"
+        [items]="topicSelectItems()"
+        [ngModel]="topicFilter()"
+        [placeholder]="'whitelabelManagement.integrations.webhookDeliveries.filterTopicAll' | translate"
+        [searchable]="true"
+        (change)="onTopicFilterChange($event)"
+        (clear)="onTopicFilterChange(null)"
+      />
+    </div>
+    <div class="whitelabel-integrations-hub-panel__filter-field">
+      <label class="form-label mb-0" for="webhook-deliveries-status-filter">
+        {{ 'whitelabelManagement.integrations.webhookDeliveries.filterStatus' | translate }}
+      </label>
+      <ng-select
+        inputId="webhook-deliveries-status-filter"
+        class="whitelabel-integrations-webhook-deliveries-tile__ng-select"
+        [clearable]="true"
+        [deselectOnClick]="true"
+        [items]="outboxStatuses"
+        [ngModel]="statusFilter()"
+        [placeholder]="'whitelabelManagement.integrations.webhookDeliveries.filterStatusAll' | translate"
+        [searchable]="true"
+        (change)="onStatusFilterChange($event)"
+        (clear)="onStatusFilterChange(null)"
+      >
+        <ng-template ng-label-tmp let-item="item">
+          @if (item === null || item === undefined) {
+            {{ 'whitelabelManagement.integrations.webhookDeliveries.filterStatusAll' | translate }}
+          } @else if (isKnownOutboxStatus(item)) {
+            {{ 'whitelabelManagement.integrations.webhookDeliveries.status.' + item | translate }}
+          } @else {
+            {{ item }}
+          }
+        </ng-template>
+        <ng-template ng-option-tmp let-item="item">
+          @if (isKnownOutboxStatus(item)) {
+            {{ 'whitelabelManagement.integrations.webhookDeliveries.status.' + item | translate }}
+          } @else {
+            {{ item }}
+          }
+        </ng-template>
+      </ng-select>
+    </div>
+    <div class="whitelabel-integrations-hub-panel__filter-actions">
+      <button
+        igntButton
+        sentiment="secondary"
+        size="small"
+        type="button"
+        [attr.aria-label]="'whitelabelManagement.integrations.webhookDeliveries.resetFiltersAria' | translate"
+        [disabled]="filtersResetDisabled()"
+        (click)="onResetFiltersClick()"
+      >
+        {{ 'whitelabelManagement.integrations.webhookDeliveries.resetFilters' | translate }}
+      </button>
+      <button igntButton sentiment="secondary" size="small" type="button" (click)="onRefreshClick()">
+        <ignt-icon name="repeat" variant="light" size="sm" aria-hidden="true" />
+        {{ 'whitelabelManagement.integrations.webhookDeliveries.refresh' | translate }}
+      </button>
+    </div>
+  </div>
+  @if (listError()) {
+    <div class="alert alert-danger whitelabel-integrations-hub-panel__alert" role="alert">
+      {{ listError()! | translate }}
+    </div>
+  }
+  @if (loading() && records().length === 0) {
+    <p class="whitelabel-integrations-hub-panel__empty text-muted mb-0">
+      {{ 'common.loading' | translate }}
+    </p>
+  } @else if (!loading() && records().length === 0 && listError() === null) {
+    <p class="whitelabel-integrations-hub-panel__empty text-muted mb-0">
+      {{ 'whitelabelManagement.integrations.webhookDeliveries.empty' | translate }}
+    </p>
+  } @else if (records().length > 0) {
+    <div
+      #deliveriesTableScroll
+      class="whitelabel-integrations-hub-panel__table-scroll whitelabel-integrations-hub-panel__table-scroll--deliveries"
+      (scroll)="onDeliveriesScroll($event)"
+    >
+      <table class="table table-sm table-striped align-middle mb-0">
+        <thead class="whitelabel-integrations-hub-panel__thead">
+          <tr>
+            <th scope="col">{{ 'whitelabelManagement.integrations.webhookDeliveries.columnTopic' | translate }}</th>
+            <th scope="col">{{ 'whitelabelManagement.integrations.webhookDeliveries.columnApplicationName' | translate }}</th>
+            <th scope="col">{{ 'whitelabelManagement.integrations.webhookDeliveries.columnStatus' | translate }}</th>
+            <th scope="col">{{ 'whitelabelManagement.integrations.webhookDeliveries.columnLastDeliver' | translate }}</th>
+            <th scope="col">{{ 'whitelabelManagement.integrations.webhookDeliveries.columnLastError' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of records(); track row.id) {
+            <tr>
+              <td>{{ row.event_topic }}</td>
+              <td class="text-break">
+                @if (row.application_name) {
+                  {{ row.application_name }}
+                } @else {
+                  {{ 'common.notAvailable' | translate }}
+                }
+              </td>
+              <td>
+                <span class="badge rounded-pill" [class]="deliveryStatusBadgeClass(row.status)">
+                  @if (isKnownOutboxStatus(row.status)) {
+                    {{ 'whitelabelManagement.integrations.webhookDeliveries.status.' + row.status | translate }}
+                  } @else {
+                    {{ row.status }}
+                  }
+                </span>
+              </td>
+              <td>
+                @if (row.last_deliver_at) {
+                  {{ row.last_deliver_at | date: 'medium' }}
+                } @else {
+                  {{ 'common.notAvailable' | translate }}
+                }
+              </td>
+              <td class="text-break">
+                @if (row.last_error_msg) {
+                  {{ row.last_error_msg }}
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      @if (loadingMore()) {
+        <p class="whitelabel-integrations-hub-panel__load-more text-muted text-center mb-0 py-2">
+          {{ 'common.loading' | translate }}
+        </p>
+      }
+    </div>
+  }
+</section>

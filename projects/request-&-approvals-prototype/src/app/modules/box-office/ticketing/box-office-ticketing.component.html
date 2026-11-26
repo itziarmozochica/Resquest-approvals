@@ -1,0 +1,753 @@
+<ignt-expansion-panel variant="menu" [label]="selectedPlan?.title || ''" [closeIt]="closeIt()" [isCollapsed]="false">
+  <app-page-title
+    page-title
+    [upperTitle]="'menu.boxOffice' | translate"
+    [title]="'menu.ticketing' | translate"
+    class="new-design"
+  ></app-page-title>
+  <app-search-bar
+    [preselectFromOnsiteSetup]="false"
+    [searchButtonLabel]="'boxOffice.show'"
+    [showVenue]="true"
+    [screen]="screen.boxOffice"
+    (searchEmitter)="loadNewSearch($event)"
+    (hasAllMandatoryFilters)="hasAllMandatoryFilters($event)"
+    [channelId]="channel"
+  >
+  </app-search-bar>
+</ignt-expansion-panel>
+
+<ng-container *ngIf="isOneStepFlow">
+  <div class="main-wrapper box-office">
+    <app-start-end-shift
+      [style.display]="shouldDisplayShiftControls() && datesAvailability?.length > 0 ? 'block' : 'none'"
+      (activeShift)="setActiveShift($event)"
+      [forceShiftAction]="forceShiftActions"
+      [cityId]="selectedCity?.id"
+      [placeId]="selectedPlace?.id"
+      [currency]="currency"
+      [onsiteSetup]="onsiteSetupSelected"
+    >
+    </app-start-end-shift>
+    <div
+      class="box-office-content__no-filter-selected"
+      *ngIf="!filtersSelected || (!sessionAvailabilitySummary && sessionsReady() && !error)"
+    >
+      <fa-icon class="box-office-content__no-filter-selected__icon" [icon]="['fal', 'sensor-alert']"></fa-icon>
+      <p class="box-office-content__no-filter-selected__text" translate>boxOffice.noFilterSelected</p>
+    </div>
+    <ng-container *ngIf="filtersSelected">
+      <div class="box-office-content__spinner" *ngIf="!sessionsReady()">
+        <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'4x'"></fa-icon>
+      </div>
+      <div class="box-office-content__alert-error" *ngIf="error">
+        <ignt-alert
+          sentiment="danger"
+          [description]="'boxOffice.genericErrorTitle' | translate"
+          showCloseButton
+          [closeButtonAriaLabel]="'common.close' | translate"
+          (closeAlert)="closeError()"
+        />
+      </div>
+      <ng-container
+        [ngTemplateOutlet]="emptyAvailabilitySessionsTemplate"
+        [ngTemplateOutletContext]="{ noResultText: 'boxOffice.noSessionsAvailable' }"
+        *ngIf="
+          sessionsReady() &&
+          !error &&
+          sessionAvailabilitySummary &&
+          sessionAvailabilitySummary?.regularSessionAvailabilitySummaryByDates.length === 0 &&
+          datesAvailability?.length === 0 &&
+          !selectedAvailabilityFromDate
+        "
+      >
+      </ng-container>
+      <div class="box-office__wrapper" *ngIf="sessionsReady() && !error && sessionAvailabilitySummary && selectedAvailabilityFromDate">
+        <div class="box-office__main bo-ticket-selector wrapper-card wrapper-card--elevation-0">
+          <ng-container [ngTemplateOutlet]="ticketSelectorDates"></ng-container>
+          <ng-container *ngIf="!manageAsFreeSeatingMap; else freeMapMode">
+            <div class="bo-ticket-selector__tickets">
+              <ng-container
+                [ngTemplateOutlet]="emptyAvailabilitySessionsTemplate"
+                [ngTemplateOutletContext]="{ noResultText: 'boxOffice.noSessionsForDate' }"
+                *ngIf="
+                  !isLoadingDateSessions && datesAvailability?.length > 0 && !(regularSessionAvailabilitySummaryByDateList?.length > 0)
+                "
+              ></ng-container>
+              <div [hidden]="isLoadingDateSessions || ticketTypes?.length === 0">
+                <ng-container [ngTemplateOutlet]="oneStepTicketSelector"></ng-container>
+              </div>
+              <ng-container *ngIf="isLoadingDateSessions">
+                <div class="box-office-content__spinner">
+                  <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'4x'"></fa-icon>
+                </div>
+              </ng-container>
+            </div>
+          </ng-container>
+          <ng-template #freeMapMode>
+            <div class="bo-seating-selector">
+              @if (seatingMapUrl) {
+                <seating-selector
+                  #seatingSelector
+                  [seatingMapUrl]="seatingMapUrl"
+                  [state]="seatingMapState"
+                  [locale]="locale"
+                  [manageAsFreeSeatingMap]="manageAsFreeSeatingMap"
+                  [shouldRestoreToBeginning]="shouldRestoreToBeginning"
+                  (selectSeats)="selectSeats($event)"
+                  (updateSeatsInCart)="updateSeatsInCart($event)"
+                  (clearSelectionRequested)="onClearSelectionRequested()"
+                  (confirmSeating)="confirmSeating($event)"
+                  (continueRestore)="continueRestore()"
+                >
+                </seating-selector>
+              }
+            </div>
+          </ng-template>
+        </div>
+        <div class="box-office__aside">
+          <ng-container *ngTemplateOutlet="planDetailCard"></ng-container>
+          <div class="overlay" [ngClass]="{ 'overlay--fade': isCartDetailOpened }"></div>
+          <div class="sticky-panel" [class.sticky-panel--hidden-mobile]="!getCurrentCart()" [class.sticky-panel--open]="isCartDetailOpened">
+            <div class="sticky-panel__wrapper">
+              <div class="sticky-panel__content">
+                <header
+                  class="bo-aside-header"
+                  [class.bo-aside-header--visible-mobile]="!isCartDetailOpened"
+                  [class.bo-aside-header--hidden-desktop-multi-cart]="oneStepMultiCartEnabled"
+                >
+                  <div class="bo-aside-header__wrapper">
+                    <ng-container *ngIf="oneStepMultiCartEnabled || !isCartDetailOpened; else cartDetailTitle">
+                      <ng-container *ngTemplateOutlet="cartTotalTitle"></ng-container>
+                    </ng-container>
+
+                    <div
+                      *ngIf="selectedSession && !oneStepMultiCartEnabled"
+                      class="bo-aside-header__supporting-text bo-aside-header__supporting-text--date"
+                    >
+                      {{ selectedSession.selectedDatetime?.datetime | momentDate: 'd MMM yyyy - HH:mm' : timezone : locale }}
+                    </div>
+                    <div
+                      class="bo-aside-header__supporting-text bo-aside-header__supporting-text--total"
+                      [class.d-block]="oneStepMultiCartEnabled"
+                    >
+                      <ng-container *ngIf="getCurrentCart()">
+                        <ng-container *ngTemplateOutlet="cartTotal; context: { money: cartTotalMoney, locale: locale }"></ng-container>
+                      </ng-container>
+                    </div>
+                  </div>
+
+                  <ng-container *ngIf="!isCartDetailOpened && paymentTypes && paymentTypes.length > 1; else directPaymentForOneStepFlow">
+                    <button class="d-lg-none mobile-button" (click)="openLateralPayments()" igntButton size="small">
+                      {{ 'boxOffice.pay' | translate }}
+                    </button>
+                  </ng-container>
+                  <button
+                    (click)="clearAll()"
+                    *ngIf="getCurrentCart()"
+                    class="button button--small button--sharp-secondary d-none"
+                    data-testid="cart-clear-all"
+                    translate
+                  >
+                    {{ 'boxOffice.cart.clearAll' }}
+                  </button>
+                  <button
+                    igntButton
+                    sentiment="secondary"
+                    size="small"
+                    variant="sharp"
+                    (click)="isCartDetailOpened = !isCartDetailOpened"
+                    class="mobile-button d-lg-none"
+                    data-testid="toggle-open-close-cart-detail"
+                  >
+                    {{ 'boxOffice.cart.' + (isCartDetailOpened ? 'hideCart' : 'title') | translate }}
+                  </button>
+                </header>
+                <ng-container *ngIf="!oneStepMultiCartEnabled">
+                  <cart-detail-obo
+                    class="sticky-panel__cart-detail"
+                    [cart]="getCurrentCart()"
+                    [isLoading]="isLoadingCart"
+                    [showSeatingInModal]="true"
+                    [couponDiscount]="coupon"
+                    (couponRemoved)="removeCoupon()"
+                    [seatingProvider]="seatingProvider"
+                    [showClearAll]="seatingProvider !== seatingProviderEnum.ONEBOX"
+                  ></cart-detail-obo>
+                </ng-container>
+                <ng-container *ngIf="oneStepMultiCartEnabled">
+                  <div class="wrapper-card--elevation-0 wrapper-card" [class.wrapper-card--no-borders]="isCartDetailOpened">
+                    <app-one-step-multi-cart
+                      [currentCart]="getCurrentCart()"
+                      [currentPlanId]="selectedPlan?.id"
+                      [cartTotalMoney]="cartTotalMoney"
+                      [showCoupon]="showCouponOneStep"
+                      [showCommonPaymentButton]="showCommonPaymentButton"
+                      [addSessionsToCartIsDisabled]="addSessionsToCartIsDisabled()"
+                      [couponCodeApplied$]="couponCodeApplied$"
+                      [couponError]="couponError"
+                      [paymentConfiguration]="paymentConfiguration"
+                      [onsiteSetupSelected]="onsiteSetupSelected"
+                      [paymentTypes]="paymentTypes"
+                      [isSplitPaymentEnabled]="isNewPaymentFlowActive()"
+                      [fullPaymentCashAvailable]="isFullPaymentCashAvailable()"
+                      [fullPaymentIntegratedAvailable]="isFullPaymentIntegratedAvailable()"
+                      [couponDiscount]="coupon"
+                      [canClear]="(getCurrentCart()?.getNumberOfTicketCounts() ?? 0) > 0"
+                      (couponCode)="applyCouponDiscountOneStep($event.code, $event.lazyCouponType)"
+                      (simplePayClicked)="openLateralPayments()"
+                      (payClicked)="clickOnPayOneStep($event)"
+                      (paymentOptionsRequested)="onPaymentOptionsRequested()"
+                      (fullPaymentCashRequested)="onFullPaymentCashRequested()"
+                      (fullPaymentIntegratedRequested)="onFullPaymentIntegratedRequested()"
+                      (clearAllClicked)="clearAll()"
+                      (couponRemoved)="removeCoupon()"
+                    ></app-one-step-multi-cart>
+                  </div>
+                </ng-container>
+              </div>
+            </div>
+            <app-one-step-cart-footer
+              *ngIf="getCurrentCart() || isLoadingCart"
+              class="sticky-panel__footer"
+              [class.sticky-panel__footer--hidden-desktop-multi-cart]="oneStepMultiCartEnabled"
+              [currentCart]="getCurrentCart()"
+              [cartTotalMoney]="cartTotalMoney"
+              [showCoupon]="showCouponOneStep"
+              [showCommonPaymentButton]="showCommonPaymentButton"
+              [addSessionsToCartIsDisabled]="addSessionsToCartIsDisabled()"
+              [couponCodeApplied$]="couponCodeApplied$"
+              [couponError]="couponError"
+              [paymentConfiguration]="paymentConfiguration"
+              [onsiteSetupSelected]="onsiteSetupSelected"
+              [paymentTypes]="paymentTypes"
+              [hasThreePaymentMethods]="hasThreePaymentMethods"
+              [isSplitPaymentEnabled]="isNewPaymentFlowActive()"
+              [fullPaymentCashAvailable]="isFullPaymentCashAvailable()"
+              [fullPaymentIntegratedAvailable]="isFullPaymentIntegratedAvailable()"
+              (couponCode)="applyCouponDiscountOneStep($event.code, $event.lazyCouponType)"
+              (simplePayClicked)="openLateralPayments()"
+              (payClicked)="clickOnPayOneStep($event)"
+              (paymentOptionsRequested)="onPaymentOptionsRequested()"
+              (fullPaymentCashRequested)="onFullPaymentCashRequested()"
+              (fullPaymentIntegratedRequested)="onFullPaymentIntegratedRequested()"
+            />
+          </div>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</ng-container>
+
+<ng-container *ngIf="!isOneStepFlow">
+  <div class="box-office-shell">
+    <div class="box-office-content">
+      <div class="box-office-content__container">
+        <app-start-end-shift
+          [style.display]="shouldDisplayShiftControls() && datesAvailability?.length > 0 ? 'block' : 'none'"
+          class="mb-3 start-end-shift-container"
+          (activeShift)="setActiveShift($event)"
+          [forceShiftAction]="forceShiftActions"
+          [cityId]="selectedCity?.id"
+          [placeId]="selectedPlace?.id"
+          [currency]="currency"
+          [onsiteSetup]="onsiteSetupSelected"
+        >
+        </app-start-end-shift>
+
+        <div class="box-office-content__row box-office-content__row">
+          <div
+            class="box-office-content__no-filter-selected"
+            *ngIf="!filtersSelected || (!sessionAvailabilitySummary && sessionsReady() && !error)"
+          >
+            <fa-icon class="box-office-content__no-filter-selected__icon" [icon]="['fal', 'sensor-alert']"></fa-icon>
+            <p class="box-office-content__no-filter-selected__text" translate>boxOffice.noFilterSelected</p>
+          </div>
+          <ng-container *ngIf="filtersSelected">
+            <div class="box-office-content__spinner" *ngIf="!sessionsReady()">
+              <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'4x'"></fa-icon>
+            </div>
+            <div class="box-office-content__alert-error" *ngIf="error">
+              <ignt-alert
+                sentiment="danger"
+                [description]="'boxOffice.genericErrorTitle' | translate"
+                showCloseButton
+                [closeButtonAriaLabel]="'common.close' | translate"
+                (closeAlert)="closeError()"
+              />
+            </div>
+            <ng-container
+              [ngTemplateOutlet]="emptyAvailabilitySessionsTemplate"
+              [ngTemplateOutletContext]="{ noResultText: 'boxOffice.noSessionsAvailable' }"
+              *ngIf="
+                sessionsReady() &&
+                !error &&
+                sessionAvailabilitySummary &&
+                sessionAvailabilitySummary?.regularSessionAvailabilitySummaryByDates.length === 0 &&
+                datesAvailability?.length === 0 &&
+                !selectedAvailabilityFromDate
+              "
+            >
+            </ng-container>
+            <ng-container *ngIf="sessionsReady() && !error && sessionAvailabilitySummary && selectedAvailabilityFromDate">
+              <div class="box-office-content__sidebar" data-testid="box-office-sidebar">
+                <ng-container *ngTemplateOutlet="planDetailCard"></ng-container>
+                <ng-container *ngIf="getCurrentCart() || isLoadingCart">
+                  <cart-detail
+                    [cart]="getCurrentCart()"
+                    [isLoading]="isLoadingCart"
+                    [showSeatingInModal]="true"
+                    [seatingProvider]="seatingProvider"
+                    [showClearAll]="currentStep?.id !== ticketSelectorStep.id && seatingProvider !== seatingProviderEnum.ONEBOX"
+                    (clearAll)="clearAll()"
+                  ></cart-detail>
+                </ng-container>
+                @if (isNewPaymentFlowActive() && (getCurrentCart() || isLoadingCart)) {
+                  <app-one-step-cart-footer
+                    [currentCart]="getCurrentCart()"
+                    [cartTotalMoney]="cartTotalMoney"
+                    [showCoupon]="false"
+                    [showCommonPaymentButton]="showCommonPaymentButton"
+                    [addSessionsToCartIsDisabled]="addSessionsToCartIsDisabled()"
+                    [couponCodeApplied$]="couponCodeApplied$"
+                    [couponError]="couponError"
+                    [paymentConfiguration]="paymentConfiguration"
+                    [onsiteSetupSelected]="onsiteSetupSelected"
+                    [paymentTypes]="paymentTypes"
+                    [hasThreePaymentMethods]="hasThreePaymentMethods"
+                    [isSplitPaymentEnabled]="isNewPaymentFlowActive()"
+                    [fullPaymentCashAvailable]="isFullPaymentCashAvailable()"
+                    [fullPaymentIntegratedAvailable]="isFullPaymentIntegratedAvailable()"
+                    (simplePayClicked)="openLateralPayments()"
+                    (payClicked)="clickOnPayOneStep($event)"
+                    (paymentOptionsRequested)="onPaymentOptionsRequested()"
+                    (fullPaymentCashRequested)="onFullPaymentCashRequested()"
+                    (fullPaymentIntegratedRequested)="onFullPaymentIntegratedRequested()"
+                  />
+                }
+              </div>
+              <div class="box-office-content__content">
+                <div class="only-in-mobile">
+                  <ng-container *ngTemplateOutlet="planDetailCard"></ng-container>
+                </div>
+                <ng-container [ngSwitch]="currentStep?.id">
+                  <ng-container *ngSwitchCase="ticketSelectorStep.id">
+                    <div class="box-office-content__content-card" [class.blocked-content]="isLoadingCart">
+                      <ng-container>
+                        <ng-container *ngTemplateOutlet="dateTicketFlow"></ng-container>
+                      </ng-container>
+                      <ng-container
+                        [ngTemplateOutlet]="emptyAvailabilitySessionsTemplate"
+                        [ngTemplateOutletContext]="{ noResultText: 'boxOffice.noSessionsAvailable' }"
+                        *ngIf="
+                          sessionAvailabilitySummary?.regularSessionAvailabilitySummaryByDates.length === 0 &&
+                          datesAvailability?.length === 0
+                        "
+                      >
+                      </ng-container>
+                    </div>
+                  </ng-container>
+
+                  <ng-container *ngSwitchCase="seatingSelectorStep.id">
+                    <div class="box-office-content__content-card box-office-content__content-card--seating">
+                      <div class="content">
+                        <div class="content__title" data-testid="box-office-step-title">
+                          {{ 'boxOffice.seatingSelection' | translate }}
+                        </div>
+                        @if (seatingMapUrl) {
+                          <seating-selector
+                            #seatingSelector
+                            [seatingMapUrl]="seatingMapUrl"
+                            [state]="seatingMapState"
+                            [locale]="locale"
+                            [manageAsFreeSeatingMap]="manageAsFreeSeatingMap"
+                            [shouldRestoreToBeginning]="shouldRestoreToBeginning"
+                            [shouldGoBack]="shouldGoBack"
+                            (selectSeats)="selectSeats($event)"
+                            (updateSeatsInCart)="updateSeatsInCart($event)"
+                            (confirmSeating)="confirmSeating($event)"
+                            (continueRestore)="continueRestore()"
+                          >
+                          </seating-selector>
+                        }
+                      </div>
+                    </div>
+                  </ng-container>
+
+                  <ng-container *ngSwitchCase="lastSelectorStep.id">
+                    <div class="box-office-content__content-card">
+                      <app-contact-information
+                        [contactInformation]="contactInformation"
+                        [mandatoryFields]="getMandatoryFields()"
+                        (updateCustomer)="updateCustomer($event)"
+                      >
+                      </app-contact-information>
+                    </div>
+                  </ng-container>
+                </ng-container>
+                <div class="box-office-content__buttons only-in-desktop">
+                  <ng-container *ngTemplateOutlet="allStepsFlowButtonsTicketingTemplate"></ng-container>
+                </div>
+              </div>
+            </ng-container>
+          </ng-container>
+        </div>
+
+        <div class="box-office__help-topic" appHideWrapperOnHelpTopicClose>
+          <app-help-topic-banner
+            [message]="'helpTopics.ticketing.message' | translate"
+            [ctaLabel]="'helpTopics.generic.cta.label' | translate"
+            [ctaLink]="'helpTopics.ticketing.cta.href' | translate"
+          ></app-help-topic-banner>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="only-in-mobile"
+    *ngIf="
+      sessionsReady() &&
+      !error &&
+      sessionAvailabilitySummary &&
+      sessionAvailabilitySummary?.regularSessionAvailabilitySummaryByDates.length > 0
+    "
+  >
+    <bottom-slider
+      [(showDetails)]="showCartDetails"
+      [showTab]="currentStep?.id === lastSelectorStep.id"
+      [showDetailsLabel]="'boxOffice.cart.viewCart' | translate"
+      [hideDetailsLabel]="'boxOffice.cart.hideCart' | translate"
+      [detailsTemplate]="cartTemplate"
+      [buttonsTemplate]="allStepsFlowButtonsTicketingTemplate"
+    >
+    </bottom-slider>
+  </div>
+</ng-container>
+
+<ng-template #cartTemplate>
+  <cart-detail
+    [cart]="getCurrentCart()"
+    [seatingProvider]="seatingProvider"
+    [isLoading]="isLoadingCart"
+    [showClearAll]="false"
+    [checkCustomerInfo]="this.cart && !this.isCheckoutEnabled()"
+  ></cart-detail>
+</ng-template>
+
+<ng-template #allStepsFlowButtonsTicketingTemplate>
+  <ng-container [ngSwitch]="currentStep?.id">
+    <ng-container *ngSwitchCase="ticketSelectorStep.id">
+      <button
+        class="box-office-content__button box-office-content__button--bin only-in-mobile d-none"
+        data-testid="ticket-step-remove-cart"
+        [disabled]="!cart || isLoadingCart"
+        (click)="clearAll()"
+      >
+        <fa-icon class="trash-icon" [icon]="['fal', 'trash-alt']"></fa-icon>
+      </button>
+      <ng-container *ngIf="!manageAsFreeSeatingMap; else freeMapMode">
+        <button
+          igntButton
+          [fill]="true"
+          [disabled]="addSessionsToCartIsDisabled()"
+          (click)="addSessionsToCart()"
+          data-testid="ticket-step-add-cart"
+        >
+          {{ 'boxOffice.addToCart' | translate }}
+        </button>
+      </ng-container>
+      <ng-template #freeMapMode>
+        <button
+          class="button button--large button--primary button--fill button--margin button--left"
+          [disabled]="noSessionSelected()"
+          (click)="showShiftModal()"
+          data-testid="ticket-select-from-free-map"
+        >
+          {{ 'boxOffice.selectSeats' | translate }}
+        </button>
+      </ng-template>
+    </ng-container>
+    <ng-container *ngSwitchCase="seatingSelectorStep.id">
+      <ng-container *ngIf="seatingProvider !== seatingProviderEnum.ONEBOX">
+        <button
+          class="box-office-content__button box-office-content__button--bin only-in-mobile"
+          [disabled]="!cart || isLoadingCart"
+          (click)="clearAll()"
+          data-testid="seating-step-remove-cart"
+        >
+          <fa-icon class="trash-icon" [icon]="['fal', 'trash-alt']"></fa-icon>
+        </button>
+        <button
+          class="box-office-content__button box-office-content__button--outline"
+          (click)="goBack()"
+          data-testid="seating-step-back-button"
+        >
+          {{ 'boxOffice.goBack' | translate }}
+        </button>
+      </ng-container>
+      <button
+        class="box-office-content__button"
+        [disabled]="!hasSeatsSelected || isLoadingCart"
+        (click)="finishSeating()"
+        data-testid="seating-step-confirm-seat"
+      >
+        {{ 'boxOffice.selectSeats' | translate }}
+      </button>
+    </ng-container>
+    <ng-container *ngSwitchCase="lastSelectorStep.id">
+      <div class="buttons-container">
+        <button
+          ignt-icon-button
+          sentiment="secondary"
+          size="large"
+          variant="danger"
+          [icon]="['fal', 'trash-alt']"
+          [disabled]="!cart || isLoadingCart"
+          (click)="clearAll()"
+          data-testid="contact-information-step-remove-cart"
+          class="only-in-mobile"
+        ></button>
+        <button igntButton sentiment="secondary" [fill]="true" (click)="goBack()" data-testid="contact-information-step-back-button">
+          {{ 'boxOffice.goBack' | translate }}
+        </button>
+        <button
+          igntButton
+          [fill]="true"
+          [disabled]="!this.isCheckoutEnabled()"
+          (click)="goToCheckout()"
+          class="checkout-button"
+          data-testid="contact-information-step-checkout-button"
+        >
+          {{ 'boxOffice.goToCheckout' | translate }}
+          <span class="price-amount" *ngIf="cart">
+            ({{ cart.total ? (cart.total.amount | currency: cart.total.currency : 'symbol-narrow' : null : locale) : '-' }}
+            )
+          </span>
+        </button>
+      </div>
+    </ng-container>
+  </ng-container>
+</ng-template>
+
+<app-lateral-slider
+  [showDetails]="showPaymentsInLateral"
+  [title]="'boxOffice.settings.actions.onsiteSetup.paymentMethods.place_holder'"
+  [contentTemplate]="oneStepFlowButtonsTicketingTemplate"
+  (closeSlider)="showPaymentsInLateral = false"
+>
+</app-lateral-slider>
+<ng-template #oneStepFlowButtonsTicketingTemplate>
+  <div class="payment-methods__body">
+    <ng-container *ngIf="cartTotalMoney?.amount > 0; else freePaymentButtonTemplate">
+      <div class="payment-methods__grid-box" data-testid="payment-buttons">
+        <button
+          *ngFor="let payment of paymentTypes; let i = index"
+          class="payment-methods__button"
+          [class.payment-methods__button--selected]="paymentType === payment"
+          [disabled]="addSessionsToCartIsDisabled() || payWithCardIsDisabled(payment)"
+          [title]="getCardDisabledTooltip(payment) ? (getCardDisabledTooltip(payment) | translate) : null"
+          (click)="selectPaymentType(payment)"
+          data-testid="payment-button"
+        >
+          @if (getButtonImageUrl(payment); as imageUrl) {
+            <div class="payment-images">
+              <img class="payment-images__icon" alt="" [src]="imageUrl" />
+            </div>
+          } @else if (getCustomIconName(payment); as iconName) {
+            <div class="payment-icons">
+              <fa-icon [icon]="['fal', iconName]"></fa-icon>
+            </div>
+          }
+          <div class="payment-labels">
+            {{ getButtonLabel(payment) }}
+          </div>
+        </button>
+      </div>
+    </ng-container>
+  </div>
+  <div class="payment-methods__footer">
+    <div class="button-container-footer">
+      <button igntButton sentiment="secondary" [fill]="true" (click)="showPaymentsInLateral = false">
+        {{ 'boxOffice.order.notes.closeButton' | translate }}
+      </button>
+      <button igntButton [fill]="true" [disabled]="!lateralConfirmButtonEnabled" (click)="clickOnPayOneStep(paymentType)">
+        {{ 'common.confirm' | translate }}
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #dateTicketFlow>
+  <ng-container *ngTemplateOutlet="oneStepDateSelector"></ng-container>
+  <ng-container *ngIf="!isLoadingDateSessions">
+    <ng-container *ngIf="!manageAsFreeSeatingMap">
+      <ng-container
+        [ngTemplateOutlet]="emptyAvailabilitySessionsTemplate"
+        [ngTemplateOutletContext]="{ noResultText: 'boxOffice.noSessionsForDate' }"
+        *ngIf="datesAvailability?.length > 0 && !regularSessionAvailabilitySummaryByDateList?.length > 0"
+      ></ng-container>
+      <ng-container *ngIf="ticketTypes?.length > 0" [ngTemplateOutlet]="oneStepTicketSelector"></ng-container>
+    </ng-container>
+  </ng-container>
+  <ng-container *ngIf="isLoadingDateSessions">
+    <div class="box-office-content__spinner">
+      <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'4x'"></fa-icon>
+    </div>
+  </ng-container>
+</ng-template>
+
+<ng-template #oneStepTicketSelector>
+  <app-ticket-selector-obo
+    [showAddonsInASeparateSection]="true"
+    [showHiddenInASeparateSection]="true"
+    [productTypes]="productTypes"
+    [ticketTypes]="ticketTypes"
+    [ongoingMultiDayTicketGroups]="ongoingMultiDayTicketGroups"
+    [showTicketAvailabilityInfo]="!this.useCacheEnabled"
+    [ticketTypeCounterBySessionId]="selectedTicketsBySessionId"
+    [ticketTypeCounterBySessionType]="selectedTicketsBySessionType"
+    [hasExplodePipe]="hasExplodePipe"
+    [showPrices]="true"
+    [locale]="locale"
+    (ticketTypeCounterChange)="selectTicketCounter($event)"
+    (hasErrors)="setTicketCounterHasErrors($event)"
+    [allowMultiSession]="allowMultiSessionPurchase"
+    [allowMultiTimeSlot]="isOneStepFlow && allowMultiTimeSlotSelection"
+    [onsiteSetup]="onsiteSetupSelected"
+    [usePriceViewer]="!showOnlyTotalInPriceViewer"
+    [forceDisableIncreaseCounter]="forceDisableIncreaseCounter"
+    [discounts]="membershipsData.planDiscounts"
+  ></app-ticket-selector-obo>
+</ng-template>
+
+<ng-template #oneStepDateSelector>
+  <app-date-selector-obo
+    [datesAvailability]="datesAvailability"
+    [selectedDateAvailability]="selectedDateAvailability"
+    [locale]="locale"
+    [loading]="isLoadingDates"
+    [loadingSessions]="isLoadingSessions"
+    [timezone]="timezone"
+    [ticketTypes]="selectedTicketsBySessionType | filterProductSessions: productSessions"
+    [ongoingMultiDayTicketTypeNames]="getOngoingMultiDaySelectedTicketTypeNames()"
+    [displayedSessionType]="displayedSessionType"
+    [regularSessionAvailabilitySummaryByDate]="regularSessionAvailabilitySummaryByDateList"
+    [selectedSession]="selectedSession"
+    [sessionSelectorType]="sessionSelectorType"
+    [showCapacity]="includeTimeSlotCapacity"
+    [showLoadMoreButton]="!!nextAvailableDate && (!onsiteSetupSelected || onsiteSetupSelected?.max_purchasable_days > 1)"
+    [isOneStepFlow]="isOneStepFlow"
+    [selectedAvailabilityFromDate]="selectedAvailabilityFromDate"
+    [shouldShowDateSelector]="onsiteSetupSelected?.max_purchasable_days > 1"
+    [allowMultiTimeSlot]="isOneStepFlow && allowMultiTimeSlotSelection"
+    [preselectNextUpcomingSession]="preselectNextUpcomingSession"
+    (selectedSessionChange)="selectSession($event)"
+    (handleShowAvailabilityFromDateChange)="handleShowAvailabilityFromDateChange($event)"
+    (loadMore)="loadMoreDays()"
+    (selectedDateChange)="selectDate($event)"
+    (displayedSessionTypeChange)="handleDisplayedSessionTypeChange($event)"
+    (updateFreeMapMode)="updateFreeMapMode()"
+    (loadOneStepFreeSeatingMap)="loadOneStepFreeSeatingMap()"
+  ></app-date-selector-obo>
+</ng-template>
+
+<ng-template #noContentSelectorPlaceholder let-show="show" let-placeholderText="placeholderText">
+  <div *ngIf="show" class="selector-content__no-results">
+    <fa-icon class="selector-content__no-results-icon" [icon]="['fal', 'sensor-alert']"></fa-icon>
+    <p class="selector-content__no-results-text" data-testid="date-selector-no-result" translate>{{ placeholderText }}</p>
+  </div>
+</ng-template>
+
+<ng-template #planDetailCard>
+  <app-plan-detail-card
+    #planDetailCardRef
+    *ngIf="plan"
+    [plan]="plan"
+    [isLoadingPaymentConfiguration]="isLoadingPaymentConfiguration"
+    [showPaymentConfiguration]="true"
+    [planPaymentConfiguration]="paymentConfiguration"
+    [showOnsiteSetup]="onsiteSetups?.length > 0"
+    [selectedOnsiteSetup]="onsiteSetupSelected"
+    [deviceSelectionInvalid]="deviceSelectionInvalid"
+    (showOnsiteSetupModal)="showOnsiteSetupModal(false, true)"
+    (connectSquareToggled)="onConnectSquareToggled()"
+    (deviceSelected)="onDeviceSelected($event)"
+  >
+  </app-plan-detail-card>
+</ng-template>
+
+<ng-template #cartTotal let-locale="locale" let-money="money">
+  <span data-testid="cart-total-price">
+    {{ money ? (money.amount | currency: money.currency : 'symbol-narrow' : null : locale) : '-' }}
+  </span>
+</ng-template>
+
+<ng-template #emptyAvailabilitySessionsTemplate let-noResultText="noResultText">
+  <div class="box-office-content__no-results">
+    <fa-icon class="box-office-content__no-results__icon" [icon]="['fal', 'sensor-alert']"></fa-icon>
+    <p class="box-office-content__no-results__text" translate>{{ noResultText }}</p>
+  </div>
+</ng-template>
+
+<ng-template #freePaymentButtonTemplate>
+  <button
+    igntButton
+    class="free-payment-button"
+    [fill]="true"
+    (click)="clickOnPayOneStep(PaymentTypeEnum.FREE)"
+    data-testid="pay-with-free-button"
+  >
+    {{ 'common.confirm' | translate }}
+  </button>
+</ng-template>
+
+<ng-template #directPaymentForOneStepFlow>
+  <ng-container *ngIf="!isCartDetailOpened">
+    <button
+      class="d-lg-none mobile-button"
+      igntButton
+      size="small"
+      title="{{ 'boxOffice.pay' | translate }}"
+      [disabled]="addSessionsToCartIsDisabled() || payWithCardIsDisabled(paymentTypes[0])"
+      (click)="clickOnPayOneStep(paymentTypes[0])"
+      data-testid="payment-button"
+    >
+      {{ 'boxOffice.pay' | translate }}
+    </button>
+  </ng-container>
+</ng-template>
+
+<ng-template #cartTotalTitle>
+  <div class="bo-aside-header__title d-block d-lg-none">
+    {{ 'boxOffice.cart.total' | translate }}
+  </div>
+  <div class="bo-aside-header__title d-none d-lg-block">
+    {{ 'boxOffice.cart.title' | translate }}
+  </div>
+</ng-template>
+
+<ng-template #cartDetailTitle>
+  <div class="bo-aside-header__title">
+    {{ 'boxOffice.cart.title' | translate }}
+  </div>
+</ng-template>
+
+<ng-template #ticketSelectorDates>
+  <aside class="bo-ticket-selector__dates">
+    <div *ngIf="canIdentifyMember()" class="bo-ticket-selector__memberships-button">
+      <app-memberships-identify-member-button
+        [membershipsMember]="membershipsData.member"
+        (identifyMember)="identifyMembershipsMember()"
+        (removeMember)="removeMembershipsMember()"
+      ></app-memberships-identify-member-button>
+    </div>
+    <ng-container *ngTemplateOutlet="oneStepDateSelector"></ng-container>
+    <ng-container
+      [ngTemplateOutlet]="emptyAvailabilitySessionsTemplate"
+      [ngTemplateOutletContext]="{ noResultText: 'boxOffice.noSessionsAvailable' }"
+      *ngIf="sessionAvailabilitySummary?.regularSessionAvailabilitySummaryByDates.length === 0 && datesAvailability?.length === 0"
+    >
+    </ng-container>
+  </aside>
+</ng-template>

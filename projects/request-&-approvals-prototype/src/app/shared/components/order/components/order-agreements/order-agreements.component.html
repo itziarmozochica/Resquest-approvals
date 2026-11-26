@@ -1,0 +1,99 @@
+@if (isVisible()) {
+  <div class="order-agreements" [class.order-agreements--collapsed]="isCollapsed()" data-testid="order-agreements">
+    <div class="header">
+      <div class="header__title">
+        <span class="header__title-label">
+          {{ 'validateTicketsNew.orderAgreements.title' | translate }}
+          @if (state() === 'loaded') {
+            <ignt-tag data-testid="order-agreements-summary" [sentiment]="summarySentiment()">
+              {{ summaryLabelKey() | translate: { count: pendingCount() } }}
+            </ignt-tag>
+          }
+        </span>
+        <ignt-icon
+          class="header__title--collapse"
+          data-testid="order-agreements-collapse"
+          name="chevron-down"
+          variant="solid"
+          size="base"
+          role="button"
+          tabindex="0"
+          [attr.aria-expanded]="!isCollapsed()"
+          [attr.aria-label]="'validateTicketsNew.orderAgreements.title' | translate"
+          (click)="toggle()"
+          (keydown.enter)="toggle()"
+          (keydown.space)="toggleFromSpace($event)"
+        />
+      </div>
+    </div>
+    <div class="body">
+      @switch (state()) {
+        @case ('error') {
+          <p class="order-agreements__state" role="alert" data-testid="order-agreements-error">
+            {{ errorKey() | translate }}
+          </p>
+        }
+        @default {
+          <div class="order-agreements__list" role="list">
+            @for (agreement of agreements(); track agreement.id; let isLast = $last) {
+              @let isSigned = agreement.status === signedStatus;
+              @let ticketSuffix =
+                agreement.participant !== null && agreement.ticketId !== null
+                  ? ' (' + ('validateTicketsNew.tickets.ticketId' | translate) + ' ' + agreement.ticketId + ')'
+                  : '';
+              <div role="listitem">
+                <div
+                  class="order-agreements__row"
+                  role="button"
+                  tabindex="0"
+                  [attr.data-testid]="'order-agreement-row-' + agreement.id"
+                  (click)="openAgreement(agreement.id)"
+                  (keydown.enter)="activateRow($event, agreement.id)"
+                  (keydown.space)="activateRow($event, agreement.id)"
+                >
+                  <ignt-list-item
+                    type="unwrapped"
+                    [divider]="!isLast"
+                    [title]="agreement.agreement.title"
+                    [description]="
+                      (signerLabels()[agreement.id] ??
+                        agreement.participant?.label ??
+                        ('agreements.signing.modal.list.wholeOrder' | translate)) + ticketSuffix
+                    "
+                  >
+                    <div class="order-agreements__trailing" trailing-modifier>
+                      <app-agreement-status-tag [status]="agreement.status" />
+                      @if (hasManageAgreementsPermission && (!isSigned || agreement.participant !== null)) {
+                        <div (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+                          <ignt-button-dropdown
+                            #rowMenu
+                            [align]="'right'"
+                            [autoWidth]="true"
+                            [disabled]="isBusy()"
+                            [leadingIcon]="['fas', 'ellipsis-v']"
+                            [options]="isSigned ? signedRowActions : agreement.isClaimed ? rowActions : unclaimedRowActions"
+                            [sentiment]="'tertiary'"
+                            [size]="'small'"
+                            [trailingIconClosed]="null"
+                            [trailingIconOpened]="null"
+                            [attr.data-testid]="'order-agreement-actions-' + agreement.id"
+                            (openedChange)="onRowMenuOpenedChange($event, rowMenu)"
+                            (optionClick)="onRowAction($event, agreement, rowMenu)"
+                          >
+                            <span class="visually-hidden">{{
+                              'validateTicketsNew.orderAgreements.actions.menuLabel' | translate: { title: agreement.agreement.title }
+                            }}</span>
+                          </ignt-button-dropdown>
+                        </div>
+                      }
+                    </div>
+                  </ignt-list-item>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      }
+    </div>
+  </div>
+}

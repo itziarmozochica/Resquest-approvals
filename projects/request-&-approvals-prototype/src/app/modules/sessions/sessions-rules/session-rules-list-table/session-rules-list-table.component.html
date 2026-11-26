@@ -1,0 +1,152 @@
+<div class="table-layout--horizontal-scroll-container">
+  <table class="session-rules-list-table">
+    <thead class="session-rules-list-table__header">
+      <tr class="session-rules-list-table__row">
+        <th class="session-rules-list-table__cell large-column">
+          {{ 'sessions.rules.rulesList.table.headers.condition' | translate }}
+        </th>
+        <th class="session-rules-list-table__cell large-column">
+          {{ 'sessions.rules.rulesList.table.headers.action' | translate }}
+        </th>
+        <th class="session-rules-list-table__cell small-column">
+          {{ 'sessions.rules.rulesList.table.headers.status' | translate }}
+        </th>
+        @if (canEditSessionActionRules()) {
+          <th class="session-rules-list-table__cell extra-small-column"></th>
+        }
+      </tr>
+    </thead>
+    <tbody data-testid="session-rules-list-table-body">
+      <tr
+        *ngFor="let item of listItems; let i = index; trackBy: trackById"
+        data-testid="session-rules-list-table-row"
+        class="session-rules-list-table__row"
+      >
+        <td class="session-rules-list-table__cell large-column condition-content">
+          <ng-container [ngSwitch]="item.condition.conditionType">
+            <ng-container
+              *ngSwitchCase="ActionRuleConditionType.LowAvailability"
+              [ngTemplateOutlet]="conditionLowAvailabilityCell"
+              [ngTemplateOutletContext]="{ condition: item.condition }"
+            ></ng-container>
+          </ng-container>
+        </td>
+        <td class="session-rules-list-table__cell large-column action-content">
+          <ng-container [ngSwitch]="item.action.actionType">
+            <ng-container
+              *ngSwitchCase="ActionRuleActionType.UpdateVisibility"
+              [ngTemplateOutlet]="actionUpdateVisibilityCell"
+              [ngTemplateOutletContext]="{ action: item.action, targetSessions: item.targetSessions }"
+            ></ng-container>
+            <ng-container
+              *ngSwitchCase="ActionRuleActionType.OpenPurchasabilityWindow"
+              [ngTemplateOutlet]="actionOpenPurchasabilityWindowCell"
+              [ngTemplateOutletContext]="{ action: item.action, targetSessions: item.targetSessions }"
+            ></ng-container>
+          </ng-container>
+        </td>
+        <td class="session-rules-list-table__cell small-column status-content" data-testid="rule-status-cell">
+          <ng-container *ngTemplateOutlet="statusCell; context: { item: item }"></ng-container>
+        </td>
+        @if (canEditSessionActionRules()) {
+          <td class="session-rules-list-table__cell extra-small-column edit-content">
+            <fa-icon class="edit-content__icon" data-testid="rule-edit-button" [icon]="['fas', 'edit']" (click)="itemClicked.emit(item)">
+            </fa-icon>
+          </td>
+        }
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!--CONDITIONS TEMPLATES-->
+
+<ng-template #conditionLowAvailabilityCell let-condition="condition">
+  <div class="condition-content__type-low-availability" data-testid="condition-content-low-availability-cell">
+    <ng-container
+      *ngTemplateOutlet="
+        sessionDetails;
+        context: { session: condition.sourceSession, dataTestId: 'condition-low-availability-cell-main-details' }
+      "
+    ></ng-container>
+    <fa-icon [icon]="['far', 'arrow-right']"></fa-icon>
+    <span data-testid="condition-availability-value">
+      {{ 'sessions.rules.rulesList.table.labels.availableTickets' | translate }}
+      <span class="text--bold">&le; {{ condition.availability }}</span>
+    </span>
+  </div>
+</ng-template>
+
+<!--ACTIONS TEMPLATES-->
+
+<ng-template #actionUpdateVisibilityCell let-action="action" let-targetSessions="targetSessions">
+  <div class="action-content__type-update-visibility" data-testid="action-content-update-visibility-cell">
+    <div class="main-details-wrapper" data-testid="action-content-update-visibility-cell-main-details-list">
+      <ng-container
+        *ngFor="let session of targetSessions; let i = index"
+        [ngTemplateOutlet]="sessionDetails"
+        [ngTemplateOutletContext]="{ session: session, dataTestId: 'action-update-visibility-cell-main-details-' + i }"
+      ></ng-container>
+    </div>
+    <fa-icon [icon]="['far', 'arrow-right']"></fa-icon>
+    <span data-testid="action-visibility-value"
+      >{{ 'sessions.rules.rulesList.table.labels.visibility' | translate }}:
+      <span class="text--bold">{{
+        (action.hidden ? 'sessions.rules.rulesList.table.labels.hidden' : 'sessions.rules.rulesList.table.labels.visible') | translate
+      }}</span></span
+    >
+  </div>
+</ng-template>
+<ng-template #actionOpenPurchasabilityWindowCell let-action="action" let-targetSessions="targetSessions">
+  <div class="action-content__type-open-purchasability-window" data-testid="action-content-open-purchasability-window-cell">
+    <div class="main-details-wrapper" data-testid="action-content-open-purchasability-cell-main-details-list">
+      <ng-container
+        *ngFor="let session of targetSessions; let i = index"
+        [ngTemplateOutlet]="sessionDetails"
+        [ngTemplateOutletContext]="{ session: session, dataTestId: 'action-open-purchasability-window-cell-main-details-' + i }"
+      ></ng-container>
+    </div>
+    <fa-icon [icon]="['far', 'arrow-right']"></fa-icon>
+    <span data-testid="action-open-purchasability-window-value"
+      >{{ 'sessions.rules.rulesList.table.labels.salesStart' | translate }}:
+      <span class="text--bold">{{ 'sessions.rules.rulesList.table.labels.now' | translate }}</span>
+    </span>
+  </div>
+</ng-template>
+
+<!--OTHER SUPPORT TEMPLATES-->
+
+<ng-template #sessionDetails let-session="session" let-dataTestId="dataTestId">
+  <div class="session-main-details" [attr.data-testid]="dataTestId">
+    <span class="name-and-price" data-testid="main-details-name-and-price">
+      {{ session.label }}
+      @if (session.ticketPrice !== null) {
+        <span class="text--bold">({{ session.ticketPrice.amount | currency: session.ticketPrice.currency }})</span>
+      }
+    </span>
+    <span class="date-and-time" data-testid="main-details-date-and-time">
+      {{ session.startsAt | momentDate: momentDatePipeFormat : timezone() }}
+    </span>
+  </div>
+</ng-template>
+
+<ng-template #statusCell let-item="item">
+  <span *ngIf="item.error; else positiveStatus" class="status-content__text status-content__text--error">
+    {{ 'sessions.rules.rulesList.table.labels.errorStatusCell' | translate }}
+  </span>
+  <ng-template #positiveStatus>
+    <span
+      class="status-content__text"
+      [innerHTML]="
+        item.triggeredAt
+          ? ('sessions.rules.rulesList.table.labels.triggeredAt'
+            | translate
+              : {
+                  date: (item.triggeredAt | momentDate: momentDatePipeFormat : timezone()),
+                })
+          : ('sessions.rules.rulesList.table.labels.pending' | translate)
+      "
+    >
+    </span>
+  </ng-template>
+</ng-template>

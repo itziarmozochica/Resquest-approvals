@@ -1,0 +1,169 @@
+<div class="scroll-wrapper">
+  <table class="table-groupable">
+    <thead class="table-groupable__header">
+      <tr class="table-groupable__header-row">
+        <th class="table-groupable__header-cell table-groupable__header-cell--first">
+          {{ 'sessions.pricesPerTimeslot.table.ticketTypeColumnHeader' | translate }}
+        </th>
+        @for (channel of channels; track channel.id) {
+          <th data-testid="channel-column-header" class="table-groupable__header-cell table-groupable__header-cell--value-column">
+            {{ channel.name }}
+          </th>
+        }
+      </tr>
+    </thead>
+    @if (ungroupedSessions?.length > 0) {
+      <ng-container
+        [ngTemplateOutlet]="groupTable"
+        [ngTemplateOutletContext]="{
+          groupId: UNGROUPED_GROUP_ID,
+          groupName: 'sessions.pricesPerTimeslot.table.ungroupedSessionsGroupName' | translate,
+          sessions: ungroupedSessions,
+        }"
+      >
+      </ng-container>
+    }
+
+    @for (group of sessionTypeGroups; track group.id) {
+      <ng-container
+        [ngTemplateOutlet]="groupTable"
+        [ngTemplateOutletContext]="{ groupId: group.id, groupName: group.name, sessions: sessionsByGroup[group.id] }"
+      ></ng-container>
+    }
+  </table>
+</div>
+
+<ng-template #groupTable let-groupId="groupId" let-groupName="groupName" let-sessions="sessions">
+  <tbody class="table-groupable__body-group" data-testid="group-container">
+    <tr class="table-groupable__body-row table-groupable__body-row--group-header">
+      <td class="table-groupable__body-cell table-groupable__body-cell--first" [attr.colspan]="channels.length + 1">
+        <div class="table-groupable__group-header-cell-wrapper">
+          <div class="table-groupable__group-type">
+            <span
+              data-testid="group-title"
+              class="table-groupable__body-cell__label table-groupable__body-cell__label--bold table-groupable__body-cell__label--clickable"
+              (click)="onToggleGroup(groupId)"
+            >
+              <span data-testid="collapse-group-button">
+                <ignt-icon [name]="visibleGroups[groupId] ? 'chevron-up' : 'chevron-down'" variant="solid" aria-hidden="true" />
+              </span>
+              <span>{{ groupName }}</span>
+            </span>
+          </div>
+          @if (shouldShowRestorePricesOfGroupButton(groupId)) {
+            <ignt-button
+              size="small"
+              variant="secondary"
+              data-testid="restore-group-prices-button"
+              [label]="'sessions.pricesPerTimeslot.table.restorePricesOfGroupButton' | translate"
+              (click)="onClickRestorePricesOfGroup(groupId)"
+            />
+          }
+        </div>
+      </td>
+    </tr>
+
+    @for (session of sessions; track session.id) {
+      <tr
+        data-testid="session-type-row"
+        class="table-groupable__body-row foldable"
+        [ngClass]="{ folded: !visibleGroups[groupId] }"
+        [class.table-groupable__body-row--even]="$even"
+      >
+        <td
+          [attr.data-testid]="'session-type-row-' + $index + '-name'"
+          class="table-groupable__body-cell table-groupable__body-cell--first"
+          data-testid="session-type-name"
+        >
+          <span class="table-groupable__body-cell__label">{{ session.sessionType.label }}</span>
+        </td>
+        @for (channel of channels; track channel.id) {
+          <td class="table-groupable__body-cell" [attr.data-testid]="'session-type-row-price-for-channel-' + channel.id">
+            <ng-container
+              *ngTemplateOutlet="
+                pricePerChannel;
+                context: {
+                  channelPrice: session.pricesPerChannel[channel.id],
+                  channel: channel,
+                  session: session,
+                  groupName: groupName,
+                  isPriceEditable: isChannelPriceEditableMap[channel.id],
+                }
+              "
+            ></ng-container>
+          </td>
+        }
+      </tr>
+    }
+  </tbody>
+</ng-template>
+
+<ng-template
+  #pricePerChannel
+  let-channelPrice="channelPrice"
+  let-session="session"
+  let-channel="channel"
+  let-groupName="groupName"
+  let-isPriceEditable="isPriceEditable"
+>
+  <span
+    class="table-groupable__body-cell__label table-groupable__body-cell__label--values"
+    [class.table-groupable__body-cell__label--disabled]="isEditEnabled && !isPriceEditable"
+  >
+    <span
+      data-testid="channel-price-clickable-area"
+      [class.table-groupable__body-cell__label--values__clickable-area]="channelPrice && isEditEnabled && isPriceEditable"
+      igntTooltip
+      [tooltipTemplate]="
+        isEditEnabled && isSessionPast
+          ? disabledPriceEditToSessionPastTooltip
+          : isEditEnabled && channelPrice?.priceListItem
+            ? priceListTooltip
+            : null
+      "
+      (click)="channelPrice && isEditEnabled && isPriceEditable && onClickPrice(channelPrice, channel, session, groupName)"
+    >
+      <span
+        data-testid="channel-price-value"
+        class="channel-price"
+        [class.channel-price--disabled]="isEditEnabled && !isPriceEditable"
+        [class.channel-price--overridden]="channelPrice?.isPriceListItemDefinitionOverwritten"
+      >
+        {{
+          channelPrice
+            ? ((channelPrice.mustUseTaxBase ? channelPrice.ticketPriceTaxBase.amount : channelPrice.ticketPrice.amount)
+              | currency: channelPrice.ticketPrice.currency ?? channelPrice.ticketPriceTaxBase.currency)
+            : '-'
+        }}
+      </span>
+    </span>
+  </span>
+
+  <ng-template #disabledPriceEditToSessionPastTooltip>
+    <p class="tooltip-inner__text--line-jump" data-testid="disabled_price_edit">
+      {{ 'sessions.pricesPerTimeslot.table.disabledPriceEditToSessionPastTooltip' | translate }}
+    </p>
+  </ng-template>
+
+  <ng-template #priceListTooltip>
+    <p
+      class="tooltip-inner__text--line-jump"
+      [innerHTML]="
+        (channelPrice.isPriceListItemDefinitionOverwritten
+          ? ('sessions.pricesPerTimeslot.table.overridesListPriceTooltip'
+            | translate: { name: getPriceListName(channelPrice.priceListItem.priceListId) })
+          : ('sessions.pricesPerTimeslot.table.priceListTooltip'
+            | translate: { name: getPriceListName(channelPrice.priceListItem.priceListId) })) +
+        '<br/>' +
+        (channelPrice.pricingPromotion
+          ? ('sessions.pricesPerTimeslot.table.promotionTooltip'
+            | translate
+              : {
+                  name: getPromotionName(channelPrice.pricingPromotion.id),
+                  discount: channelPrice.pricingPromotion.discountPercentage,
+                })
+          : '')
+      "
+    ></p>
+  </ng-template>
+</ng-template>

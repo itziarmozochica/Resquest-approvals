@@ -1,0 +1,62 @@
+<div class="patron-details-activity-timeline wrapper-card wrapper-card--elevation-75">
+  <div class="patron-details-activity-timeline__header">
+    <h6 class="patron-details-activity-timeline__header__title">{{ 'fundraising.patronDetails.activityTimeline.title' | translate }}</h6>
+    @if (canEdit()) {
+      <a
+        igntLink
+        size="small"
+        sentiment="primary"
+        class="patron-details-activity-timeline__header__open-modal-button"
+        (click)="onOpenDialogActivity($event)"
+      >
+        {{ 'fundraising.patronDetails.activityTimeline.openModalText' | translate }}
+      </a>
+    }
+  </div>
+  <div
+    class="patron-details-activity-timeline__category-filters"
+    role="group"
+    [attr.aria-label]="'fundraising.patronDetails.activityTimeline.categoryFilters.ariaLabel' | translate"
+  >
+    @for (categoryFilter of categoryFilterPills; track categoryFilter.value) {
+      <ignt-pill
+        [label]="categoryFilter.labelKey | translateTerminology"
+        [value]="categoryFilter.value"
+        [isActive]="selectedCategory() === categoryFilter.value"
+        size="small"
+        (statusChange)="onCategoryFilterChange($event)"
+        [attr.data-testid]="'patron-details-activity-timeline-category-' + categoryFilter.value"
+      />
+    }
+  </div>
+  <app-timeline
+    [giftOfficerName]="giftOfficerName()"
+    [orderDetailsTracking]="{ entryPoint: 'overview_recent_activity_widget', patronId: patronId }"
+    [patronEmail]="patronEmail()"
+    [timelineItems]="timelineItems()"
+  ></app-timeline>
+  @if (isLoading()) {
+    <div class="patron-details-activity-timeline__loading-container">
+      <ignt-icon
+        name="spinner"
+        variant="solid"
+        [spin]="true"
+        size="display"
+        class="patron-details-activity-timeline__loading-container__spinner"
+        aria-hidden="true"
+      />
+    </div>
+  } @else {
+    @if (timelineItems().length === 0) {
+      <div class="patron-details-activity-timeline__no-results" data-testid="patron-details-activity-timeline-no-results">
+        <ignt-icon class="patron-details-activity-timeline__no-results__icon" name="receipt" variant="regular" aria-hidden="true" />
+        {{ 'fundraising.patronDetails.activityTimeline.noResults' | translate }}
+      </div>
+    }
+    @if (timelineItems().length > 0) {
+      <a igntLink size="small" sentiment="primary" class="patron-details-activity-timeline__load-more-button" (click)="onViewMore()">
+        {{ 'fundraising.patronDetails.activityTimeline.loadMoreText' | translate }}
+      </a>
+    }
+  }
+</div>

@@ -1,0 +1,6 @@
+export enum ProjectStatus {
+  UPCOMING = 'UPCOMING',
+  SALES_LAUNCH = 'SALES_LAUNCH',
+  ACTIVE = 'ACTIVE',
+  FINISHED = 'FINISHED',
+}

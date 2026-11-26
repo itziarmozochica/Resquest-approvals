@@ -1,0 +1,83 @@
+<div class="manage-translations-editor-center" data-testid="manage-translations-editor-center">
+  <header class="manage-translations-editor-center__header">
+    <h3 class="manage-translations-editor-center__title" data-testid="manage-translations-editor-center-title">{{ selectedKey().key }}</h3>
+    <p class="manage-translations-editor-center__subtitle">
+      {{ 'manageTranslations.editor.center.subtitle' | translate: { language: languageTag() } }}
+    </p>
+    @if (isBaseTranslation()) {
+      <span
+        class="manage-translations-editor-center__label manage-translations-editor-center__label--default"
+        data-testid="manage-translations-editor-center-default-translation-label"
+      >
+        {{ 'manageTranslations.editor.center.defaultTranslationLabel' | translate }}
+      </span>
+    }
+    @if (lastModified(); as modified) {
+      <span class="manage-translations-editor-center__last-modified" data-testid="manage-translations-editor-center-last-modified">
+        {{ modified.by ?? ((modified.isErased ? 'audit.row.erasedAuthor' : 'audit.row.unknownAuthor') | translate) }} ·
+        <time [attr.datetime]="modified.at">{{ lastModifiedTime() }}</time>
+      </span>
+    }
+  </header>
+
+  <label class="manage-translations-editor-center__field">
+    <span class="manage-translations-editor-center__field-label">{{ 'manageTranslations.editor.center.valueLabel' | translate }}</span>
+    <textarea
+      class="manage-translations-editor-center__textarea"
+      [formControl]="valueControl"
+      rows="6"
+      data-testid="manage-translations-editor-center-textarea"
+    ></textarea>
+  </label>
+
+  @if (actionErrorDetail(); as detail) {
+    <div class="manage-translations-editor-center__error" role="alert" data-testid="manage-translations-editor-center-error">
+      <p class="manage-translations-editor-center__error-message">
+        {{
+          (clearError() ? 'manageTranslations.editor.center.clearErrorGeneric' : 'manageTranslations.editor.center.errorGeneric')
+            | translate
+        }}
+      </p>
+      <p class="manage-translations-editor-center__error-detail">{{ detail }}</p>
+    </div>
+  }
+
+  <footer class="manage-translations-editor-center__actions">
+    <ignt-button
+      variant="tertiary"
+      sentiment="danger"
+      size="small"
+      [label]="'manageTranslations.editor.center.clearTranslation' | translate"
+      [disabled]="!canClear() || saving() || clearing() || refreshing()"
+      [loading]="clearing()"
+      [appTemplatedTooltip]="clearTooltip"
+      (click)="onClear()"
+      data-testid="manage-translations-editor-center-clear"
+    />
+    <ng-template #clearTooltip>
+      <div class="manage-translations-editor-center__tooltip" data-testid="manage-translations-editor-center-clear-tooltip">
+        {{ 'manageTranslations.editor.center.clearTooltip' | translate }}
+      </div>
+    </ng-template>
+
+    <div class="manage-translations-editor-center__actions-confirm">
+      <ignt-button
+        variant="tertiary"
+        size="small"
+        [label]="'manageTranslations.editor.center.discard' | translate"
+        [disabled]="!isDirty() || saving() || clearing() || refreshing()"
+        (click)="onDiscard()"
+        data-testid="manage-translations-editor-center-discard"
+      />
+      <ignt-button
+        variant="primary"
+        size="small"
+        [label]="'manageTranslations.editor.center.save' | translate"
+        [disabled]="!canSave() || saving() || clearing() || refreshing()"
+        [loading]="saving()"
+        (click)="onSave()"
+        data-testid="manage-translations-editor-center-save"
+      />
+    </div>
+  </footer>
+</div>

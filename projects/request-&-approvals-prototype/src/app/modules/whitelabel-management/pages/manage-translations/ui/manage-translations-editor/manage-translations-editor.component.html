@@ -1,0 +1,122 @@
+<div class="manage-translations-editor" data-testid="manage-translations-editor">
+  <app-manage-translations-editor-header
+    [hierarchy]="hierarchy()"
+    [editorContext]="editorContext()"
+    [activeRow]="activeRow()"
+    [canManageTranslations]="canManageTranslations()"
+    (projectChange)="projectChange.emit($event)"
+    (languageChange)="languageChange.emit($event)"
+    (addKey)="addKey.emit()"
+    (openHistory)="openHistory.emit()"
+  ></app-manage-translations-editor-header>
+
+  <div class="manage-translations-editor__columns">
+    <section
+      class="manage-translations-editor__column manage-translations-editor__column--keys wrapper-card wrapper-card--elevation-100"
+      data-testid="manage-translations-editor-column-keys"
+    >
+      <app-manage-translations-editor-keys-list
+        [keys]="keys()"
+        [loading]="keysLoading()"
+        [errorMessage]="keysError()"
+        [selectedKeyId]="selectedKeyId()"
+        [query]="query()"
+        [text]="text()"
+        [selectedStatuses]="selectedStatuses()"
+        [currentPage]="currentPage()"
+        [totalPages]="totalPages()"
+        [hasPrev]="hasPrev()"
+        [hasNext]="hasNext()"
+        (queryChange)="queryChange.emit($event)"
+        (textChange)="textChange.emit($event)"
+        (statusesChange)="statusesChange.emit($event)"
+        (pageChange)="pageChange.emit($event)"
+        (rowSelected)="rowSelected.emit($event)"
+      ></app-manage-translations-editor-keys-list>
+    </section>
+
+    <section
+      class="manage-translations-editor__column manage-translations-editor__column--center wrapper-card wrapper-card--elevation-100"
+      data-testid="manage-translations-editor-column-center"
+    >
+      <div class="manage-translations-editor__center-stack">
+        @if (selectedKey(); as row) {
+          <app-manage-translations-editor-center
+            [selectedKey]="row"
+            [languageTag]="editorContext().languageTag"
+            [saving]="saving()"
+            [errorMessage]="saveError()"
+            [clearing]="clearing()"
+            [clearError]="clearError()"
+            [refreshing]="keysLoading()"
+            [lastModified]="cellLastModified()"
+            (save)="save.emit($event)"
+            (clear)="clear.emit()"
+          ></app-manage-translations-editor-center>
+        } @else {
+          <app-manage-translations-editor-empty-center></app-manage-translations-editor-empty-center>
+        }
+      </div>
+    </section>
+
+    <section
+      class="manage-translations-editor__column manage-translations-editor__column--details wrapper-card wrapper-card--elevation-100"
+      data-testid="manage-translations-editor-column-details"
+    >
+      <!-- PARTNERS-11433: the key history reads audit ops that stay super-user only. -->
+      @if (canManageTranslations()) {
+        <ignt-tabs
+          class="manage-translations-editor__key-tabs"
+          [keepAlive]="true"
+          [selectedIndex]="keyTabIndex()"
+          (selectedIndexChange)="onKeyTabChange($event)"
+          data-testid="manage-translations-editor-key-tabs"
+        >
+          <ignt-tabs-item [label]="'manageTranslations.editor.keyTabs.details' | translate">
+            <ng-container *ngTemplateOutlet="detailsStack" />
+          </ignt-tabs-item>
+          <ignt-tabs-item [label]="'manageTranslations.editor.keyTabs.history' | translate">
+            @if (isHistoryTabOpen()) {
+              @if (keyHistoryContext(); as context) {
+                <app-manage-translations-key-history
+                  [context]="context"
+                  [projectName]="activeRow()?.name ?? ''"
+                  [allProjects]="keyHistoryAllProjects()"
+                  [revision]="keyHistoryRevision()"
+                  (allProjectsChange)="keyHistoryAllProjectsChange.emit($event)"
+                ></app-manage-translations-key-history>
+              } @else {
+                <p class="manage-translations-editor__key-history-empty" data-testid="manage-translations-editor-key-history-empty">
+                  {{ 'manageTranslations.editor.keyTabs.historySelectKey' | translate }}
+                </p>
+              }
+            }
+          </ignt-tabs-item>
+        </ignt-tabs>
+      } @else {
+        <ng-container *ngTemplateOutlet="detailsStack" />
+      }
+      <ng-template #detailsStack>
+        <div class="manage-translations-editor__details-stack">
+          <app-manage-translations-editor-details
+            [selectedKey]="selectedKey()"
+            [canManageTranslations]="canManageTranslations()"
+            [saving]="keyDetailsSaving()"
+            [saveError]="keyDetailsSaveError()"
+            [keyPathConflictError]="keyPathConflictError()"
+            [keyPathConflictSubmittedValue]="keyPathConflictSubmittedValue()"
+            (save)="saveKeyDetails.emit($event)"
+            (keyPathEdited)="keyPathConflictCleared.emit()"
+            (deleteKey)="deleteKey.emit()"
+          ></app-manage-translations-editor-details>
+          <app-manage-translations-editor-other-translations
+            [fetchErrors]="otherTranslationsFetchErrors()"
+            [loading]="otherTranslationsLoading()"
+            [rows]="otherTranslationsRows()"
+            [selectedKeyId]="selectedKeyId()"
+          ></app-manage-translations-editor-other-translations>
+        </div>
+      </ng-template>
+    </section>
+  </div>
+</div>

@@ -1,0 +1,294 @@
+<div class="quota-form">
+  <div class="quota-form__header-details">
+    <div *ngIf="formattedDate" class="quota-form__header-detail quota-form__header-detail--bold">
+      {{ formattedDate }}
+    </div>
+    <div *ngIf="capacityPoolTitle" class="quota-form__header-detail quota-form__header-detail--regular">
+      {{ capacityPoolTitle }}
+    </div>
+  </div>
+  <form [formGroup]="formGroup" class="quota-form__form">
+    <!-- Quota Name -->
+    <section class="quota-form__fields">
+      <div class="form-group">
+        <label class="field" for="quotaName">
+          <input
+            class="field__input"
+            formControlName="quotaName"
+            id="quotaName"
+            type="text"
+            [placeholder]="'sessions.quotaForm.quotaName.placeholder' | translate"
+            data-testid="quota-name-input"
+          />
+          <span class="field__label">{{ 'sessions.quotaForm.quotaName.label' | translate }}</span>
+        </label>
+
+        @if (formGroup.controls.quotaName.touched && formGroup.controls.quotaName.errors?.['duplicateQuotaName']) {
+          <div class="quota-form__error" data-testid="quota-name-duplicate-error">
+            {{ 'sessions.quotaForm.quotaName.errorDuplicate' | translate }}
+          </div>
+        }
+        @if (
+          formGroup.controls.quotaName.touched &&
+          formGroup.controls.quotaName.invalid &&
+          !formGroup.controls.quotaName.errors?.['duplicateQuotaName']
+        ) {
+          <div class="quota-form__error" data-testid="quota-name-error">
+            {{ 'sessions.quotaForm.quotaName.error' | translate }}
+          </div>
+        }
+      </div>
+
+      <!-- Quota Type -->
+      <div class="form-group">
+        <label class="field" for="quotaType">
+          <select
+            class="field__input quota-form__select"
+            [class.quota-form__select--unselected]="formGroup.get('quotaType')?.value === null"
+            formControlName="quotaType"
+            id="quotaType"
+            data-testid="quota-type-select"
+          >
+            <option [value]="null" disabled>{{ 'sessions.quotaForm.quotaType.placeholder' | translate }}</option>
+            <option class="field__input quota-form__select-option" *ngFor="let option of availableQuotaTypeOptions()" [value]="option.id">
+              {{ option.title | translate }}
+            </option>
+          </select>
+          <span class="field__label">{{ 'sessions.quotaForm.quotaType.label' | translate }}</span>
+          <ignt-icon class="field__icon field__icon--trail" name="chevron-down" variant="light" [fixedWidth]="true" />
+        </label>
+
+        <div
+          *ngIf="formGroup.controls.quotaType.touched && formGroup.controls.quotaType.invalid"
+          class="quota-form__error"
+          data-testid="quota-type-error"
+        >
+          {{ 'sessions.quotaForm.quotaType.error' | translate }}
+        </div>
+
+        <div class="quota-form__type-help">
+          {{ 'sessions.quotaForm.quotaType.helpTitle' | translate }}
+          <ul class="quota-form__type-help-list">
+            <li class="quota-form__help-item">
+              <strong>{{ 'sessions.quotaForm.quotaType.exclusive.title' | translate }}:</strong>
+              {{ 'sessions.quotaForm.quotaType.exclusive.description' | translate }}
+            </li>
+            <li class="quota-form__type-help-item">
+              <strong>{{ 'sessions.quotaForm.quotaType.shared.title' | translate }}:</strong>
+              {{ 'sessions.quotaForm.quotaType.shared.description' | translate }}
+            </li>
+            <li class="quota-form__type-help-item">
+              <strong>{{ 'sessions.quotaForm.quotaType.blocked.title' | translate }}:</strong>
+              {{ 'sessions.quotaForm.quotaType.blocked.description' | translate }}
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Capacity -->
+      <div class="form-group">
+        <label class="field" for="capacity">
+          <input
+            class="field__input"
+            formControlName="capacity"
+            id="capacity"
+            type="number"
+            [min]="minCapacity()"
+            [max]="maxCapacity()"
+            [placeholder]="'sessions.quotaForm.capacity.placeholder' | translate"
+            data-testid="capacity-input"
+          />
+          <span class="field__label">{{ 'sessions.quotaForm.capacity.label' | translate }}</span>
+        </label>
+        <div
+          *ngIf="formGroup.controls.capacity.touched && formGroup.controls.capacity.invalid"
+          class="quota-form__error"
+          data-testid="capacity-error"
+        >
+          <span *ngIf="formGroup.controls.capacity.errors?.['required']">{{
+            'sessions.quotaManagement.table.capacityEmpty' | translate
+          }}</span>
+          <span *ngIf="formGroup.controls.capacity.errors?.['min'] && minCapacity() === 0">{{
+            'sessions.quotaForm.capacity.error' | translate
+          }}</span>
+          <span *ngIf="formGroup.controls.capacity.errors?.['min'] && minCapacity() > 0">{{
+            'sessions.quotaForm.capacity.errorMinIssued' | translate: { minValue: minCapacity() }
+          }}</span>
+          <span *ngIf="formGroup.controls.capacity.errors?.['max']">{{
+            'sessions.quotaForm.capacity.errorMax' | translate: { maxValue: maxCapacity() }
+          }}</span>
+        </div>
+      </div>
+
+      <!-- Application Section -->
+      <div class="quota-form__section">
+        <h4 class="quota-form__section-title">
+          {{ 'sessions.quotaForm.application.title' | translate }}
+        </h4>
+
+        <div *ngIf="isBlockedMode()" class="quota-form__blocked-message">
+          {{ 'sessions.quotaForm.application.blockedMessage' | translate }}
+        </div>
+
+        <div class="quota-form__field" [class.quota-form__field--hidden]="isBlockedMode()">
+          <div class="quota-form__application-head">
+            <p class="quota-form__application-help">
+              {{ 'sessions.quotaForm.application.assignedTo.helpTitle' | translate }}
+            </p>
+          </div>
+
+          <div class="quota-form__radio-group">
+            <label class="quota-form__radio-label">
+              <input
+                class="quota-form__radio"
+                formControlName="applicationType"
+                type="radio"
+                [value]="ApplicationType.channelType"
+                data-testid="application-type-channel-type"
+              />
+              <span>{{ 'sessions.quotaForm.application.assignedTo.channelType' | translate }}</span>
+            </label>
+
+            <label class="quota-form__radio-label">
+              <input
+                class="quota-form__radio"
+                formControlName="applicationType"
+                type="radio"
+                [value]="ApplicationType.channels"
+                data-testid="application-type-channels"
+              />
+              <span>{{ 'sessions.quotaForm.application.assignedTo.channels' | translate }}</span>
+            </label>
+
+            <label class="quota-form__radio-label">
+              <input
+                class="quota-form__radio"
+                formControlName="applicationType"
+                type="radio"
+                [value]="ApplicationType.businesses"
+                data-testid="application-type-businesses"
+              />
+              <span>{{ 'sessions.quotaForm.application.assignedTo.businesses' | translate }}</span>
+            </label>
+          </div>
+
+          <div
+            *ngIf="formGroup.controls.applicationType.touched && formGroup.controls.applicationType.invalid"
+            class="quota-form__error"
+            data-testid="application-type-error"
+          >
+            {{ 'sessions.quotaForm.application.assignedTo.error' | translate }}
+          </div>
+        </div>
+
+        <!-- Channel Type Selector -->
+        <div *ngIf="showSelectors() && selectedApplicationType() === ApplicationType.channelType" class="quota-form__field">
+          <app-multi-select
+            class="quota-form__applicability-selector"
+            [disabled]="replicationOnlyMode"
+            [options]="channelTypeOptions()"
+            [selectedOptions]="selectedChannelTypes()"
+            [placeholder]="'sessions.quotaForm.application.channelTypeSelector.placeholder' | translate"
+            [isSelectAllVisible]="true"
+            [displayInPlaceMaximum]="2"
+            (selected)="onChannelTypesSelected($event)"
+            data-testid="channel-type-selector"
+          >
+          </app-multi-select>
+          <div
+            *ngIf="formGroup.controls.channelTypes.touched && formGroup.controls.channelTypes.invalid"
+            class="quota-form__error"
+            data-testid="channel-types-error"
+          >
+            {{ 'sessions.quotaForm.application.channelTypeSelector.error' | translate }}
+          </div>
+        </div>
+
+        <!-- Channels Selector -->
+        <div *ngIf="showSelectors() && selectedApplicationType() === ApplicationType.channels" class="quota-form__field">
+          <app-multi-select
+            class="quota-form__applicability-selector"
+            [disabled]="replicationOnlyMode"
+            [options]="channelOptions()"
+            [selectedOptions]="selectedChannels()"
+            [placeholder]="'sessions.quotaForm.application.channelsSelector.placeholder' | translate"
+            [isSelectAllVisible]="true"
+            [displayInPlaceMaximum]="2"
+            (selected)="onChannelsSelected($event)"
+            data-testid="channels-selector"
+          >
+          </app-multi-select>
+          <div
+            *ngIf="formGroup.controls.channels.touched && formGroup.controls.channels.invalid"
+            class="quota-form__error"
+            data-testid="channels-error"
+          >
+            {{ 'sessions.quotaForm.application.channelsSelector.error' | translate }}
+          </div>
+        </div>
+
+        <!-- Businesses Selector -->
+        <div *ngIf="showSelectors() && selectedApplicationType() === ApplicationType.businesses" class="quota-form__field">
+          <app-multi-select
+            class="quota-form__applicability-selector"
+            [disabled]="replicationOnlyMode"
+            [options]="businessOptions()"
+            [selectedOptions]="selectedBusinesses()"
+            [placeholder]="'sessions.quotaForm.application.businessesSelector.placeholder' | translate"
+            [isSelectAllVisible]="true"
+            [displayInPlaceMaximum]="2"
+            (selected)="onBusinessesSelected($event)"
+            data-testid="businesses-selector"
+          >
+          </app-multi-select>
+          <div
+            *ngIf="formGroup.controls.businesses.touched && formGroup.controls.businesses.invalid"
+            class="quota-form__error"
+            data-testid="businesses-error"
+          >
+            {{ 'sessions.quotaForm.application.businessesSelector.error' | translate }}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Replication Section -->
+    @if (allowReplication) {
+      <section class="quota-form__section">
+        <label class="quota-form__replication-enable-label">
+          <input data-testid="quota-form-replicate-enabled-checkbox" formControlName="replicateEnabled" type="checkbox" />
+          <span class="quota-form__replication-enable-label-text">{{
+            (isQuotaEditMode() ? 'sessions.quotaForm.replication.enableLabelOnEdit' : 'sessions.quotaForm.replication.enableLabel')
+              | translate
+          }}</span>
+        </label>
+
+        @if (replicationFormPresent()) {
+          <app-quota-replication-fields
+            class="quota-form__replication-fields"
+            data-testid="quota-form-replication-fields"
+            introDescriptionKey="sessions.quotaForm.replication.timeSlotsDescription"
+            introTitleKey="sessions.quotaForm.replication.timeSlotsQuestion"
+            [replicationFormGroup]="replicationFormGroup"
+          />
+        }
+      </section>
+    }
+
+    <!-- Form Actions -->
+    <section class="quota-form__actions">
+      <button
+        igntButton
+        type="button"
+        sentiment="primary"
+        [fill]="true"
+        (click)="onSave()"
+        [disabled]="formGroup.invalid || isSaving"
+        [loading]="isSaving"
+        data-testid="save-button"
+      >
+        {{ 'common.save' | translate }}
+      </button>
+    </section>
+  </form>
+</div>

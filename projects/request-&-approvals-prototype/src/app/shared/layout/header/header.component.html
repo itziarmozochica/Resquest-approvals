@@ -1,0 +1,81 @@
+@if (isOrganizationSelected()) {
+  <header class="headerbar" role="banner" [class.headerbar--page-center]="headerStateService.centerContent() !== null">
+    <div class="headerbar__lead-side">
+      <button
+        (click)="toggleSidebar()"
+        class="headerbar__show-menu"
+        type="button"
+        data-testid="toggle-sidebar-button"
+        aria-label="Toggle sidebar"
+      >
+        <img class="headerbar__sidebarIcon" [src]="getSidebarToggleIcon()" alt="Toggle menu icon" aria-hidden="true" />
+      </button>
+    </div>
+
+    <div class="headerbar__center">
+      @if (headerStateService.centerContent()) {
+        <ng-container *ngTemplateOutlet="headerStateService.centerContent()"></ng-container>
+      } @else {
+        <div class="headerbar__default-center">
+          <a href="/plans" aria-label="Go to plans page" (click)="onFeverZoneLogoClick()">
+            <img class="headerbar__logo" height="32" [src]="feverzoneLogo" alt="Fever Zone Logo" />
+          </a>
+          @if (headerStateService.centerAdjacentContent()) {
+            <div class="headerbar__center-adjacent">
+              <ng-container *ngTemplateOutlet="headerStateService.centerAdjacentContent()"></ng-container>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="headerbar__trail-side" role="navigation" aria-label="Main navigation">
+      @if (isMobile() || isTablet()) {
+        <ng-container *ngTemplateOutlet="notificationsButton"></ng-container>
+        <ng-container *ngTemplateOutlet="createEventButton"></ng-container>
+        @for (action of headerStateService.headerActions(); track action.id) {
+          <app-header-action-button [action]="action" (pressed)="headerStateService.actionClick($event)" />
+        }
+        <button
+          ignt-icon-button
+          sentiment="tertiary"
+          type="button"
+          aria-label="Menu"
+          data-testid="oss-mobile-menu-button"
+          (click)="onMenuButtonClick()"
+          [icon]="['fas', 'bars']"
+        ></button>
+      } @else {
+        @if (showShiftWidget()) {
+          <app-oss-shift-widget *permissionBased="Permissions.CAN_VIEW_BOX_OFFICE"></app-oss-shift-widget>
+        }
+        <ng-container *ngTemplateOutlet="zendeskLauncherButton"></ng-container>
+        <ng-container *ngTemplateOutlet="notificationsButton"></ng-container>
+        <ng-container *ngTemplateOutlet="createEventButton"></ng-container>
+        <app-menu-actions [partner]="getPartner()" [onsiteSetupName]="onsiteSetupName()"></app-menu-actions>
+      }
+    </div>
+  </header>
+}
+
+<ng-template #zendeskLauncherButton>
+  @if (shouldShowZendesk()) {
+    <app-zendesk-launcher></app-zendesk-launcher>
+  }
+</ng-template>
+
+<ng-template #createEventButton>
+  @if (canShowHeaderCreateEvent()) {
+    @if (shouldShowCreateEvent()) {
+      <app-create-new-event data-testid="header-create-event" aria-label="Create new event"></app-create-new-event>
+    }
+  }
+</ng-template>
+
+<ng-template #notificationsButton>
+  @if (shouldShowNotifications()) {
+    @defer (on immediate) {
+      <app-notifications-button data-testid="header-notifications" />
+    } @error {}
+  }
+</ng-template>

@@ -1,0 +1,145 @@
+<ignt-wrapper-card [elevation]="3">
+  @if (reservation; as r) {
+    <div class="reservation-card">
+      <header class="reservation-card__header">
+        <button type="button" class="reservation-card__button reservation-card__button--header" (click)="clickOnReservation($event, r)">
+          <div class="reservation-card__header-content">
+            <div class="reservation-card__header-info">
+              <time class="reservation-card__time-container">
+                <span class="reservation-card__time-start-date">{{ r.sessionStartsAt | momentDate: 'd MMM yyyy' : timezone }}</span>
+                <span class="reservation-card__time-start-hour">{{ r.sessionStartsAt | momentDate: 'HH:mm' : timezone }}</span>
+              </time>
+              <ignt-tag class="reservation-card__payment-status" [sentiment]="sentiment" [startIcon]="startIcon">
+                {{ 'reservations.status.' + r.status | translate }}
+              </ignt-tag>
+            </div>
+            @if (r.deposit; as dep) {
+              @if (depositListLabelKey(dep); as depositLabelKey) {
+                <div
+                  class="reservation-card__deposit-summary"
+                  data-testid="reservation-card-deposit-summary"
+                  [attr.aria-label]="
+                    ('reservations.depositList.srPrefix' | translate) +
+                    ' ' +
+                    (depositLabelKey | translate) +
+                    (dep.calculatedAmount
+                      ? ' ' + (dep.calculatedAmount.amount | currency: dep.calculatedAmount.currency : 'symbol-narrow')
+                      : '')
+                  "
+                >
+                  <span class="reservation-card__deposit-text">
+                    {{ depositLabelKey | translate }}
+                    @if (dep.calculatedAmount; as dm) {
+                      · {{ dm.amount | currency: dm.currency : 'symbol-narrow' }}
+                    }
+                  </span>
+                </div>
+              }
+            }
+            @if (showListingExpirationAlert(reservation)) {
+              <div class="reservation-card__status-meta" data-testid="reservation-card-expiration-date">
+                <div class="reservation-card__listing-deadline-text">
+                  <app-reservation-list-expiration-summary
+                    [deadline]="listingExpirationDeadlineFormatted"
+                    [timeLeft]="countdownDisplay || null"
+                    testId="reservation-card-expiration-alert"
+                  />
+                </div>
+              </div>
+            }
+            <p class="reservation-card__header-reservation-id">
+              <span
+                >{{ 'validateTicketsNew.orderHeader.reservationId' | translate }}
+                <strong class="reservation-card__reservation-locator">{{ r.locator }}</strong></span
+              >
+              <span>
+                <ignt-icon name="ticket-alt" variant="light" size="sm" class="reservation-card__icon reservation-card__icon--inline" />
+                <strong>&nbsp;x {{ r.totalNumberOfTickets }}</strong>
+              </span>
+            </p>
+          </div>
+        </button>
+        <app-reservation-actions
+          [reservation]="r"
+          (viewReservationDetailsClicked)="viewReservationDetails($event)"
+          (reservationCancelled)="cancelReservation($event)"
+        ></app-reservation-actions>
+      </header>
+      <button type="button" class="reservation-card__button reservation-card__button--body" (click)="clickOnReservation($event, r)">
+        <main class="reservation-card__body">
+          <div class="reservation-card__recipient">
+            <div>
+              <h3 class="reservation-card__owner-name">{{ r.ownerFullName }}</h3>
+              <p class="reservation-card__email">
+                <ignt-icon class="reservation-card__icon" name="envelope" variant="light" size="sm" />
+                <span>{{ (r.ownerEmail | isPlaceholderEmail) ? ('reservation.emailNotProvided' | translate) : r.ownerEmail }}</span>
+              </p>
+            </div>
+            <button
+              class="reservation-card__toggle-button"
+              data-testid="reservation-card-toggle-details"
+              igntButton
+              (click)="toggleSeeAllInfo($event)"
+              sentiment="tertiary"
+              variant="sharp"
+              size="small"
+            >
+              <ignt-icon [name]="seeAllInfo ? 'chevron-up' : 'chevron-down'" variant="solid" size="sm" />
+            </button>
+          </div>
+          <ng-container *ngIf="seeAllInfo">
+            <section class="reservation-card__details">
+              <ignt-divider variant="dashed" class="reservation-card__details-divider"></ignt-divider>
+              <div class="reservation-card__event">
+                <h3 class="reservation-card__event-title">{{ r.planName }}</h3>
+                <p class="reservation-card__event-price">
+                  <ignt-icon class="reservation-card__icon" name="coins" variant="light" size="sm" />
+                  <span>{{ r.deposit?.effectiveTotal ?? r.totalToBePaid }}</span>
+                </p>
+              </div>
+              <ignt-divider variant="dashed" class="reservation-card__details-divider" *ngIf="!hiddenBusiness"></ignt-divider>
+              <div class="reservation-card__business" *ngIf="!hiddenBusiness">
+                @if (emptyBusinessFields()) {
+                  <div class="reservation-card__business-agency">
+                    <p class="reservation-card__business-title"></p>
+                  </div>
+                  <div class="reservation-card__business-contact">
+                    <p class="reservation-card__business-contact-email">
+                      <ignt-icon name="envelope" variant="light" size="sm" />
+                      <span></span>
+                    </p>
+                    <p class="reservation-card__business-contact-phone">
+                      <ignt-icon name="phone" variant="light" size="sm" />
+                      <span></span>
+                    </p>
+                  </div>
+                } @else if (r.businessId === null) {
+                  <div class="reservation-card__business-agency">
+                    <p class="reservation-card__business-title" data-testid="reservation-card-no-business">-</p>
+                  </div>
+                } @else {
+                  <div class="reservation-card__business-agency">
+                    <ignt-tag sentiment="info" variant="outline">
+                      {{ 'businessManagement.' + r.businessType | translate }}
+                    </ignt-tag>
+                    <p class="reservation-card__business-title">{{ r.businessName }}</p>
+                  </div>
+                  <div class="reservation-card__business-contact">
+                    <p class="reservation-card__business-contact-email">
+                      <ignt-icon name="envelope" variant="light" size="sm" />
+                      <span>{{ r.businessEmail }}</span>
+                    </p>
+                    <p class="reservation-card__business-contact-phone">
+                      <ignt-icon name="phone" variant="light" size="sm" />
+                      <span>{{ r.businessPhone }}</span>
+                    </p>
+                  </div>
+                }
+              </div>
+            </section>
+          </ng-container>
+        </main>
+      </button>
+    </div>
+  }
+</ignt-wrapper-card>

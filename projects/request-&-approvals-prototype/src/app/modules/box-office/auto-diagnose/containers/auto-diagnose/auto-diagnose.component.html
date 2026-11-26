@@ -1,0 +1,113 @@
+<app-page-title
+  class="new-design"
+  [title]="'menu.autoDiagnose' | translate"
+  [description]="'boxOffice.autoDiagnose.description' | translate"
+></app-page-title>
+
+<section class="auto-diagnose" data-testid="auto-diagnose">
+  <div class="auto-diagnose__toolbar">
+    <div class="auto-diagnose__setup" data-testid="auto-diagnose-setup">
+      <span class="auto-diagnose__setup-icon" aria-hidden="true">
+        <ignt-icon name="cash-register" variant="light" size="base" />
+      </span>
+      <div class="auto-diagnose__setup-text">
+        <span class="auto-diagnose__setup-label">{{ 'boxOffice.autoDiagnose.onsiteSetup.label' | translate }}</span>
+        <span class="auto-diagnose__setup-name" data-testid="auto-diagnose-setup-name">
+          {{ onsiteSetupName() ?? ('boxOffice.autoDiagnose.onsiteSetup.none' | translate) }}
+        </span>
+      </div>
+      @if (showSetupSelectorButton()) {
+        <ignt-button
+          size="small"
+          variant="tertiary"
+          data-testid="auto-diagnose-change-setup"
+          [label]="
+            (onsiteSetupName() === null ? 'boxOffice.autoDiagnose.onsiteSetup.select' : 'boxOffice.autoDiagnose.onsiteSetup.change')
+              | translate
+          "
+          (click)="openSetupSelector()"
+        />
+      }
+      @if (canOpenSetupSettings && onsiteSetupName() !== null) {
+        <ignt-button
+          size="small"
+          variant="tertiary"
+          data-testid="auto-diagnose-setup-settings"
+          [label]="'boxOffice.autoDiagnose.onsiteSetup.settings' | translate"
+          (click)="openSetupSettings()"
+        />
+      }
+    </div>
+
+    <ignt-button
+      size="small"
+      variant="tertiary"
+      data-testid="auto-diagnose-reset"
+      [label]="'boxOffice.autoDiagnose.resetResults' | translate"
+      [leadingIcon]="{ name: 'redo', variant: 'solid' }"
+      (click)="resetResults()"
+    />
+  </div>
+
+  @if (onsiteSetupName() === null) {
+    <ignt-alert
+      sentiment="info"
+      data-testid="auto-diagnose-setup-required"
+      [title]="'boxOffice.autoDiagnose.onsiteSetup.requiredTitle' | translate"
+      [description]="'boxOffice.autoDiagnose.onsiteSetup.requiredDescription' | translate"
+      [actionLabel]="'boxOffice.autoDiagnose.onsiteSetup.select' | translate"
+      (actionClicked)="openSetupSelector()"
+    />
+  }
+
+  <div class="auto-diagnose__grid">
+    <app-diagnose-tile
+      data-testid="auto-diagnose-tile-printer"
+      icon="print"
+      tileTitle="boxOffice.autoDiagnose.printer.title"
+      [status]="printerStatus()"
+      [summary]="printerSummaryKey() | translate"
+      [details]="printerDetails()"
+      [action]="printerAction"
+      [actionDisabled]="printerStatus() === statusType.blocked"
+      (actionClicked)="openPrinterTest()"
+    />
+
+    <app-diagnose-tile
+      data-testid="auto-diagnose-tile-scanner"
+      icon="qrcode"
+      tileTitle="boxOffice.autoDiagnose.scanner.title"
+      [status]="scannerStatus()"
+      [summary]="scannerSummaryKey() | translate"
+      [action]="scannerAction"
+      (actionClicked)="openScannerTest()"
+    >
+      @if (scannerDiagnosis(); as diagnosis) {
+        <app-scanner-check-list [checks]="diagnosis.checks" [compact]="true" />
+      }
+    </app-diagnose-tile>
+
+    <app-diagnose-tile
+      data-testid="auto-diagnose-tile-device"
+      icon="mobile"
+      tileTitle="boxOffice.autoDiagnose.device.title"
+      [status]="deviceStatus"
+      [summary]="deviceSummaryKey | translate: webViewParams"
+      [details]="deviceDetails"
+    >
+      @if (isWebViewOutdated) {
+        <ignt-alert
+          sentiment="warning"
+          data-testid="auto-diagnose-webview-outdated"
+          [title]="'boxOffice.autoDiagnose.device.webViewOutdated.title' | translate"
+          [description]="'boxOffice.autoDiagnose.device.webViewOutdated.description' | translate: webViewParams"
+        />
+      }
+    </app-diagnose-tile>
+  </div>
+
+  <p class="auto-diagnose__footnote">
+    <ignt-icon name="info-circle" variant="light" size="sm" aria-hidden="true" />
+    {{ 'boxOffice.autoDiagnose.footnote' | translate }}
+  </p>
+</section>

@@ -1,0 +1,746 @@
+@if (showCreationStyleEditor()) {
+  <app-reservations-header [showGoBack]="false" [title]="'reservations.modify.pageTitle' | translate" />
+  <div class="modify-reservation-editor" data-testid="modify-reservation__editor-page">
+    <div class="modify-reservation-editor__row">
+      <aside class="modify-reservation-editor__sidebar">
+        <app-plan-detail-card
+          class="modify-reservation-editor__plan"
+          [plan]="plan"
+          [selectedVenue]="reservation.placeId"
+          [showShadow]="false"
+        />
+        <app-modify-reservation-cart
+          class="modify-reservation-editor__cart"
+          [canEditOverride]="canAddPriceOverride"
+          [canToggleOverride]="canToggleEditorOverride()"
+          [errorMessage]="editorCartErrorMessage()"
+          [groups]="editorCartGroups()"
+          [hasChanges]="hasChanges()"
+          [linePriceDisabledHint]="linePriceDisabledHint()"
+          [linePriceEditable]="canEditLinePrices()"
+          [loading]="previewLoading()"
+          [locale]="locale"
+          [maxQuantityByLineKey]="maxQuantityByLineKey()"
+          [minQuantityByLineKey]="minQuantityByLineKey()"
+          [overrideCurrency]="adjustmentCurrency"
+          [overrideErrorKey]="adjustmentSliderErrorKey()"
+          [overrideInitialAdjustment]="editorOverrideInitialAdjustment()"
+          [overrideResetKey]="editorOverrideResetKey()"
+          [timezone]="timezone"
+          [totals]="editorCartTotals()"
+          (clearChanges)="onClearChangesFromSummary()"
+          (adjustmentChange)="onAdjustmentChange($event)"
+          (linePriceApply)="onEditorCartLinePriceApply($event)"
+          (linePriceClear)="onEditorCartLinePriceClear($event)"
+          (quantityChange)="onEditorCartLineQuantityChange($event)"
+        />
+      </aside>
+      <div class="modify-reservation-editor__content">
+        <app-modify-reservation-add-tickets
+          data-testid="modify-reservation__editor-selector"
+          [canAddNewDates]="true"
+          [cartUnitsBySessionId]="cartUnitsBySessionId()"
+          [channel]="channelId"
+          [datesAvailability]="datesAvailability()"
+          [editorMode]="true"
+          [groupingMode]="groupingMode()"
+          [hasExplodePipe]="hasExplodePipe()"
+          [loadingAvailability]="availabilityLoading()"
+          [loadingSessions]="availabilitySessionsLoading()"
+          [locale]="locale"
+          [modificationSelections]="editorStagedSelections()"
+          [placeId]="reservation.placeId"
+          [reservationCartDateKeys]="reservationCartDateKeys()"
+          [reservationDatetimeSlotCount]="reservationDatetimeSlotCount()"
+          [regularSessionAvailabilitySummary]="regularSessionAvailabilitySummary()"
+          [selectedAvailabilityFromDate]="selectedAvailabilityFromDate()"
+          [sessionAvailabilityBySessionId]="sessionAvailabilityBySessionId()"
+          [sessionItemsByDatetime]="sessionItemsByDatetime()"
+          [sessionSelectorType]="sessionSelectorType()"
+          [timezone]="timezone"
+          (availabilityFromDateChange)="onAvailabilityFromDateChange($event)"
+          (selectedDateAvailabilityChange)="onSelectedDateAvailabilityChange($event)"
+          (selectionsChange)="onEditorSelectionsChange($event)"
+          (slotChange)="onEditorSlotChange()"
+        ></app-modify-reservation-add-tickets>
+      </div>
+    </div>
+    <div class="modify-reservation__floating-bar" data-testid="modify-reservation__editor-floating-bar">
+      <div class="modify-reservation__floating-bar-content">
+        <div class="modify-reservation__buttons">
+          <div class="modify-reservation__buttons--right modify-reservation__buttons--spread">
+            <ignt-button
+              data-testid="modify-reservation__editor-back"
+              variant="secondary"
+              [label]="'boxOffice.goBack' | translate"
+              (click)="navigateBack()"
+            />
+            <ignt-button
+              data-testid="modify-reservation__editor-add-to-cart"
+              fill
+              [disabled]="!hasEditorStagedSelection()"
+              [label]="editorAddToCartLabel()"
+              [variant]="hasEditorStagedSelection() ? 'primary' : 'secondary'"
+              (click)="onAddEditorStagedToCart()"
+            />
+            @if (isReservationEmpty()) {
+              <ignt-button
+                data-testid="modify-reservation__editor-cancel-reservation"
+                sentiment="danger"
+                [disabled]="!hasChanges()"
+                [label]="'reservations.modify.cancelReservation' | translate"
+                [loading]="modifySubmitting()"
+                (click)="onCancelReservationFromCart()"
+              />
+            } @else {
+              <ignt-button
+                data-testid="modify-reservation__editor-confirm"
+                [disabled]="!canSubmitModification()"
+                [label]="'reservations.modify.confirmChanges' | translate"
+                [loading]="modifySubmitting() || reviewPreparing() || previewLoading()"
+                [variant]="hasEditorStagedSelection() ? 'secondary' : 'primary'"
+                (click)="onConfirmChangesFromCart()"
+              />
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+} @else {
+  <app-page-title
+    [section]="'menu.overview' | translate"
+    [sectionLink]="reservationListUrl"
+    [subsections]="subsections"
+    [title]="'reservations.modify.pageTitle' | translate"
+    class="new-design"
+  ></app-page-title>
+
+  <div class="modify-reservation" [class.modify-reservation--adding-tickets]="isSubflowActive()">
+    <div class="modify-reservation__wrapper" [class.modify-reservation__wrapper--adding-tickets]="isSubflowActive()">
+      <div class="modify-reservation__header">
+        <div class="modify-reservation__header__left">
+          <div class="modify-reservation__header__event">
+            <img class="modify-reservation__header__event__image" [alt]="plan.name ?? ''" [src]="plan.pictureURL" height="64" width="64" />
+            <div class="modify-reservation__header__event__details">
+              <span class="modify-reservation__header__event__name" data-testid="modify-reservation__event-name">
+                {{ plan.name }}
+              </span>
+              @if (venueAddress) {
+                <span class="modify-reservation__header__event__address">
+                  <ignt-icon name="map-marker-alt" variant="regular" [fixedWidth]="true" size="caption" />
+                  {{ venueAddress }}
+                </span>
+              }
+              @if (channelName) {
+                <span class="modify-reservation__header__event__channel">
+                  <ignt-icon name="user-circle" variant="light" [fixedWidth]="true" size="caption" />
+                  {{ channelName }}
+                </span>
+              }
+            </div>
+          </div>
+          <div class="modify-reservation__header__separator"></div>
+          <div class="modify-reservation__header__reservation-id">
+            <span class="modify-reservation__header__reservation-id__label">
+              {{ 'reservation.checkout.reservationId' | translate }}
+            </span>
+            <span class="modify-reservation__header__reservation-id__value" data-testid="modify-reservation__locator">
+              {{ reservation.locator }}
+              <button
+                ignt-icon-button
+                sentiment="tertiary"
+                size="small"
+                [icon]="['fas', 'copy']"
+                data-testid="modify-reservation__copy-button"
+                (click)="copyReservationId()"
+              ></button>
+            </span>
+          </div>
+        </div>
+        <ignt-button
+          data-testid="modify-reservation__back-button"
+          sentiment="danger"
+          size="small"
+          variant="secondary"
+          [label]="'reservations.modify.backToReservation' | translate"
+          (click)="navigateBack()"
+        />
+      </div>
+
+      <div class="modify-reservation__header-mobile">
+        <span class="modify-reservation__header-mobile__name" data-testid="modify-reservation__event-name-mobile">
+          {{ plan.name }}
+        </span>
+        <span class="modify-reservation__header-mobile__locator">
+          {{ 'reservation.checkout.reservationId' | translate }}: {{ reservation.locator }}
+        </span>
+      </div>
+
+      <div class="modify-reservation__divider"></div>
+
+      <div class="modify-reservation__content">
+        <div
+          class="modify-reservation__content__left"
+          [class.modify-reservation__content__left--add-tickets]="isSubflowActive()"
+          [class.modify-reservation__content__left--free-map]="(showFreeMapModify() && isFreeMapMapStep()) || showTicketFirstMapStep()"
+        >
+          @if (hasSeats && !freeMapEligibilityResolved()) {
+            <div hidden aria-hidden="true">
+              <app-modify-reservation-free-map
+                [cart]="cart"
+                [reservation]="reservation"
+                [baselineSelections]="baselineSelections()"
+                [holdToken]="freeMapHoldToken()"
+                (eligibilityResolved)="onFreeMapEligibilityResolved($event)"
+                (seatingContextReady)="onFreeMapSeatingContextReady($event)"
+                (selectionsChange)="onFreeMapSelectionsChange($event)"
+              ></app-modify-reservation-free-map>
+            </div>
+          } @else if (showFreeMapModify() && isFreeMapDateStep()) {
+            <app-modify-reservation-free-map-date-step
+              data-testid="modify-reservation__free-map-date-step"
+              [dateStepViewKey]="freeMapDateStepViewKey()"
+              [excludeNextHours]="0"
+              [group]="freeMapTimeslotGroup()"
+              [loading]="availabilityLoading()"
+              [regularSessionAvailabilitySummary]="regularSessionAvailabilitySummary()"
+              [selectedAvailabilityFromDate]="selectedAvailabilityFromDate()"
+              [sessionSelectorType]="sessionSelectorType()"
+              [timezone]="timezone"
+              (availabilityFromDateChange)="onAvailabilityFromDateChange($event)"
+              (closeStep)="navigateBack()"
+              (selectedSessionChange)="onFreeMapDateStepSessionChange($event)"
+            ></app-modify-reservation-free-map-date-step>
+          } @else if (showFreeMapModify() && isFreeMapMapStep()) {
+            <div class="modify-reservation__content__left__header">
+              <h2 class="modify-reservation__content__left__title">
+                {{ 'reservations.modify.whatToChange' | translate }}
+              </h2>
+              <button
+                ignt-icon-button
+                variant="danger"
+                sentiment="secondary"
+                size="small"
+                [icon]="['fal', 'times']"
+                class="modify-reservation__content__left__close"
+                data-testid="modify-reservation__close-button"
+                (click)="navigateBack()"
+              ></button>
+            </div>
+            @for (instanceId of [freeMapInstanceId()]; track instanceId) {
+              <app-modify-reservation-free-map
+                [cart]="cart"
+                [reservation]="reservation"
+                [baselineSelections]="baselineSelections()"
+                [destinationTimeslot]="freeMapSelectedTimeslot()"
+                [holdToken]="freeMapHoldToken()"
+                [sameAsCartTimeslot]="isFreeMapDestinationSameAsCart()"
+                (destinationMapUnavailable)="onFreeMapDestinationMapUnavailable()"
+                (seatingContextReady)="onFreeMapSeatingContextReady($event)"
+                (selectionsChange)="onFreeMapSelectionsChange($event)"
+              ></app-modify-reservation-free-map>
+            }
+          } @else if (showTicketFirstMapStep()) {
+            <div class="modify-reservation__content__left__header">
+              <h2 class="modify-reservation__content__left__title">
+                {{ 'reservations.modify.selectSeats' | translate }}
+              </h2>
+              <button
+                ignt-icon-button
+                variant="danger"
+                sentiment="secondary"
+                size="small"
+                [icon]="['fal', 'times']"
+                class="modify-reservation__content__left__close"
+                data-testid="modify-reservation__close-button"
+                (click)="navigateBack()"
+              ></button>
+            </div>
+            @for (instanceId of [ticketFirstMapInstanceId()]; track instanceId) {
+              <app-modify-reservation-ticket-first-map
+                data-testid="modify-reservation__ticket-first-map-step"
+                [cart]="cart"
+                [reservation]="reservation"
+                [selections]="effectiveSelections()"
+                [sessionAvailabilityBySessionId]="sessionAvailabilityBySessionId()"
+                (expired)="onTicketFirstMapSessionExpired()"
+                (loadError)="onTicketFirstMapLoadError()"
+                (seatingContextReady)="onTicketFirstMapSeatingContextReady($event)"
+                (selectionsChange)="onTicketFirstMapSelectionsChange($event)"
+              ></app-modify-reservation-ticket-first-map>
+            }
+          } @else if (showQuantityModify() && !isAddingTickets() && !isRescheduling()) {
+            <div class="modify-reservation__content__left__header">
+              <h2 class="modify-reservation__content__left__title">
+                {{ 'reservations.modify.whatToChange' | translate }}
+              </h2>
+              <button
+                ignt-icon-button
+                variant="danger"
+                sentiment="secondary"
+                size="small"
+                [icon]="['fal', 'times']"
+                class="modify-reservation__content__left__close"
+                data-testid="modify-reservation__close-button"
+                (click)="navigateBack()"
+              ></button>
+            </div>
+            <p class="modify-reservation__content__left__subtitle">
+              {{ 'reservations.modify.whatToChangeDescription' | translate }}
+            </p>
+            <div class="modify-reservation__content__left__actions">
+              <ignt-button
+                data-testid="modify-reservation__add-tickets-button"
+                size="small"
+                variant="secondary"
+                [label]="
+                  (canAddNewDates() ? 'reservations.modify.addNewDatesOrTickets' : 'reservations.modify.addNewTicketTypes') | translate
+                "
+                [leadingIcon]="{ name: 'plus', variant: 'regular' }"
+                (click)="onOpenAddTickets()"
+              />
+            </div>
+            <app-modify-reservation-ticket-selector
+              [cart]="cart"
+              [maxQuantityByLineKey]="maxQuantityByLineKey()"
+              [minQuantityByLineKey]="minQuantityByLineKey()"
+              (reschedule)="onOpenReschedule($event)"
+            ></app-modify-reservation-ticket-selector>
+          } @else if (isAddingTickets()) {
+            <app-modify-reservation-add-tickets
+              #addTicketsView
+              data-testid="modify-reservation__add-tickets-view"
+              [addTicketsViewKey]="addTicketsViewKey()"
+              [addedTicketsCount]="addedTicketsCount()"
+              [cartUnitsBySessionId]="cartUnitsBySessionId()"
+              [canAddNewDates]="canAddNewDates()"
+              [channel]="channelId"
+              [datesAvailability]="datesAvailability()"
+              [groupingMode]="groupingMode()"
+              [hasExplodePipe]="hasExplodePipe()"
+              [loadingAvailability]="availabilityLoading()"
+              [loadingSessions]="availabilitySessionsLoading()"
+              [locale]="locale"
+              [modificationSelections]="addTicketsModificationSelections()"
+              [placeId]="reservation.placeId"
+              [reservationCartDateKeys]="reservationCartDateKeys()"
+              [reservationDatetimeSlotCount]="reservationDatetimeSlotCount()"
+              [regularSessionAvailabilitySummary]="regularSessionAvailabilitySummary()"
+              [selectedAvailabilityFromDate]="selectedAvailabilityFromDate()"
+              [sessionAvailabilityBySessionId]="sessionAvailabilityBySessionId()"
+              [sessionItemsByDatetime]="sessionItemsByDatetime()"
+              [sessionSelectorType]="sessionSelectorType()"
+              [ticketFirstEligible]="ticketFirstEligible()"
+              [timezone]="timezone"
+              (availabilityFromDateChange)="onAvailabilityFromDateChange($event)"
+              (back)="onCloseAddTickets()"
+              (selectedDateAvailabilityChange)="onSelectedDateAvailabilityChange($event)"
+              (selectionsChange)="onAddTicketsSelectionsChange($event)"
+            ></app-modify-reservation-add-tickets>
+          } @else {
+            <app-reschedule-reservation
+              data-testid="modify-reservation__reschedule-view"
+              [excludeNextHours]="0"
+              [group]="rescheduleGroup()"
+              [loading]="availabilityLoading()"
+              [regularSessionAvailabilitySummary]="regularSessionAvailabilitySummary()"
+              [rescheduleViewKey]="rescheduleViewKey()"
+              [selectedAvailabilityFromDate]="selectedAvailabilityFromDate()"
+              [sessionSelectorType]="sessionSelectorType()"
+              [timezone]="timezone"
+              (availabilityFromDateChange)="onAvailabilityFromDateChange($event)"
+              (back)="onCloseReschedule()"
+              (selectedSessionChange)="onRescheduleSessionChange($event)"
+            ></app-reschedule-reservation>
+          }
+        </div>
+        <div class="modify-reservation__content__separator"></div>
+        <div class="modify-reservation__content__right">
+          <h5 class="modify-reservation__summary__title">
+            {{ 'reservations.modify.reservationSummary' | translate }}
+          </h5>
+          <app-modify-reservation-summary
+            [error]="isFreeMapDateStep() ? null : previewError()"
+            [hasChanges]="hasChanges()"
+            [canEditOverride]="canAddPriceOverride"
+            [canReviewChanges]="canSubmitModification()"
+            [hasDraftOverride]="hasDraftOverride()"
+            [isOverrideInvalid]="isOverrideInvalid()"
+            [isReservationEmpty]="isReservationEmpty()"
+            [loading]="isFreeMapDateStep() ? false : previewLoading()"
+            [originalCart]="cart"
+            [primaryAction]="showTicketFirstSelectSeats() ? 'selectSeats' : 'review'"
+            [showFooterActions]="!isAddingTickets() && !isRescheduling() && !isFreeMapDateStep() && !showTicketFirstMapStep()"
+            [reviewChangesErrorKey]="reviewChangesErrorKey()"
+            [reviewChangesErrorMessage]="footerErrorMessage()"
+            [summary]="paymentSummary()"
+            (cancelReservation)="onCancelReservationFromSummary()"
+            (clearChanges)="onClearChangesFromSummary()"
+            (editOverride)="onEditOverrideFromSummary()"
+            (reviewChanges)="onClickReviewChanges()"
+            (selectSeats)="onSelectSeats()"
+            (viewCompare)="onViewCompare()"
+          />
+          @if (showTicketFirstMapStep()) {
+            <div class="modify-reservation__desktop-actions" data-testid="modify-reservation__desktop-ticket-first-map-actions">
+              <ignt-button
+                data-testid="modify-reservation__ticket-first-map-back-desktop"
+                fill
+                variant="secondary"
+                [label]="'reservations.modify.addTicketsBack' | translate"
+                (click)="onBackFromTicketFirstMapStep()"
+              />
+              <ignt-button
+                data-testid="modify-reservation__ticket-first-map-review-desktop"
+                fill
+                [disabled]="!canReviewTicketFirstMap()"
+                [label]="'reservations.modify.reviewChanges' | translate"
+                [loading]="modifySubmitting()"
+                (click)="onReviewFromTicketFirstMap()"
+              />
+            </div>
+            @if (footerErrorMessage(); as footerErrorMessage) {
+              <span class="modify-reservation__desktop-actions-error" data-testid="modify-reservation__ticket-first-map-error-desktop">
+                {{ footerErrorMessage }}
+              </span>
+            }
+          } @else if (isAddingTickets()) {
+            @if (addedTicketsCount() > 0) {
+              <app-modify-reservation-added-tickets-panel
+                [count]="addedTicketsCount()"
+                [lines]="addedTicketsLines()"
+                [locale]="locale"
+                panelTestId="modify-reservation__added-tickets-panel"
+                (removeTicket)="onRemoveAddedTicket($event)"
+              />
+              <div class="modify-reservation__desktop-actions" data-testid="modify-reservation__desktop-add-tickets-actions">
+                <ignt-button
+                  data-testid="modify-reservation__back-add-tickets-desktop"
+                  fill
+                  variant="secondary"
+                  [label]="'reservations.modify.addTicketsBack' | translate"
+                  (click)="onCloseAddTickets()"
+                />
+                <ignt-button
+                  class="modify-reservation__desktop-actions__primary"
+                  data-testid="modify-reservation__confirm-add-tickets-desktop"
+                  fill
+                  [disabled]="!canConfirmAddTickets()"
+                  [label]="'reservations.modify.addTicketsConfirm' | translate"
+                  (click)="onConfirmAddTickets()"
+                />
+              </div>
+            }
+            @if (groupRuleViolationMessage(); as groupRuleViolationMessage) {
+              <span class="modify-reservation__desktop-actions-error" data-testid="modify-reservation__add-tickets-error-desktop">
+                {{ groupRuleViolationMessage }}
+              </span>
+            }
+          } @else if (isFreeMapDateStep()) {
+            <div class="modify-reservation__desktop-actions" data-testid="modify-reservation__desktop-free-map-date-step-actions">
+              <ignt-button
+                data-testid="modify-reservation__continue-free-map-date-step-desktop"
+                fill
+                [disabled]="!canContinueFreeMapDateStep()"
+                [label]="'reservations.modify.freeMapDateStepContinue' | translate"
+                (click)="onContinueFreeMapDateStep()"
+              />
+            </div>
+          } @else if (isFreeMapMapStep()) {
+            <div class="modify-reservation__desktop-actions" data-testid="modify-reservation__desktop-free-map-map-step-actions">
+              <ignt-button
+                data-testid="modify-reservation__back-free-map-to-date-desktop"
+                fill
+                variant="secondary"
+                [label]="'reservations.modify.rescheduleBack' | translate"
+                (click)="onBackFreeMapToDateStep()"
+              />
+            </div>
+          } @else if (isRescheduling()) {
+            <div class="modify-reservation__desktop-actions" data-testid="modify-reservation__desktop-reschedule-actions">
+              <ignt-button
+                data-testid="modify-reservation__reschedule-back-desktop"
+                fill
+                variant="secondary"
+                [label]="'reservations.modify.rescheduleBack' | translate"
+                (click)="onCloseReschedule()"
+              />
+              <ignt-button
+                data-testid="modify-reservation__apply-reschedule-desktop"
+                fill
+                [disabled]="!canApplyReschedule()"
+                [label]="'reservations.modify.applyReschedule' | translate"
+                (click)="onApplyReschedule()"
+              />
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="modify-reservation__footer">
+        <div class="modify-reservation__footer__handle"></div>
+        @if (!isAddingTickets() && !isRescheduling() && !isFreeMapDateStep() && !showTicketFirstMapStep()) {
+          <ignt-expansion-panel
+            [title]="'reservations.modify.remainingAmount' | translate"
+            [isCollapsed]="true"
+            variant="borderless"
+            class="modify-reservation__footer__panel"
+          >
+            <div class="modify-reservation__footer__details">
+              <app-modify-reservation-summary
+                class="modify-reservation__footer__details__payment-summary"
+                [error]="previewError()"
+                [hasChanges]="hasChanges()"
+                [canEditOverride]="canAddPriceOverride"
+                [canReviewChanges]="canSubmitModification()"
+                [hasDraftOverride]="hasDraftOverride()"
+                [isOverrideInvalid]="isOverrideInvalid()"
+                [isReservationEmpty]="isReservationEmpty()"
+                [loading]="previewLoading()"
+                [originalCart]="cart"
+                [primaryAction]="showTicketFirstSelectSeats() ? 'selectSeats' : 'review'"
+                [showFooterActions]="!isAddingTickets() && !isRescheduling() && !isFreeMapDateStep() && !showTicketFirstMapStep()"
+                [reviewChangesErrorKey]="reviewChangesErrorKey()"
+                [reviewChangesErrorMessage]="footerErrorMessage()"
+                [summary]="paymentSummary()"
+                (cancelReservation)="onCancelReservationFromSummary()"
+                (clearChanges)="onClearChangesFromSummary()"
+                (editOverride)="onEditOverrideFromSummary()"
+                (reviewChanges)="onClickReviewChanges()"
+                (selectSeats)="onSelectSeats()"
+                (viewCompare)="onViewCompare()"
+              />
+            </div>
+          </ignt-expansion-panel>
+        }
+        @if (isAddingTickets()) {
+          @if (addedTicketsCount() > 0) {
+            <app-modify-reservation-added-tickets-panel
+              [count]="addedTicketsCount()"
+              [footerVariant]="true"
+              [lines]="addedTicketsLines()"
+              [locale]="locale"
+              panelTestId="modify-reservation__added-tickets-panel-mobile"
+              (removeTicket)="onRemoveAddedTicket($event)"
+            />
+          }
+          <div class="modify-reservation__footer__actions">
+            <ignt-button
+              data-testid="modify-reservation__back-add-tickets-mobile"
+              fill
+              variant="secondary"
+              [label]="'reservations.modify.addTicketsBack' | translate"
+              (click)="onCloseAddTickets()"
+            />
+            <ignt-button
+              class="modify-reservation__footer__actions__primary"
+              data-testid="modify-reservation__confirm-add-tickets-mobile"
+              fill
+              [disabled]="!canConfirmAddTickets()"
+              [label]="'reservations.modify.addTicketsConfirm' | translate"
+              (click)="onConfirmAddTickets()"
+            />
+          </div>
+          @if (groupRuleViolationMessage(); as groupRuleViolationMessage) {
+            <span class="modify-reservation__footer-error" data-testid="modify-reservation__add-tickets-error-mobile">
+              {{ groupRuleViolationMessage }}
+            </span>
+          }
+        } @else if (isFreeMapDateStep()) {
+          <div class="modify-reservation__footer__actions" data-testid="modify-reservation__free-map-date-step-footer-actions">
+            <ignt-button
+              data-testid="modify-reservation__continue-free-map-date-step-mobile"
+              fill
+              [disabled]="!canContinueFreeMapDateStep()"
+              [label]="'reservations.modify.freeMapDateStepContinue' | translate"
+              (click)="onContinueFreeMapDateStep()"
+            />
+          </div>
+        } @else if (isFreeMapMapStep()) {
+          <div class="modify-reservation__footer__actions" data-testid="modify-reservation__free-map-map-step-footer-actions">
+            <ignt-button
+              data-testid="modify-reservation__back-free-map-to-date-mobile"
+              fill
+              variant="secondary"
+              [label]="'reservations.modify.rescheduleBack' | translate"
+              (click)="onBackFreeMapToDateStep()"
+            />
+            @if (hasChanges()) {
+              <ignt-button
+                data-testid="modify-reservation__clear-changes-mobile"
+                fill
+                variant="secondary"
+                [label]="'reservations.modify.clearChanges' | translate"
+                (click)="onClearChangesFromSummary()"
+              />
+              @if (isReservationEmpty()) {
+                <ignt-button
+                  data-testid="modify-reservation__cancel-reservation-mobile"
+                  fill
+                  sentiment="danger"
+                  [label]="'reservations.modify.cancelReservation' | translate"
+                  (click)="onCancelReservationFromSummary()"
+                />
+              } @else {
+                <ignt-button
+                  data-testid="modify-reservation__confirm-mobile"
+                  fill
+                  [disabled]="!canSubmitModification()"
+                  [label]="'reservations.modify.reviewChanges' | translate"
+                  [loading]="modifySubmitting() || reviewPreparing()"
+                  (click)="onClickReviewChanges()"
+                />
+              }
+            }
+          </div>
+        } @else if (showTicketFirstMapStep()) {
+          <div class="modify-reservation__footer__actions" data-testid="modify-reservation__ticket-first-map-footer-actions">
+            <ignt-button
+              data-testid="modify-reservation__ticket-first-map-back-mobile"
+              fill
+              variant="secondary"
+              [label]="'reservations.modify.addTicketsBack' | translate"
+              (click)="onBackFromTicketFirstMapStep()"
+            />
+            <ignt-button
+              data-testid="modify-reservation__ticket-first-map-review-mobile"
+              fill
+              [disabled]="!canReviewTicketFirstMap()"
+              [label]="'reservations.modify.reviewChanges' | translate"
+              [loading]="modifySubmitting()"
+              (click)="onReviewFromTicketFirstMap()"
+            />
+          </div>
+          @if (footerErrorMessage(); as footerErrorMessage) {
+            <span class="modify-reservation__footer-error" data-testid="modify-reservation__footer-error-mobile">
+              {{ footerErrorMessage }}
+            </span>
+          }
+        } @else if (showTicketFirstSelectSeats()) {
+          <div class="modify-reservation__footer__actions" data-testid="modify-reservation__select-seats-footer-actions">
+            <ignt-button
+              data-testid="modify-reservation__clear-changes-mobile"
+              fill
+              variant="secondary"
+              [disabled]="!hasChanges()"
+              [label]="'reservations.modify.clearChanges' | translate"
+              (click)="onClearChangesFromSummary()"
+            />
+            <ignt-button
+              class="modify-reservation__footer__actions__primary"
+              data-testid="modify-reservation__select-seats-mobile"
+              fill
+              [label]="'reservations.modify.selectSeats' | translate"
+              (click)="onSelectSeats()"
+            />
+          </div>
+          @if (footerErrorMessage(); as footerErrorMessage) {
+            <span class="modify-reservation__footer-error" data-testid="modify-reservation__footer-error-mobile">
+              {{ footerErrorMessage }}
+            </span>
+          }
+        } @else if (isRescheduling()) {
+          <div class="modify-reservation__footer__actions" data-testid="modify-reservation__reschedule-footer-actions">
+            <ignt-button
+              data-testid="modify-reservation__reschedule-back-mobile"
+              fill
+              variant="secondary"
+              [label]="'reservations.modify.rescheduleBack' | translate"
+              (click)="onCloseReschedule()"
+            />
+            <ignt-button
+              data-testid="modify-reservation__apply-reschedule-mobile"
+              fill
+              [disabled]="!canApplyReschedule()"
+              [label]="'reservations.modify.applyReschedule' | translate"
+              (click)="onApplyReschedule()"
+            />
+          </div>
+        } @else if (hasChanges()) {
+          <div class="modify-reservation__footer__actions">
+            <ignt-button
+              data-testid="modify-reservation__clear-changes-mobile"
+              fill
+              variant="secondary"
+              [label]="'reservations.modify.clearChanges' | translate"
+              (click)="onClearChangesFromSummary()"
+            />
+            @if (isReservationEmpty()) {
+              <ignt-button
+                data-testid="modify-reservation__cancel-reservation-mobile"
+                fill
+                sentiment="danger"
+                [label]="'reservations.modify.cancelReservation' | translate"
+                (click)="onCancelReservationFromSummary()"
+              />
+            } @else {
+              <ignt-button
+                data-testid="modify-reservation__confirm-mobile"
+                fill
+                [disabled]="!canSubmitModification()"
+                [label]="'reservations.modify.reviewChanges' | translate"
+                [loading]="modifySubmitting() || reviewPreparing()"
+                (click)="onClickReviewChanges()"
+              />
+            }
+          </div>
+          @if (footerErrorMessage(); as footerErrorMessage) {
+            <span class="modify-reservation__footer-error" data-testid="modify-reservation__footer-error-mobile">
+              {{ footerErrorMessage }}
+            </span>
+          }
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<app-lateral-slider
+  [closeOnBackdropClick]="true"
+  [showDetails]="showAdjustmentSlider()"
+  [titleTemplate]="adjustmentSliderTitle"
+  (closeSlider)="onCloseAdjustmentSlider()"
+>
+  @if (showAdjustmentSlider()) {
+    <div class="lateral-slider-body__wrapper modify-reservation__adjustment-slider">
+      <div class="modify-reservation__adjustment-slider__body">
+        <app-cart-adjustment-price
+          [canToggleAdjustmentPrice]="canAddPriceOverride"
+          [currency]="adjustmentCurrency"
+          [errorKey]="adjustmentSliderErrorKey()"
+          [initialAdjustment]="adjustmentSliderOpenSnapshot()"
+          trackingScope="modify_reservation"
+          (adjustmentChange)="onAdjustmentChange($event)"
+        ></app-cart-adjustment-price>
+      </div>
+      <div class="lateral-slider-body__footer modify-reservation__adjustment-slider__footer">
+        <ignt-button
+          data-testid="modify-reservation__adjustment-slider-reset"
+          fill
+          variant="secondary"
+          [disabled]="!adjustmentSliderDirty()"
+          [label]="'reservations.modify.overrideEditorReset' | translate"
+          (click)="onResetAdjustment()"
+        />
+        <ignt-button
+          data-testid="modify-reservation__adjustment-slider-done"
+          fill
+          [label]="'reservations.modify.overrideEditorDone' | translate"
+          (click)="onCloseAdjustmentSlider()"
+        />
+      </div>
+    </div>
+  }
+</app-lateral-slider>
+
+<ng-template #adjustmentSliderTitle>
+  <div class="modify-reservation__adjustment-slider__title">
+    <span class="modify-reservation__adjustment-slider__title__heading">
+      {{ 'reservations.modify.overrideEditorTitle' | translate }}
+    </span>
+    <span class="modify-reservation__adjustment-slider__title__subtitle">
+      {{ 'reservations.modify.overrideEditorSubtitle' | translate }}
+    </span>
+  </div>
+</ng-template>

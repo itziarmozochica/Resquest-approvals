@@ -1,0 +1,30 @@
+@use 'foundations/font/font' as font;
+// These classes are mainly used with fontawesome icons to define icon sizes according to font sizes.
+// Create .fa-size-$font-name classes.
+@function remove-font-suffix($font-name) {
+  $suffixes: ('-regular', '-bold');
+  @each $suffix in $suffixes {
+    @if str-index($font-name, $suffix) != null {
+      $font-name: str-slice($font-name, 1, str-index($font-name, $suffix) - 1);
+    }
+  }
+  @return $font-name;
+}
+
+$processed-fonts: ();
+
+@each $font-name, $font-properties in font.$font-sizes-map {
+  $clean-font-name: remove-font-suffix($font-name);
+
+  @if not index($processed-fonts, $clean-font-name) {
+    $font-size: map-get($font-properties, size);
+    $line-height: map-get($font-properties, line-height);
+
+    .fa-size-#{$clean-font-name} {
+      font-size: $font-size;
+      line-height: $line-height;
+    }
+
+    $processed-fonts: append($processed-fonts, $clean-font-name);
+  }
+}

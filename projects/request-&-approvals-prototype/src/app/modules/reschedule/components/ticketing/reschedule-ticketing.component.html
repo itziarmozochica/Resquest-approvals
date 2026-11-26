@@ -1,0 +1,302 @@
+<app-page-title [title]="'menu.reschedule' | translate"></app-page-title>
+
+<div>
+  <app-search-bar
+    [preselectFromOnsiteSetup]="false"
+    (searchEmitter)="loadNewSearch($event)"
+    [disabled]="!isCrossPlanEnabled"
+    [lockedFilters]="lockedSearchFilters"
+    [screen]="screen.boxOffice"
+    [searchButtonLabel]="'reschedule.show'"
+    [showVenue]="true"
+  >
+  </app-search-bar>
+</div>
+
+<div class="box-office-content">
+  <div class="box-office-content__container">
+    <div class="box-office-content__row box-office-content__row">
+      <ng-container *ngIf="filtersSelected">
+        <div *ngIf="isLoadingSessions" class="box-office-content__spinner">
+          <fa-icon [icon]="['fas', 'spinner']" [size]="'4x'" class="loader"></fa-icon>
+        </div>
+        <div *ngIf="error" class="box-office-content__alert-error">
+          <ignt-alert
+            sentiment="danger"
+            [description]="'boxOffice.genericErrorTitle' | translate"
+            showCloseButton
+            [closeButtonAriaLabel]="'common.close' | translate"
+            (closeAlert)="closeError()"
+          />
+        </div>
+        <div
+          *ngIf="
+            !isLoadingSessions &&
+            !error &&
+            sessionAvailabilitySummary &&
+            sessionAvailabilitySummary?.regularSessionAvailabilitySummaryByDates?.length === 0 &&
+            !selectedAvailabilityFromDate
+          "
+          class="box-office-content__no-results"
+        >
+          <fa-icon [icon]="['fal', 'sensor-alert']" class="box-office-content__no-results__icon"></fa-icon>
+          <p class="box-office-content__no-results__text" translate>boxOffice.noSessionsAvailable</p>
+        </div>
+        <ng-container
+          *ngIf="
+            !isLoadingSessions &&
+            !error &&
+            sessionAvailabilitySummary &&
+            (sessionAvailabilitySummary?.regularSessionAvailabilitySummaryByDates?.length > 0 || !!selectedAvailabilityFromDate)
+          "
+        >
+          <div class="box-office-content__sidebar">
+            <app-plan-detail-card *ngIf="plan" [plan]="plan"></app-plan-detail-card>
+
+            <ng-container>
+              <ng-container *ngTemplateOutlet="orderDetail"></ng-container>
+            </ng-container>
+          </div>
+          <div class="box-office-content__content">
+            <div class="only-in-mobile">
+              <app-plan-detail-card *ngIf="plan" [plan]="plan"></app-plan-detail-card>
+
+              <ng-container>
+                <ng-container *ngTemplateOutlet="orderDetail"></ng-container>
+              </ng-container>
+            </div>
+            <ng-container [ngSwitch]="currentStep?.id">
+              <ng-container *ngSwitchCase="ticketSelectorStep.id">
+                <div class="box-office-content__content-card" [class.box-office-content__content-card--seating]="manageAsFreeSeatingMap">
+                  @if (isEntitlementReschedule && !isEntitlementPendingToSchedule) {
+                    <div class="box-office-content__remaining-reschedules-banner">
+                      <fa-icon [icon]="['fas', 'info-circle']"></fa-icon>
+                      <p class="box-office-content__remaining-reschedules-banner__text" data-testid="entitlement-reschedules-banner-text">
+                        @if (entitlementRemainingReschedules > 0) {
+                          {{ 'reschedule.entitlement.reschedulesBanner' | translate: { count: entitlementRemainingReschedules } }}
+                        } @else {
+                          {{ 'reschedule.entitlement.noReschedulesBanner' | translate }}
+                        }
+                      </p>
+                    </div>
+                  }
+                  @if (isSchedulingWindowWarningVisible) {
+                    <div class="box-office-content__scheduling-window-warning-banner" [@fadeAnimation]>
+                      <fa-icon [icon]="['fas', 'exclamation-triangle']"></fa-icon>
+                      <p
+                        class="box-office-content__scheduling-window-warning-banner__text"
+                        data-testid="entitlement-scheduling-window-warning"
+                      >
+                        {{ 'reschedule.entitlement.schedulingWindowWarning' | translate }}
+                      </p>
+                    </div>
+                  }
+                  <div class="box-office-content__content-card__header">
+                    <h3 class="box-office-content__content-card__title" translate>
+                      {{ isEntitlementPendingToSchedule ? 'reschedule.scheduling.title' : 'reschedule.title' }}
+                    </h3>
+                    @if (!isMultiTimeSlot) {
+                      <span class="box-office-content__content-card__description">
+                        @if (isEntitlementPendingToSchedule) {
+                          {{ 'reschedule.scheduling.description' | translate }}
+                        } @else if (isEntitlementReschedule) {
+                          {{ 'reschedule.descriptionSameTicketType' | translate }}
+                        } @else {
+                          {{
+                            'reschedule.' + (showTicketTypes ? 'descriptionDifferentTicketType' : 'descriptionSameTicketType') | translate
+                          }}
+                        }
+                      </span>
+                    }
+                  </div>
+                  @if (isMultiTimeSlot) {
+                    <div class="box-office-content__multi-time-slot">{{ 'reschedule.descriptionMultiTimeSlot' | translate }}</div>
+                    <div class="box-office-content__buttons only-in-desktop">
+                      <button (click)="goBack()" class="button button--large button--secondary" data-testid="ticket-step-back-button">
+                        {{ 'common.cancel' | translate }}
+                      </button>
+                    </div>
+                  } @else {
+                    <ng-container *ngTemplateOutlet="dateSelector"></ng-container>
+                    @if (sessionAvailabilitySummary?.regularSessionAvailabilitySummaryByDates?.length > 0) {
+                      @if (manageAsFreeSeatingMap && !isEntitlementReschedule) {
+                        <ng-container *ngTemplateOutlet="freeSeatingMapTicketSelector"></ng-container>
+                      } @else if (!isEntitlementReschedule) {
+                        <ng-container *ngTemplateOutlet="ticketSelector"></ng-container>
+                      }
+                    } @else if (!isLoadingDates && !isLoadingDateSessions) {
+                      <div class="box-office-content__no-results" data-testid="reschedule-no-sessions-for-search">
+                        <fa-icon [icon]="['fal', 'sensor-alert']" class="box-office-content__no-results__icon"></fa-icon>
+                        <p class="box-office-content__no-results__text" translate>boxOffice.noSessionsAvailable</p>
+                      </div>
+                    }
+                    <div class="box-office-content__buttons only-in-desktop">
+                      <ng-container *ngTemplateOutlet="buttonsTicketingTemplate"></ng-container>
+                    </div>
+                  }
+                </div>
+              </ng-container>
+            </ng-container>
+          </div>
+        </ng-container>
+      </ng-container>
+    </div>
+  </div>
+</div>
+
+@if (isMultiTimeSlot) {
+  <div class="box-office-content__buttons only-in-mobile">
+    <button (click)="goBack()" class="button button--large button--secondary" data-testid="ticket-step-back-button">
+      {{ 'common.cancel' | translate }}
+    </button>
+  </div>
+} @else {
+  <div class="only-in-mobile">
+    <bottom-slider [buttonsTemplate]="buttonsTicketingTemplate"></bottom-slider>
+  </div>
+}
+
+<ng-template #buttonsTicketingTemplate>
+  <ng-container [ngSwitch]="currentStep?.id">
+    <ng-container *ngSwitchCase="ticketSelectorStep.id">
+      <div class="reschedule-bottom">
+        <div class="info-container">
+          @if (showTicketTypes && !isEntitlementReschedule) {
+            @if (nonConfirmedCart?.total | pipeFunction: toCarriedAdjustmentAmount; as carriedAdjustmentAmount) {
+              <div class="info-container-adjustment" data-testid="reschedule-carried-adjustment">
+                <span class="info-container-adjustment--label">
+                  {{ carriedAdjustment?.concept || ('reservations.modify.summaryOverridePrice' | translate) }}
+                </span>
+                <span class="info-container-adjustment--amount">
+                  {{ carriedAdjustmentAmount.amount > 0 ? '+' : ''
+                  }}{{ carriedAdjustmentAmount.amount | currency: carriedAdjustmentAmount.currency : 'symbol-narrow' : null : locale }}
+                </span>
+              </div>
+            }
+            <div class="info-container-price">
+              <span class="info-container-price--label">
+                {{ 'boxOffice.cart.total' | translate }}
+              </span>
+              <span class="info-container-price--amount" data-testid="reschedule-total">
+                <ng-container
+                  *ngTemplateOutlet="
+                    cartMoney;
+                    context: {
+                      money: nonConfirmedCart?.total | pipeFunction: toRescheduledTotal,
+                      locale: locale,
+                    }
+                  "
+                ></ng-container>
+              </span>
+            </div>
+          }
+          <div class="info-container--error" *ngIf="getErrorMessage()">
+            {{ getErrorMessage() | translate }}
+          </div>
+          <div class="info-container--warning" *ngIf="getWarningMessage()">
+            {{ getWarningMessage() | translate }}
+          </div>
+        </div>
+        <div class="buttons-container">
+          <button (click)="goBack()" class="button button--large button--secondary" data-testid="ticket-step-back-button">
+            {{ 'common.cancel' | translate }}
+          </button>
+          <button
+            (click)="isEntitlementReschedule ? confirmEntitlementReschedule() : confirmReschedule()"
+            class="button button--large button--primary"
+            [disabled]="isRescheduleDisabled()"
+            data-testid="ticket-step-confirm-reschedule"
+          >
+            {{ (isEntitlementPendingToSchedule ? 'reschedule.schedule' : 'reschedule.confirm') | translate }}
+          </button>
+        </div>
+      </div>
+    </ng-container>
+  </ng-container>
+</ng-template>
+
+<ng-template #orderDetail>
+  <app-order-detail *ngIf="order" [order]="order" [cart]="order.cart"></app-order-detail>
+</ng-template>
+
+<ng-template #dateSelector>
+  <app-date-selector-obo
+    (displayedSessionTypeChange)="handleDisplayedSessionTypeChange($event)"
+    (handleShowAvailabilityFromDateChange)="handleShowAvailabilityFromDateChange($event)"
+    (loadMore)="loadMoreDays()"
+    (selectedDateChange)="selectDate($event)"
+    (selectedSessionChange)="selectSession($event)"
+    *ngIf="order"
+    [datesAvailability]="datesAvailability"
+    [disabledDatetimes]="disabledDatetimes"
+    [displayedSessionType]="displayedSessionType"
+    [loading]="isLoadingDates"
+    [loadingSessions]="isLoadingDateSessions"
+    [locale]="locale"
+    [regularSessionAvailabilitySummaryByDate]="regularSessionAvailabilitySummaryByDateList"
+    [selectedAvailabilityFromDate]="selectedAvailabilityFromDate"
+    [selectedDateAvailability]="selectedDateAvailability"
+    [shouldShowDateSelector]="sessionSelectorType !== sessionSelectorTypeEnum.BY_TIMELESS_SESSION"
+    [skeletonWhite]="false"
+    [skipBookingLimitsValidation]="isEntitlementReschedule"
+    [ticketTypes]="ticketTypesForDateSelector"
+    [ongoingMultiDayTicketTypeNames]="getOngoingMultiDaySelectedTicketTypeNames()"
+    [timezone]="timezone"
+    [selectedSession]="selectedSession"
+    [sessionSelectorType]="sessionSelectorType"
+    [showLoadMoreButton]="shouldShowLoadMoreButton"
+    [isOneStepFlow]="false"
+  ></app-date-selector-obo>
+</ng-template>
+
+<ng-template #ticketSelector>
+  @if (!isLoadingDateSessions && showTicketTypes && !isEntitlementReschedule) {
+    <app-ticket-selector-obo
+      [allowMultiSession]="showTicketTypes"
+      [showHiddenInASeparateSection]="true"
+      [ticketTypes]="ticketTypesForSelector"
+      [ongoingMultiDayTicketGroups]="ongoingMultiDayTicketGroups"
+      [hasSeatingEntryTicketsSelected]="manageAsFreeSeatingMap && hasSeatsSelected"
+      [hasExplodePipe]="hasExplodePipe"
+      [ticketTypeCounterBySessionId]="selectedTicketsBySessionId"
+      [ticketTypeCounterBySessionType]="selectedTicketsBySessionType"
+      [showPrices]="true"
+      [discounts]="planDiscounts"
+      (ticketTypeCounterChange)="selectTicketCounter($event)"
+      (hasErrors)="setTicketCounterHasErrors($event)"
+    ></app-ticket-selector-obo>
+  }
+</ng-template>
+
+<ng-template #freeSeatingMapTicketSelector>
+  <div class="reschedule-seating">
+    <h3 class="reschedule-seating__title" data-testid="ticketing-step-title">
+      {{ 'boxOffice.chooseSeats' | translate }}
+    </h3>
+    <div class="content">
+      <seating-selector
+        #seatingSelector
+        [class.reschedule-seating__map--hidden]="isSeatingMapHiddenWhileReleasing"
+        [seatingMapUrl]="seatingMapUrl"
+        [state]="seatingMapState"
+        [locale]="locale"
+        [manageAsFreeSeatingMap]="manageAsFreeSeatingMap"
+        [shouldRestoreToBeginning]="shouldRestoreToBeginning"
+        (selectSeats)="selectSeats($event)"
+        (updateSeatsInCart)="updateSeatsInCart($event)"
+        (clearSelectionRequested)="onClearSelectionRequested()"
+        (confirmSeating)="confirmSeating($event)"
+        (releaseCompleted)="onReleaseCompleted()"
+        (continueRestore)="continueRestore()"
+      >
+      </seating-selector>
+      @if (ticketTypesForSelector.length > 0) {
+        <ng-container *ngTemplateOutlet="ticketSelector"></ng-container>
+      }
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #cartMoney let-locale="locale" let-money="money">
+  {{ money ? (money.amount | currency: money.currency : 'symbol-narrow' : null : locale) : '-' }}
+</ng-template>

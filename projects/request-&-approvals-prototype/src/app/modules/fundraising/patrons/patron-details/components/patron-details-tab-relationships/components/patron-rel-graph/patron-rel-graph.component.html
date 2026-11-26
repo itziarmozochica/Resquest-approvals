@@ -1,0 +1,70 @@
+<div class="patron-rel-graph__controls" data-no-pan>
+  <button
+    type="button"
+    ignt-icon-button
+    [icon]="['fal', 'plus']"
+    size="small"
+    sentiment="secondary"
+    variant="default"
+    (click)="zoomIn()"
+  ></button>
+  <button
+    type="button"
+    ignt-icon-button
+    [icon]="['fal', 'minus']"
+    size="small"
+    sentiment="secondary"
+    variant="default"
+    (click)="zoomOut()"
+  ></button>
+  <button
+    type="button"
+    ignt-icon-button
+    [icon]="['fal', 'expand']"
+    size="small"
+    sentiment="secondary"
+    variant="default"
+    (click)="resetView()"
+  ></button>
+</div>
+
+<div class="patron-rel-graph__content" [style.transform]="contentTransform()">
+  <div class="patron-rel-graph__scene" [style.width.px]="boundingBox().width" [style.height.px]="boundingBox().height">
+    <div class="patron-rel-graph__canvas" echarts [options]="chartOptions()"></div>
+
+    <div class="patron-rel-graph__overlay">
+      <app-patron-rel-graph-focal-card
+        class="patron-rel-graph__household"
+        data-no-pan
+        [style.left.px]="layout().household.position.x + offset().x"
+        [style.top.px]="layout().household.position.y + offset().y"
+        [style.width.px]="layout().household.width"
+        [canManage]="canManage()"
+        [card]="layout().household"
+        [focalMemberTies]="graphInput().focalMemberTies"
+        [householdPermissions]="householdPermissions()"
+        (addMember)="addHouseholdMember.emit()"
+        (editHousehold)="editHousehold.emit()"
+        (memberSelected)="patronSelected.emit($event)"
+        (relationshipNoteRequested)="relationshipNoteRequested.emit($event)"
+        (removeMemberRequested)="removeHouseholdMember.emit($event)"
+      />
+
+      @for (card of layout().externalCards; track card.nodeId) {
+        <app-patron-rel-graph-external-card
+          class="patron-rel-graph__external"
+          data-no-pan
+          [style.left.px]="card.position.x + offset().x"
+          [style.top.px]="card.position.y + offset().y"
+          [style.width.px]="card.width"
+          [canManage]="canManage()"
+          [card]="card"
+          [edges]="graphInput().edges"
+          (entitySelected)="patronSelected.emit($event)"
+          (relationshipNoteRequested)="relationshipNoteRequested.emit($event)"
+          (removeRequested)="removeRelationship.emit($event)"
+        />
+      }
+    </div>
+  </div>
+</div>

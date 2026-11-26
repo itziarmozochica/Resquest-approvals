@@ -1,0 +1,328 @@
+<ignt-dialog-header data-testid="create-event-quick-setup-title" [hideCloseButton]="isSaving() || isCreatingVenueSaving()">
+  {{ (isCreatingVenue() ? 'createEvent.createVenue' : 'createEvent.quickSetupWizard.title') | translate }}
+  <ng-template>
+    @if (isHeaderBackVisible()) {
+      <button
+        type="button"
+        ignt-icon-button
+        variant="sharp"
+        sentiment="tertiary"
+        data-testid="create-event-quick-setup-header-back"
+        [attr.aria-label]="'common.back' | translate"
+        [disabled]="isSaving() || isCreatingVenueSaving() || isPreviousStepLoading()"
+        [icon]="['fas', 'chevron-left']"
+        (click)="onHeaderBack()"
+      ></button>
+    }
+  </ng-template>
+</ignt-dialog-header>
+
+<ignt-dialog-content cdkScrollable>
+  <div class="create-event-quick-setup-wizard__content">
+    @if (visibleModalToast(); as toast) {
+      <div class="create-event-quick-setup-wizard__inline-toast" [attr.data-testid]="toast.testId">
+        <ignt-alert
+          [closeButtonAriaLabel]="'common.close' | translate"
+          [description]="toast.message"
+          [sentiment]="toast.sentiment"
+          [showCloseButton]="true"
+          (closeAlert)="onModalToastHidden(toast.id)"
+        />
+      </div>
+    }
+
+    @if (isCreatingVenue()) {
+      <app-create-venue-form
+        class="create-event-quick-setup-wizard__venue-form"
+        data-testid="create-event-quick-setup-venue-form"
+        variant="quick"
+        (cancelled)="onVenueCreateCancel()"
+        (createFailed)="onVenueCreateFailed()"
+        (formChanged)="isCreatingVenueDirty.set(true)"
+        (savingChange)="isCreatingVenueSaving.set($event)"
+        (existingVenueSelected)="onExistingVenueSelected($event)"
+        (venueCreated)="onVenueCreated($event)"
+      />
+    }
+    <div
+      class="create-event-quick-setup-wizard"
+      data-testid="create-event-quick-setup-wizard"
+      [attr.data-event-type]="eventType"
+      [hidden]="isCreatingVenue()"
+    >
+      <div class="create-event-quick-setup-wizard__stepper">
+        <ignt-progress-stepper
+          data-testid="create-event-quick-setup-stepper"
+          [allowItemActivate]="false"
+          [ariaLabel]="'createEvent.quickSetupWizard.title' | translate"
+          [currentIndex]="currentStepIndex()"
+          [items]="progressStepperItems"
+          [showNavigation]="false"
+        >
+          @if (isResumeLoading()) {
+            <div
+              class="create-event-quick-setup-wizard__resume-loading"
+              data-testid="create-event-quick-setup-resume-loading"
+              role="status"
+              aria-live="polite"
+            >
+              <ignt-icon name="spinner" variant="solid" [spin]="true" aria-hidden="true" />
+              <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
+            </div>
+          }
+
+          @if (!isResumeLoading()) {
+            <div
+              class="create-event-quick-setup-wizard__hidden-step"
+              data-testid="create-event-quick-setup-content-step"
+              [class.create-event-quick-setup-wizard__hidden-step--visible]="isContentStepVisible()"
+            >
+              <form class="create-event-quick-setup-wizard__form" [formGroup]="form">
+                <section class="create-event-quick-setup-wizard__section">
+                  <div class="create-event-quick-setup-wizard__section-heading">
+                    <h3 class="create-event-quick-setup-wizard__section-title">
+                      {{ 'createEvent.quickSetupWizard.step1.nameTitle' | translate }}
+                    </h3>
+                    <p class="create-event-quick-setup-wizard__section-helper">
+                      {{ 'createEvent.quickSetupWizard.step1.nameHelper' | translate }}
+                    </p>
+                  </div>
+                  <ignt-input-field
+                    class="create-event-quick-setup-wizard__name-input"
+                    id="create-event-quick-setup-name"
+                    formControlName="title"
+                    [label]="''"
+                    [maxlength]="titleMaxLength"
+                    [placeholder]="'createEvent.quickSetupWizard.step1.namePlaceholder' | translate"
+                    [placeholderAsEmptyValue]="true"
+                    [hideErrorLabels]="true"
+                    data-testid="create-event-quick-setup-name-input"
+                    type="text"
+                  />
+                </section>
+
+                <app-quick-setup-category-selector formControlName="category" [contentQuestionsEnabled]="isContentQuestionsEnabled" />
+
+                @if (isContentQuestionsShown) {
+                  <ignt-alert
+                    class="create-event-quick-setup-wizard__content-info-banner"
+                    data-testid="create-event-quick-setup-content-info-banner"
+                    [description]="'createEvent.quickSetupWizard.step1.contentQuestions.infoBanner' | translate"
+                    [title]="'createEvent.quickSetupWizard.step1.contentQuestions.infoBannerTitle' | translate"
+                  />
+
+                  <section class="create-event-quick-setup-wizard__section">
+                    <div class="create-event-quick-setup-wizard__section-heading">
+                      <h3 class="create-event-quick-setup-wizard__section-title">
+                        {{ 'createEvent.quickSetupWizard.step1.contentQuestions.settingsTitle' | translate }}
+                      </h3>
+                    </div>
+                    @if (contentCategoryId(); as categoryId) {
+                      <app-content-questions
+                        formControlName="contentQuestions"
+                        [category]="categoryId"
+                        [descriptionEditorFeatures]="planContentFeatures"
+                        [descriptionImageUpload]="uploadDescriptionImage"
+                      />
+                    } @else {
+                      <p
+                        class="create-event-quick-setup-wizard__content-questions-empty-state"
+                        data-testid="create-event-quick-setup-content-questions-empty-state"
+                      >
+                        {{ 'createEvent.quickSetupWizard.step1.contentQuestions.emptyState' | translate }}
+                      </p>
+                    }
+                  </section>
+                } @else {
+                  <section class="create-event-quick-setup-wizard__section">
+                    <div class="create-event-quick-setup-wizard__section-heading">
+                      <h3 class="create-event-quick-setup-wizard__section-title">
+                        {{ 'createEvent.quickSetupWizard.step1.descriptionTitle' | translate }}
+                      </h3>
+                      <p class="create-event-quick-setup-wizard__section-helper">
+                        {{ 'createEvent.quickSetupWizard.step1.descriptionHelper' | translate }}
+                      </p>
+                    </div>
+                    <ignt-rich-text-editor
+                      class="create-event-quick-setup-wizard__description-editor"
+                      data-testid="create-event-quick-setup-description-input"
+                      formControlName="description"
+                      [features]="planContentFeatures"
+                      [blockElement]="'p'"
+                      [imageUpload]="uploadDescriptionImage"
+                      [placeholder]="'createEvent.quickSetupWizard.step1.descriptionPlaceholder' | translate"
+                    />
+                  </section>
+                }
+
+                <section class="create-event-quick-setup-wizard__section">
+                  <div class="create-event-quick-setup-wizard__section-heading">
+                    <h3 class="create-event-quick-setup-wizard__section-title">
+                      {{ 'createEvent.quickSetupWizard.step1.galleryTitle' | translate }}
+                    </h3>
+                    <p class="create-event-quick-setup-wizard__section-helper">
+                      {{ 'createEvent.quickSetupWizard.step1.galleryHelper' | translate }}
+                    </p>
+                    <p class="create-event-quick-setup-wizard__section-helper">
+                      {{ 'createEvent.quickSetupWizard.step1.galleryRequirements' | translate }}
+                    </p>
+                  </div>
+
+                  <aside
+                    class="create-event-quick-setup-wizard__gallery-best-practices"
+                    data-testid="create-event-quick-setup-gallery-best-practices"
+                  >
+                    <ignt-icon
+                      class="create-event-quick-setup-wizard__gallery-best-practices-icon"
+                      name="thumbtack"
+                      variant="light"
+                      aria-hidden="true"
+                    />
+                    <div class="create-event-quick-setup-wizard__gallery-best-practices-content">
+                      <p class="create-event-quick-setup-wizard__gallery-best-practices-title">
+                        {{ 'createEvent.quickSetupWizard.step1.galleryBestPracticesTitle' | translate }}
+                      </p>
+                      <ul class="create-event-quick-setup-wizard__gallery-best-practices-list">
+                        <li>{{ 'createEvent.quickSetupWizard.step1.galleryBestPractice1' | translate }}</li>
+                        <li>{{ 'createEvent.quickSetupWizard.step1.galleryBestPractice2' | translate }}</li>
+                        <li>
+                          <span
+                            >{{ 'createEvent.quickSetupWizard.step1.galleryBestPractice3Before' | translate
+                            }}<a
+                              class="create-event-quick-setup-wizard__gallery-template-link"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              [href]="galleryFileTemplateUrl"
+                              >{{ 'createEvent.quickSetupWizard.step1.galleryBestPractice3Link' | translate }}</a
+                            >{{ 'createEvent.quickSetupWizard.step1.galleryBestPractice3After' | translate }}</span
+                          >
+                        </li>
+                      </ul>
+                    </div>
+                  </aside>
+
+                  <app-image-sortable-list
+                    class="create-event-quick-setup-wizard__gallery-list"
+                    data-testid="create-event-quick-setup-gallery-list"
+                    [hasError]="hasGalleryError()"
+                    [photos]="galleryPhotos"
+                    [uploadFileCallback]="uploadGalleryFile"
+                    [uploadFileTextKey]="galleryUploadHintKey"
+                    (photosChange)="onGalleryPhotosChange($event)"
+                  />
+                </section>
+
+                <section class="create-event-quick-setup-wizard__section create-event-quick-setup-wizard__section--venue">
+                  <div class="create-event-quick-setup-wizard__section-heading">
+                    <h3 class="create-event-quick-setup-wizard__section-title">
+                      {{ 'createEvent.quickSetupWizard.step1.venueTitle' | translate }}*
+                    </h3>
+                  </div>
+
+                  <div class="create-event-quick-setup-wizard__venue-layout">
+                    <div class="create-event-quick-setup-wizard__venue-fields">
+                      <div class="create-event-quick-setup-wizard__venue-name">
+                        <p class="create-event-quick-setup-wizard__field-label">
+                          {{ 'createEvent.quickSetupWizard.step1.venueNameLabel' | translate }}
+                        </p>
+                        <app-venue-select
+                          class="create-event-quick-setup-wizard__venue-select"
+                          [allowCreateVenue]="canCreateVenue"
+                          [hideLabel]="true"
+                          [fieldLabelKey]="'createEvent.quickSetupWizard.step1.venueSelectLabel'"
+                          [emptyLabelKey]="'createEvent.quickSetupWizard.step1.venuePlaceholder'"
+                          (createVenue)="onVenueCreateRequested()"
+                          (venueChange)="onVenueChange($event)"
+                        />
+                      </div>
+
+                      <div class="create-event-quick-setup-wizard__venue-address-block">
+                        <p class="create-event-quick-setup-wizard__field-label">
+                          {{ 'createEvent.quickSetupWizard.step1.venueAddressLabel' | translate }}
+                        </p>
+                        <p class="create-event-quick-setup-wizard__venue-address" data-testid="create-event-quick-setup-venue-address">
+                          {{ selectedVenue()?.address || ('createEvent.quickSetupWizard.step1.venueAddressEmpty' | translate) }}
+                        </p>
+                      </div>
+
+                      <p class="create-event-quick-setup-wizard__venue-support">
+                        {{ 'createEvent.quickSetupWizard.step1.venueSupportPrefix' | translate }}
+                        <a class="create-event-quick-setup-wizard__venue-support-link" [href]="'mailto:' + partnersSupportEmail">
+                          {{ 'createEvent.quickSetupWizard.step1.venueSupportLink' | translate }}
+                        </a>
+                      </p>
+                    </div>
+
+                    <div class="create-event-quick-setup-wizard__venue-map" data-testid="create-event-quick-setup-venue-map">
+                      <img
+                        class="create-event-quick-setup-wizard__venue-map-image"
+                        [src]="selectedVenueMapUrl() || 'assets/images/content-plan/placeholder-map.png'"
+                        alt=""
+                      />
+                    </div>
+                  </div>
+                </section>
+              </form>
+            </div>
+          }
+
+          @if (createdPlanId() !== null && createdPlaceId() !== null) {
+            <app-quick-setup-inventory-step
+              class="create-event-quick-setup-wizard__hidden-step"
+              [class.create-event-quick-setup-wizard__hidden-step--visible]="currentStepIndex() === quickSetupWizardStep.Inventory"
+              [assignedIds]="inventoryAssignedIds()"
+              [isCurrencyLoadFailed]="inventoryCurrency().hasError"
+              [isCurrencyLoading]="inventoryCurrency().isLoading"
+              [placeId]="createdPlaceId()!"
+              [planId]="createdPlanId()!"
+              [prefill]="inventoryPrefill()"
+              [submitRequest]="inventorySubmitRequest()"
+              [venueCurrency]="inventoryCurrency().currency"
+              (submitAborted)="onInventorySubmitAborted()"
+              (submitPayload)="onInventorySubmit($event)"
+              (taxAreaLoadError)="onTaxAreaLoadError()"
+              (validityChange)="onInventoryValidityChange($event)"
+            />
+          }
+
+          @if (createdPlanId() !== null && createdPlaceId() !== null && hasInventorySource()) {
+            <app-quick-setup-schedule-step
+              class="create-event-quick-setup-wizard__hidden-step"
+              [class.create-event-quick-setup-wizard__hidden-step--visible]="currentStepIndex() === quickSetupWizardStep.Schedule"
+              [isPricesByTier]="isPricesByTier()"
+              [planId]="createdPlanId()!"
+              [reloadRequest]="scheduleReloadRequest()"
+              [timezone]="scheduleTimezone()"
+              (scheduleLoadError)="onScheduleLoadError()"
+              (validityChange)="onScheduleValidityChange($event)"
+            />
+          }
+
+          @if (currentStepIndex() === quickSetupWizardStep.Preview && previewData(); as data) {
+            <app-quick-setup-preview-step [previewData]="data" />
+          }
+        </ignt-progress-stepper>
+      </div>
+    </div>
+  </div>
+</ignt-dialog-content>
+
+@if (!isCreatingVenue()) {
+  <ignt-dialog-footer data-testid="create-event-quick-setup-footer" [hideCancelButton]="true">
+    <ignt-button
+      variant="secondary"
+      [attr.data-testid]="isPreviewStep() ? 'create-event-quick-setup-back-button' : 'create-event-quick-setup-cancel-button'"
+      [disabled]="isSaving()"
+      [label]="footerSecondaryButtonLabelKey() | translate"
+      (click)="onFooterSecondaryAction()"
+    />
+    <ignt-button
+      data-testid="create-event-quick-setup-next-button"
+      variant="primary"
+      [disabled]="isNextDisabled()"
+      [label]="(isSaving() ? 'createEvent.saving' : nextButtonLabelKey()) | translate"
+      [loading]="isSaving()"
+      (click)="onNext()"
+    />
+  </ignt-dialog-footer>
+}

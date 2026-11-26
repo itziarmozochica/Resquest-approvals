@@ -1,0 +1,105 @@
+<ng-container *ngIf="![pricingType.PercentageAdjustment, pricingType.FixedAdjustment].includes(priceRuleType); else automaticSplitMessage">
+  <ng-container *ngIf="priceSplitsForm?.controls?.length > 0; else spinner">
+    <div class="title-row">
+      <span class="title-row__text">{{ 'sessions.pricing.priceList.priceEditForm.packsBreakdown.title' | translate }}</span>
+
+      <button class="button button--icon" data-testid="price-split-toggle-button" (click)="onToggleView()">
+        <ignt-icon [name]="isFolded ? 'chevron-down' : 'chevron-up'" variant="light" aria-hidden="true" />
+      </button>
+    </div>
+
+    <div class="grey-bordered-container" data-testid="packs-split-container" [ngClass]="{ 'grey-bordered-container--hidden': isFolded }">
+      <div *ngFor="let sessionType of breakdownSessionTypes; let i = index; trackBy: trackByFn" class="breakdown-item">
+        <div class="session-type">
+          <ignt-icon name="ticket" variant="light" aria-hidden="true" />
+          <div class="session-type__text">
+            <span class="session-type__text__name-and-units" data-testid="packed-session-type-name-and-units">
+              {{ sessionType.label }} x {{ quantitiesMap[sessionType.id] }}
+            </span>
+            <span class="session-type__text__total-price" data-testid="packed-session-type-total-price">
+              {{ 'sessions.pricing.priceList.priceEditForm.packsBreakdown.total' | translate }}:
+              {{
+                [null, undefined].includes(priceSplitsForm.controls[i].value.pricePerUnit)
+                  ? '-'
+                  : (priceSplitsForm.controls[i].value.pricePerUnit * quantitiesMap[sessionType.id] | currency: currency)
+              }}
+            </span>
+            <span class="session-type__text__tax" data-testid="packed-session-type-tax">
+              {{ 'sessions.pricing.priceList.priceEditForm.packsBreakdown.tax' | translate }}: {{ getTotalTaxRate(sessionType.id) }}%
+            </span>
+          </div>
+        </div>
+
+        <label class="field price-per-unit-field">
+          <input
+            data-testid="price-per-unit-input"
+            class="field__input"
+            appAutoformatNumericInput
+            min="0"
+            [decimalPlaces]="2"
+            [formControl]="priceSplitsForm.controls[i].controls.pricePerUnit"
+            [currency]="currency"
+          />
+          <span class="field__label">{{ 'sessions.pricing.priceList.priceEditForm.packsBreakdown.inputLabel' | translate }}</span>
+        </label>
+      </div>
+
+      <ignt-alert
+        *ngIf="shouldShowSplitDiscrepanciesError()"
+        sentiment="danger"
+        [description]="'sessions.pricing.priceList.priceEditForm.packsBreakdown.splitDiscrepanciesWarning' | translate"
+        data-testid="split-discrepancies-error-banner"
+      ></ignt-alert>
+
+      <div class="divider"></div>
+
+      <div class="summary">
+        <ng-container
+          *ngTemplateOutlet="
+            summaryField;
+            context: {
+              dataTestId: 'total-pack-taxes',
+              translationKey: 'sessions.pricing.priceList.priceEditForm.packsBreakdown.taxes',
+              value: taxesTotal,
+            }
+          "
+        ></ng-container>
+
+        <ng-container
+          *ngTemplateOutlet="
+            summaryField;
+            context: {
+              dataTestId: mustUseTaxBase ? 'pack-post-tax-price' : 'pack-pre-tax-price',
+              translationKey: mustUseTaxBase
+                ? 'sessions.pricing.priceList.priceEditForm.packsBreakdown.postTaxPrice'
+                : 'sessions.pricing.priceList.priceEditForm.packsBreakdown.preTaxPrice',
+              value: totalPrice,
+            }
+          "
+        ></ng-container>
+      </div>
+    </div>
+  </ng-container>
+</ng-container>
+
+<ng-template #summaryField let-translationKey="translationKey" let-value="value" let-dataTestId="dataTestId">
+  <label class="field">
+    <input [attr.data-testid]="dataTestId" class="field__input" readonly [value]="value === null ? '-' : (value | currency: currency)" />
+    <span class="field__label">{{ translationKey | translate }}</span>
+  </label>
+</ng-template>
+
+<ng-template #spinner>
+  <ignt-icon class="loader loader--flex-centered" name="spinner" variant="solid" size="h1" [spin]="true" aria-hidden="true" />
+</ng-template>
+
+<ng-template #automaticSplitMessage>
+  <div data-testid="pack-breakdown-automatic-split-message" class="automatic-split-message">
+    {{
+      (priceRuleType === pricingType.PercentageAdjustment
+        ? 'sessions.pricing.priceList.priceEditForm.packsBreakdown.automaticSplitForPercentageRuleMessage'
+        : 'sessions.pricing.priceList.priceEditForm.packsBreakdown.automaticSplitForFixedAdjustmentRuleMessage'
+      ) | translate
+    }}
+  </div>
+</ng-template>

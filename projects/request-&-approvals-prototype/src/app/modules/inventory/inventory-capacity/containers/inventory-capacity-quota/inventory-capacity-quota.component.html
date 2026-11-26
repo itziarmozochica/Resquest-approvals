@@ -1,0 +1,43 @@
+@if (quotaView.isLoading()) {
+  <div class="spinner" data-testid="capacity-loading">
+    <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'4x'"></fa-icon>
+  </div>
+} @else if (quotaView.loadFailed()) {
+  <div class="section empty" data-testid="quota-load-failed">
+    <div>{{ 'inventory.capacity.templates.messages.loadUnexpectedError' | translate }}</div>
+  </div>
+} @else if (selectedTemplate(); as template) {
+  <app-capacity-template-quota-detail
+    [template]="template"
+    [channels]="channels()"
+    [businesses]="businesses()"
+    (addQuota)="onAddQuota($event)"
+    (goBack)="backToTemplates()"
+    (quotaAction)="onQuotaDetailAction($event)"
+  ></app-capacity-template-quota-detail>
+}
+
+<app-lateral-slider
+  [showDetails]="displayQuotaForm()"
+  [title]="'inventory.capacity.quotaDetail.addQuota' | translate"
+  [contentTemplate]="quotaFormTemplate"
+  (closeSlider)="closeQuotaForm()"
+>
+</app-lateral-slider>
+
+<ng-template #quotaFormTemplate>
+  @if (displayQuotaForm()) {
+    <app-quota-form
+      [allowReplication]="false"
+      [capacitySummary]="selectedCapacityPoolForQuota()"
+      [channels]="channels()"
+      [businesses]="businesses()"
+      [quotaInput]="quotaInputForForm()"
+      [isSaving]="quotaView.isSaving()"
+      [formattedDate]="null"
+      [capacityPoolTitle]="quotaFormTitle()"
+      [takenQuotaNamesInPool]="quotaTakenNamesInPool()"
+      (save)="onQuotaFormSave($event)"
+    ></app-quota-form>
+  }
+</ng-template>

@@ -1,0 +1,211 @@
+@use 'sass:math';
+@use 'foundations' as foundations;
+@use '../../styles/layout' as layout;
+@import 'bootstrap/scss/functions';
+@import 'bootstrap/scss/variables';
+@import 'bootstrap/scss/mixins';
+
+// The desktop dot rail beside the grid: the dot plus the rail's left margin.
+$rail-width: foundations.$dimension-3 + foundations.$space-4;
+// The tickets tab pays for its rail with tile width rather than with a column: legacy laid this
+// grid out over the whole selector column, and at the 1397 px POS terminal three columns leave
+// only 7 px to spare, so a rail beside the grid would drop it to two. Taking a third of the rail
+// off the minimum track keeps the legacy column count exactly at three columns and within nine
+// pixels of the legacy threshold elsewhere. See AGENTS.md, "Measured paging".
+$tickets-tab-tile-min-width: foundations.$dimension-52 - math.div($rail-width, 3);
+
+:host {
+  display: block;
+  height: 100%;
+  min-height: calc(#{foundations.$dimension-40} + #{foundations.$dimension-14});
+}
+
+// The custom-tab body mounts the grid straight into the tab item, with no sized ancestor, so it
+// carries the legacy `100dvh` math of `oss-hierarchy-tiles`. See AGENTS.md, "Ticket-selector contracts".
+:host(.oss-hierarchy-tiles--custom-tab) {
+  --hierarchy-tiles-height: calc(100dvh - #{foundations.$dimension-36});
+
+  height: var(--hierarchy-tiles-height);
+
+  @include media-breakpoint-down(lg) {
+    height: 100%;
+  }
+
+  @include media-breakpoint-up(lg) {
+    height: calc(var(--hierarchy-tiles-height) - #{layout.$headerbar-height});
+  }
+}
+
+.oss-hierarchy-tiles {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  justify-content: space-between;
+  height: 100%;
+
+  &__left-content {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: foundations.$space-2;
+    height: 100%;
+    width: 100%;
+    min-width: 0;
+  }
+
+  &__container {
+    position: relative;
+
+    @include media-breakpoint-down(lg) {
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      height: auto;
+      flex: 1;
+      min-height: 0;
+      @include layout.scroll-shadow-mask;
+    }
+
+    @include media-breakpoint-up(lg) {
+      overflow: hidden;
+      touch-action: none;
+      height: 100%;
+      flex: 1 1 0;
+      min-height: 0;
+      margin-inline-end: -(foundations.$space-1);
+      padding-inline-end: foundations.$space-1;
+      @include layout.scroll-shadow-mask;
+
+      &:active {
+        cursor: grabbing;
+      }
+    }
+  }
+
+  &__slides-wrapper {
+    // The offset is published as a custom property on the component host: a `[style.transform]`
+    // binding trips `@angular-eslint/template/no-inline-styles` and this package adds no
+    // suppressions (same route as the tile's ripple). See AGENTS.md, "Measured paging".
+    transform: translateY(var(--fzt-slide-offset, 0));
+    transition: none;
+    will-change: transform;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    user-select: none;
+
+    @include media-breakpoint-down(lg) {
+      transform: none !important;
+      will-change: auto;
+      height: auto;
+      width: 100%;
+    }
+
+    @include media-breakpoint-up(lg) {
+      height: 100%;
+    }
+
+    &.is-animating {
+      transition: transform 0.2s cubic-bezier(0.075, 0.82, 0.165, 1);
+    }
+  }
+
+  // One slide per page, the legacy `oss-hierarchy-tiles__slide`: on desktop every slide is the
+  // container's full height, so the wrapper moves by whole container heights and the next page's
+  // rows stay below the viewport until the page turns. See AGENTS.md, "Measured paging".
+  &__slide {
+    width: 100%;
+
+    @include media-breakpoint-up(lg) {
+      height: 100%;
+    }
+  }
+
+  &__pagination {
+    display: none;
+
+    @include media-breakpoint-up(lg) {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: foundations.$space-2 0;
+      height: 100%;
+      margin-left: foundations.$space-4;
+
+      &--placeholder {
+        visibility: hidden;
+        pointer-events: none;
+      }
+    }
+  }
+}
+
+.ticket-type-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(max(foundations.$dimension-36, 34%), 1fr));
+  grid-auto-rows: minmax(foundations.$dimension-32, auto);
+  gap: foundations.$dimension-3;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: foundations.$space-3-5;
+
+  @include media-breakpoint-down(lg) {
+    margin-bottom: foundations.$space-22;
+  }
+
+  @include media-breakpoint-up(sm) {
+    grid-template-columns: repeat(auto-fill, minmax(foundations.$dimension-52, 1fr));
+    align-content: start;
+  }
+}
+
+.ticket-type-form > * {
+  height: fit-content;
+}
+
+// The rail only exists from `lg` up (`.oss-hierarchy-tiles__pagination`), so the compensation
+// applies exactly where the rail takes its width. The section's own gap spaces the level strip
+// and the grid, so the tickets tab drops the legacy slide top margin the custom tabs keep.
+:host(.oss-hierarchy-tiles--tickets-tab) {
+  .ticket-type-form {
+    margin-top: 0;
+  }
+
+  .oss-hierarchy-tiles__container {
+    @include layout.scroll-shadow-mask-none;
+  }
+
+  @include media-breakpoint-up(lg) {
+    .ticket-type-form,
+    .ticket-selector__hidden-section-tiles {
+      grid-template-columns: repeat(auto-fill, minmax($tickets-tab-tile-min-width, 1fr));
+    }
+  }
+}
+
+.ticket-selector {
+  &__title {
+    font: foundations.$font-h5;
+    margin-block-end: 0;
+  }
+
+  &__hidden-section {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-4;
+    margin-block-start: foundations.$space-5;
+    grid-column: 1 / -1;
+
+    &-tiles {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(max(foundations.$dimension-36, 34%), 1fr));
+      grid-auto-rows: minmax(foundations.$dimension-32, auto);
+      gap: foundations.$dimension-3;
+      width: 100%;
+
+      @include media-breakpoint-up(sm) {
+        grid-template-columns: repeat(auto-fill, minmax(foundations.$dimension-52, 1fr));
+      }
+    }
+  }
+}

@@ -1,0 +1,152 @@
+<ignt-dialog-header>
+  {{ (isEditing ? 'bookedSlots.calendarViewPanel.editTitle' : 'bookedSlots.calendarViewPanel.createTitle') | translate }}
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="saved-calendar-view-panel">
+    <ignt-stepper
+      [allowStepSelection]="true"
+      [currentStep]="currentStep()"
+      [hideContent]="true"
+      [steps]="steps()"
+      (selectStep)="onSelectStep($event)"
+    ></ignt-stepper>
+
+    @if (errorMessageKey().length > 0) {
+      <ignt-alert
+        data-testid="saved-calendar-view-panel-error"
+        sentiment="danger"
+        [description]="errorMessageKey() | translate"
+      ></ignt-alert>
+    }
+
+    @if (currentStep() === selectionStep) {
+      <div class="saved-calendar-view-panel__step">
+        <ignt-input-field
+          id="calendar-view-name"
+          data-testid="calendar-view-name"
+          [label]="'bookedSlots.calendarViewPanel.nameLabel' | translate"
+          [maxlength]="nameMaxLength"
+          [ngModel]="name()"
+          (ngModelChange)="onNameChange($event)"
+        ></ignt-input-field>
+
+        <div class="saved-calendar-view-panel__section">
+          <div class="saved-calendar-view-panel__section-header">
+            <h3 class="saved-calendar-view-panel__section-title">{{ 'bookedSlots.calendarViewPanel.assetsTitle' | translate }}</h3>
+            <ignt-button
+              data-testid="calendar-view-select-all"
+              size="small"
+              variant="tertiary"
+              [label]="'bookedSlots.calendarViewPanel.selectAll' | translate"
+              (click)="onSelectAllAssets()"
+            ></ignt-button>
+          </div>
+          <p class="saved-calendar-view-panel__description">{{ 'bookedSlots.calendarViewPanel.assetsDescription' | translate }}</p>
+
+          <div class="saved-calendar-view-panel__asset-list">
+            @for (group of assetGroups; track group.id) {
+              @if (hasAssetTypeGroups) {
+                <ignt-list-item
+                  backgroundColor="transparent"
+                  [clickable]="true"
+                  class="saved-calendar-view-panel__row saved-calendar-view-panel__row--group"
+                  type="unwrapped"
+                  [attr.data-testid]="'calendar-view-asset-group-toggle-' + group.id"
+                  [description]="groupSelectionLabelKey(group) | translate: { selected: selectedCountIn(group), total: group.rows.length }"
+                  [title]="group.title"
+                  (click)="onToggleGroup(group, !isGroupSelected(group))"
+                >
+                  <ng-container trailing-modifier>
+                    <ignt-checkbox [ariaLabel]="group.title" [checked]="isGroupSelected(group)"></ignt-checkbox>
+                  </ng-container>
+                </ignt-list-item>
+              }
+
+              @for (row of group.rows; track row.id) {
+                <ignt-list-item
+                  backgroundColor="transparent"
+                  [clickable]="true"
+                  class="saved-calendar-view-panel__row"
+                  type="unwrapped"
+                  [attr.data-testid]="'calendar-view-asset-toggle-' + row.id"
+                  [class.saved-calendar-view-panel__row--selected]="isAssetSelected(row.id)"
+                  [description]="row.capacityLabelKey | translate: row.capacityLabelParams"
+                  [title]="row.name"
+                  (click)="onToggleAsset(row.id, !isAssetSelected(row.id))"
+                >
+                  <ng-container trailing-modifier>
+                    <ignt-checkbox [ariaLabel]="row.name" [checked]="isAssetSelected(row.id)"></ignt-checkbox>
+                  </ng-container>
+                </ignt-list-item>
+              }
+            }
+          </div>
+        </div>
+      </div>
+    } @else {
+      <div class="saved-calendar-view-panel__step">
+        <div class="saved-calendar-view-panel__section">
+          <h3 class="saved-calendar-view-panel__section-title">{{ 'bookedSlots.calendarViewPanel.orderTitle' | translate }}</h3>
+          <p class="saved-calendar-view-panel__description">
+            {{ 'bookedSlots.calendarViewPanel.orderDescription' | translate: { count: orderedAssets().length, name: submittedName() } }}
+          </p>
+          <app-calendar-view-asset-list
+            data-testid="calendar-view-asset-order"
+            [assets]="orderedAssets()"
+            [boundarySelector]="assetListBoundarySelector"
+            (assetsReordered)="onAssetsReordered($event)"
+          ></app-calendar-view-asset-list>
+        </div>
+      </div>
+    }
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer hideCancelButton>
+  @if (isEditing) {
+    <ignt-button
+      data-testid="saved-calendar-view-panel-delete"
+      sentiment="danger"
+      variant="secondary"
+      [disabled]="isBusy()"
+      [label]="'bookedSlots.calendarViewPanel.deleteAction' | translate"
+      [loading]="isDeleting()"
+      (click)="onDelete()"
+    ></ignt-button>
+  }
+
+  <ignt-button
+    data-testid="saved-calendar-view-panel-cancel"
+    variant="secondary"
+    igntDialogClose
+    [disabled]="isBusy()"
+    [label]="'common.cancel' | translate"
+  ></ignt-button>
+
+  @if (currentStep() === selectionStep) {
+    <ignt-button
+      data-testid="saved-calendar-view-panel-continue"
+      variant="primary"
+      [disabled]="!isViewValid() || isBusy()"
+      [label]="'bookedSlots.calendarViewPanel.continue' | translate"
+      (click)="onContinue()"
+    ></ignt-button>
+  } @else {
+    <ignt-button
+      data-testid="saved-calendar-view-panel-back"
+      variant="secondary"
+      [disabled]="isBusy()"
+      [label]="'bookedSlots.calendarViewPanel.back' | translate"
+      (click)="onBack()"
+    ></ignt-button>
+    <ignt-button
+      data-testid="saved-calendar-view-panel-save"
+      variant="primary"
+      [disabled]="!isViewValid() || isBusy()"
+      [label]="'bookedSlots.calendarViewPanel.save' | translate"
+      [loading]="isSaving()"
+      (click)="onSave()"
+    ></ignt-button>
+  }
+</ignt-dialog-footer>

@@ -1,0 +1,232 @@
+<div class="payment-collector-create">
+  <div class="payment-collector-create__body">
+    <ignt-alert
+      *ngIf="errorMessage()"
+      data-testid="create-error-alert"
+      sentiment="danger"
+      showCloseButton
+      [title]="(isEditMode() ? 'finance.paymentCollectors.edit.errors.title' : 'finance.paymentCollectors.create.errors.title') | translate"
+      [description]="errorMessage()!"
+      (closeAlert)="clearError()"
+    ></ignt-alert>
+
+    <section class="payment-collector-create__section">
+      <h3 class="payment-collector-create__section-title">
+        {{ 'finance.paymentCollectors.create.paymentSettingsTitle' | translate }}
+      </h3>
+
+      <div class="payment-collector-create__field">
+        <label class="payment-collector-create__label">
+          {{ 'finance.paymentCollectors.create.paymentGatewayLabel' | translate }}
+        </label>
+        <app-multi-select
+          class="payment-collector-create__select"
+          [class.payment-collector-create__select--error]="showGatewayError()"
+          [options]="gatewayOptions"
+          [selectedOptions]="selectedGateway()"
+          [displayInPlaceMaximum]="1"
+          [maxSelectedOptions]="1"
+          [placeholder]="'finance.paymentCollectors.create.paymentGatewayPlaceholder' | translate"
+          (selected)="onGatewayChange($event)"
+          data-testid="create-gateway"
+        ></app-multi-select>
+        <div *ngIf="showGatewayError()" class="payment-collector-create__field-error">
+          <img
+            ngSrc="assets/images/icons/fa-icon-circle-exclamation.svg"
+            alt=""
+            aria-hidden="true"
+            width="12"
+            height="12"
+            class="payment-collector-create__field-error-icon"
+          />
+          <span>{{ 'common.requiredField' | translate }}</span>
+        </div>
+      </div>
+
+      <div class="payment-collector-create__field">
+        <label class="payment-collector-create__label">
+          {{ 'finance.paymentCollectors.create.paymentMethodLabel' | translate }}
+        </label>
+        <app-multi-select
+          class="payment-collector-create__select"
+          [options]="methodOptions"
+          [selectedOptions]="selectedMethod()"
+          [displayInPlaceMaximum]="1"
+          [maxSelectedOptions]="1"
+          [placeholder]="'finance.paymentCollectors.create.paymentMethodPlaceholder' | translate"
+          (selected)="onMethodChange($event)"
+          data-testid="create-method"
+        ></app-multi-select>
+      </div>
+    </section>
+
+    <section class="payment-collector-create__section">
+      <h3 class="payment-collector-create__section-title">
+        {{ 'finance.paymentCollectors.create.channelSettingsTitle' | translate }}
+      </h3>
+
+      <div class="payment-collector-create__field">
+        <label class="payment-collector-create__label">
+          {{ 'finance.paymentCollectors.create.channelTypeLabel' | translate }}
+        </label>
+        <app-multi-select
+          class="payment-collector-create__select"
+          [options]="channelTypeOptions()"
+          [selectedOptions]="selectedChannelType()"
+          [displayInPlaceMaximum]="1"
+          [maxSelectedOptions]="1"
+          [placeholder]="'finance.paymentCollectors.create.channelTypePlaceholder' | translate"
+          (selected)="onChannelTypeChange($event)"
+          data-testid="create-channel-type"
+        ></app-multi-select>
+      </div>
+
+      <div class="payment-collector-create__field">
+        <label class="payment-collector-create__label">
+          {{ 'finance.paymentCollectors.create.channelNameLabel' | translate }}
+        </label>
+        <app-multi-select
+          class="payment-collector-create__select"
+          [options]="filteredChannelNameOptions()"
+          [selectedOptions]="selectedChannelName()"
+          [displayInPlaceMaximum]="1"
+          [maxSelectedOptions]="1"
+          [placeholder]="'finance.paymentCollectors.create.channelNamePlaceholder' | translate"
+          (selected)="onChannelNameChange($event)"
+          data-testid="create-channel-name"
+        ></app-multi-select>
+      </div>
+    </section>
+
+    <section class="payment-collector-create__section">
+      <h3 class="payment-collector-create__section-title">
+        {{ 'finance.paymentCollectors.create.eventSectionTitle' | translate }}
+      </h3>
+
+      <div class="payment-collector-create__field">
+        <label class="payment-collector-create__label">
+          {{ 'finance.paymentCollectors.create.eventLabel' | translate }}
+        </label>
+        <app-multi-select
+          class="payment-collector-create__select"
+          [class.payment-collector-create__select--error]="showPlanError()"
+          [options]="planOptions()"
+          [selectedOptions]="selectedPlan()"
+          [displayInPlaceMaximum]="1"
+          [maxSelectedOptions]="1"
+          [placeholder]="'finance.paymentCollectors.create.eventPlaceholder' | translate"
+          (selected)="onPlanChange($event)"
+          data-testid="create-plan"
+        ></app-multi-select>
+        <div *ngIf="showPlanError()" class="payment-collector-create__field-error">
+          <img
+            ngSrc="assets/images/icons/fa-icon-circle-exclamation.svg"
+            alt=""
+            aria-hidden="true"
+            width="12"
+            height="12"
+            class="payment-collector-create__field-error-icon"
+          />
+          <span>{{ 'common.requiredField' | translate }}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="payment-collector-create__section">
+      <h3 class="payment-collector-create__section-title">
+        {{ 'finance.paymentCollectors.create.collectorSectionTitle' | translate }}
+      </h3>
+
+      <div class="payment-collector-create__collector-buttons">
+        <button
+          type="button"
+          class="payment-collector-create__collector-button"
+          [class.payment-collector-create__collector-button--selected]="selectedCollectorValue() === 'fever'"
+          [class.payment-collector-create__collector-button--error]="showCollectorError()"
+          (click)="onCollectorSelect('fever')"
+          data-testid="create-collector-fever"
+        >
+          Fever
+        </button>
+        <button
+          type="button"
+          class="payment-collector-create__collector-button"
+          [class.payment-collector-create__collector-button--selected]="selectedCollectorValue() === 'partner'"
+          [class.payment-collector-create__collector-button--error]="showCollectorError()"
+          (click)="onCollectorSelect('partner')"
+          data-testid="create-collector-partner"
+        >
+          Partner
+        </button>
+      </div>
+      <div *ngIf="showCollectorError()" class="payment-collector-create__field-error">
+        <img
+          ngSrc="assets/images/icons/fa-icon-circle-exclamation.svg"
+          alt=""
+          aria-hidden="true"
+          width="12"
+          height="12"
+          class="payment-collector-create__field-error-icon"
+        />
+        <span>{{ 'common.requiredField' | translate }}</span>
+      </div>
+    </section>
+  </div>
+
+  <div class="payment-collector-create__footer">
+    <div class="payment-collector-create__confirmation-wrapper">
+      <label class="payment-collector-create__confirmation" [class.payment-collector-create__confirmation--error]="showConfirmationError()">
+        <input
+          type="checkbox"
+          [(ngModel)]="confirmationChecked"
+          (ngModelChange)="onConfirmationChange($event)"
+          data-testid="create-confirmation-checkbox"
+        />
+        <span>{{ 'finance.paymentCollectors.create.confirmationText' | translate }}</span>
+      </label>
+      <div *ngIf="showConfirmationError()" class="payment-collector-create__field-error">
+        <img
+          ngSrc="assets/images/icons/fa-icon-circle-exclamation.svg"
+          alt=""
+          aria-hidden="true"
+          width="12"
+          height="12"
+          class="payment-collector-create__field-error-icon"
+        />
+        <span>{{ 'common.requiredField' | translate }}</span>
+      </div>
+    </div>
+
+    <button
+      igntButton
+      type="button"
+      size="large"
+      sentiment="primary"
+      [disabled]="isSubmitting()"
+      (click)="onSubmit()"
+      data-testid="create-submit-button"
+      class="payment-collector-create__button"
+    >
+      {{ (isEditMode() ? 'finance.paymentCollectors.edit.submitButton' : 'finance.paymentCollectors.create.submitButton') | translate }}
+      <fa-icon
+        *ngIf="isSubmitting()"
+        [icon]="['fad', 'spinner-third']"
+        animation="spin"
+        class="payment-collector-create__button-spinner"
+        data-testid="create-submit-spinner"
+      ></fa-icon>
+    </button>
+    <button
+      igntButton
+      type="button"
+      size="large"
+      sentiment="tertiary"
+      [disabled]="isSubmitting()"
+      (click)="onCancel()"
+      data-testid="create-cancel-button"
+      class="payment-collector-create__button"
+    >
+      {{ 'finance.paymentCollectors.create.cancelButton' | translate }}
+    </button>
+  </div>
+</div>

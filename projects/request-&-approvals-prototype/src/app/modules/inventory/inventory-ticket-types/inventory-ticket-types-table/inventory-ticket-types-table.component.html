@@ -1,0 +1,81 @@
+<table data-testid="itt-table" class="itt-table">
+  <thead>
+    <tr
+      appInventoryTicketTypesTableHeader
+      data-testid="itt-table-header"
+      class="itt-table__header"
+      [isShowingArchived]="isShowingArchived()"
+      [showActionsColumn]="showActionsColumn()"
+      (category)="setCategoryFilter($event)"
+    ></tr>
+  </thead>
+
+  <tbody data-testid="itt-table-body">
+    @if (!isLoading) {
+      @if (sessionTypeGroups.length > 0) {
+        @for (group of sessionTypeGroups; track trackById($index, group)) {
+          <tr
+            appInventoryTicketTypesTableGroupRow
+            [attr.data-testid]="'itt-table-group-row-' + group.id"
+            class="itt-table__group-row"
+            [sessionTypeGroup]="group"
+            [isShowingArchived]="isShowingArchived()"
+            [showActionsColumn]="showActionsColumn()"
+            [canModifyTicketTypes]="canModifyTicketTypes()"
+            (toggleGroup)="toggleGroup($event)"
+            (editGroup)="editGroup($event)"
+          ></tr>
+          @if (!isCollapsed(group.id)) {
+            @for (sessionType of groupedSessionTypesByGroupId.get(group.id); track trackById($index, sessionType)) {
+              <tr
+                appInventoryTicketTypesTableRow
+                [attr.data-testid]="'itt-table-row-' + sessionType.id"
+                class="itt-table__row"
+                [class.itt-table__row--read-only]="!canModifyTicketTypes() || readOnlySessionTypeIds().has(sessionType.id)"
+                [sessionType]="sessionType"
+                [productTaxRates]="productTaxRates"
+                [hasMissingRequiredFields]="sessionTypeIdsMissingRequiredFields().has(sessionType.id)"
+                [isShowingArchived]="isShowingArchived()"
+                [showActionsColumn]="showActionsColumn()"
+                [availableActions]="readOnlySessionTypeIds().has(sessionType.id) ? readOnlyRowActions() : availableActions()"
+                (action)="onRowAction($event, group)"
+              ></tr>
+            }
+            @if (canCreateTicketTypes() && !isShowingArchived() && group.id !== 0) {
+              <tr [attr.data-testid]="'itt-table-new-ticket-type-row-' + group.id" class="itt-table__new-ticket-type-row">
+                <td class="itt-table__new-ticket-type-row__cell" [attr.colspan]="groupRowColspan()">
+                  <span class="itt-table__new-ticket-type-row__cell__label" (click)="addNewSessionTypeToGroup(group)">
+                    {{ 'inventory.ticketTypes.actions.addTicketType' | translate }}
+                    <ignt-icon name="plus-circle" variant="light" size="sm"></ignt-icon>
+                  </span>
+                </td>
+              </tr>
+            }
+          }
+        }
+      } @else {
+        @for (sessionType of filteredSessionTypes; track trackById($index, sessionType)) {
+          <tr
+            appInventoryTicketTypesTableRow
+            [attr.data-testid]="'itt-table-row-' + sessionType.id"
+            class="itt-table__row"
+            [class.itt-table__row--read-only]="!canModifyTicketTypes() || readOnlySessionTypeIds().has(sessionType.id)"
+            [sessionType]="sessionType"
+            [productTaxRates]="productTaxRates"
+            [hasMissingRequiredFields]="sessionTypeIdsMissingRequiredFields().has(sessionType.id)"
+            [isShowingArchived]="isShowingArchived()"
+            [showActionsColumn]="showActionsColumn()"
+            [availableActions]="readOnlySessionTypeIds().has(sessionType.id) ? readOnlyRowActions() : availableActions()"
+            (action)="onRowAction($event, null)"
+          ></tr>
+        }
+      }
+    }
+  </tbody>
+</table>
+
+@if (isLoading) {
+  <div class="loader itt-table__loader" data-testid="itt-table-loader">
+    <ignt-icon class="loader__icon" name="spinner" variant="solid" size="h2" [spin]="true"></ignt-icon>
+  </div>
+}

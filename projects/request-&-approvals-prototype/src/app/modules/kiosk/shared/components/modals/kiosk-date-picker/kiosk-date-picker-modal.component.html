@@ -1,0 +1,144 @@
+<div class="kiosk-date-picker-modal" data-testid="kiosk-date-picker-modal">
+  <app-icon-button
+    class="modal-content__close kiosk-date-picker-modal__close"
+    icon="close"
+    customClass="icon-button--secondary"
+    (click)="close()"
+  ></app-icon-button>
+
+  <ignt-dialog-header [hideCloseButton]="true">
+    <h2 class="modal-content__title">{{ data.title }}</h2>
+  </ignt-dialog-header>
+
+  <ignt-dialog-content>
+    <div class="kiosk-date-picker">
+      <ngb-datepicker
+        #datepicker
+        class="kiosk-date-picker__calendar"
+        navigation="none"
+        outsideDays="hidden"
+        [startDate]="pendingDate() ?? undefined"
+        [minDate]="minNgbDate"
+        [maxDate]="maxNgbDate"
+        (dateSelect)="onDateSelect($event)"
+        (navigate)="onDatepickerNavigate($event.next)"
+      >
+        <ng-template ngbDatepickerContent>
+          <div class="kiosk-date-picker__body">
+            <header class="kiosk-date-picker__header">
+              <button
+                type="button"
+                class="kiosk-date-picker__nav kiosk-date-picker__nav--prev"
+                data-testid="kiosk-date-picker-prev"
+                (click)="navigate(-1)"
+              >
+                <ignt-icon name="chevron-left" variant="solid"></ignt-icon>
+              </button>
+
+              <div class="kiosk-date-picker__selects">
+                <div class="kiosk-date-picker__select kiosk-date-picker__select--month">
+                  <button
+                    type="button"
+                    class="kiosk-date-picker__select-trigger"
+                    data-testid="kiosk-date-picker-month"
+                    aria-haspopup="listbox"
+                    [attr.aria-expanded]="isDropdownOpen('month')"
+                    (click)="toggleDropdown('month'); $event.stopPropagation()"
+                  >
+                    <span class="kiosk-date-picker__select-value">{{ monthTriggerLabel() }}</span>
+                    <ignt-icon
+                      class="kiosk-date-picker__select-caret"
+                      [name]="isDropdownOpen('month') ? 'chevron-up' : 'chevron-down'"
+                      variant="solid"
+                    ></ignt-icon>
+                  </button>
+                  @if (isDropdownOpen('month')) {
+                    <ul
+                      #monthListbox
+                      class="kiosk-date-picker__listbox"
+                      data-testid="kiosk-date-picker-month-listbox"
+                      role="listbox"
+                      (click)="$event.stopPropagation()"
+                    >
+                      @for (month of monthOptions(); track month.value) {
+                        <li
+                          class="kiosk-date-picker__option"
+                          role="option"
+                          [class.kiosk-date-picker__option--selected]="month.value === displayedMonth()"
+                          [attr.aria-selected]="month.value === displayedMonth()"
+                          (click)="onMonthChange(month.value); $event.stopPropagation()"
+                        >
+                          {{ month.label }}
+                        </li>
+                      }
+                    </ul>
+                  }
+                </div>
+
+                <div class="kiosk-date-picker__select kiosk-date-picker__select--year">
+                  <button
+                    type="button"
+                    class="kiosk-date-picker__select-trigger"
+                    data-testid="kiosk-date-picker-year"
+                    aria-haspopup="listbox"
+                    [attr.aria-expanded]="isDropdownOpen('year')"
+                    (click)="toggleDropdown('year'); $event.stopPropagation()"
+                  >
+                    <span class="kiosk-date-picker__select-value">{{ displayedYear() }}</span>
+                    <ignt-icon
+                      class="kiosk-date-picker__select-caret"
+                      [name]="isDropdownOpen('year') ? 'chevron-up' : 'chevron-down'"
+                      variant="solid"
+                    ></ignt-icon>
+                  </button>
+                  @if (isDropdownOpen('year')) {
+                    <ul
+                      #yearListbox
+                      class="kiosk-date-picker__listbox"
+                      data-testid="kiosk-date-picker-year-listbox"
+                      role="listbox"
+                      (click)="$event.stopPropagation()"
+                    >
+                      @for (year of yearOptions(); track year) {
+                        <li
+                          class="kiosk-date-picker__option"
+                          role="option"
+                          [class.kiosk-date-picker__option--selected]="year === displayedYear()"
+                          [attr.aria-selected]="year === displayedYear()"
+                          (click)="onYearChange(year); $event.stopPropagation()"
+                        >
+                          {{ year }}
+                        </li>
+                      }
+                    </ul>
+                  }
+                </div>
+              </div>
+
+              <button
+                type="button"
+                class="kiosk-date-picker__nav kiosk-date-picker__nav--next"
+                data-testid="kiosk-date-picker-next"
+                (click)="navigate(1)"
+              >
+                <ignt-icon name="chevron-right" variant="solid"></ignt-icon>
+              </button>
+            </header>
+
+            <ngb-datepicker-month class="kiosk-date-picker__month" [month]="datepicker.state.months[0]"></ngb-datepicker-month>
+          </div>
+        </ng-template>
+      </ngb-datepicker>
+    </div>
+  </ignt-dialog-content>
+
+  <ignt-dialog-footer class="kiosk-date-picker-modal__footer" [hideCancelButton]="true">
+    <kiosk-button
+      class="kiosk-date-picker-modal__apply"
+      data-testid="kiosk-date-picker-apply"
+      [label]="data.applyLabel"
+      [disabled]="pendingDate() === null"
+      (click)="apply()"
+    ></kiosk-button>
+  </ignt-dialog-footer>
+</div>

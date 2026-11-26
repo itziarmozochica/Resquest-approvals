@@ -1,0 +1,845 @@
+<div class="hub-asset-detail">
+  <div class="hub-asset-detail__wrapper">
+    <ng-container *ngTemplateOutlet="pageHeader"></ng-container>
+
+    @if (isLoading()) {
+      <div class="hub-asset-detail__loading" data-testid="hub-asset-detail-loading">
+        <span translate>common.loading</span>
+      </div>
+    } @else {
+      <form [formGroup]="formGroup" class="hub-asset-detail__form" id="hub-asset-detail-form" (keydown.enter)="onFormEnter($event)">
+        <div class="hub-asset-detail__content">
+          <ignt-tabs
+            class="hub-asset-detail__tabs"
+            [hasExtraLine]="false"
+            [selectedIndex]="assetDetailTabIndex()"
+            [variant]="'default'"
+            (selectedIndexChange)="onAssetDetailTabIndexChange($event)"
+          >
+            <ignt-tabs-item [label]="'assetsManagement.tabs.basicConfiguration' | translate">
+              <div class="hub-asset-detail__tab-basic">
+                <ng-container *ngTemplateOutlet="assetContentSection"></ng-container>
+                <hr class="hub-asset-detail__divider" />
+                <ng-container *ngTemplateOutlet="assetCapacitySection"></ng-container>
+                <ignt-toggle-card
+                  class="manual-assignment-confirmation-toggle-card"
+                  id="manual-assignment-confirmation-toggle"
+                  data-testid="manual-assignment-confirmation-toggle"
+                  title="{{ 'assetsHubs.detail.assets.form.requireAssignmentConfirmationTitle' | translate }}"
+                  description="{{ 'assetsHubs.detail.assets.form.requireAssignmentConfirmationDescription' | translate }}"
+                  [checked]="formGroup.controls.requireAssignmentConfirmation.value"
+                  [disabled]="isViewMode()"
+                  [wrapperType]="'unwrapped'"
+                  (change)="setRequireAssignmentConfirmation($event)"
+                >
+                </ignt-toggle-card>
+                <ignt-toggle-card
+                  class="tracks-play-start-toggle-card"
+                  id="tracks-play-start-toggle"
+                  data-testid="tracks-play-start-toggle"
+                  title="{{ 'assetsHubs.detail.assets.form.tracksPlayStartTitle' | translate }}"
+                  description="{{ 'assetsHubs.detail.assets.form.tracksPlayStartDescription' | translate }}"
+                  [checked]="formGroup.controls.tracksPlayStart.value"
+                  [disabled]="isViewMode()"
+                  [wrapperType]="'unwrapped'"
+                  (change)="setTracksPlayStart($event)"
+                >
+                </ignt-toggle-card>
+              </div>
+            </ignt-tabs-item>
+            @if (showAssetOverrideRulesFeature()) {
+              <ignt-tabs-item [label]="'assetsManagement.tabs.advancedConfiguration' | translate">
+                <div class="hub-asset-detail__tab-advanced">
+                  <ignt-wrapper-card [type]="'default'">
+                    <div class="hub-asset-detail__capacity-rules-card">
+                      <div class="hub-asset-detail__capacity-rules-copy">
+                        <p
+                          class="hub-asset-detail__capacity-rules-eyebrow"
+                          [class.hub-asset-detail__capacity-rules-eyebrow--feature-on]="capacityRulesEnabled() && !isViewMode()"
+                        >
+                          {{ capacityRulesCardEyebrowKey() | translate }}
+                        </p>
+                        <h2 class="hub-asset-detail__capacity-rules-title">{{ 'assetsManagement.capacityRules.title' | translate }}</h2>
+                        <p class="hub-asset-detail__capacity-rules-description">
+                          {{ 'assetsManagement.capacityRules.description' | translate }}
+                        </p>
+                      </div>
+                      @for (_ of [capacityRulesToggleBust()]; track capacityRulesToggleBust()) {
+                        <ignt-toggle
+                          [checked]="capacityRulesEnabled()"
+                          [disabled]="isViewMode() || isCreateMode()"
+                          [id]="'hub-asset-capacity-rules-toggle'"
+                          data-testid="hub-asset-capacity-rules-toggle"
+                          (change)="onCapacityRulesToggle($event)"
+                        />
+                      }
+                    </div>
+                  </ignt-wrapper-card>
+                  @if (capacityRulesEnabled()) {
+                    <div class="hub-asset-detail__rules-layout">
+                      @if (isViewMode() && canManageHub()) {
+                        <div class="hub-asset-detail__rules-view-cta">
+                          <p class="hub-asset-detail__rules-view-cta-text">
+                            {{ 'assetsManagement.capacityRules.viewModeHint' | translate }}
+                          </p>
+                          <ignt-button
+                            variant="primary"
+                            size="small"
+                            data-testid="hub-asset-edit-for-capacity-rules"
+                            [label]="'assetsManagement.capacityRules.editToManageRules' | translate"
+                            (click)="onNavigateToEditForCapacityRules()"
+                          />
+                        </div>
+                      }
+                      @if (canApplyCapacityRulesToOtherAssets()) {
+                        <div class="hub-asset-detail__rules-apply">
+                          <ignt-button
+                            variant="secondary"
+                            size="small"
+                            data-testid="hub-asset-apply-capacity-rules"
+                            [disabled]="hasUnsavedCapacityRulesChanges() || isSaving()"
+                            [label]="'assetsManagement.capacityRules.applyToAssets.action' | translate"
+                            (click)="onApplyCapacityRulesToOtherAssets()"
+                          />
+                          @if (hasUnsavedCapacityRulesChanges()) {
+                            <p class="hub-asset-detail__rules-apply-hint" data-testid="hub-asset-apply-capacity-rules-hint">
+                              {{ 'assetsManagement.capacityRules.applyToAssets.saveFirstHint' | translate }}
+                            </p>
+                          }
+                        </div>
+                      }
+                      <div class="hub-asset-detail__rules-columns">
+                        <div class="hub-asset-detail__rules-column hub-asset-detail__rules-column--config">
+                          <div class="hub-asset-detail__rules-config-stack">
+                            <section class="hub-asset-detail__rules-section hub-asset-detail__rules-section--stacked">
+                              <div class="hub-asset-detail__rules-section-heading">
+                                <h3 class="hub-asset-detail__rules-section-title">
+                                  {{ 'assetsManagement.capacityRules.weeklyScheduleTitle' | translate }}
+                                </h3>
+                                @if (!isViewMode()) {
+                                  <div class="hub-asset-detail__rules-actions">
+                                    <ignt-button
+                                      class="hub-asset-detail__rules-section-primary"
+                                      variant="primary"
+                                      size="small"
+                                      [disabled]="isCreateMode() || capacityRulesLoading() || isSaving()"
+                                      data-testid="hub-asset-add-base-capacity"
+                                      [label]="'assetsManagement.capacityRules.addBaseCapacity' | translate"
+                                      (click)="onAddBaseCapacityRule()"
+                                    />
+                                  </div>
+                                }
+                              </div>
+                              <p class="hub-asset-detail__rules-section-subtitle">
+                                {{ 'assetsManagement.capacityRules.weeklyScheduleSubtitle' | translate }}
+                              </p>
+                              @if (isCreateMode()) {
+                                <p class="hub-asset-detail__rules-hint">
+                                  {{ 'assetsManagement.capacityRules.saveAssetFirst' | translate }}
+                                </p>
+                              }
+                              @if (showCapacityRulesEmptyStateBanner()) {
+                                <ignt-alert
+                                  sentiment="warning"
+                                  [title]="'assetsManagement.capacityRules.weeklyUnavailableAlertTitle' | translate"
+                                  [description]="'assetsManagement.capacityRules.weeklyUnavailableAlertSubtitle' | translate"
+                                />
+                              }
+                              @if (!isCreateMode() && capacityRulesLoading()) {
+                                <div class="hub-asset-detail__rules-loading">
+                                  <span translate>common.loading</span>
+                                </div>
+                              }
+                              @if (!isCreateMode() && capacityRulesError()) {
+                                <div class="hub-asset-detail__rules-error">
+                                  <p class="hub-asset-detail__rules-error-text">
+                                    {{ 'assetsManagement.capacityRules.loadError' | translate }}
+                                  </p>
+                                  <ignt-button
+                                    variant="secondary"
+                                    size="small"
+                                    [label]="'assetsManagement.capacityRules.retryLoad' | translate"
+                                    (click)="onRetryLoadCapacityRules()"
+                                  />
+                                </div>
+                              }
+                              @if (
+                                !isCreateMode() && !capacityRulesLoading() && !capacityRulesError() && weeklyCapacityRules().length > 0
+                              ) {
+                                <div class="hub-asset-detail__rule-rows-panel" role="list">
+                                  @for (rule of weeklyCapacityRules(); track rule.id) {
+                                    <button
+                                      type="button"
+                                      class="hub-asset-detail__rule-row"
+                                      role="listitem"
+                                      [attr.data-testid]="'hub-asset-capacity-rule-' + rule.id"
+                                      [disabled]="isViewMode() || isCreateMode()"
+                                      (click)="onEditCapacityRule(rule)"
+                                    >
+                                      <div class="hub-asset-detail__rule-row-body">
+                                        <span class="hub-asset-detail__rule-row-primary">{{ capacityRulePrimaryLine(rule) }}</span>
+                                        <span class="hub-asset-detail__rule-row-secondary">{{ capacityRuleSecondaryLine(rule) }}</span>
+                                      </div>
+                                      <div class="hub-asset-detail__rule-row-trailing">
+                                        @if (showBaseCapacityBadge(rule)) {
+                                          <span class="hub-asset-detail__rule-row-badge">{{
+                                            'assetsManagement.capacityRules.baseCapacityBadge' | translate
+                                          }}</span>
+                                        }
+                                        <ignt-icon
+                                          class="hub-asset-detail__rule-row-chevron"
+                                          name="chevron-right"
+                                          variant="light"
+                                          [fixedWidth]="true"
+                                          aria-hidden="true"
+                                        />
+                                      </div>
+                                    </button>
+                                  }
+                                </div>
+                              }
+                              @if (
+                                isCreateMode() || (!capacityRulesLoading() && !capacityRulesError() && weeklyCapacityRules().length === 0)
+                              ) {
+                                <div class="hub-asset-detail__rules-empty-card">
+                                  <p class="hub-asset-detail__rules-empty-card-lead">
+                                    {{ 'assetsManagement.capacityRules.weeklyEmptyStateLead' | translate }}
+                                  </p>
+                                  <p class="hub-asset-detail__rules-empty-card-text">
+                                    {{ 'assetsManagement.capacityRules.weeklyEmptyStateBody' | translate }}
+                                  </p>
+                                </div>
+                              }
+                            </section>
+                            <section class="hub-asset-detail__rules-section hub-asset-detail__rules-section--stacked">
+                              <div class="hub-asset-detail__rules-section-heading">
+                                <h3 class="hub-asset-detail__rules-section-title">
+                                  {{ 'assetsManagement.capacityRules.specialDaysTitle' | translate }}
+                                </h3>
+                                @if (!isViewMode()) {
+                                  <div class="hub-asset-detail__rules-actions">
+                                    <ignt-button
+                                      class="hub-asset-detail__rules-section-secondary"
+                                      variant="secondary"
+                                      size="small"
+                                      [disabled]="isCreateMode() || capacityRulesLoading() || isSaving()"
+                                      data-testid="hub-asset-add-special-day"
+                                      [label]="'assetsManagement.capacityRules.addSpecialDay' | translate"
+                                      (click)="onAddSpecialDay()"
+                                    />
+                                  </div>
+                                }
+                              </div>
+                              <p class="hub-asset-detail__rules-section-subtitle">
+                                {{ 'assetsManagement.capacityRules.specialDaysSubtitle' | translate }}
+                              </p>
+                              @if (
+                                !isCreateMode() && !capacityRulesLoading() && !capacityRulesError() && specialCapacityRules().length > 0
+                              ) {
+                                <div class="hub-asset-detail__rule-rows-panel hub-asset-detail__rule-rows-panel--special" role="list">
+                                  @for (rule of specialCapacityRules(); track rule.id) {
+                                    <button
+                                      type="button"
+                                      class="hub-asset-detail__rule-row"
+                                      role="listitem"
+                                      [attr.data-testid]="'hub-asset-special-capacity-rule-' + rule.id"
+                                      [disabled]="isViewMode() || isCreateMode()"
+                                      (click)="onEditCapacityRule(rule)"
+                                    >
+                                      <div class="hub-asset-detail__rule-row-body">
+                                        <span class="hub-asset-detail__rule-row-primary">{{ capacityRulePrimaryLine(rule) }}</span>
+                                        <span class="hub-asset-detail__rule-row-secondary">{{ capacityRuleSecondaryLine(rule) }}</span>
+                                      </div>
+                                      <div class="hub-asset-detail__rule-row-trailing">
+                                        @if (showBaseCapacityBadge(rule)) {
+                                          <span class="hub-asset-detail__rule-row-badge">{{
+                                            'assetsManagement.capacityRules.baseCapacityBadge' | translate
+                                          }}</span>
+                                        }
+                                        <ignt-icon
+                                          class="hub-asset-detail__rule-row-chevron"
+                                          name="chevron-right"
+                                          variant="light"
+                                          [fixedWidth]="true"
+                                          aria-hidden="true"
+                                        />
+                                      </div>
+                                    </button>
+                                  }
+                                </div>
+                              }
+                              @if (
+                                isCreateMode() || (!capacityRulesLoading() && !capacityRulesError() && specialCapacityRules().length === 0)
+                              ) {
+                                <div class="hub-asset-detail__rules-empty-card">
+                                  <p class="hub-asset-detail__rules-empty-card-lead">
+                                    {{ 'assetsManagement.capacityRules.specialDaysEmptyLead' | translate }}
+                                  </p>
+                                  <p class="hub-asset-detail__rules-empty-card-text">
+                                    {{ 'assetsManagement.capacityRules.specialDaysEmptyBody' | translate }}
+                                  </p>
+                                </div>
+                              }
+                            </section>
+                          </div>
+                        </div>
+                        <div class="hub-asset-detail__rules-column hub-asset-detail__rules-column--preview">
+                          <section class="hub-asset-detail__preview-section">
+                            <h3 class="hub-asset-detail__preview-title">
+                              {{ 'assetsManagement.capacityRules.previewTitle' | translate }}
+                            </h3>
+                            <div class="hub-asset-detail__preview-toolbar">
+                              <div
+                                class="hub-asset-detail__preview-mode-radios"
+                                role="radiogroup"
+                                [attr.aria-label]="'assetsManagement.capacityRules.previewTitle' | translate"
+                              >
+                                <button
+                                  type="button"
+                                  role="radio"
+                                  class="hub-asset-detail__preview-mode-radio"
+                                  [attr.aria-checked]="schedulePreviewMode() === 'weekly'"
+                                  (click)="onSchedulePreviewModeChange('weekly')"
+                                >
+                                  <span class="hub-asset-detail__preview-mode-radio-indicator" aria-hidden="true"></span>
+                                  <span class="hub-asset-detail__preview-mode-radio-label">{{
+                                    'assetsManagement.capacityRules.previewWeekly' | translate
+                                  }}</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  role="radio"
+                                  class="hub-asset-detail__preview-mode-radio"
+                                  [attr.aria-checked]="schedulePreviewMode() === 'monthly'"
+                                  (click)="onSchedulePreviewModeChange('monthly')"
+                                >
+                                  <span class="hub-asset-detail__preview-mode-radio-indicator" aria-hidden="true"></span>
+                                  <span class="hub-asset-detail__preview-mode-radio-label">{{
+                                    'assetsManagement.capacityRules.previewMonthly' | translate
+                                  }}</span>
+                                </button>
+                              </div>
+                              <div class="hub-asset-detail__preview-nav">
+                                <button
+                                  type="button"
+                                  class="hub-asset-detail__preview-today-btn hub-asset-detail__preview-today-btn--pill"
+                                  (click)="onSchedulePreviewToday()"
+                                >
+                                  {{ 'assetsManagement.capacityRules.previewToday' | translate }}
+                                </button>
+                                <div class="hub-asset-detail__preview-nav-cluster">
+                                  <div class="hub-asset-detail__preview-datepicker-wrap">
+                                    <input
+                                      #schedulePreviewDateInput
+                                      type="date"
+                                      tabindex="-1"
+                                      class="hub-asset-detail__preview-dp-anchor-input"
+                                      aria-hidden="true"
+                                      [value]="schedulePreviewPickerAnchorIso()"
+                                      (change)="onSchedulePreviewNativeDateChange($event)"
+                                      data-testid="hub-asset-preview-date-popover-input"
+                                    />
+                                    <button
+                                      #hubPreviewRangeTrigger
+                                      type="button"
+                                      class="hub-asset-detail__preview-range-btn"
+                                      data-testid="hub-asset-preview-date-popover"
+                                      [attr.aria-label]="
+                                        schedulePreviewMode() === 'monthly'
+                                          ? ('assetsManagement.capacityRules.previewPickMonthAria' | translate)
+                                          : ('assetsManagement.capacityRules.previewPickWeekAria' | translate)
+                                      "
+                                      (click)="onSchedulePreviewDatePickerTriggerClick(schedulePreviewDateInput)"
+                                    >
+                                      <span class="hub-asset-detail__preview-range-btn-text">{{ schedulePreviewToolbarRange() }}</span>
+                                      <ignt-icon
+                                        class="hub-asset-detail__preview-range-btn-chevron"
+                                        name="chevron-down"
+                                        variant="light"
+                                        aria-hidden="true"
+                                      ></ignt-icon>
+                                    </button>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    class="hub-asset-detail__preview-chevron hub-asset-detail__preview-chevron--prev"
+                                    [attr.aria-label]="'common.back' | translate"
+                                    (click)="onSchedulePreviewPrevWeek()"
+                                  >
+                                    <ignt-icon name="chevron-left" variant="solid" [fixedWidth]="true"></ignt-icon>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    class="hub-asset-detail__preview-chevron hub-asset-detail__preview-chevron--next"
+                                    [attr.aria-label]="'common.next' | translate"
+                                    (click)="onSchedulePreviewNextWeek()"
+                                  >
+                                    <ignt-icon name="chevron-right" variant="solid" [fixedWidth]="true"></ignt-icon>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                            @if (schedulePreviewMode() === 'weekly') {
+                              <div class="hub-asset-detail__preview-summary">
+                                <div class="hub-asset-detail__preview-summary-header">
+                                  <div class="hub-asset-detail__preview-summary-heading">
+                                    <span class="hub-asset-detail__preview-summary-title">{{
+                                      'assetsManagement.capacityRules.previewSummaryWeeklyTitle' | translate
+                                    }}</span>
+                                    <span class="hub-asset-detail__preview-summary-range-line">{{
+                                      schedulePreviewSummaryRangeLabel()
+                                    }}</span>
+                                  </div>
+                                  <span class="hub-asset-detail__preview-summary-total-compact">{{
+                                    'assetsManagement.capacityRules.previewWeekTotalCompact'
+                                      | translate: { hours: schedulePreviewWeekHoursTotal }
+                                  }}</span>
+                                </div>
+                                <div class="hub-asset-detail__preview-bar-track">
+                                  @for (segment of previewBarSegments(); track segment.kind) {
+                                    @if (segment.hours > 0) {
+                                      <div
+                                        class="hub-asset-detail__preview-bar-segment"
+                                        [class.hub-asset-detail__preview-bar-segment--open]="segment.kind === 'open'"
+                                        [class.hub-asset-detail__preview-bar-segment--closed]="segment.kind === 'closed'"
+                                        [class.hub-asset-detail__preview-bar-segment--not-set]="segment.kind === 'notSet'"
+                                        [style.flex-grow]="segment.hours"
+                                      ></div>
+                                    }
+                                  }
+                                </div>
+                                <ul class="hub-asset-detail__preview-legend hub-asset-detail__preview-legend--row">
+                                  <li class="hub-asset-detail__preview-legend-item">
+                                    <span
+                                      class="hub-asset-detail__preview-legend-dot hub-asset-detail__preview-legend-dot--positive"
+                                    ></span>
+                                    {{
+                                      'assetsManagement.capacityRules.previewLegendWeeklyHours'
+                                        | translate: { hours: previewWeekStats().openHours }
+                                    }}
+                                  </li>
+                                  <li class="hub-asset-detail__preview-legend-item">
+                                    <span class="hub-asset-detail__preview-legend-dot hub-asset-detail__preview-legend-dot--danger"></span>
+                                    {{
+                                      'assetsManagement.capacityRules.previewLegendClosed'
+                                        | translate: { hours: previewWeekStats().closedHours }
+                                    }}
+                                  </li>
+                                  <li class="hub-asset-detail__preview-legend-item">
+                                    <span class="hub-asset-detail__preview-legend-dot hub-asset-detail__preview-legend-dot--muted"></span>
+                                    {{
+                                      'assetsManagement.capacityRules.previewLegendNotSet'
+                                        | translate: { hours: previewWeekStats().notSetHours }
+                                    }}
+                                  </li>
+                                </ul>
+                                <p class="hub-asset-detail__preview-hint">
+                                  {{ 'assetsManagement.capacityRules.previewAddHoursHint' | translate }}
+                                </p>
+                              </div>
+                              <div class="hub-asset-detail__preview-calendar">
+                                <div class="hub-asset-detail__preview-calendar-week-wrap">
+                                  <div class="hub-asset-detail__preview-calendar-week-head">
+                                    <div class="hub-asset-detail__preview-calendar-corner" aria-hidden="true"></div>
+                                    @for (day of schedulePreviewWeekDayUi(); track day.dayIndex) {
+                                      <div class="hub-asset-detail__preview-calendar-dayhead">
+                                        <span class="hub-asset-detail__preview-calendar-weekday">{{ day.shortWeekday }}</span>
+                                        <span class="hub-asset-detail__preview-calendar-day">{{ day.dayMonth }}</span>
+                                      </div>
+                                    }
+                                  </div>
+                                  <div class="hub-asset-detail__preview-calendar-week-body">
+                                    <div class="hub-asset-detail__preview-calendar-time-rail" aria-hidden="true">
+                                      @for (hour of schedulePreviewHourRows(); track hour) {
+                                        <span
+                                          class="hub-asset-detail__preview-calendar-time-tick"
+                                          [style.top.%]="schedulePreviewHourTickTopPct(hour)"
+                                          >{{ hour }}h</span
+                                        >
+                                      }
+                                    </div>
+                                    @for (day of schedulePreviewWeekDayUi(); track day.dayIndex) {
+                                      <button
+                                        type="button"
+                                        class="hub-asset-detail__preview-calendar-day-column"
+                                        [class.hub-asset-detail__preview-calendar-day-column--selected]="
+                                          schedulePreviewSelectedDayIndex() === day.dayIndex
+                                        "
+                                        [attr.aria-pressed]="schedulePreviewSelectedDayIndex() === day.dayIndex"
+                                        [attr.data-testid]="'hub-asset-preview-week-day-' + day.dayIndex"
+                                        (click)="onSchedulePreviewWeekDayClick(day.dayIndex)"
+                                      >
+                                        @for (block of day.blocks; track $index) {
+                                          <div
+                                            class="hub-asset-detail__preview-block"
+                                            [class.hub-asset-detail__preview-block--base]="block.kind === 'baseOpen'"
+                                            [class.hub-asset-detail__preview-block--override]="block.kind === 'overrideOpen'"
+                                            [class.hub-asset-detail__preview-block--closed]="block.kind === 'closed'"
+                                            [style.top.%]="weekPreviewBlockTopPct(block)"
+                                            [style.height.%]="weekPreviewBlockHeightPct(block)"
+                                            igntTooltip
+                                            [tooltipTemplate]="blockTooltip"
+                                            data-testid="hub-asset-preview-block"
+                                          >
+                                            <span class="hub-asset-detail__preview-block-primary">{{
+                                              weekPreviewBlockPrimaryLine(block)
+                                            }}</span>
+                                            <span class="hub-asset-detail__preview-block-time">{{ weekPreviewBlockTimeRange(block) }}</span>
+                                          </div>
+                                          <ng-template #blockTooltip>
+                                            <div class="hub-asset-detail__preview-block-tooltip-title">
+                                              {{ weekPreviewBlockTooltipTitle(block) }}
+                                            </div>
+                                            @if (weekPreviewBlockTooltipBody(block); as tooltipBody) {
+                                              <div class="hub-asset-detail__preview-block-tooltip-body">{{ tooltipBody }}</div>
+                                            }
+                                          </ng-template>
+                                        }
+                                      </button>
+                                    }
+                                  </div>
+                                </div>
+                                <div class="hub-asset-detail__preview-calendar-footer">
+                                  <span
+                                    ><span
+                                      class="hub-asset-detail__preview-footer-dot hub-asset-detail__preview-footer-dot--positive"
+                                    ></span
+                                    >{{ 'assetsManagement.capacityRules.previewFooterAvailable' | translate }}</span
+                                  >
+                                  <span
+                                    ><span
+                                      class="hub-asset-detail__preview-footer-dot hub-asset-detail__preview-footer-dot--override"
+                                    ></span
+                                    >{{ 'assetsManagement.capacityRules.previewFooterOverride' | translate }}</span
+                                  >
+                                  <span
+                                    ><span class="hub-asset-detail__preview-footer-dot hub-asset-detail__preview-footer-dot--danger"></span
+                                    >{{ 'assetsManagement.capacityRules.previewFooterClosed' | translate }}</span
+                                  >
+                                  <span
+                                    ><span class="hub-asset-detail__preview-footer-dot hub-asset-detail__preview-footer-dot--muted"></span
+                                    >{{ 'assetsManagement.capacityRules.previewFooterUnavailable' | translate }}</span
+                                  >
+                                </div>
+                              </div>
+                            } @else {
+                              <div class="hub-asset-detail__preview-summary">
+                                <div class="hub-asset-detail__preview-summary-header">
+                                  <div class="hub-asset-detail__preview-summary-heading">
+                                    <span class="hub-asset-detail__preview-summary-title">{{
+                                      'assetsManagement.capacityRules.previewSummaryMonthlyTitle' | translate
+                                    }}</span>
+                                    <span class="hub-asset-detail__preview-summary-range-line">{{
+                                      schedulePreviewMonthSummaryRangeLabel()
+                                    }}</span>
+                                  </div>
+                                  <span class="hub-asset-detail__preview-summary-total-compact">{{
+                                    'assetsManagement.capacityRules.previewWeekTotalCompact'
+                                      | translate: { hours: schedulePreviewMonthHoursTotal() }
+                                  }}</span>
+                                </div>
+                                <div class="hub-asset-detail__preview-bar-track">
+                                  @for (segment of previewMonthBarSegments(); track segment.kind) {
+                                    @if (segment.hours > 0) {
+                                      <div
+                                        class="hub-asset-detail__preview-bar-segment"
+                                        [class.hub-asset-detail__preview-bar-segment--open]="segment.kind === 'open'"
+                                        [class.hub-asset-detail__preview-bar-segment--closed]="segment.kind === 'closed'"
+                                        [class.hub-asset-detail__preview-bar-segment--not-set]="segment.kind === 'notSet'"
+                                        [style.flex-grow]="segment.hours"
+                                      ></div>
+                                    }
+                                  }
+                                </div>
+                                <ul class="hub-asset-detail__preview-legend hub-asset-detail__preview-legend--row">
+                                  <li class="hub-asset-detail__preview-legend-item">
+                                    <span
+                                      class="hub-asset-detail__preview-legend-dot hub-asset-detail__preview-legend-dot--positive"
+                                    ></span>
+                                    {{
+                                      'assetsManagement.capacityRules.previewLegendWeeklyHours'
+                                        | translate: { hours: previewMonthStats().openHours }
+                                    }}
+                                  </li>
+                                  <li class="hub-asset-detail__preview-legend-item">
+                                    <span class="hub-asset-detail__preview-legend-dot hub-asset-detail__preview-legend-dot--danger"></span>
+                                    {{
+                                      'assetsManagement.capacityRules.previewLegendClosed'
+                                        | translate: { hours: previewMonthStats().closedHours }
+                                    }}
+                                  </li>
+                                  <li class="hub-asset-detail__preview-legend-item">
+                                    <span class="hub-asset-detail__preview-legend-dot hub-asset-detail__preview-legend-dot--muted"></span>
+                                    {{
+                                      'assetsManagement.capacityRules.previewLegendNotSet'
+                                        | translate: { hours: previewMonthStats().notSetHours }
+                                    }}
+                                  </li>
+                                </ul>
+                                <p class="hub-asset-detail__preview-hint">
+                                  {{ 'assetsManagement.capacityRules.previewAddHoursHint' | translate }}
+                                </p>
+                              </div>
+                              <div class="hub-asset-detail__preview-month-calendar">
+                                <div class="hub-asset-detail__preview-month-weekdays" aria-hidden="true">
+                                  @for (label of schedulePreviewMonthWeekdayHeaders(); track $index) {
+                                    <div class="hub-asset-detail__preview-month-weekday">{{ label }}</div>
+                                  }
+                                </div>
+                                <div class="hub-asset-detail__preview-month-grid" role="grid">
+                                  @for (cell of schedulePreviewMonthGrid(); track $index) {
+                                    <div [class]="schedulePreviewMonthCellClasses(cell)" role="gridcell">{{ cell.dayNumber }}</div>
+                                  }
+                                </div>
+                                <div class="hub-asset-detail__preview-calendar-footer">
+                                  <span
+                                    ><span
+                                      class="hub-asset-detail__preview-footer-dot hub-asset-detail__preview-footer-dot--positive"
+                                    ></span
+                                    >{{ 'assetsManagement.capacityRules.previewFooterAvailable' | translate }}</span
+                                  >
+                                  <span
+                                    ><span class="hub-asset-detail__preview-footer-dot hub-asset-detail__preview-footer-dot--danger"></span
+                                    >{{ 'assetsManagement.capacityRules.previewFooterClosed' | translate }}</span
+                                  >
+                                  <span
+                                    ><span class="hub-asset-detail__preview-footer-dot hub-asset-detail__preview-footer-dot--muted"></span
+                                    >{{ 'assetsManagement.capacityRules.previewFooterUnavailable' | translate }}</span
+                                  >
+                                </div>
+                              </div>
+                            }
+                          </section>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </ignt-tabs-item>
+            }
+          </ignt-tabs>
+        </div>
+      </form>
+    }
+  </div>
+  @if (!isLoading() && (isCreateMode() || isEditMode())) {
+    <ng-container *ngTemplateOutlet="actionsFooter"></ng-container>
+  }
+</div>
+
+<ng-template #pageHeader>
+  <div class="hub-asset-detail__page-header">
+    <div class="hub-asset-detail__hub-header">
+      <a class="hub-asset-detail__breadcrumb-link" href="#" (click)="onNavigateToHubList($event)" role="link">{{
+        'assetsHubs.pageTitle' | translate
+      }}</a>
+      <span class="hub-asset-detail__breadcrumb-separator">/</span>
+      <a class="hub-asset-detail__breadcrumb-link" href="#" (click)="onNavigateToHubDetail($event)" role="link">{{ hubName() }}</a>
+      @if (isViewMode() || isEditMode()) {
+        <span class="hub-asset-detail__breadcrumb-separator">/</span>
+        <a class="hub-asset-detail__breadcrumb-link" href="#" (click)="onNavigateToHubDetail($event)" role="link">{{
+          'assetsHubs.components.assets' | translate
+        }}</a>
+      }
+      @if (pageTitleText()) {
+        <h1 class="hub-asset-detail__title" data-testid="page-title">{{ pageTitleText() }}</h1>
+      } @else {
+        <h1 class="hub-asset-detail__title" data-testid="page-title">{{ pageTitleKey() | translate }}</h1>
+      }
+    </div>
+    @if (isViewMode() && canManageHub()) {
+      <div class="hub-asset-detail__actions-wrapper">
+        <ignt-button-dropdown
+          [options]="assetEditActionsOptions"
+          [sentiment]="'primary'"
+          [size]="'large'"
+          [align]="'right'"
+          [autoWidth]="true"
+          [borderless]="true"
+          [hoverEffect]="true"
+          (optionClick)="onAssetEditActionClick($event)"
+          data-testid="hub-asset-detail-actions"
+        >
+          <span translate>assetsHubs.detail.assets.actions</span>
+        </ignt-button-dropdown>
+      </div>
+    }
+  </div>
+</ng-template>
+
+<ng-template #assetContentSection>
+  <section class="hub-asset-detail__section">
+    <h2 class="hub-asset-detail__section-title" translate>assetsHubs.detail.assets.form.assetDetailsTitle</h2>
+    <p class="hub-asset-detail__section-description" translate>assetsHubs.detail.assets.form.assetDetailsDescription</p>
+    <div class="hub-asset-detail__field hub-asset-detail__field--half">
+      <ignt-input-field
+        id="asset-name"
+        [formControl]="formGroup.controls.name"
+        [label]="'assetsHubs.detail.assets.form.assetName' | translate"
+        [placeholder]="'assetsHubs.detail.assets.form.assetNamePlaceholder' | translate"
+        [disabled]="isViewMode()"
+      ></ignt-input-field>
+    </div>
+    <div class="hub-asset-detail__field">
+      <ignt-textarea-field
+        id="asset-description"
+        [formControl]="formGroup.controls.description"
+        [label]="('assetsHubs.detail.assets.form.assetDescription' | translate) + ' (' + ('common.optional' | translate) + ')'"
+        [placeholder]="'assetsHubs.detail.assets.form.assetDescriptionPlaceholder' | translate"
+        [disabled]="isViewMode()"
+      ></ignt-textarea-field>
+    </div>
+  </section>
+</ng-template>
+
+<ng-template #assetCapacitySection>
+  <section class="hub-asset-detail__section">
+    <h2 class="hub-asset-detail__section-title" translate>assetsHubs.detail.assets.form.capacityUsedTitle</h2>
+    <p class="hub-asset-detail__section-description" translate>assetsHubs.detail.assets.form.capacityUsedDescription</p>
+    <div class="hub-asset-detail__capacity-options">
+      <ignt-radio-group [formControl]="formGroup.controls.availabilityStrategy" class="hub-asset-detail__radio-group">
+        <ignt-list-item
+          class="hub-asset-detail__capacity-card"
+          [class.hub-asset-detail__capacity-card--selected]="isStrategySelected(AvailabilityStrategy.byPartyCount)"
+          [title]="'assetsHubs.detail.assets.bookingTypeByGroups' | translate"
+          [description]="'assetsHubs.detail.assets.form.byGroupsDescription' | translate"
+          [selected]="isStrategySelected(AvailabilityStrategy.byPartyCount)"
+          [type]="isViewMode() ? 'borderless' : 'default'"
+          (click)="setAvailabilityStrategy(AvailabilityStrategy.byPartyCount)"
+          [leadingIconTemplate]="radioGroups"
+        >
+          <ng-template #radioGroups>
+            <ignt-radio
+              [value]="AvailabilityStrategy.byPartyCount"
+              [name]="'availabilityStrategy'"
+              [disabled]="isStrategyDisabled(AvailabilityStrategy.byPartyCount)"
+            ></ignt-radio>
+          </ng-template>
+        </ignt-list-item>
+        <ignt-list-item
+          class="hub-asset-detail__capacity-card"
+          [class.hub-asset-detail__capacity-card--selected]="isStrategySelected(AvailabilityStrategy.byPeopleCount)"
+          [title]="'assetsHubs.detail.assets.bookingTypeByPeople' | translate"
+          [description]="'assetsHubs.detail.assets.form.byPeopleDescription' | translate"
+          [selected]="isStrategySelected(AvailabilityStrategy.byPeopleCount)"
+          [type]="isViewMode() ? 'borderless' : 'default'"
+          (click)="setAvailabilityStrategy(AvailabilityStrategy.byPeopleCount)"
+          [leadingIconTemplate]="radioPeople"
+        >
+          <ng-template #radioPeople>
+            <ignt-radio
+              [value]="AvailabilityStrategy.byPeopleCount"
+              [name]="'availabilityStrategy'"
+              [disabled]="isStrategyDisabled(AvailabilityStrategy.byPeopleCount)"
+            ></ignt-radio>
+          </ng-template>
+        </ignt-list-item>
+      </ignt-radio-group>
+    </div>
+  </section>
+  @if (isStrategySelected(AvailabilityStrategy.byPartyCount)) {
+    <ng-container *ngTemplateOutlet="byGroupsSettings"></ng-container>
+  }
+  @if (isStrategySelected(AvailabilityStrategy.byPeopleCount)) {
+    <ng-container *ngTemplateOutlet="byPeopleSettings"></ng-container>
+  }
+</ng-template>
+
+<ng-template #byPeopleSettings>
+  @if (isStrategySelected(AvailabilityStrategy.byPeopleCount)) {
+    <section class="hub-asset-detail__section">
+      <h2 class="hub-asset-detail__section-title" translate>assetsHubs.detail.assets.form.maxPeopleTitle</h2>
+      <p class="hub-asset-detail__section-description" translate>assetsHubs.detail.assets.form.maxPeopleDescription</p>
+      <div class="hub-asset-detail__field hub-asset-detail__field--half">
+        <ignt-input-field
+          id="max-capacity"
+          type="number"
+          [formControl]="formGroup.controls.maxPartySize"
+          [label]="'assetsHubs.detail.assets.form.maxCapacity' | translate"
+          [placeholder]="'assetsHubs.detail.assets.form.maxCapacityPlaceholder' | translate"
+          [disabled]="isViewMode()"
+        ></ignt-input-field>
+      </div>
+    </section>
+  }
+</ng-template>
+
+<ng-template #byGroupsSettings>
+  @if (isStrategySelected(AvailabilityStrategy.byPartyCount)) {
+    <section class="hub-asset-detail__section">
+      <h2 class="hub-asset-detail__section-title" translate>assetsHubs.detail.assets.form.maxGroupsTitle</h2>
+      <p class="hub-asset-detail__section-description" translate>assetsHubs.detail.assets.form.maxGroupsDescription</p>
+      <div class="hub-asset-detail__field hub-asset-detail__field--half">
+        <ignt-input-field
+          id="max-groups"
+          type="number"
+          [formControl]="formGroup.controls.maxNumParties"
+          [label]="'assetsHubs.detail.assets.form.maxGroups' | translate"
+          [placeholder]="'assetsHubs.detail.assets.form.maxGroupsPlaceholder' | translate"
+          [disabled]="isViewMode()"
+        ></ignt-input-field>
+      </div>
+    </section>
+    <section class="hub-asset-detail__section">
+      <h2 class="hub-asset-detail__section-title" translate>assetsHubs.detail.assets.form.groupSizeTitle</h2>
+      <p class="hub-asset-detail__section-description" translate>assetsHubs.detail.assets.form.groupSizeDescription</p>
+      <div class="hub-asset-detail__group-size-fields">
+        <div>
+          <ignt-input-field
+            id="min-party-size"
+            type="number"
+            [formControl]="formGroup.controls.minPartySize"
+            [label]="'assetsHubs.detail.assets.form.minimum' | translate"
+            [placeholder]="'assetsHubs.detail.assets.form.minimumPlaceholder' | translate"
+            [disabled]="isViewMode()"
+          ></ignt-input-field>
+        </div>
+        <div>
+          <ignt-input-field
+            id="max-party-size"
+            type="number"
+            [formControl]="formGroup.controls.maxPartySize"
+            [label]="'assetsHubs.detail.assets.form.maximum' | translate"
+            [placeholder]="'assetsHubs.detail.assets.form.maximumPlaceholder' | translate"
+            [disabled]="isViewMode()"
+          ></ignt-input-field>
+        </div>
+      </div>
+    </section>
+  }
+</ng-template>
+
+<ng-template #actionsFooter>
+  <div class="hub-asset-detail__footer">
+    @if (isEditMode()) {
+      <ignt-button
+        sentiment="danger"
+        variant="tertiary"
+        class="hub-asset-detail__footer-delete"
+        [disabled]="isSaving()"
+        [label]="'assetsHubs.detail.assets.deleteAsset' | translate"
+        [leadingIcon]="deleteAssetIcon"
+        (click)="onAssetEditActionClick('delete')"
+        data-testid="hub-asset-detail-delete"
+      />
+    }
+    @if (isCreateMode()) {
+      <span></span>
+    }
+    <div class="hub-asset-detail__footer-actions">
+      <ignt-button
+        variant="secondary"
+        [label]="isEditMode() ? ('common.back' | translate) : ('common.cancel' | translate)"
+        (click)="onCancel()"
+        data-testid="hub-asset-detail-cancel"
+      />
+      <ignt-button
+        variant="primary"
+        [disabled]="(isEditMode() ? formGroup.pristine || formGroup.invalid : formGroup.invalid) || isSaving()"
+        [label]="isEditMode() ? ('assetsHubs.detail.saveChanges' | translate) : ('common.save' | translate)"
+        (click)="isCreateMode() ? onCreate($event) : onEdit($event)"
+        data-testid="hub-asset-detail-save"
+      />
+    </div>
+  </div>
+</ng-template>

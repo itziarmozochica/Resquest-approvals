@@ -1,0 +1,81 @@
+<div
+  class="quota-detail__quota-row quota-detail__quota-row--named"
+  data-testid="quota-detail-quota-row"
+  [class.quota-detail__quota-row--blocked]="quota().consumeMode === 'blocked'"
+  [class.quota-detail__quota-row--exclusive]="quota().consumeMode === 'exclusive'"
+  [class.quota-detail__quota-row--no-actions]="isEditing() || isSaving()"
+  [class.quota-detail__quota-row--session-type]="level() === 'sessionType'"
+  [class.quota-detail__quota-row--shared]="quota().consumeMode === 'shared'"
+>
+  <div class="quota-detail__quota-name-col">
+    <ignt-icon name="chart-pie" variant="solid"></ignt-icon>
+    <span data-testid="quota-detail-quota-name">{{ quota().name }}</span>
+  </div>
+  <span class="quota-detail__quota-type-col" data-testid="quota-detail-quota-type">
+    {{ 'sessions.quotaManagement.table.' + quota().consumeMode | translate }}
+  </span>
+
+  @let assignmentLabel = quotaAssignment();
+  @let assignmentNames = quotaAssignmentNames();
+  @if (assignmentLabel.length > 0 && assignmentNames.length > 0) {
+    <span
+      class="quota-detail__quota-assignment-col"
+      data-testid="quota-detail-quota-assignment"
+      [appTemplatedTooltip]="assignmentTooltip"
+      [appTemplatedTooltipContext]="{ names: assignmentNames }"
+    >
+      {{ assignmentLabel | translate }}
+    </span>
+  } @else {
+    <span class="quota-detail__quota-assignment-col" data-testid="quota-detail-quota-assignment">
+      {{ assignmentLabel | translate }}
+    </span>
+  }
+
+  <app-quota-detail-capacity-cell [controlName]="controlName()" [displayValue]="quota().capacity" />
+
+  @if (!isEditing() && !isSaving()) {
+    <div class="quota-detail__actions-menu">
+      <button
+        ignt-icon-button
+        data-testid="quota-detail-actions-btn"
+        sentiment="tertiary"
+        size="small"
+        type="button"
+        [disabled]="isEditingDisabled() || isSaving()"
+        [icon]="['fas', 'ellipsis-v']"
+        [attr.aria-expanded]="openMenuId() === menuId()"
+        [attr.aria-label]="'inventory.capacity.quotaDetail.actions.menu' | translate"
+        (click)="onMenuToggle($event)"
+      ></button>
+      @if (openMenuId() === menuId()) {
+        <div class="quota-detail__actions-dropdown" data-testid="quota-detail-actions-dropdown" (click)="$event.stopPropagation()">
+          <ignt-button
+            data-testid="quota-detail-action-edit"
+            sentiment="brand"
+            size="small"
+            variant="tertiary"
+            [disabled]="isEditingDisabled() || isSaving()"
+            [label]="'inventory.capacity.quotaDetail.actions.edit' | translate"
+            [leadingIcon]="{ name: 'edit', variant: 'regular' }"
+            (click)="onQuotaAction('edit', $event)"
+          ></ignt-button>
+          <ignt-button
+            data-testid="quota-detail-action-delete"
+            sentiment="danger"
+            size="small"
+            variant="tertiary"
+            [disabled]="isEditingDisabled() || isSaving()"
+            [label]="'inventory.capacity.quotaDetail.actions.delete' | translate"
+            [leadingIcon]="{ name: 'trash-alt', variant: 'light' }"
+            (click)="onQuotaAction('delete', $event)"
+          ></ignt-button>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<ng-template #assignmentTooltip let-names="names">
+  <app-quota-assignation-tooltip-content [ruleFields]="names"></app-quota-assignation-tooltip-content>
+</ng-template>

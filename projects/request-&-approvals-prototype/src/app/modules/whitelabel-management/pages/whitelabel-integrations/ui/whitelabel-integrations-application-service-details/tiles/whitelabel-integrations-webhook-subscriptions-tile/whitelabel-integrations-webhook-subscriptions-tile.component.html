@@ -1,0 +1,112 @@
+<section class="whitelabel-integrations-hub-panel" aria-labelledby="webhook-subscriptions-heading">
+  <div class="whitelabel-integrations-hub-panel__head">
+    <h2 class="whitelabel-integrations-hub-panel__title" id="webhook-subscriptions-heading">
+      {{ 'whitelabelManagement.integrations.webhookSubscriptions.section' | translate }}
+    </h2>
+    @if (subscriptions().length > 0 && !isReadOnly()) {
+      <button
+        igntButton
+        sentiment="secondary"
+        size="small"
+        type="button"
+        [disabled]="topics().length === 0"
+        [attr.title]="
+          topics().length === 0 ? ('whitelabelManagement.integrations.webhookSubscriptions.topicsRequiredHint' | translate) : null
+        "
+        (click)="onAddSubscriptionClick()"
+      >
+        {{ 'whitelabelManagement.integrations.webhookSubscriptions.add' | translate }}
+      </button>
+    }
+  </div>
+  <div class="whitelabel-integrations-hub-panel__separator" aria-hidden="true"></div>
+  @if (listError()) {
+    <div class="alert alert-danger whitelabel-integrations-hub-panel__alert" role="alert">
+      {{ listError()! | translate }}
+    </div>
+  }
+  @if (loading()) {
+    <p class="whitelabel-integrations-hub-panel__empty text-muted mb-0">
+      {{ 'common.loading' | translate }}
+    </p>
+  } @else if (subscriptions().length === 0) {
+    <div class="whitelabel-integrations-hub-panel__empty-cta">
+      <p class="whitelabel-integrations-hub-panel__empty-cta-message text-muted mb-0">
+        {{ 'whitelabelManagement.integrations.webhookSubscriptions.empty' | translate }}
+      </p>
+      @if (!isReadOnly()) {
+        <button
+          igntButton
+          sentiment="secondary"
+          size="small"
+          type="button"
+          [disabled]="topics().length === 0"
+          [attr.title]="
+            topics().length === 0 ? ('whitelabelManagement.integrations.webhookSubscriptions.topicsRequiredHint' | translate) : null
+          "
+          (click)="onAddSubscriptionClick()"
+        >
+          {{ 'whitelabelManagement.integrations.webhookSubscriptions.add' | translate }}
+        </button>
+      }
+    </div>
+  } @else {
+    <div class="whitelabel-integrations-hub-panel__table-scroll">
+      <table class="table table-sm table-striped align-middle mb-0">
+        <thead class="whitelabel-integrations-hub-panel__thead">
+          <tr>
+            <th scope="col">{{ 'whitelabelManagement.integrations.webhookSubscriptions.columnTopic' | translate }}</th>
+            <th scope="col">{{ 'whitelabelManagement.integrations.webhookSubscriptions.columnVersion' | translate }}</th>
+            <th scope="col">{{ 'whitelabelManagement.integrations.webhookSubscriptions.columnActive' | translate }}</th>
+            <th scope="col">{{ 'whitelabelManagement.integrations.webhookSubscriptions.columnAuthStrategy' | translate }}</th>
+            <th scope="col">{{ 'whitelabelManagement.integrations.webhookSubscriptions.columnUpdatedAt' | translate }}</th>
+            <th class="text-end" scope="col">
+              <span class="visually-hidden">{{ 'whitelabelManagement.integrations.linkedServicesTableActions' | translate }}</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of subscriptions(); track row.id) {
+            <tr>
+              <td>{{ row.topic }}</td>
+              <td>{{ row.version }}</td>
+              <td>
+                @if (row.is_active) {
+                  <span class="badge rounded-pill text-bg-success">
+                    {{ 'whitelabelManagement.integrations.webhookSubscriptions.activeBadgeYes' | translate }}
+                  </span>
+                } @else {
+                  <span class="badge rounded-pill text-bg-secondary">
+                    {{ 'whitelabelManagement.integrations.webhookSubscriptions.inactiveBadge' | translate }}
+                  </span>
+                }
+              </td>
+              <td>{{ row.auth_strategy }}</td>
+              <td>
+                @if ((row.updated_at ?? '') !== '') {
+                  {{ row.updated_at | date: 'medium' }}
+                } @else {
+                  {{ 'common.notAvailable' | translate }}
+                }
+              </td>
+              <td class="text-end">
+                @if (!isReadOnly()) {
+                  <button
+                    class="btn btn-link p-0 whitelabel-integrations-hub-panel__icon-action"
+                    type="button"
+                    [attr.aria-label]="'whitelabelManagement.integrations.webhookSubscriptions.editSubscriptionAria' | translate"
+                    [attr.title]="'whitelabelManagement.integrations.webhookSubscriptions.edit' | translate"
+                    [disabled]="editingSubscriptionId() === row.id"
+                    (click)="onEditSubscriptionClick(row)"
+                  >
+                    <ignt-icon name="pen" variant="light" size="sm" aria-hidden="true" />
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>

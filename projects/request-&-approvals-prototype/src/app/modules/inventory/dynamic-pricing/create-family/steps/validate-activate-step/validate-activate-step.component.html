@@ -1,0 +1,183 @@
+<div class="validate-activate-step">
+  @if (store.copyReport(); as report) {
+    <ignt-alert
+      class="validate-activate-step__copy-summary"
+      data-testid="confirm-copy-summary"
+      sentiment="warning"
+      [title]="'inventory.dynamicPricing.families.wizard.copy.confirmTitle' | translate"
+    >
+      <ng-template #igntAlertContent>
+        <p>{{ 'inventory.dynamicPricing.families.wizard.copy.confirmBody' | translate }}</p>
+        <p>
+          {{
+            'inventory.dynamicPricing.families.wizard.copy.confirmCopied'
+              | translate: { levels: report.levels, overridesApplied: report.overridesApplied, rules: report.rules }
+          }}
+        </p>
+        <p>{{ 'inventory.dynamicPricing.families.wizard.copy.confirmNotCopied' | translate }}</p>
+      </ng-template>
+    </ignt-alert>
+  }
+
+  <section class="validate-activate-step__summary" data-testid="confirm-summary">
+    <h3 class="validate-activate-step__name">{{ familyName() }}</h3>
+    <p class="validate-activate-step__subtitle">
+      {{ 'inventory.dynamicPricing.families.wizard.confirm.pricingFamily' | translate }}
+      <span class="validate-activate-step__level-count">
+        {{ 'inventory.dynamicPricing.families.wizard.confirm.levelCount' | translate: { count: levelCount() } }}
+      </span>
+    </p>
+
+    <div class="validate-activate-step__facts">
+      <div class="validate-activate-step__fact">
+        <span class="validate-activate-step__fact-label">
+          <ignt-icon aria-hidden="true" name="store" variant="light" />
+          {{ 'inventory.dynamicPricing.families.wizard.confirm.channels' | translate }}
+        </span>
+        <span class="validate-activate-step__fact-value" data-testid="confirm-channels">{{ channels() }}</span>
+      </div>
+      <div class="validate-activate-step__fact">
+        <span class="validate-activate-step__fact-label">
+          <ignt-icon aria-hidden="true" name="calendar-alt" variant="light" />
+          {{ 'inventory.dynamicPricing.families.wizard.confirm.timeSlots' | translate }}
+        </span>
+        <span class="validate-activate-step__fact-value" data-testid="confirm-time-slots">{{ timeSlots() }}</span>
+      </div>
+      <div class="validate-activate-step__fact">
+        <span class="validate-activate-step__fact-label">
+          <ignt-icon aria-hidden="true" name="ticket" variant="light" />
+          {{ 'inventory.dynamicPricing.families.wizard.confirm.priceListAndProducts' | translate }}
+        </span>
+        <span class="validate-activate-step__fact-value" data-testid="confirm-price-list">{{ priceListName() }}</span>
+      </div>
+    </div>
+
+    @if (levelCards().length > 0) {
+      <p class="validate-activate-step__banner" data-testid="confirm-levels-hint">
+        <ignt-icon aria-hidden="true" name="info-circle" variant="solid" />
+        <span>{{ 'inventory.dynamicPricing.families.wizard.confirm.levelsActiveHint' | translate }}</span>
+      </p>
+    }
+
+    <div class="validate-activate-step__rules">
+      @for (card of levelCards(); track card.alias) {
+        <div class="validate-activate-step__level-card" data-testid="confirm-level-card">
+          <span class="validate-activate-step__rule-from">{{ card.name }}</span>
+          <ignt-toggle
+            class="validate-activate-step__rule-toggle"
+            data-testid="confirm-level-toggle"
+            [checked]="card.enabled"
+            (change)="onToggleLevel(card.alias, $event)"
+          ></ignt-toggle>
+        </div>
+      }
+    </div>
+
+    @if (ruleCards().length > 0) {
+      <p class="validate-activate-step__banner" data-testid="confirm-rules-hint">
+        <ignt-icon aria-hidden="true" name="info-circle" variant="solid" />
+        <span>{{ 'inventory.dynamicPricing.families.wizard.confirm.rulesActiveHint' | translate }}</span>
+      </p>
+    }
+
+    <div class="validate-activate-step__rules">
+      @for (card of ruleCards(); track card.index; let i = $index) {
+        <div class="validate-activate-step__rule-card" data-testid="confirm-rule-card">
+          <span class="validate-activate-step__rule-from">
+            {{ 'inventory.dynamicPricing.families.wizard.confirm.ruleFrom' | translate: { from: card.fromName, index: card.index } }}
+          </span>
+          <span class="validate-activate-step__rule-conditions">{{ card.conditionsText }}</span>
+          <span class="validate-activate-step__rule-to">
+            <ignt-icon aria-hidden="true" name="arrow-right" variant="light" />
+            {{ card.toName }}
+          </span>
+          <ignt-toggle
+            class="validate-activate-step__rule-toggle"
+            data-testid="confirm-rule-toggle"
+            [checked]="card.enabled"
+            (change)="onToggleRule(i, $event)"
+          ></ignt-toggle>
+        </div>
+      }
+    </div>
+
+    @if (hasGraph()) {
+      <span
+        class="validate-activate-step__see-graph"
+        role="button"
+        tabindex="0"
+        data-testid="confirm-see-graph"
+        (click)="toggleGraph()"
+        (keydown.enter)="toggleGraph()"
+        (keydown.space)="$event.preventDefault(); toggleGraph()"
+      >
+        {{ 'inventory.dynamicPricing.families.wizard.confirm.seeGraph' | translate }}
+        <ignt-icon aria-hidden="true" [name]="showGraph() ? 'chevron-up' : 'chevron-down'" variant="light" size="sm" />
+      </span>
+
+      @if (showGraph()) {
+        <app-echarts-pricing-graph data-testid="confirm-graph" [graph]="graph()" />
+      }
+    }
+  </section>
+
+  @if (store.validateError(); as validateError) {
+    <p class="validate-activate-step__line validate-activate-step__line--danger" data-testid="validate-error">
+      <ignt-icon aria-hidden="true" name="times-circle" variant="solid" />
+      <span>{{ validateError }}</span>
+    </p>
+  }
+
+  @if (store.validation(); as validation) {
+    <div class="validate-activate-step__results">
+      @if (validation.valid && validation.warnings.length === 0) {
+        <p class="validate-activate-step__line validate-activate-step__line--success" data-testid="validate-success">
+          <ignt-icon aria-hidden="true" name="check-circle" variant="solid" />
+          <span>{{ 'inventory.dynamicPricing.families.wizard.validateActivate.allPassed' | translate }}</span>
+        </p>
+      }
+
+      @if (validation.errors.length > 0) {
+        <section class="validate-activate-step__group" data-testid="validate-errors">
+          <h3 class="validate-activate-step__group-title">
+            {{ 'inventory.dynamicPricing.families.wizard.validateActivate.errorsTitle' | translate }}
+          </h3>
+          <ul class="validate-activate-step__list">
+            @for (issue of validation.errors; track issue.code + issue.path) {
+              <li class="validate-activate-step__line validate-activate-step__line--danger" data-testid="validate-error-item">
+                <ignt-icon aria-hidden="true" name="times-circle" variant="solid" />
+                <span class="validate-activate-step__message">
+                  {{ issue.message }}
+                  @if (issue.path) {
+                    <span class="validate-activate-step__path">{{ issue.path }}</span>
+                  }
+                </span>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      @if (validation.warnings.length > 0) {
+        <section class="validate-activate-step__group" data-testid="validate-warnings">
+          <h3 class="validate-activate-step__group-title">
+            {{ 'inventory.dynamicPricing.families.wizard.validateActivate.warningsTitle' | translate }}
+          </h3>
+          <ul class="validate-activate-step__list">
+            @for (issue of validation.warnings; track issue.code + issue.path) {
+              <li class="validate-activate-step__line validate-activate-step__line--warning" data-testid="validate-warning-item">
+                <ignt-icon aria-hidden="true" name="exclamation-triangle" variant="solid" />
+                <span class="validate-activate-step__message">
+                  {{ issue.message }}
+                  @if (issue.path) {
+                    <span class="validate-activate-step__path">{{ issue.path }}</span>
+                  }
+                </span>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,131 @@
+<div class="ticket-detail__content">
+  <div class="ticket-detail__section">
+    <ul class="ticket-detail__list">
+      @let holderName = ticket().holderName;
+      @if (holderName) {
+        <li class="ticket-detail__item">
+          <h3 class="ticket-detail__item-title">{{ 'validateTicketsNew.ticketDetail.userNameNominative' | translate }}</h3>
+          <div class="ticket-detail__item-value" data-testid="ticket-detail-holder-name">{{ holderName }}</div>
+        </li>
+      }
+      <li class="ticket-detail__item">
+        <h3 class="ticket-detail__item-title">{{ 'validateTicketsNew.ticketDetail.code' | translate }}</h3>
+        <div class="ticket-detail__item-value" data-testid="ticket-detail-code">
+          {{ ticket().codeType | codeTypeTranslationKey | translate }} ID {{ ticket().code }}
+        </div>
+      </li>
+
+      @let seat = ticket().seat;
+      @let spot = ticket().spot;
+      @if (seat || spot) {
+        <li class="ticket-detail__item">
+          <h3 class="ticket-detail__item-title">{{ 'validateTicketsNew.ticketDetail.seating' | translate }}</h3>
+          <div class="ticket-detail__item-value ticket-detail__seating-item">
+            @if (seat) {
+              <span>{{ seat }}</span>
+            }
+            @if (spot) {
+              <span class="ticket-detail__spot" [class.ticket-detail__spot--warning]="!spot?.label">
+                {{ spot?.categoryLabel }}: {{ spot?.label || ('validateTicketsNew.tickets.spot.notAssigned' | translate) }}
+              </span>
+            }
+          </div>
+        </li>
+      }
+
+      @if (isEntryPass()) {
+        <li class="ticket-detail__item">
+          <h3 class="ticket-detail__item-title">{{ 'validateTicketsNew.ticketDetail.entryPass' | translate }}</h3>
+          <div class="ticket-detail__item-value ticket-detail__entry-pass" data-testid="ticket-detail-entry-pass">
+            @let activationDate = ticket().activationDate;
+            <span class="ticket-detail__entry-pass__label">
+              {{
+                activationDate
+                  ? ('validateTicketsNew.ticketDetail.activation' | translate) + ': ' + (activationDate | formatDate: 'medium' : 'short')
+                  : ('validateTicketsNew.tickets.notActivated' | translate)
+              }}</span
+            >
+            @let expiryDate = ticket().expiryDate;
+            @if (expiryDate) {
+              <div class="ticket-detail__entry-pass__label">
+                {{ 'validateTicketsNew.ticketDetail.expiration' | translate }}: {{ expiryDate | formatDate: 'medium' : 'short' }}
+              </div>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+  </div>
+
+  @let nominativeValues = ticket().nominativeValues;
+  @if (nominativeValues.length > 0) {
+    <div class="ticket-detail__section">
+      <div class="ticket-detail__title-row">
+        <h2 class="ticket-detail__title ticket-detail__title--inline">
+          {{ 'validateTicketsNew.ticketDetail.bookingQuestions' | translate }}
+        </h2>
+        @if (orderId(); as orderId) {
+          <ng-container *permissionBased="'can_view_validation'">
+            <app-order-responses-link
+              *permissionBased="'can_view_booking_question_answers'"
+              [orderId]="orderId"
+              [ticketIndex]="ticketIndex()"
+            />
+          </ng-container>
+        }
+      </div>
+      <ul class="ticket-detail__list">
+        @for (nominativeValue of nominativeValues; track nominativeValue) {
+          <li class="ticket-detail__item">
+            <h3 class="ticket-detail__item-title">{{ nominativeValue.label }}</h3>
+            <div class="ticket-detail__item-value">{{ nominativeValue.value }}</div>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+
+  <div class="ticket-detail__section" *permissionBased="ticketHistoryPermissions" data-testid="ticket-detail-history">
+    <h2 class="ticket-detail__title">{{ 'validateTicketsNew.ticketDetail.ticketHistory' | translate }}</h2>
+    @if (ticketHistory().length > 0) {
+      <app-ticket-history
+        [history]="ticketHistory()"
+        [sessionTimezone]="sessionTimezone()"
+        [transferIntent]="transferIntent()"
+        (ticketUpdated)="ticketUpdated.emit()"
+      />
+    }
+    @if (isInitialLoading()) {
+      <div class="ticket-detail__history-loader" data-testid="ticket-history-loading">
+        <ignt-icon aria-hidden="true" name="spinner" size="h2" variant="solid" [spin]="true" />
+      </div>
+    }
+    @if (isLoadingMore()) {
+      <div class="ticket-detail__history-loader" data-testid="ticket-history-loading-more">
+        <ignt-icon aria-hidden="true" name="spinner" size="base" variant="solid" [spin]="true" />
+      </div>
+    }
+    @if (hasError()) {
+      <div class="ticket-detail__history-error" data-testid="ticket-history-error" role="alert">
+        <ignt-icon class="ticket-detail__history-error-icon" name="times-circle" variant="light" size="display" aria-hidden="true" />
+        <div class="ticket-detail__history-error-text">
+          <h3 class="ticket-detail__history-error-title">{{ errorMessageKey() | translate }}</h3>
+          <p class="ticket-detail__history-error-message" data-testid="ticket-history-error-message">
+            {{ 'validateTicketsNew.ticketHistory.loadErrorDescription' | translate }}
+          </p>
+        </div>
+        <ignt-button
+          size="large"
+          variant="secondary"
+          [label]="'common.retry' | translate"
+          [leadingIcon]="retryIcon"
+          data-testid="ticket-history-retry"
+          (click)="retryLoading()"
+        />
+      </div>
+    }
+    @if (hasMorePages() && !isLoading() && !hasError()) {
+      <div #loadMoreSentinel aria-hidden="true" class="ticket-detail__history-sentinel" data-testid="ticket-history-sentinel"></div>
+    }
+  </div>
+</div>

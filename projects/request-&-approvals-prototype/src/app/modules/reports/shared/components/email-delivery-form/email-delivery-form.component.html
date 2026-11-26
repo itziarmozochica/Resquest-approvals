@@ -1,0 +1,61 @@
+<form [formGroup]="emailForm()" class="email-delivery-form" data-testid="email-delivery-form">
+  <ignt-input-field
+    type="text"
+    formControlName="name"
+    id="email-config-name"
+    [label]="'analytics.dashboardBuilder.exportsForm.newEmailConfig.nameLabel' | translate"
+    [placeholder]="'analytics.dashboardBuilder.exportsForm.newEmailConfig.namePlaceholder' | translate"
+    [disabled]="disabled()"
+    [hideErrorLabels]="true"
+    data-testid="email-config-name-input"
+  />
+  @if (showsNameTaken()) {
+    <span class="email-delivery-form__error" data-testid="email-name-error-taken" role="alert">
+      {{ 'analytics.dashboardBuilder.deliveryMethods.drawer.errors.duplicateName' | translate }}
+    </span>
+  }
+  <div class="email-delivery-form__recipients">
+    @if (usesRecipientCards()) {
+      <app-email-recipients-input
+        formControlName="recipients"
+        inputId="email-recipients"
+        [invalid]="showsRecipientsRequired() || showsRecipientsInvalid() || recipientsTakenBy() !== null"
+        [label]="('analytics.dashboardBuilder.exportsForm.newEmailConfig.recipientsLabel' | translate) + ' *'"
+        [saving]="disabled()"
+      />
+    } @else {
+      <!-- The messages below explain each error; Ignite's own label would only add an empty error icon. -->
+      <ignt-input-field
+        type="text"
+        formControlName="recipients"
+        id="email-recipients"
+        [label]="('analytics.dashboardBuilder.exportsForm.newEmailConfig.recipientsLabel' | translate) + ' *'"
+        [disabled]="disabled()"
+        [hideErrorLabels]="true"
+        data-testid="email-recipient-input"
+      />
+    }
+    <span class="email-delivery-form__recipients-helper">
+      {{ 'analytics.dashboardBuilder.exportsForm.newEmailConfig.recipientsHelper' | translate }}
+    </span>
+    @if (showsRecipientsRequired()) {
+      <span class="email-delivery-form__error" data-testid="email-recipients-error-required" role="alert">
+        {{ 'analytics.dashboardBuilder.exportsForm.newEmailConfig.recipientsRequired' | translate }}
+      </span>
+    }
+    @if (showsRecipientsInvalid()) {
+      <span class="email-delivery-form__error" data-testid="email-recipients-error-invalid" role="alert">
+        {{ 'analytics.dashboardBuilder.exportsForm.newEmailConfig.recipientsInvalid' | translate }}
+      </span>
+    }
+    @if (recipientsTakenBy(); as takenBy) {
+      <span class="email-delivery-form__error" data-testid="email-recipients-error-taken" role="alert">
+        @let takenKey =
+          isEditing()
+            ? 'analytics.dashboardBuilder.deliveryMethods.drawer.errors.sameRecipientsEdit'
+            : 'analytics.dashboardBuilder.deliveryMethods.drawer.errors.sameRecipients';
+        {{ takenKey | translate: { name: takenBy.name } }}
+      </span>
+    }
+  </div>
+</form>

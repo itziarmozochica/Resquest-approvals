@@ -1,0 +1,61 @@
+<div class="cash-calculator">
+  <div class="cash-calculator__title">
+    <fa-icon [icon]="['far', 'calculator']"></fa-icon>
+    {{ 'boxOffice.cashCalculator.title' | translate }}
+  </div>
+  <div class="cash-calculator__pay" *ngIf="showCartTotalAmount">
+    <div class="cash-calculator__pay-label">{{ 'boxOffice.cashCalculator.payAmount' | translate }}</div>
+    <div class="cash-calculator__pay-money">
+      <span data-testid="cash-calculator-pay-money">
+        <ng-container [ngTemplateOutlet]="cartMoney" [ngTemplateOutletContext]="{ money: cartTotal() }"></ng-container>
+      </span>
+    </div>
+  </div>
+  <div
+    data-testid="cash-calculator-received"
+    [class.cash-calculator__received--error]="cashReceivedInputRef.errors"
+    class="cash-calculator__received"
+  >
+    <div class="cash-calculator__received-label" [class.cash-calculator__received-label--required]="cashReceivedRequired">
+      {{ 'boxOffice.cashCalculator.cashReceived' | translate }}
+    </div>
+    <div class="cash-calculator__field-input">
+      <input
+        data-testid="cash-calculator-input"
+        class="cash-calculator__input"
+        ngModel
+        #cashReceivedInputRef="ngModel"
+        appAutoformatNumericInput
+        appInputMobileBehavior
+        appCashChangeCalculatorEnoughMoneyValidator
+        [cashToReceiveMandatory]="cashReceivedRequired"
+        [minCashToReceive]="cartTotal()?.amount ?? 0"
+        [currency]="cartTotal()?.currency"
+        [placeHolderValue]="0"
+        type="text"
+        (blur)="cashReceivedInputRef.control.updateValueAndValidity({ emitEvent: false })"
+        (ngModelChange)="updateInput($event)"
+      />
+      <ignt-alert
+        *ngIf="cashReceivedInputRef.errors"
+        sentiment="danger"
+        [description]="'boxOffice.cashCalculator.notEnoughCash' | translate"
+        data-testid="cash-calculator-error"
+      />
+    </div>
+  </div>
+  <div class="cash-calculator__change">
+    <div class="cash-calculator__change-label">{{ 'boxOffice.cashCalculator.change' | translate }}</div>
+    <div
+      class="cash-calculator__change-money"
+      [class.cash-calculator__change-money--positive]="cashReturnPositive()"
+      data-testid="cash-calculator-cash-return"
+    >
+      <ng-container [ngTemplateOutlet]="cartMoney" [ngTemplateOutletContext]="{ money: cashReturn() }"></ng-container>
+    </div>
+  </div>
+</div>
+
+<ng-template #cartMoney let-money="money">
+  {{ money ? (money.amount | currency: money.currency : 'symbol-narrow' : null : locale) : '-' }}
+</ng-template>

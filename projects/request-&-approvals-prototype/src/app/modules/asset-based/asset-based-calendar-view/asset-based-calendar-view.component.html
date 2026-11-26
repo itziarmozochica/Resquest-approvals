@@ -1,0 +1,1454 @@
+<app-refresh-bar
+  class="asset-based-calendar-view__refresh-bar"
+  [isRefreshing]="isBookedSlotsBackgroundRefreshing() && !isUserRefreshingBookedSlots && !isBookedSlotMutationInProgress"
+/>
+
+@if (!isNewFrameEnabled) {
+  <app-page-title [title]="'bookedSlots.calendarTitle' | translate" class="new-design"></app-page-title>
+}
+
+<div class="asset-based-calendar-view" [class.asset-based-calendar-view--new-frame]="isNewFrameEnabled">
+  @if (isNewFrameEnabled) {
+    <div class="asset-based-calendar-view__toolbar">
+      <app-calendar-toolbar
+        [calendarViewMode]="calendarViewMode"
+        [cardTheme]="cardTheme()"
+        [dateSelected]="selectedDate"
+        [dateSelectionMode]="displayMode === 'list' || isWeeklyCalendarMode ? TimeSlotsSelectionMode.Week : TimeSlotsSelectionMode.Day"
+        [dayEntriesOpenCount]="dayEntriesStore.openCount()"
+        [isBlockPanelOpen]="selectedHourForBlock !== null"
+        [isBlockVisible]="areDailyGridControlsVisible && canManageTimeBlocks()"
+        [isDateDisabled]="!timezone"
+        [isDayEntriesPanelOpen]="isDayEntriesPanelOpen"
+        [isDayEntriesVisible]="isDayEntriesTriggerVisible"
+        [isMoveEnabled]="isBookedSlotMoveEnabled"
+        [isMoveVisible]="areDailyGridControlsVisible && canManageBookings()"
+        [isQuickBlockArmed]="isQuickBlockArmed"
+        [isQuickBlockHintVisible]="isQuickBlockHintVisible"
+        [isSearchVisible]="!isWeeklyCalendarMode"
+        [isTagFilterVisible]="isTagFilterVisible"
+        [isThemeVisible]="isCardThemeVisible() && !isWeeklyCalendarMode"
+        [isWeekVisible]="isWeeklyModeAvailable"
+        [orderSearchResults]="getOrderSearchResults()"
+        [orderSearchTerm]="orderSearchTerm"
+        [selectedTagIds]="selectedTagIds"
+        [tagFilterOptions]="tagFilterOptions"
+        [tagMatchCount]="tagFilterMatchCount"
+        [tagMatchCountsByTag]="tagFilterMatchCountsByTag"
+        [timezone]="timezone"
+        (blockActionSelected)="onToolbarBlockAction($event)"
+        (calendarViewModeChange)="onCalendarViewModeChange($event)"
+        (cardThemeChange)="onCardThemeChange($event)"
+        (dateRangeSelectedChange)="onCalendarFiltersDateRangeChange($event)"
+        (dateSelectedChange)="onCalendarFiltersDateChange($event)"
+        (dayEntriesClick)="onDayEntriesClick()"
+        (moveToggled)="onToolbarMoveToggle()"
+        (orderSearchResultSelect)="onOrderSearchResultSelect($event)"
+        (orderSearchTermChange)="onOrderSearchTermChange($event)"
+        (quickBlockDisarmed)="onToolbarQuickBlockDisarm()"
+        (tagFilterChange)="onTagFilterChange($event)"
+        (tagFilterCleared)="onTagFilterClear()"
+      >
+        <div calendarToolbarPickers class="asset-based-calendar-view__toolbar-pickers">
+          <ignt-typeahead
+            class="asset-based-calendar-view__hub-picker"
+            [options]="hubPickerOptions"
+            [selectedOption]="selectedHubPickerOption"
+            [editable]="!hasTapOnlyPickers()"
+            [emptyLabel]="'bookedSlots.hubPlaceholder' | translate"
+            [detachedPopup]="hasDetachedDropdowns()"
+            (selected)="onHubPickerChange($event)"
+            data-testid="calendar-toolbar-hub-picker"
+          ></ignt-typeahead>
+          <ignt-typeahead
+            class="asset-based-calendar-view__view-picker"
+            createNewMode="below-field"
+            [allowCreateNew]="canCreateView"
+            [createNewIcon]="createCalendarViewIcon"
+            [createNewLabel]="'bookedSlots.createCalendarView' | translate"
+            [options]="viewOptions"
+            [selectedOption]="selectedViewOption"
+            [editable]="!hasTapOnlyPickers()"
+            [emptyLabel]="'bookedSlots.viewPlaceholder' | translate"
+            [editActionLabel]="'bookedSlots.calendarViewPanel.editTitle' | translate"
+            [detachedPopup]="hasDetachedDropdowns()"
+            (createNewInitiated)="onCreateCalendarViewInitiated()"
+            (editOptionClicked)="onEditCalendarViewOption($event)"
+            (selected)="onViewPicked($event)"
+            data-testid="asset-based-calendar-view-selector"
+          ></ignt-typeahead>
+        </div>
+        @if (areDailyGridControlsVisible && calendarZoomStateV3(); as zoomStateV3) {
+          <app-calendar-zoom-control
+            calendarToolbarZoom
+            [laneIndex]="zoomStateV3.laneIndex"
+            [timeStepIndex]="zoomStateV3.timeStepIndex"
+            (laneIndexChange)="onCalendarZoomV3LaneIndexChange(zoomStateV3, $event)"
+            (timeStepIndexChange)="onCalendarZoomV3TimeStepChange(zoomStateV3, $event)"
+          />
+        }
+        @if (bookedSlotsUpdatedAt() || isBookedSlotsOffline()) {
+          <app-refresh-status
+            calendarToolbarStatus
+            class="asset-based-calendar-view__refresh-status"
+            data-testid="calendar-refresh-status"
+            [allowTimeOnly]="true"
+            [updatedAt]="bookedSlotsUpdatedAt()"
+            [isOffline]="isBookedSlotsOffline()"
+            [timezone]="timezone"
+          />
+        }
+      </app-calendar-toolbar>
+      @if (draggingBookedSlot !== null) {
+        <ng-container [ngTemplateOutlet]="dragCancelZoneTemplate" />
+      }
+    </div>
+  } @else {
+    <div class="calendar__controls">
+      <ignt-typeahead
+        class="field"
+        [fieldLabel]="'bookedSlots.city' | translate"
+        [options]="cityOptions"
+        [selectedOption]="selectedCityOption"
+        [editable]="true"
+        [emptyLabel]="'bookedSlots.cityPlaceholder' | translate"
+        (selected)="onCityChange($event)"
+        data-testid="asset-based-calendar-city-selector"
+      ></ignt-typeahead>
+      <ignt-typeahead
+        class="field"
+        [fieldLabel]="'bookedSlots.hub' | translate"
+        [options]="hubOptions"
+        [selectedOption]="selectedHubOption"
+        [editable]="true"
+        [emptyLabel]="'bookedSlots.hubPlaceholder' | translate"
+        (selected)="onHubChange($event)"
+        data-testid="asset-based-calendar-hub-selector"
+      ></ignt-typeahead>
+      @if (isWeeklyModeAvailable) {
+        <app-calendar-view-mode-switch [mode]="calendarViewMode" contrast (modeChange)="onCalendarViewModeChange($event)" />
+      }
+      @if (draggingBookedSlot !== null) {
+        <ng-container [ngTemplateOutlet]="dragCancelZoneTemplate" />
+      }
+    </div>
+  }
+  <div class="calendar__view-notice" role="status" aria-live="polite">
+    @if (savedCalendarViewNotice !== null) {
+      <ignt-alert
+        data-testid="asset-based-calendar-view-notice"
+        [sentiment]="savedCalendarViewNotice.sentiment"
+        [showCloseButton]="true"
+        [description]="savedCalendarViewNotice.descriptionKey | translate: savedCalendarViewNotice.descriptionParams"
+        (closeAlert)="onDismissSavedCalendarViewNotice()"
+      ></ignt-alert>
+    }
+  </div>
+  @if (isCardV3Enabled()) {
+    <div
+      class="calendar__floating-alerts"
+      data-testid="calendar-floating-alerts"
+      role="status"
+      aria-live="polite"
+      [class.calendar__floating-alerts--beside-panel]="isDockedSidePanelOpen()"
+    >
+      @if (isBookedSlotMoveEnabled && !isMoveAlertDismissed()) {
+        <ignt-alert
+          data-testid="calendar-move-mode-alert"
+          sentiment="info"
+          [showCloseButton]="true"
+          [title]="'bookedSlots.cardV3.moveAlert.title' | translate"
+          [description]="'bookedSlots.cardV3.moveAlert.description' | translate: { step: moveAlertStepText() }"
+          (closeAlert)="onMoveAlertClosed()"
+        ></ignt-alert>
+      }
+    </div>
+  }
+  <div class="main-wrapper" [class.main-wrapper--list]="displayMode === 'list'">
+    <div
+      class="wrapper-card wrapper-card--main wrapper-card--elevation-100"
+      [class.wrapper-card--main--panel-open]="isDockedSidePanelOpen()"
+    >
+      <div
+        class="asset-based-calendar-view__view-container"
+        [class.asset-based-calendar-view__view-container--panel-open]="isDockedSidePanelOpen()"
+      >
+        @if (!isNewFrameEnabled) {
+          <ng-container [ngTemplateOutlet]="calendarFilters"></ng-container>
+        }
+        @if (hasExpandedPeopleCountLanes && !isCardV3Enabled()) {
+          <div class="people-count-lanes-notice" role="status" aria-live="polite" data-testid="people-count-lanes-notice">
+            <ignt-icon aria-hidden="true" class="people-count-lanes-notice__icon" name="layer-group" variant="light"></ignt-icon>
+            @for (clause of peopleCountLanesNoticeClauses; track $index) {
+              <span class="people-count-lanes-notice__message">{{ clause }}</span>
+            }
+            <ignt-button
+              class="people-count-lanes-notice__collapse"
+              data-testid="people-count-lanes-collapse"
+              size="small"
+              variant="secondary"
+              [leadingIcon]="collapsePeopleCountLanesIcon"
+              [label]="peopleCountLanesCollapseLabelKey | translate"
+              (click)="onCollapsePeopleCountLanes()"
+            ></ignt-button>
+          </div>
+        }
+        <div class="calendar-scroll-area">
+          <div
+            class="calendar-scroll-wrapper"
+            data-testid="calendar-scroll-wrapper"
+            #calendarContainer
+            [attr.aria-label]="areDailyGridControlsVisible ? ('bookedSlots.calendarGridRegion' | translate) : null"
+            [attr.role]="areDailyGridControlsVisible ? 'region' : null"
+            [attr.tabindex]="areDailyGridControlsVisible ? 0 : null"
+            (keydown)="onCalendarKeydown($event)"
+            (scroll)="onCalendarScrollChange()"
+            (scrollend)="onCalendarScrollEnd($event)"
+          >
+            @if (isInitialLoading) {
+              <app-calendar-skeleton
+                class="asset-based-calendar-view__skeleton"
+                data-testid="calendar-initial-skeleton"
+                [isNewFrameEnabled]="isNewFrameEnabled"
+              />
+            } @else {
+              @if (filteredAssets?.length) {
+                <div class="calendar-scroll-wrapper__body">
+                  @if (isWeeklyCalendarMode) {
+                    <app-asset-based-week-matrix
+                      [assets]="filteredAssets"
+                      [anchorDate]="selectedDate"
+                      [timezone]="timezone"
+                      [bookedSlots]="bookedSlots"
+                      [capacityWindowsByDate]="weekCapacityWindowsByDate"
+                      [defaultOpeningHours]="weekDefaultOpeningHours"
+                      [hubSchedule]="hubSchedule"
+                      (cellSelect)="onWeekCellSelect($event)"
+                    />
+                  }
+                  <div class="calendar-scroll-wrapper__content" [hidden]="isWeeklyCalendarMode">
+                    <app-asset-based-calendar
+                      class="calendar-container__calendar"
+                      [venueConfig]="venueConfig"
+                      [scheduleOpenMinutes]="scheduleOpenMinutes"
+                      [selectedDate]="selectedDate"
+                      [timezone]="timezone"
+                      [displayMode]="displayMode"
+                      [selectedDateRange]="selectedDateRange"
+                      [slotTemplate]="calendarItem"
+                      [timeSlotSummaryTemplate]="timeSlotSummaryItem"
+                      [assets]="filteredAssets"
+                      [bookedSlots]="dailyGridBookedSlots"
+                      [manualTickMinutes]="calendarManualTickMinutes"
+                      [calendarScrollTop]="calendarScrollTop"
+                      [scrollToSlot]="calendarScrollToSlot"
+                      [focusedCapacityRule]="focusedCapacityRule"
+                      [effectiveCapacityWindowsByAssetId]="effectiveCapacityWindowsByAssetId"
+                      [isCapacityRulesEnabled]="isCapacityRulesEnabled"
+                      [isCompactMode]="viewMode === AssetBasedCalendarViewMode.COMPACT"
+                      [isNewFrameEnabled]="isNewFrameEnabled"
+                      [columnWidthPx]="calendarColumnWidthPx()"
+                      [hubName]="selectedHubName"
+                      [bookedSlotDragCancelZone]="dragCancelZone()?.nativeElement ?? null"
+                      [bookedSlotDragDropPreview]="bookedSlotDragDropPreview"
+                      [bookedSlotDragEnabled]="isBookedSlotDragEnabled && !isBookedSlotMutationInProgress && !isAwaitingArrivalDay()"
+                      [bookedSlotResizeEnabled]="isBookedSlotResizeEnabled && !isBookedSlotMutationInProgress && !isAwaitingArrivalDay()"
+                      [peopleCountBookedSlotMoveEnabled]="
+                        isPeopleCountBookedSlotMoveEnabled && !isBookedSlotMutationInProgress && !isAwaitingArrivalDay()
+                      "
+                      [isCardV3Enabled]="isCardV3Enabled()"
+                      [isPhoneLayout]="isPhoneLayout()"
+                      [nowMs]="nowMs()"
+                      [isBookedSlotMovable]="isBookedSlotMovable"
+                      [longPressMoveEnabled]="isLongPressMoveEnabled()"
+                      [peopleCountLongPressMoveEnabled]="isLongPressMoveEnabled() && isCalendarMoveEnabled"
+                      [cardV3RowHeightPx]="calendarRowHeightPx()"
+                      [laneCardWidthV3Px]="calendarLaneCardWidthPx()"
+                      [manyPartyColumnWidthPx]="calendarManyPartyColumnWidthPx()"
+                      [pinchZoomState]="calendarZoomStateV3()"
+                      [activities]="activities"
+                      [draggingBookedSlotId]="draggingBookedSlotId"
+                      (bookedSlotDragCancelZoneHoverChange)="onBookedSlotDragCancelZoneHoverChange($event)"
+                      (bookedSlotDragEnded)="onBookedSlotDragEnded($event)"
+                      (bookedSlotDragPositionChange)="onBookedSlotDragPositionChange($event)"
+                      (bookedSlotDragStarted)="onBookedSlotDragStarted($event)"
+                      (moveModeLongPressOff)="onGridLongPressMoveOff()"
+                      (bookedSlotResizeEnded)="onBookedSlotResizeEnded($event)"
+                      (bookedSlotResizeStarted)="onBookedSlotResizeStarted()"
+                      (capacityRulesPanelOpen)="onCapacityRulesPanelOpen($event)"
+                      (dateExceptionOverlayClick)="onDateExceptionOverlayClick($event)"
+                      (effectiveTickMinutesChange)="onCalendarEffectiveTickMinutesChange($event)"
+                      [expandedAssetIds]="expandedAssetIds"
+                      [collapsedPartyCountAssetIds]="collapsedPartyCountAssetIds()"
+                      [isPartyCountSummaryEnabled]="isPartyCountSummaryEnabled()"
+                      [peopleCountLaneAssignmentsByAssetId]="peopleCountLaneAssignmentsByAssetId"
+                      [quickBlockArmed]="isQuickBlockArmed"
+                      (peopleCountExpandToggle)="onPeopleCountExpandToggle($event)"
+                      (peopleCountLanesDrawnChange)="onPeopleCountLanesDrawnChange($event)"
+                      (partyCountCollapseToggle)="onPartyCountCollapseToggle($event)"
+                      (pinchZoomStateChange)="onCalendarPinchZoomStateChange($event)"
+                      (peopleCountLaneCardClick)="onPeopleCountLaneCardClick($event)"
+                      (quickBlockDrawStarted)="onQuickBlockDrawStarted()"
+                      (quickBlockDrawn)="onQuickBlockDrawn($event)"
+                      (quickBlockPreviewLost)="onQuickBlockPreviewLost()"
+                      (emptySpaceClick)="onCalendarEmptySpaceClick()"
+                    >
+                    </app-asset-based-calendar>
+                  </div>
+                  @if (isBookedSlotMutationInProgress || isUserRefreshingBookedSlots) {
+                    <div
+                      class="asset-based-calendar-view__loader-overlay asset-based-calendar-view__loader-overlay--full-height"
+                      data-testid="calendar-loading-overlay"
+                      aria-hidden="true"
+                    ></div>
+                  }
+                </div>
+              }
+            }
+          </div>
+          @if (showsCalendarStartFade()) {
+            <div
+              class="calendar-scroll-area__edge calendar-scroll-area__edge--start"
+              data-testid="calendar-scroll-edge-start"
+              aria-hidden="true"
+              [style.inset-inline-start.px]="calendarHourColumnWidthPx()"
+            ></div>
+          }
+          @if (showsCalendarEndFade()) {
+            <div
+              class="calendar-scroll-area__edge calendar-scroll-area__edge--end"
+              data-testid="calendar-scroll-edge-end"
+              aria-hidden="true"
+            ></div>
+          }
+        </div>
+        @if ((isBookedSlotMutationInProgress || isUserRefreshingBookedSlots) && filteredAssets?.length && !isInitialLoading) {
+          <div
+            class="asset-based-calendar-view__loader-overlay asset-based-calendar-view__loader-overlay--spinner"
+            data-testid="calendar-loading-overlay-spinner"
+            aria-hidden="true"
+          >
+            <ignt-icon class="loader" name="spinner" size="display" variant="solid" [spin]="true"></ignt-icon>
+          </div>
+        }
+      </div>
+      <div
+        class="asset-based-calendar-view__details-panel"
+        [class.asset-based-calendar-view__details-panel--selected]="isAnythingSelected()"
+        [class.asset-based-calendar-view__details-panel--block-time]="isBlockTimePanelOpen()"
+        [class.asset-based-calendar-view__details-panel--customize]="isCustomizeAssetsPanelOpen"
+        [class.asset-based-calendar-view__details-panel--day-entries]="isDayEntriesPanelOpen"
+      >
+        @if (isCustomizeAssetsPanelOpen) {
+          <button
+            type="button"
+            class="asset-based-calendar-view__customize-backdrop"
+            [attr.aria-label]="'common.close' | translate"
+            [disabled]="isSavingCustomizeAssetsCatalog"
+            (click)="requestCloseCustomizeAssetsPanel()"
+            data-testid="customize-assets-backdrop"
+          ></button>
+          <div class="asset-based-calendar-view__customize-drawer">
+            <ignt-icon
+              data-testid="close-details-panel"
+              (click)="onSidebarCloseClick()"
+              class="asset-based-calendar-view__close-button icon-button icon-button--medium"
+              [class.asset-based-calendar-view__close-button--saving-blocked]="isSavingCustomizeAssetsCatalog"
+              name="times"
+              variant="solid"
+            >
+            </ignt-icon>
+            <div class="customize-assets-panel">
+              <div class="customize-assets-panel__header">
+                <h3 class="customize-assets-panel__title">{{ 'bookedSlots.customizeAssetsPanel.title' | translate }}</h3>
+              </div>
+              <p class="customize-assets-panel__subtitle">{{ 'bookedSlots.customizeAssetsPanel.subtitle' | translate }}</p>
+              <p class="customize-assets-panel__description">{{ 'bookedSlots.customizeAssetsPanel.description' | translate }}</p>
+              @if (customizeAssetsNoVisibleError) {
+                <ignt-alert
+                  class="customize-assets-panel__inline-alert"
+                  sentiment="danger"
+                  [showCloseButton]="false"
+                  data-testid="customize-assets-no-visible-alert"
+                  [title]="'bookedSlots.customizeAssetsPanel.noVisibleAssetsTitle' | translate"
+                  [description]="'bookedSlots.customizeAssetsPanel.noVisibleAssetsMessage' | translate"
+                ></ignt-alert>
+              }
+              <div
+                class="customize-assets-panel__list"
+                cdkDropList
+                cdkDropListLockAxis="y"
+                (cdkDropListDropped)="onCustomizeAssetsDraftDropped($event)"
+              >
+                @for (row of customizeAssetsDraftRows; track row.asset.id; let i = $index) {
+                  <div
+                    class="customize-assets-panel__row"
+                    cdkDrag
+                    cdkDragLockAxis="y"
+                    cdkDragBoundary=".customize-assets-panel"
+                    cdkDragPreviewClass="customize-assets-panel__drag-preview"
+                    [cdkDragDisabled]="customizeAssetsDraftRows.length < 2 || isSavingCustomizeAssetsCatalog"
+                    [attr.aria-label]="
+                      'bookedSlots.customizeAssetsPanel.reorderRowAriaLabel' | translate: { name: getCustomizePanelAssetTitle(row.asset) }
+                    "
+                  >
+                    <div class="customize-assets-panel__dnd-placeholder" *cdkDragPlaceholder></div>
+                    <div class="customize-assets-panel__row-main">
+                      <div class="customize-assets-panel__row-gutter">
+                        <span class="customize-assets-panel__index">{{ i + 1 }}</span>
+                        <div class="customize-assets-panel__reorder">
+                          <button
+                            type="button"
+                            class="customize-assets-panel__reorder-btn customize-assets-panel__reorder-btn--up"
+                            [disabled]="i === 0 || customizeAssetsDraftRows.length < 2 || isSavingCustomizeAssetsCatalog"
+                            [attr.aria-label]="'bookedSlots.customizeAssetsPanel.moveAssetUp' | translate"
+                            (click)="onCustomizeAssetMoveUp(i)"
+                          >
+                            <ignt-icon name="chevron-up" variant="light"></ignt-icon>
+                          </button>
+                          <button
+                            type="button"
+                            class="customize-assets-panel__reorder-btn customize-assets-panel__reorder-btn--down"
+                            [disabled]="
+                              i === customizeAssetsDraftRows.length - 1 ||
+                              customizeAssetsDraftRows.length < 2 ||
+                              isSavingCustomizeAssetsCatalog
+                            "
+                            [attr.aria-label]="'bookedSlots.customizeAssetsPanel.moveAssetDown' | translate"
+                            (click)="onCustomizeAssetMoveDown(i)"
+                          >
+                            <ignt-icon name="chevron-down" variant="light"></ignt-icon>
+                          </button>
+                        </div>
+                      </div>
+                      <div class="customize-assets-panel__meta">
+                        <span class="customize-assets-panel__name">{{ getCustomizePanelAssetTitle(row.asset) }}</span>
+                        <span class="customize-assets-panel__capacity">{{ getCustomizeAssetCapacitySubtitle(row.asset) }}</span>
+                      </div>
+                      <div class="customize-assets-panel__toggle">
+                        <ignt-toggle
+                          [id]="'customize-asset-visibility-' + row.asset.id"
+                          [checked]="row.visible"
+                          [disabled]="isSavingCustomizeAssetsCatalog"
+                          (change)="onCustomizeAssetVisibleChange(i, $event)"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+              <div class="customize-assets-panel__footer">
+                <button
+                  type="button"
+                  class="button button--primary button--large customize-assets-panel__save"
+                  [disabled]="!isCustomizeAssetsPanelDirty() || isSavingCustomizeAssetsCatalog"
+                  (click)="onCustomizeAssetsSave()"
+                  data-testid="customize-assets-save"
+                >
+                  {{ 'bookedSlots.customizeAssetsPanel.saveChanges' | translate }}
+                </button>
+                <button
+                  type="button"
+                  class="button button--tertiary button--large customize-assets-panel__cancel"
+                  [disabled]="isSavingCustomizeAssetsCatalog"
+                  (click)="requestCloseCustomizeAssetsPanel()"
+                >
+                  {{ 'common.cancel' | translate }}
+                </button>
+              </div>
+            </div>
+          </div>
+          @if (isCustomizeUnsavedConfirmOpen) {
+            <div class="customize-unsaved-modal-layer" data-testid="customize-unsaved-modal-layer">
+              <button
+                type="button"
+                class="customize-unsaved-modal-layer__backdrop"
+                [attr.aria-label]="'common.close' | translate"
+                [disabled]="isSavingCustomizeAssetsCatalog"
+                (click)="onCustomizeUnsavedModalCancel()"
+              ></button>
+              <div class="customize-unsaved-modal" role="dialog" aria-modal="true" aria-labelledby="customize-unsaved-modal-title">
+                <div class="customize-unsaved-modal__header">
+                  <h2 id="customize-unsaved-modal-title" class="customize-unsaved-modal__title">
+                    {{ 'bookedSlots.customizeAssetsPanel.unsavedChangesTitle' | translate }}
+                  </h2>
+                  <button
+                    type="button"
+                    class="customize-unsaved-modal__close icon-button icon-button--medium"
+                    [attr.aria-label]="'common.close' | translate"
+                    [disabled]="isSavingCustomizeAssetsCatalog"
+                    (click)="onCustomizeUnsavedModalCancel()"
+                    data-testid="customize-unsaved-modal-close"
+                  >
+                    <ignt-icon name="times" variant="solid"></ignt-icon>
+                  </button>
+                </div>
+                <div class="customize-unsaved-modal__divider" aria-hidden="true"></div>
+                <p class="customize-unsaved-modal__message">
+                  {{ 'bookedSlots.customizeAssetsPanel.unsavedChangesMessage' | translate }}
+                </p>
+                <div class="customize-unsaved-modal__actions">
+                  <button
+                    type="button"
+                    class="button button--tertiary button--large customize-unsaved-modal__cancel"
+                    [disabled]="isSavingCustomizeAssetsCatalog"
+                    (click)="onCustomizeUnsavedModalCancel()"
+                    data-testid="customize-unsaved-cancel"
+                  >
+                    {{ 'common.cancel' | translate }}
+                  </button>
+                  <button
+                    type="button"
+                    class="button button--primary button--large customize-unsaved-modal__leave"
+                    [disabled]="isSavingCustomizeAssetsCatalog"
+                    (click)="onCustomizeUnsavedModalLeave()"
+                    data-testid="customize-unsaved-leave"
+                  >
+                    {{ 'bookedSlots.customizeAssetsPanel.leaveWithoutSaving' | translate }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        } @else if (isDayEntriesPanelOpen) {
+          <div
+            class="asset-based-calendar-view__day-entries-backdrop"
+            role="button"
+            tabindex="0"
+            [attr.aria-label]="'common.close' | translate"
+            (click)="onSidebarCloseClick()"
+            (keydown.enter)="onSidebarCloseClick()"
+            data-testid="day-entries-backdrop"
+          ></div>
+          <div class="asset-based-calendar-view__day-entries-drawer">
+            <ignt-icon
+              data-testid="close-details-panel"
+              (click)="onSidebarCloseClick()"
+              class="asset-based-calendar-view__close-button icon-button icon-button--medium"
+              name="times"
+              variant="solid"
+            >
+            </ignt-icon>
+            <app-day-entries-panel
+              [canManage]="canManageDayNotes()"
+              [timezone]="timezone"
+              (closeRequested)="onDayEntriesCloseRequested()"
+            />
+          </div>
+        } @else if (isBlockTimePanelOpen()) {
+          <button
+            type="button"
+            class="asset-based-calendar-view__block-time-backdrop"
+            [attr.aria-label]="'common.close' | translate"
+            [disabled]="isCreatingBookedSlot || isDeletingBookedSlot"
+            (click)="onBlockTimePanelClose()"
+            data-testid="block-time-backdrop"
+          ></button>
+          <div class="asset-based-calendar-view__block-time-drawer">
+            <ignt-icon
+              data-testid="close-details-panel"
+              (click)="onSidebarCloseClick()"
+              class="asset-based-calendar-view__close-button icon-button icon-button--medium"
+              [class.asset-based-calendar-view__close-button--saving-blocked]="isCreatingBookedSlot || isDeletingBookedSlot"
+              name="times"
+              variant="solid"
+            >
+            </ignt-icon>
+            <app-block-time-form-panel
+              [assetOptions]="blockTimeAssetOptions"
+              [assets]="assets"
+              [bookedSlots]="blockTimeBookedSlots"
+              [calendarDate]="selectedDate"
+              [conflictDataState]="blockTimePanelDataState"
+              [clickedSlotDate]="selectedHourForBlock.slot.date"
+              [effectiveCapacityWindowsByAssetId]="blockTimeEffectiveCapacityWindowsByAssetId"
+              [initialAssetId]="selectedHourForBlock.assetId"
+              [isSubmitting]="isCreatingBookedSlot"
+              [timezone]="timezone"
+              (blockDateChanged)="onBlockTimeBlockDateChange($event)"
+              (discard)="onBlockTimePanelClose()"
+              (blockTimeSubmit)="onBlockTimeSubmit($event)"
+            />
+          </div>
+        } @else {
+          @if (!isRevisitedBookingDetailPanelVisible) {
+            <ignt-icon
+              data-testid="close-details-panel"
+              (click)="onSidebarCloseClick()"
+              class="asset-based-calendar-view__close-button icon-button icon-button--medium"
+              name="times"
+              variant="solid"
+            >
+            </ignt-icon>
+          }
+          @if (capacityRuleInfoPanelAsset && capacityRuleInfoPanelRule) {
+            <app-capacity-rule-info-panel
+              [capacityRule]="capacityRuleInfoPanelRule"
+              [assetTitle]="getCapacityRuleInfoPanelAssetTitle()"
+              [timezone]="timezone"
+            />
+          } @else if (capacityRulesPanelAsset && selectedDate) {
+            <app-asset-capacity-rules-panel
+              [asset]="capacityRulesPanelAsset"
+              [effectiveCapacityWindow]="getCapacityRulesPanelEffectiveCapacityWindow()"
+              [selectedDate]="selectedDate"
+              [selectedRuleId]="focusedCapacityRule?.ruleId ?? null"
+              [timezone]="timezone"
+              (ruleRowClick)="onCapacityRulesPanelRuleRowClick($event)"
+            />
+          } @else if (editingAssetBooking) {
+            <div class="asset-edit-panel" data-testid="asset-edit-panel">
+              <ignt-icon
+                class="asset-edit-panel__close icon-button icon-button--medium"
+                name="times"
+                variant="solid"
+                (click)="closeAssetEditPanel()"
+                (keyup.enter)="closeAssetEditPanel()"
+                (keyup.space)="closeAssetEditPanel()"
+                role="button"
+                tabindex="0"
+              >
+              </ignt-icon>
+              <div class="asset-edit-panel__header">
+                <button type="button" class="asset-edit-panel__back" (click)="closeAssetEditPanel()">
+                  <ignt-icon name="chevron-left" variant="solid"></ignt-icon>
+                </button>
+                <div class="asset-edit-panel__header-text">
+                  <h3 class="asset-edit-panel__title">{{ 'bookedSlots.moveAsset' | translate }}</h3>
+                </div>
+              </div>
+              <div class="asset-edit-panel__divider"></div>
+
+              <div class="asset-edit-panel__content">
+                @if (groupContiguityWarning; as contiguityWarning) {
+                  <ignt-alert
+                    data-testid="asset-edit-group-warning"
+                    role="status"
+                    aria-live="polite"
+                    sentiment="warning"
+                    [description]="contiguityWarning.descriptionKey | translate: contiguityWarning.descriptionParams"
+                  ></ignt-alert>
+                }
+                <div class="asset-edit-panel__booking-details">
+                  <h4 class="asset-edit-panel__section-title">{{ 'bookedSlots.bookingDetails' | translate }}</h4>
+                  <div class="asset-edit-panel__booking-list">
+                    @if (getEditingBookedSlot(); as slot) {
+                      <div class="asset-edit-panel__booking-row">
+                        <div class="asset-edit-panel__booking-item">
+                          <ignt-icon class="asset-edit-panel__booking-icon" name="circle-user" variant="regular"></ignt-icon>
+                          <span>{{ getFullName(slot) }}</span>
+                        </div>
+                        <div class="asset-edit-panel__booking-item">
+                          <ignt-icon class="asset-edit-panel__booking-icon" name="users" variant="regular"></ignt-icon>
+                          <span>{{ 'bookedSlots.guestsCount' | translate: { count: getSlotGuestCount(slot) } }}</span>
+                        </div>
+                      </div>
+                      <div class="asset-edit-panel__booking-row">
+                        <ignt-icon class="asset-edit-panel__booking-icon" name="clock" variant="regular"></ignt-icon>
+                        <span>{{ editingAssetBooking.timeRange }}</span>
+                      </div>
+                      <div class="asset-edit-panel__booking-divider"></div>
+                      @if (selectedAssetSwapOption; as option) {
+                        <div class="asset-edit-panel__booking-transfer">
+                          <span>{{ 'bookedSlots.from' | translate }}</span>
+                          <span class="asset-edit-panel__booking-asset">{{ editingAssetBooking.assetName }}</span>
+                          @if (option.availability === 'with-swap') {
+                            <ignt-icon class="asset-edit-panel__booking-transfer-icon" name="right-left" variant="regular"></ignt-icon>
+                          } @else {
+                            <ignt-icon
+                              class="asset-edit-panel__booking-transfer-icon"
+                              name="arrow-right-long"
+                              variant="regular"
+                            ></ignt-icon>
+                          }
+                          <span>{{ 'bookedSlots.to' | translate }}</span>
+                          <span
+                            class="asset-edit-panel__booking-asset"
+                            [class.asset-edit-panel__booking-asset--available]="option.availability === 'available'"
+                            [class.asset-edit-panel__booking-asset--swap]="option.availability === 'with-swap'"
+                          >
+                            {{ option.title }}
+                          </span>
+                        </div>
+                        @if (option.availability === 'with-swap' && option.swapWithSlot; as swapSlot) {
+                          <p class="asset-edit-panel__booking-swap-with">
+                            {{
+                              'bookedSlots.swapWith'
+                                | translate
+                                  : {
+                                      name: getFullName(swapSlot),
+                                      count: getSlotGuestCount(swapSlot),
+                                      timeRange: getFormattedTimeRange(swapSlot.occupancy),
+                                    }
+                            }}
+                          </p>
+                        }
+                      } @else {
+                        <div class="asset-edit-panel__booking-from">
+                          <span>{{ 'bookedSlots.from' | translate }}</span>
+                          <span class="asset-edit-panel__booking-asset">{{ editingAssetBooking.assetName }}</span>
+                        </div>
+                      }
+                    }
+                  </div>
+                </div>
+
+                <div class="asset-edit-panel__select-section">
+                  <h4 class="asset-edit-panel__section-title">{{ 'bookedSlots.selectNewAsset' | translate }}</h4>
+                  <div class="asset-edit-panel__asset-list">
+                    @for (option of assetSwapOptions; track option.id) {
+                      <label class="asset-edit-panel__asset-item" data-testid="asset-edit-option">
+                        <input
+                          type="radio"
+                          [name]="'asset-swap-' + editingAssetBooking.bookedSlotId"
+                          [value]="option.id"
+                          [checked]="selectedAssetSwapOption?.id === option.id"
+                          (change)="onAssetSwapSelect(option)"
+                        />
+                        <div class="asset-edit-panel__asset-info">
+                          <span class="asset-edit-panel__asset-name">{{ option.title }}</span>
+                          @if (option.conflictMessage) {
+                            <div class="asset-edit-panel__asset-conflict">
+                              <ignt-icon
+                                [name]="option.availability === 'unavailable' ? 'circle-exclamation' : 'triangle-exclamation'"
+                                variant="regular"
+                              ></ignt-icon>
+                              <span>{{ option.conflictMessage }}</span>
+                            </div>
+                          }
+                        </div>
+                        <ignt-tag
+                          [sentiment]="
+                            option.availability === 'unavailable' ? 'danger' : option.availability === 'with-swap' ? 'warning' : 'positive'
+                          "
+                          variant="outline"
+                        >
+                          {{
+                            option.availability === 'unavailable'
+                              ? ('bookedSlots.unavailable' | translate)
+                              : option.availability === 'with-swap'
+                                ? ('bookedSlots.swapRequired' | translate)
+                                : ('bookedSlots.available' | translate)
+                          }}
+                        </ignt-tag>
+                      </label>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <div class="asset-edit-panel__footer">
+                <button
+                  class="button button--primary button--large"
+                  data-testid="asset-edit-save"
+                  (click)="onAssetSwapSave()"
+                  [disabled]="!canSaveAssetSwap || isUpdatingBookedSlotAsset"
+                >
+                  @if (isUpdatingBookedSlotAsset) {
+                    <ignt-icon name="spinner-third" variant="duotone" [spin]="true"></ignt-icon>
+                  } @else if (selectedAssetSwapOption) {
+                    {{
+                      selectedAssetSwapOption.availability === 'with-swap'
+                        ? ('bookedSlots.swapTo' | translate: { assetName: selectedAssetSwapOption.title })
+                        : ('bookedSlots.moveTo' | translate: { assetName: selectedAssetSwapOption.title })
+                    }}
+                  } @else {
+                    {{ 'bookedSlots.moveAsset' | translate }}
+                  }
+                </button>
+                <button
+                  type="button"
+                  class="button button--tertiary button--large"
+                  data-testid="asset-edit-cancel"
+                  [disabled]="isUpdatingBookedSlotAsset"
+                  (click)="closeAssetEditPanel()"
+                >
+                  {{ 'common.cancel' | translate }}
+                </button>
+              </div>
+            </div>
+          } @else {
+            @if (selectedTimeSlotSummary && !selectedBookedSlot) {
+              <ng-container [ngTemplateOutlet]="timeSlotSummaryDetails"></ng-container>
+            }
+            @if (selectedBookedSlot && isMaintenance(selectedBookedSlot)) {
+              <ng-container [ngTemplateOutlet]="maintenanceDetails"></ng-container>
+            }
+            @if (selectedBookedSlot && !isMaintenance(selectedBookedSlot)) {
+              <app-booking-detail-panel
+                [activitySegments]="getActivitySegments()"
+                [allBookedSlots]="bookedSlots"
+                [bookedSlot]="selectedBookedSlot"
+                [liveState]="isCardV3Enabled() && !isMaintenance(selectedBookedSlot) ? liveStateOf(selectedBookedSlot) : null"
+                [bookingQuestions]="bookingDetailStore.detail()?.bookingQuestions ?? []"
+                [canDeleteBookedSlot]="canDeleteBookedSlot(selectedBookedSlot)"
+                [canManageBookings]="canManageBookings()"
+                [canNavigateToReservations]="canNavigateToReservations"
+                [canUnlinkBlocks]="canUnlinkBooking(selectedBookedSlot)"
+                [hasDetailError]="bookingDetailStore.hasError()"
+                [isConfirmingBookedSlot]="isConfirmingBookedSlot"
+                [isDeletingBookedSlot]="isDeletingBookedSlotOf(selectedBookedSlot)"
+                [isDetailLoading]="bookingDetailStore.isLoading()"
+                [isTogglingPlayState]="isTogglingPlayState"
+                [isUnlinkingBlocks]="isUpdatingBookingLink"
+                [bookingNote]="bookingDetailStore.detail()?.bookingNote ?? null"
+                [bookingNoteOwner]="bookingDetailStore.detail()?.noteOwner"
+                [isBookingNoteLoaded]="bookingDetailStore.detail() !== null"
+                [noteSaveFailure]="bookingDetailStore.noteSaveFailure()"
+                [purchaseSlots]="bookingDetailStore.detail()?.bookedSlots ?? []"
+                [removedBookedSlots]="bookingDetailStore.detail()?.removedBookedSlots ?? []"
+                [sessionItems]="bookingDetailStore.detail()?.sessionItems ?? []"
+                [showBack]="!!selectedTimeSlotSummary"
+                [timezone]="timezone"
+                (back)="backFromTimeSlotBookingDetail()"
+                (bookingTagsSaved)="onBookingTagsSaved()"
+                (closed)="onSidebarCloseClick()"
+                (confirmAssignment)="confirmBookedSlot()"
+                (deleteBookedSlot)="onRequestDeleteBookedSlot()"
+                (editOrder)="navigateToDetails()"
+                (locateAsset)="onActivityLocateAsset($event)"
+                (moveAsset)="onActivityMoveAsset($event)"
+                (noteChange)="onBookingNoteChange(selectedBookedSlot, $event)"
+                (noteSaveFailureDismissed)="onBookingNoteSaveFailureDismissed(selectedBookedSlot)"
+                (togglePlayState)="togglePlayState()"
+                (unlinkBlocks)="onRequestUnlinkBooking()"
+              />
+            }
+          }
+        }
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template
+  #calendarItem
+  let-bookedSlot="$implicit"
+  let-density="density"
+  let-event="event"
+  let-isClamped="isClamped"
+  let-isBookedSlotDraggable="isBookedSlotDraggable"
+  let-partyIndexInSlot="partyIndexInSlot"
+>
+  <!--
+    The card renders at the calendar's view mode unless the caller asks for a density of its own: an
+    order lane sizes its cards by duration, so a lane too short for the full card takes the compact
+    one instead of clipping it (GAME-1362).
+  -->
+  @let cardViewMode = getCardViewMode(density);
+  @let cardDescription = isCardV3Enabled() ? calendarCardDescriptionOf(bookedSlot, partyIndexInSlot) : null;
+  <ng-template #calendarCardTooltip>
+    <ng-container [ngTemplateOutlet]="calendarCardWords" [ngTemplateOutletContext]="{ $implicit: cardDescription }" />
+  </ng-template>
+  <div
+    data-testid="calendar-view-item-link"
+    (click)="onBookedSlotClick(bookedSlot, $event)"
+    (keydown.enter)="onCalendarCardKeydown($event, bookedSlot)"
+    (keydown.space)="onCalendarCardKeydown($event, bookedSlot)"
+    class="calendar-item-container"
+    igntTooltip
+    tooltipPlacement="bottom"
+    [tooltipDisabled]="cardDescription === null"
+    [tooltipMaxWidth]="280"
+    [tooltipTemplate]="calendarCardTooltip"
+    [appCalendarLongPress]="isCardV3Enabled()"
+    (calendarLongPress)="onCalendarCardLongPress(bookedSlot)"
+    [attr.aria-label]="cardDescription === null ? null : calendarCardAccessibleNameOf(cardDescription)"
+    [attr.role]="cardDescription === null ? null : 'button'"
+    [attr.tabindex]="cardDescription === null ? null : 0"
+    [class.calendar-item-container--card-v3]="isCardV3Enabled()"
+    [attr.data-booking-live-state]="isCardV3Enabled() && !isMaintenance(bookedSlot) ? liveStateOf(bookedSlot) : null"
+    [attr.data-colored-by-tags]="isColoredByTags() && !isMaintenance(bookedSlot) ? '' : null"
+    [attr.data-tag-color]="cardTagColorOf(bookedSlot)"
+    [class.calendar-item-container--clamped]="isClamped"
+    [class.calendar-item-container--draggable]="isBookedSlotDraggable"
+    [class.calendar-item-container--selected]="!isBookingFocusEnabled && isBookedSlotSelected(bookedSlot)"
+    [class.calendar-item-container--dimmed]="isBookedSlotDimmed(bookedSlot)"
+    [attr.aria-current]="isBookingFocusEnabled && isBookedSlotInSelectedPurchase(bookedSlot) ? 'true' : null"
+    [class.calendar-item-container--to-be-paid]="!isCardV3Enabled() && isPendingToPay(bookedSlot)"
+    [class.calendar-item-container--maintenance]="!isCardV3Enabled() && isMaintenance(bookedSlot)"
+    [class.calendar-item-container--block]="isCardV3Enabled() && isMaintenance(bookedSlot)"
+    [class.calendar-item-container--playing]="!isCardV3Enabled() && bookedSlot.isPlaying"
+  >
+    @if (isBookedSlotTagMatch(bookedSlot)) {
+      <span class="visually-hidden" data-testid="calendar-view-item-tag-match">{{
+        'bookedSlots.tagFilter.matchesFilter' | translate
+      }}</span>
+    }
+    <app-calendar-time-slot
+      data-testid="calendar-view-item"
+      class="calendar-item-container__timeslot"
+      [ratio]="0"
+      [isSoldOut]="false"
+      [isHidden]="false"
+    >
+      <ng-container
+        [ngTemplateOutlet]="countDisplay"
+        [ngTemplateOutletContext]="{
+          bookedSlot: bookedSlot,
+          cardViewMode: cardViewMode,
+          isMoveMode: isBookedSlotDraggable,
+          partyIndexInSlot: partyIndexInSlot,
+        }"
+      >
+      </ng-container>
+    </app-calendar-time-slot>
+  </div>
+</ng-template>
+
+<ng-template #timeSlotSummaryItem let-timeslotSummary="$implicit">
+  @let capacityDescription = isCardV3Enabled() ? capacityBlockDescriptionOf(timeslotSummary) : null;
+  <ng-template #capacityBlockTooltip>
+    <ng-container [ngTemplateOutlet]="calendarCardWords" [ngTemplateOutletContext]="{ $implicit: capacityDescription }" />
+  </ng-template>
+  <div
+    data-testid="calendar-view-item-link"
+    class="calendar-item-container"
+    (click)="onTimeslotSummaryPointerClick(timeslotSummary, $event)"
+    (keydown.enter)="onCapacityBlockKeydown($event, timeslotSummary)"
+    (keydown.space)="onCapacityBlockKeydown($event, timeslotSummary)"
+    igntTooltip
+    #capacityBlockTooltipTrigger="igntTooltip"
+    tooltipPlacement="bottom"
+    [tooltipDisabled]="capacityDescription === null"
+    [tooltipMaxWidth]="280"
+    [tooltipTemplate]="capacityBlockTooltip"
+    [appCalendarLongPress]="isCardV3Enabled() && !isQuickBlockArmed"
+    (calendarLongPress)="capacityBlockTooltipTrigger.open()"
+    [attr.aria-label]="capacityDescription === null ? null : calendarCardAccessibleNameOf(capacityDescription)"
+    [attr.role]="capacityDescription === null ? null : 'button'"
+    [attr.tabindex]="capacityDescription === null ? null : 0"
+    [class.calendar-item-container--card-v3]="isCardV3Enabled()"
+    [class.calendar-item-container--overbooked]="!isCardV3Enabled() && isTimeslotOverbooked(timeslotSummary)"
+    [class.calendar-item-container--exclusive-hire]="isTimeslotExclusiveHire(timeslotSummary)"
+    [class.calendar-item-container--selected]="
+      isBookingFocusEnabled ? isTimeSlotSummaryOpen(timeslotSummary) : isTimeSlotSummarySelected(timeslotSummary)
+    "
+    [class.calendar-item-container--dimmed-summary]="isTimeSlotSummaryDimmed(timeslotSummary)"
+  >
+    @if (isTimeSlotSummaryTagMatch(timeslotSummary)) {
+      <span class="visually-hidden" data-testid="calendar-view-item-tag-match">{{
+        'bookedSlots.tagFilter.matchesFilter' | translate
+      }}</span>
+    }
+    <app-calendar-time-slot
+      data-testid="calendar-view-item"
+      [ngClass]="['calendar-item-container__timeslot-summary']"
+      ratioRangeColorScheme="asset-based-capacity"
+      [ratio]="getOccupancyRatio(timeslotSummary.attendeeCount, timeslotSummary.totalCapacity)"
+      [isSoldOut]="false"
+      [isHidden]="false"
+    >
+      @let isTimeBlocked = isTimeslotTimeBlocked(timeslotSummary);
+      @let isExclusiveHire = isTimeslotExclusiveHire(timeslotSummary);
+      <div class="timeslot-summary-slot-body">
+        @if (isExclusiveHire) {
+          <ignt-tag
+            class="calendar-item-container__exclusive-tag exclusive-hire-tag"
+            [class.calendar-item-container__exclusive-tag--compact]="viewMode === AssetBasedCalendarViewMode.COMPACT"
+            data-testid="calendar-time-slot-exclusive-badge"
+            [sentiment]="'sharp'"
+            [variant]="'solid'"
+            [startIcon]="['fal', 'bolt']"
+          >
+            @if (viewMode !== AssetBasedCalendarViewMode.COMPACT) {
+              {{ 'bookedSlots.exclusiveHire' | translate }}
+            }
+          </ignt-tag>
+        } @else if (isCardV3Enabled()) {
+          <app-capacity-block
+            [bookedPax]="timeslotSummary.attendeeCount"
+            [capacity]="timeslotSummary.totalCapacity"
+            [checkedInGroupCount]="timeslotSummary.checkedInGroupCount"
+            [groupPax]="groupPaxOf(timeslotSummary)"
+            [partyOccupancy]="timeslotSummary.partyOccupancy"
+            [isPooledRange]="timeslotSummary.isPooledRange"
+          />
+        } @else {
+          <div
+            class="timeslot-details"
+            [class.timeslot-details--grid]="displayMode === 'calendar'"
+            [class.timeslot-details--time-blocked]="isTimeBlocked"
+          >
+            <span class="timeslot-details__occupancy">{{ timeslotSummary.attendeeCount }}</span>
+            @if (timeslotSummary.totalCapacity > 0) {
+              <span class="timeslot-details__capacity">/ {{ timeslotSummary.totalCapacity }}</span>
+            }
+            @if (isTimeslotOverbooked(timeslotSummary) && viewMode !== AssetBasedCalendarViewMode.COMPACT) {
+              <span class="timeslot-details__overbooked" data-testid="calendar-timeslot-overbooked-badge">
+                {{ 'bookedSlots.overCapacity' | translate }}
+              </span>
+            }
+          </div>
+        }
+        @if (!isCardV3Enabled() && displayMode === 'list' && isTimeslotValidated(timeslotSummary)) {
+          <div class="timeslot-details timeslot-details--validated">
+            @if (viewMode === AssetBasedCalendarViewMode.COMPACT) {
+              <ignt-tag
+                class="calendar-item__validated-tag calendar-item__validated-tag--compact"
+                data-testid="calendar-timeslot-summary-validated-badge"
+                [attr.aria-label]="'bookedSlots.validated' | translate"
+                [sentiment]="'positive'"
+                [variant]="'solid'"
+                [startIcon]="['fal', 'check']"
+              ></ignt-tag>
+            } @else {
+              <ignt-tag
+                class="calendar-item__validated-tag"
+                data-testid="calendar-timeslot-summary-validated-badge"
+                [sentiment]="'positive'"
+                [variant]="'solid'"
+                [startIcon]="['fal', 'check']"
+              >
+                {{ 'bookedSlots.validated' | translate }}
+              </ignt-tag>
+            }
+          </div>
+        }
+        @let occupancyRatio = getOccupancyRatio(timeslotSummary.attendeeCount, timeslotSummary.totalCapacity);
+        @if (!isCardV3Enabled() && occupancyRatio > 0 && !isExclusiveHire) {
+          <div
+            class="timeslot-occupancy-bar"
+            [class.timeslot-occupancy-bar--inverted]="occupancyRatio === 1"
+            [class.timeslot-occupancy-bar--time-blocked]="isTimeBlocked"
+            data-testid="calendar-timeslot-occupancy-bar"
+            aria-hidden="true"
+          >
+            <div class="timeslot-occupancy-bar__fill" [style.inline-size.%]="occupancyRatio * 100"></div>
+          </div>
+        }
+        @if (isTimeBlocked) {
+          <span
+            class="timeslot-blocked-badge"
+            data-testid="calendar-timeslot-blocked-badge"
+            role="img"
+            [attr.aria-label]="'bookedSlots.timeBlocked' | translate"
+          >
+            <ignt-icon aria-hidden="true" class="timeslot-blocked-badge__icon" name="lock-alt" variant="solid"></ignt-icon>
+          </span>
+        }
+      </div>
+    </app-calendar-time-slot>
+  </div>
+</ng-template>
+
+<ng-template #calendarFilters>
+  <div class="calendar-view-header__filters" [class.calendar-view-header__filters--with-tag-filter]="isTagFilterVisible">
+    <app-time-slots-calendar-filters
+      data-testid="asset-based-calendar-filters"
+      class="calendar-view-header__filters"
+      [isDisabled]="!timezone"
+      [timezone]="timezone"
+      [selectionMode]="displayMode === 'list' || isWeeklyCalendarMode ? TimeSlotsSelectionMode.Week : TimeSlotsSelectionMode.Day"
+      [dateSelected]="selectedDate"
+      (dateSelectedChange)="onCalendarFiltersDateChange($event)"
+      (dateRangeSelectedChange)="onCalendarFiltersDateRangeChange($event)"
+    ></app-time-slots-calendar-filters>
+    <app-multi-select
+      #calendarAssetsMultiSelect
+      class="field"
+      [options]="assetOptions"
+      [selectedOptions]="selectedAssets"
+      [placeholder]="'bookedSlots.assetPlaceholder' | translate"
+      [displayInPlaceMaximum]="2"
+      [isSelectAllVisible]="true"
+      [headerTemplate]="calendarAssetsMultiSelectHeader"
+      (selected)="onAssetsChange($event)"
+      data-testid="asset-based-calendar-assets-selector"
+    ></app-multi-select>
+    @if (!isWeeklyCalendarMode) {
+      <app-calendar-order-search
+        class="calendar-view-header__order-search"
+        [results]="getOrderSearchResults()"
+        [searchTerm]="orderSearchTerm"
+        (resultSelect)="onOrderSearchResultSelect($event)"
+        (searchTermChange)="onOrderSearchTermChange($event)"
+      ></app-calendar-order-search>
+      @if (isTagFilterVisible) {
+        <app-calendar-tag-filter
+          class="calendar-view-header__tag-filter"
+          data-testid="asset-based-calendar-tag-filter"
+          [options]="tagFilterOptions"
+          [selectedTagIds]="selectedTagIds"
+          [matchCount]="tagFilterMatchCount"
+          (selectedTagIdsChange)="onTagFilterChange($event)"
+          (cleared)="onTagFilterClear()"
+        ></app-calendar-tag-filter>
+      }
+    }
+    <div class="calendar-view-header__actions">
+      @if (bookedSlotsUpdatedAt() || isBookedSlotsOffline()) {
+        <app-refresh-status
+          class="asset-based-calendar-view__refresh-status"
+          data-testid="calendar-refresh-status"
+          [updatedAt]="bookedSlotsUpdatedAt()"
+          [isOffline]="isBookedSlotsOffline()"
+          [timezone]="timezone"
+        />
+      }
+      <app-calendar-tick-settings
+        [partnerId]="calendarPartnerId"
+        [hubId]="calendarHubId"
+        [triggerVisible]="areDailyGridControlsVisible"
+        [autoTickMinutes]="calendarEffectiveTickMinutes"
+        (manualTickMinutesChange)="onCalendarManualTickMinutesChange($event)"
+        (resolutionPicked)="onCalendarTickResolutionPicked($event)"
+      ></app-calendar-tick-settings>
+      @if (isDayEntriesTriggerVisible) {
+        <div class="calendar-view-header__day-entries" [class.calendar-view-header__day-entries--active]="isDayEntriesPanelOpen">
+          <ignt-button
+            size="large"
+            variant="tertiary"
+            [ariaLabel]="dayEntriesTriggerLabel | translate: { count: dayEntriesStore.openCount() }"
+            [label]="'bookedSlots.dayEntries.title' | translate"
+            [leadingIcon]="dayEntriesIcon"
+            (click)="onDayEntriesClick()"
+            data-testid="calendar-day-entries-button"
+          />
+          @if (dayEntriesStore.openCount() > 0) {
+            <span class="calendar-view-header__day-entries-badge" aria-hidden="true" data-testid="calendar-day-entries-badge">
+              {{ dayEntriesStore.openCount() }}
+            </span>
+          }
+        </div>
+      }
+      @if (calendarSettingsMenuOptions.length > 0) {
+        <div class="calendar-view-header__settings-menu">
+          <ignt-button-dropdown
+            [options]="calendarSettingsMenuOptions"
+            [sentiment]="'tertiary'"
+            [size]="'large'"
+            [align]="'right'"
+            [autoWidth]="true"
+            [borderless]="true"
+            [hoverEffect]="true"
+            (optionClick)="onCalendarSettingsMenuOptionClick($event)"
+            data-testid="calendar-settings-dropdown"
+          >
+            <span class="visually-hidden" translate>bookedSlots.calendarSettingsPanel.title</span>
+            <ignt-icon name="cog" variant="solid" class="calendar-view-header__settings-icon"></ignt-icon>
+          </ignt-button-dropdown>
+        </div>
+      }
+      @if (areDailyGridControlsVisible && canManageTimeBlocks()) {
+        <div class="calendar-view-header__lock">
+          <ignt-button-dropdown
+            class="calendar-view-header__lock-button"
+            [class.calendar-view-header__lock-button--armed]="isQuickBlockArmed || !!selectedHourForBlock"
+            [options]="blockTimeMenuOptions"
+            [sentiment]="'tertiary'"
+            [size]="'large'"
+            [align]="'right'"
+            [autoWidth]="true"
+            [borderless]="true"
+            [hoverEffect]="true"
+            (optionClick)="onBlockTimeMenuOptionClick($event, blockTimeDropdown)"
+            (openedChange)="onBlockTimeMenuOpenedChange($event, blockTimeDropdown)"
+            #blockTimeDropdown
+            data-testid="calendar-lock-button"
+          >
+            <span class="visually-hidden">{{ 'bookedSlots.lockButton' | translate }}</span>
+            <span class="visually-hidden" data-testid="quick-block-armed-status">{{ quickBlockStatusKey | translate }}</span>
+            <ignt-icon class="calendar-view-header__lock-icon" name="lock-alt" variant="solid"></ignt-icon>
+          </ignt-button-dropdown>
+          @if (isQuickBlockHintVisible) {
+            <div class="calendar-view-header__quick-block-hint" aria-hidden="true" data-testid="quick-block-hint">
+              <p class="calendar-view-header__quick-block-hint-title">{{ 'bookedSlots.quickBlock.menuOption' | translate }}</p>
+              <p class="calendar-view-header__quick-block-hint-text">{{ 'bookedSlots.quickBlock.hint' | translate }}</p>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #calendarAssetsMultiSelectHeader>
+  @if (canCustomizeAssets) {
+    <button
+      type="button"
+      class="asset-based-calendar-view__customize-assets"
+      data-testid="asset-based-calendar-customize-assets"
+      (click)="onCustomizeAssetsClick($event)"
+    >
+      <span class="asset-based-calendar-view__customize-assets-label">{{ 'bookedSlots.customizeAssets' | translate }}</span>
+      <ignt-icon name="chevron-right" variant="solid" class="asset-based-calendar-view__customize-assets-chevron"></ignt-icon>
+    </button>
+  }
+</ng-template>
+
+<ng-template #exclusiveHireBadge let-compact="compact">
+  <ignt-tag
+    class="exclusive-hire-tag"
+    data-testid="calendar-item-exclusive-badge"
+    [sentiment]="'sharp'"
+    [variant]="'solid'"
+    [startIcon]="['fal', 'bolt']"
+  >
+    @if (!compact) {
+      {{ 'bookedSlots.exclusiveHire' | translate }}
+    }
+  </ignt-tag>
+</ng-template>
+
+<ng-template #timeSlotSummaryDetails>
+  @if (selectedTimeSlotSummary) {
+    <app-timeslot-summary-panel
+      [assetName]="selectedTimeSlotSummary.assetName"
+      [attendeeCount]="selectedTimeSlotSummary.attendeeCount"
+      [attendeeRows]="getTimeSlotSummaryAttendeeRows()"
+      [hours]="getTimeSlotSummaryHours()"
+      [hoursTooltip]="getTimeSlotSummaryHoursTooltip()"
+      [isPeakCount]="selectedTimeSlotSummary.isPeakCount"
+      [isDaySelection]="selectedTimeSlotSummary.isDaySelection"
+      [partyOccupancy]="selectedTimeSlotSummary.partyOccupancy"
+      [peakAttendeeCount]="selectedTimeSlotSummary.peakAttendeeCount"
+      [totalCapacity]="selectedTimeSlotSummary.totalCapacity"
+      (attendeeClick)="onTimeSlotSummaryAttendeeClick($event)"
+    />
+  }
+</ng-template>
+
+<ng-template #maintenanceDetails>
+  @if (selectedBookedSlot && isMaintenance(selectedBookedSlot)) {
+    <app-block-time-detail-panel
+      [assetBookings]="getAssetBookingsOfPurchase(selectedBookedSlot)"
+      [canDelete]="canManageTimeBlocks()"
+      [canLinkBooking]="canLinkBooking(selectedBookedSlot)"
+      [creation]="getBlockCreation(selectedBookedSlot)"
+      [groupSize]="getTotalParties(selectedBookedSlot.parties)"
+      [isDeleting]="isDeletingBookedSlot"
+      [isUpdatingLink]="isUpdatingBookingLink"
+      [message]="selectedBookedSlot.message"
+      [showBack]="!!selectedTimeSlotSummary"
+      [subtitle]="getBlockTimeDisplayTitle(selectedBookedSlot)"
+      [timeRange]="getFormattedTimeRange(selectedBookedSlot.occupancy)"
+      (backClick)="backFromTimeSlotBookingDetail()"
+      (deleteClick)="onRequestDeleteMaintenanceSlot()"
+      (linkBookingClick)="onRequestLinkBooking()"
+    />
+  }
+</ng-template>
+
+<ng-template
+  #countDisplay
+  let-bookedSlot="bookedSlot"
+  let-cardViewMode="cardViewMode"
+  let-isMoveMode="isMoveMode"
+  let-partyIndexInSlot="partyIndexInSlot"
+>
+  @if (isCardV3Enabled()) {
+    @if (isMaintenance(bookedSlot)) {
+      <app-locked-slot-card [label]="getBlockTimeDisplayTitle(bookedSlot)" [noteText]="bookedSlot.message" />
+    } @else {
+      @let liveState = liveStateOf(bookedSlot);
+      <app-booking-card-v3
+        [bookedSlot]="bookedSlot"
+        [checkedInCount]="checkedInCountOf(bookedSlot, partyIndexInSlot)"
+        [isColoredByTags]="isColoredByTags()"
+        [isMoveMode]="isMoveMode"
+        [partyCount]="getBookingCardPartyCount(bookedSlot, partyIndexInSlot)"
+        [playingProgress]="liveState === 'playing' ? playingProgressOf(bookedSlot) : 0"
+        [state]="liveState"
+        [tagColor]="cardTagColorOf(bookedSlot)"
+        [tags]="tagsOf(bookedSlot)"
+      />
+    }
+  }
+
+  @if (isMaintenance(bookedSlot) && !isCardV3Enabled()) {
+    <div class="calendar-item-maintenance">
+      <div class="calendar-item-maintenance__lock-row">
+        <div class="calendar-item__badge">
+          <ignt-icon name="lock-alt" variant="light"></ignt-icon>
+        </div>
+      </div>
+      <span class="calendar-item-maintenance__title">{{ getBlockTimeDisplayTitle(bookedSlot) }}</span>
+      <span class="calendar-item-maintenance__time">{{ getBlockTimeDurationLabel(bookedSlot.occupancyDurationMinutes) }}</span>
+    </div>
+  }
+
+  @if (!isMaintenance(bookedSlot) && !isCardV3Enabled()) {
+    <div class="calendar-item" [class.calendar-item--compact]="cardViewMode === AssetBasedCalendarViewMode.COMPACT">
+      @if (cardViewMode === AssetBasedCalendarViewMode.EXTENDED) {
+        <div class="calendar-item__header">
+          <div class="calendar-item__badge">
+            <ignt-icon [name]="getBookingFromIconName(bookedSlot)" variant="light"></ignt-icon>
+          </div>
+          <span class="calendar-item__name"> {{ bookedSlot?.user?.firstName }} {{ bookedSlot?.user?.lastName }} </span>
+          @if (purchaseHoldsMultipleAssets(bookedSlot)) {
+            <div class="calendar-item__badge calendar-item__badge--multi">
+              <ignt-icon name="clone" variant="light"></ignt-icon>
+            </div>
+          }
+        </div>
+        @if (!bookedSlot.isExclusiveHire) {
+          <div class="calendar-item__info">
+            <span class="calendar-item__info-item">
+              <ignt-icon name="user" variant="light" class="calendar-item__info-icon"></ignt-icon>
+              {{ getPartyDisplayText(bookedSlot, partyIndexInSlot) }}
+            </span>
+            @if (bookedSlot?.addOnsCount) {
+              <span class="calendar-item__separator">·</span>
+              <span class="calendar-item__info-item">
+                <ignt-icon name="cart-plus" variant="light" class="calendar-item__info-icon"></ignt-icon>
+                {{ bookedSlot.addOnsCount }}
+              </span>
+            }
+          </div>
+        }
+        <!-- One pill slot for both axes: a playing card shows Playing instead of its money tag. -->
+        @if (bookedSlot.isPlaying) {
+          <div class="calendar-item__row">
+            <app-booked-slot-playing-status></app-booked-slot-playing-status>
+          </div>
+        } @else {
+          <div class="calendar-item__row">
+            @if (isPendingToPay(bookedSlot)) {
+              <app-reservation-status-tag
+                class="calendar-item__status-tag"
+                [status]="reservationStatusEnum.TO_BE_PAID"
+                [variant]="cardViewMode"
+                [dataTestId]="'asset-calendar-status-tag'"
+              ></app-reservation-status-tag>
+            }
+          </div>
+
+          @if ((bookedSlot.validatedTickets ?? 0) > 0) {
+            <div class="calendar-item__row">
+              <ignt-tag
+                class="calendar-item__validated-tag"
+                data-testid="calendar-item-validated-badge"
+                [sentiment]="'positive'"
+                [variant]="'solid'"
+                [startIcon]="['fal', 'check']"
+              >
+                {{ 'bookedSlots.validated' | translate }}
+              </ignt-tag>
+            </div>
+          }
+        }
+
+        @if (bookedSlot.isExclusiveHire) {
+          <div class="calendar-item__row">
+            <ng-container [ngTemplateOutlet]="exclusiveHireBadge" [ngTemplateOutletContext]="{ compact: false }"></ng-container>
+          </div>
+        }
+
+        @if (bookedSlot.requiresManualAssignmentConfirmation) {
+          <div class="calendar-item__row">
+            <app-booked-slot-confirmation-status
+              [isConfirmed]="bookedSlot.isConfirmed"
+              [short]="true"
+            ></app-booked-slot-confirmation-status>
+          </div>
+        }
+
+        @if (hasTagIcons(bookedSlot)) {
+          <app-booked-slot-tag-icons class="calendar-item__tag-icons" [tags]="tagsOf(bookedSlot)" />
+        }
+
+        @if (hasTagChips(bookedSlot)) {
+          <app-booked-slot-tag-chips class="calendar-item__tag-chips" [tags]="tagsOf(bookedSlot)" />
+        }
+      }
+
+      @if (cardViewMode === AssetBasedCalendarViewMode.COMPACT) {
+        <div class="calendar-item__row calendar-item__header">
+          <div class="calendar-item__badge">
+            <ignt-icon [name]="getBookingFromIconName(bookedSlot)" variant="light"></ignt-icon>
+          </div>
+          @if (purchaseHoldsMultipleAssets(bookedSlot)) {
+            <div class="calendar-item__badge calendar-item__badge--multi">
+              <ignt-icon name="clone" variant="light"></ignt-icon>
+            </div>
+          }
+        </div>
+
+        @if (!bookedSlot.isExclusiveHire) {
+          <div class="calendar-item__row">
+            <span class="calendar-item__info-item">
+              <ignt-icon name="user" variant="light" class="calendar-item__info-icon"></ignt-icon>
+              {{ getPartyDisplayText(bookedSlot, partyIndexInSlot) }}
+            </span>
+          </div>
+        }
+
+        @if (bookedSlot.isPlaying) {
+          <div class="calendar-item__row">
+            <app-booked-slot-playing-status [compact]="true"></app-booked-slot-playing-status>
+          </div>
+        } @else {
+          <div class="calendar-item__row">
+            @if (isPendingToPay(bookedSlot)) {
+              <app-reservation-status-tag
+                class="calendar-item__status-tag"
+                [status]="reservationStatusEnum.TO_BE_PAID"
+                [variant]="cardViewMode"
+                [dataTestId]="'asset-calendar-status-tag'"
+              ></app-reservation-status-tag>
+            }
+          </div>
+
+          @if ((bookedSlot.validatedTickets ?? 0) > 0) {
+            <div class="calendar-item__row">
+              <ignt-tag
+                class="calendar-item__validated-tag calendar-item__validated-tag--compact"
+                data-testid="calendar-item-validated-badge"
+                [attr.aria-label]="'bookedSlots.validated' | translate"
+                [sentiment]="'positive'"
+                [variant]="'solid'"
+                [startIcon]="['fal', 'check']"
+              ></ignt-tag>
+            </div>
+          }
+        }
+
+        @if (bookedSlot.isExclusiveHire) {
+          <div class="calendar-item__row">
+            <ng-container [ngTemplateOutlet]="exclusiveHireBadge" [ngTemplateOutletContext]="{ compact: true }"></ng-container>
+          </div>
+        }
+
+        @if (bookedSlot.requiresManualAssignmentConfirmation) {
+          <div class="calendar-item__row">
+            <app-booked-slot-confirmation-status
+              [isConfirmed]="bookedSlot.isConfirmed"
+              [compact]="true"
+            ></app-booked-slot-confirmation-status>
+          </div>
+        }
+
+        @if (hasTagIcons(bookedSlot)) {
+          <app-booked-slot-tag-icons class="calendar-item__tag-icons" [tags]="tagsOf(bookedSlot)" />
+        }
+
+        @if (hasTagChips(bookedSlot)) {
+          <app-booked-slot-tag-chips class="calendar-item__tag-chips" [tags]="tagsOf(bookedSlot)" />
+        }
+      }
+    </div>
+  }
+</ng-template>
+
+<ng-template #dragCancelZoneTemplate>
+  <div
+    #dragCancelZone
+    aria-hidden="true"
+    class="drag-cancel-zone"
+    [class.drag-cancel-zone--hovered]="isBookedSlotDragCancelZoneHovered"
+    data-testid="asset-calendar-dnd-cancel-zone"
+  >
+    <ignt-icon class="drag-cancel-zone__icon" name="times" variant="regular"></ignt-icon>
+    <span class="drag-cancel-zone__label">{{ 'bookedSlots.dropToCancelMove' | translate }}</span>
+  </div>
+</ng-template>
+
+<ng-template #calendarCardWords let-description>
+  @if (description !== null) {
+    <strong class="calendar-card-tooltip__title">{{ description.title }}</strong>
+    @for (line of description.lines; track $index) {
+      <span class="calendar-card-tooltip__line">{{ line }}</span>
+    }
+  }
+</ng-template>

@@ -1,0 +1,230 @@
+// Loop cycle duration (all animations use this for sync)
+$nfc-cycle: 5s;
+
+// Card tap - loop: tap in first 2s, hold until end of cycle, then reset
+@keyframes card-tap {
+  0% {
+    transform: translateY(-50%) translateX(0) rotate(0deg);
+  }
+
+  40% {
+    transform: translateY(-50%) translateX(10%) rotate(-18deg);
+  }
+
+  100% {
+    transform: translateY(-50%) translateX(10%) rotate(-18deg);
+  }
+}
+
+// Card fade out - loop: visible until 3.47s, fade by 3.7s, then reset
+@keyframes card-fade {
+  0% {
+    opacity: 1;
+  }
+
+  69.4% {
+    opacity: 1;
+  }
+
+  74% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+// Wave pulse - loop: two pulses in first ~3.2s of cycle, then off until reset
+@keyframes wave-pulse {
+  0% {
+    opacity: 0;
+  }
+
+  8.9% {
+    opacity: 1;
+  }
+
+  26.7% {
+    opacity: 1;
+  }
+
+  31.7% {
+    opacity: 0;
+  }
+
+  39.5% {
+    opacity: 0;
+  }
+
+  48.4% {
+    opacity: 1;
+  }
+
+  60% {
+    opacity: 0;
+  }
+
+  71% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+// Checkmark - loop: appear at 3.77s, bounce in, then reset at end of cycle
+@keyframes check-scale {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0);
+  }
+
+  75% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0);
+  }
+
+  76% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.11);
+  }
+
+  86% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.31);
+  }
+
+  95% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0);
+  }
+}
+
+.nfc-success-animation {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 400px;
+  max-width: 560px;
+  margin: 0 auto;
+  aspect-ratio: 614 / 390; // Matches Lottie composition
+
+  // Device (static base element)
+  // Device in Lottie is roughly 60% of composition width
+  &__device {
+    position: relative;
+    z-index: 1;
+    width: 60%;
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+  }
+
+  // Card - JSON position: [430.65, 190.6] in 614×390 composition
+  // From right: (614 - 430.65) / 614 = 29.9%
+  // From top: 190.6 / 390 = 48.9%
+  // Size: card is ~12.7% of composition width (78/614)
+  &__card {
+    position: absolute;
+    top: 49%;
+    right: 24.9%;
+    z-index: 3;
+    width: 12.7%;
+    transform: translateY(-50%);
+    animation:
+      card-tap $nfc-cycle cubic-bezier(0.33, 1, 0.68, 1) infinite,
+      card-fade $nfc-cycle ease-out infinite;
+    transform-origin: center bottom;
+    will-change: transform, opacity;
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+  }
+
+  // Waves container - JSON position: [366.76, 159.18] in 614×390 composition
+  // From right: (614 - 366.76) / 614 = 40.3%
+  // From top: adjusted 2% higher for visual alignment
+  // Size: ~5.2% of composition width (32/614)
+  &__waves {
+    position: absolute;
+    top: 39.8%;
+    right: 36.3%;
+    z-index: 2;
+    width: 5.2%;
+    aspect-ratio: 32 / 38;
+  }
+
+  // Individual waves with JSON-derived timing
+  // Net1 (inner): starts frame 30 (0.5s), duration ~3.18s for full pulse cycle
+  // Net2 (outer): starts frame 48 (0.8s), similar pattern
+  &__wave {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    opacity: 0;
+    will-change: opacity;
+
+    // Inner wave - starts at 0.5s
+    &--inner {
+      animation: wave-pulse $nfc-cycle ease-in-out 0.5s infinite;
+    }
+
+    // Outer wave - starts at 0.8s, 0.3s after inner
+    &--outer {
+      animation: wave-pulse $nfc-cycle ease-in-out 0.8s infinite;
+    }
+  }
+
+  // Checkmark - JSON timing: appears frame 226 (3.77s), bounces frames 234-261
+  // Size: reduced so rays don't reach black edges
+  &__check {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 10;
+    width: 20%;
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+    animation: check-scale $nfc-cycle cubic-bezier(0.167, 0.167, 0.833, 0.833) infinite;
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+  }
+
+  &--mobile-pos {
+    min-width: 0;
+    width: min(100%, 28vh);
+  }
+
+  &--mobile-pos &__card {
+    right: 38%;
+  }
+
+  &--mobile-pos &__waves {
+    right: 49.5%;
+  }
+
+  &--mobile-pos &__check {
+    width: 14%;
+  }
+}

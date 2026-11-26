@@ -1,0 +1,560 @@
+<article class="timeline-item" [attr.aria-labelledby]="'timeline-item-title-' + activityId()">
+  <div
+    class="timeline-item__summary"
+    [class.timeline-item__summary--static]="!expandable()"
+    data-testid="timeline-item-summary"
+    [attr.role]="expandable() ? 'button' : null"
+    [attr.tabindex]="expandable() ? 0 : null"
+    [attr.aria-expanded]="expandable() ? isExpanded() : null"
+    [attr.aria-controls]="expandable() ? 'timeline-item-content-' + activityId() : null"
+    [attr.aria-labelledby]="'timeline-item-title-' + activityId()"
+    (click)="toggleExpanded()"
+    (keydown)="onSummaryKeydown($event)"
+  >
+    <div class="timeline-item__icon-container" aria-hidden="true">
+      <ignt-icon class="timeline-item__icon-container__icon" [name]="icon()" variant="light" />
+    </div>
+    <div class="timeline-item__header">
+      <div class="timeline-item__header__content">
+        <div class="timeline-item__activity-type-row">
+          <h4 class="timeline-item__activity-type" [id]="'timeline-item-title-' + activityId()">
+            @if (titleOverride()) {
+              {{ titleOverride() | translate }}
+            } @else {
+              {{ activityTypeTranslateKey() | translateTerminology }}
+              @if (formattedAmountPart(); as amountPart) {
+                <span class="timeline-item__activity-type__amount"> - {{ amountPart }}</span>
+              }
+            }
+          </h4>
+          @if (directionTranslateKey(); as directionKey) {
+            <ignt-tag class="timeline-item__direction-tag" sentiment="info" variant="solid" [startIcon]="directionArrowIcon() ?? undefined">
+              {{ directionKey | translate }}
+            </ignt-tag>
+          }
+          @if (hasFollowUpMetadata()) {
+            @if (formattedFollowUpDate()) {
+              <span class="timeline-item__flag-wrap" igntTooltip [tooltipLabel]="followUpIconTooltipText()">
+                <ignt-icon class="timeline-item__flag-icon" name="flag" variant="solid" aria-hidden="true" />
+              </span>
+            } @else {
+              <ignt-icon class="timeline-item__flag-icon" name="flag" variant="solid" aria-hidden="true" />
+            }
+          }
+        </div>
+        @if (subtitleText(); as subtitle) {
+          <p class="timeline-item__subtitle" data-testid="timeline-item-subtitle">
+            {{ subtitle }}
+          </p>
+        }
+      </div>
+      <time class="timeline-item__date" [attr.datetime]="date()">{{ formattedDate() }}</time>
+      @if (expandable()) {
+        <ignt-icon
+          class="timeline-item__expand-chevron flip-rtl"
+          [name]="isExpanded() ? 'chevron-down' : 'chevron-right'"
+          variant="solid"
+          aria-hidden="true"
+        />
+      }
+    </div>
+  </div>
+  @if (isExpanded()) {
+    <div
+      class="timeline-item__content"
+      [id]="'timeline-item-content-' + activityId()"
+      data-testid="timeline-item-content"
+      role="region"
+      [attr.aria-label]="'fundraising.patronDetails.activityTimeline.activityDetails' | translate"
+    >
+      @if (customItem()) {
+        <ng-container [ngTemplateOutlet]="membershipMetadata" />
+      } @else {
+        @switch (type()) {
+          @case (userAssociationActivities.EMAIL) {
+            <dl
+              class="timeline-item__metadata"
+              [class.timeline-item__metadata--after-body]="hasNonEmptyContent()"
+              data-testid="timeline-item-metadata"
+            >
+              @if (emailFrom(); as emailFromValue) {
+                <div class="timeline-item__metadata__row">
+                  <dt class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.fromLabel' | translate }}
+                  </dt>
+                  <dd class="timeline-item__metadata__value">{{ emailFromValue }}</dd>
+                </div>
+              }
+              @if (emailTo(); as emailToValue) {
+                <div class="timeline-item__metadata__row">
+                  <dt class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.toLabel' | translate }}
+                  </dt>
+                  <dd class="timeline-item__metadata__value">{{ emailToValue }}</dd>
+                </div>
+              }
+              @if (emailSubject(); as emailSubjectValue) {
+                <div class="timeline-item__metadata__row">
+                  <dt class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.subjectLabel' | translate }}
+                  </dt>
+                  <dd class="timeline-item__metadata__value">{{ emailSubjectValue }}</dd>
+                </div>
+              }
+              @if (content(); as contentValue) {
+                <div class="timeline-item__metadata__row">
+                  <dt class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.contentLabel' | translate }}
+                  </dt>
+                  <dd class="timeline-item__metadata__value">{{ contentValue }}</dd>
+                </div>
+              }
+            </dl>
+          }
+          @case (userAssociationActivities.PHONE_CALL) {
+            <dl
+              class="timeline-item__metadata"
+              [class.timeline-item__metadata--after-body]="hasNonEmptyContent()"
+              data-testid="timeline-item-metadata"
+            >
+              @if (content()) {
+                <div class="timeline-item__metadata__row">
+                  <p class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.notesLabel' | translate }}
+                  </p>
+                </div>
+              }
+            </dl>
+          }
+          @case (userAssociationActivities.ATTENDANCE) {
+            <dl
+              class="timeline-item__metadata"
+              [class.timeline-item__metadata--after-body]="hasNonEmptyContent()"
+              data-testid="timeline-item-metadata"
+            >
+              @if (structuredMetadataTicketType(); as ticketTypeValue) {
+                <div class="timeline-item__metadata__row">
+                  <dt class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.typeLabel' | translate }}
+                  </dt>
+                  <dd class="timeline-item__metadata__value">
+                    {{ ticketTypeValue }}
+                  </dd>
+                </div>
+              }
+              @if (content()) {
+                <div class="timeline-item__metadata__row">
+                  <p class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.notesLabel' | translate }}
+                  </p>
+                </div>
+              }
+            </dl>
+          }
+          @case (userAssociationActivities.PURCHASE) {
+            <dl
+              class="timeline-item__metadata"
+              [class.timeline-item__metadata--after-body]="hasNonEmptyContent()"
+              data-testid="timeline-item-metadata"
+            >
+              @if (formattedAmountPart(); as metadataAmount) {
+                <div class="timeline-item__metadata__row">
+                  <dt class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.amountLabel' | translate }}
+                  </dt>
+                  <dd class="timeline-item__metadata__value">{{ metadataAmount }}</dd>
+                </div>
+              }
+              @if (structuredMetadataChannel(); as channelValue) {
+                <div class="timeline-item__metadata__row">
+                  <dt class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.channelLabel' | translate }}
+                  </dt>
+                  <dd class="timeline-item__metadata__value">
+                    {{ channelValue }}
+                  </dd>
+                </div>
+              }
+              @if (purchaseSubtype(); as purchaseSubtypeValue) {
+                @if (
+                  structuredMetadataPaymentMethod() &&
+                  (purchaseSubtypeValue === userAssociationActivityPurchaseSubtypes.MERCHANDISE ||
+                    purchaseSubtypeValue === userAssociationActivityPurchaseSubtypes.FOOD_AND_BEVERAGE)
+                ) {
+                  <div class="timeline-item__metadata__row">
+                    <dt class="timeline-item__metadata__label">
+                      {{ 'fundraising.patronDetails.activityTimeline.metadata.paymentMethodLabel' | translate }}
+                    </dt>
+                    <dd class="timeline-item__metadata__value">
+                      {{ 'boxOffice.cart.paymentMethods.' + structuredMetadataPaymentMethod() | translate }}
+                    </dd>
+                  </div>
+                }
+                @if (purchaseSubtypeValue === userAssociationActivityPurchaseSubtypes.TICKET) {
+                  <div class="timeline-item__metadata__row">
+                    <dt class="timeline-item__metadata__label">
+                      {{ 'fundraising.patronDetails.activityTimeline.metadata.validationLabel' | translate }}
+                    </dt>
+                    <dd class="timeline-item__metadata__value">
+                      {{
+                        structuredMetadataValidationDate() !== null
+                          ? ('common.yes' | translate) + ' - ' + structuredMetadataValidationDate()
+                          : ('common.no' | translate)
+                      }}
+                    </dd>
+                  </div>
+                }
+              }
+            </dl>
+          }
+          @case (userAssociationActivities.DONATION) {
+            <dl
+              class="timeline-item__metadata"
+              [class.timeline-item__metadata--after-body]="hasNonEmptyContent()"
+              data-testid="timeline-item-metadata"
+            >
+              @if (formattedAmountWithFee(); as metadataAmount) {
+                <div class="timeline-item__metadata__row">
+                  <dt class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.amountLabel' | translate }}
+                  </dt>
+                  <dd class="timeline-item__metadata__value">{{ metadataAmount }}</dd>
+                </div>
+              }
+              @if (structuredMetadataChannel(); as channelValue) {
+                <div class="timeline-item__metadata__row">
+                  <dt class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.channelLabel' | translate }}
+                  </dt>
+                  <dd class="timeline-item__metadata__value">
+                    {{ channelValue }}
+                  </dd>
+                </div>
+              }
+              @if (content(); as contentValue) {
+                <div class="timeline-item__metadata__row">
+                  <p class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.notesLabel' | translate }}
+                  </p>
+                </div>
+              }
+            </dl>
+          }
+          @case (userAssociationActivities.TICKET_TRANSFER) {
+            <dl
+              class="timeline-item__metadata"
+              [class.timeline-item__metadata--after-body]="hasNonEmptyContent()"
+              data-testid="timeline-item-metadata"
+            >
+              @if (structuredMetadataTransferredToName() || structuredMetadataTransferredToEmail()) {
+                <div class="timeline-item__metadata__row">
+                  <dt class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.transferredToLabel' | translate }}
+                  </dt>
+                  <dd class="timeline-item__metadata__value">
+                    @if (structuredMetadataTransferredToName(); as transferredToNameValue) {
+                      <span>{{ transferredToNameValue }}</span>
+                    }
+                    @if (structuredMetadataTransferredToName() && structuredMetadataTransferredToEmail()) {
+                      <span> (</span>
+                    }
+                    @if (structuredMetadataTransferredToEmail(); as transferredToEmailValue) {
+                      <a igntLink size="small" sentiment="primary" [attr.href]="'mailto:' + transferredToEmailValue">{{
+                        transferredToEmailValue
+                      }}</a>
+                    }
+                    @if (structuredMetadataTransferredToName() && structuredMetadataTransferredToEmail()) {
+                      <span>)</span>
+                    }
+                  </dd>
+                </div>
+              }
+            </dl>
+          }
+          @case (userAssociationActivities.CHAT) {
+            <dl
+              class="timeline-item__metadata"
+              [class.timeline-item__metadata--after-body]="hasNonEmptyContent()"
+              data-testid="timeline-item-metadata"
+            >
+              @if (content(); as contentValue) {
+                <div class="timeline-item__metadata__row">
+                  <dt class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.summaryLabel' | translate }}
+                  </dt>
+                  <dd class="timeline-item__metadata__value">{{ contentValue }}</dd>
+                </div>
+              }
+              @if (structuredMetadataOutcome(); as outcomeValue) {
+                <div class="timeline-item__metadata__row">
+                  <dt class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.outcomeLabel' | translate }}
+                  </dt>
+                  <dd class="timeline-item__metadata__value">{{ outcomeValue }}</dd>
+                </div>
+              }
+            </dl>
+          }
+          @case (userAssociationActivities.REVIEW) {
+            <dl
+              class="timeline-item__metadata"
+              [class.timeline-item__metadata--after-body]="hasNonEmptyContent()"
+              data-testid="timeline-item-metadata"
+            >
+              @if (structuredMetadataRating(); as ratingValue) {
+                <div class="timeline-item__metadata__row">
+                  <dt class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.ratingLabel' | translate }}
+                  </dt>
+                </div>
+                <div class="timeline-item__metadata__row timeline-item__add-margin-top">
+                  <dd class="timeline-item__metadata__value timeline-item__metadata__value--rating">
+                    @for (variant of ratingStars(); track $index) {
+                      <ignt-icon
+                        class="timeline-item__rating-star"
+                        [class.timeline-item__rating-star--filled]="variant === 'solid'"
+                        name="star"
+                        [variant]="variant"
+                        size="caption"
+                        aria-hidden="true"
+                      />
+                    }
+                    <span class="visually-hidden">{{ ratingValue }} / 5</span>
+                  </dd>
+                </div>
+              }
+            </dl>
+          }
+          @case (userAssociationActivities.MEMBERSHIP) {
+            <ng-container [ngTemplateOutlet]="membershipMetadata" />
+          }
+          @case (userAssociationActivities.MEETING) {
+            <dl
+              class="timeline-item__metadata"
+              [class.timeline-item__metadata--after-body]="hasNonEmptyContent()"
+              data-testid="timeline-item-metadata"
+            >
+              @if (structuredMetadataLocation(); as locationValue) {
+                <div class="timeline-item__metadata__row">
+                  <dt class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.locationLabel' | translate }}
+                  </dt>
+                  <dd class="timeline-item__metadata__value">{{ locationValue }}</dd>
+                </div>
+              }
+              @if (structuredMetadataParticipants(); as participantsValue) {
+                <div class="timeline-item__metadata__row">
+                  <dt class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.participantsLabel' | translate }}
+                  </dt>
+                  <dd class="timeline-item__metadata__value">{{ participantsValue }}</dd>
+                </div>
+              }
+              @if (content(); as contentValue) {
+                <div class="timeline-item__metadata__row">
+                  <p class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.notesLabel' | translate }}
+                  </p>
+                </div>
+              }
+            </dl>
+          }
+          @case (userAssociationActivities.VOLUNTEER) {
+            <dl
+              class="timeline-item__metadata"
+              [class.timeline-item__metadata--after-body]="hasNonEmptyContent()"
+              data-testid="timeline-item-metadata"
+            >
+              @if (structuredMetadataTicketType(); as ticketTypeValue) {
+                <div class="timeline-item__metadata__row">
+                  <dt class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.typeLabel' | translate }}
+                  </dt>
+                  <dd class="timeline-item__metadata__value">
+                    {{ ticketTypeValue }}
+                  </dd>
+                </div>
+              }
+              @if (content(); as contentValue) {
+                <div class="timeline-item__metadata__row">
+                  <p class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.notesLabel' | translate }}
+                  </p>
+                </div>
+              }
+            </dl>
+          }
+          @case (userAssociationActivities.CANCELLATION) {
+            <dl
+              class="timeline-item__metadata"
+              [class.timeline-item__metadata--after-body]="hasNonEmptyContent()"
+              data-testid="timeline-item-metadata"
+            >
+              @if (formattedAmountPart(); as metadataAmount) {
+                <div class="timeline-item__metadata__row">
+                  <dt class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.amountLabel' | translate }}
+                  </dt>
+                  <dd class="timeline-item__metadata__value">{{ metadataAmount }}</dd>
+                </div>
+              }
+              @if (structuredMetadataRefundType(); as refundTypeValue) {
+                <div class="timeline-item__metadata__row">
+                  <dt class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.refundTypeLabel' | translate }}
+                  </dt>
+                  <dd class="timeline-item__metadata__value">{{ refundTypeValue }}</dd>
+                </div>
+              }
+              @if (structuredMetadataIsPartialCancellation() !== null) {
+                <div class="timeline-item__metadata__row">
+                  <dt class="timeline-item__metadata__label">
+                    {{ 'fundraising.patronDetails.activityTimeline.metadata.partialCancellationLabel' | translate }}
+                  </dt>
+                  <dd class="timeline-item__metadata__value">
+                    {{ structuredMetadataIsPartialCancellation() ? ('common.yes' | translate) : ('common.no' | translate) }}
+                  </dd>
+                </div>
+              }
+            </dl>
+          }
+          @default {}
+        }
+
+        @if (shouldRenderContent()) {
+          <div class="timeline-item__content__body" [innerHTML]="content()"></div>
+        }
+
+        @if (shouldRenderSeeOrderLink()) {
+          @if (structuredMetadataOrderId(); as orderIdValue) {
+            <div class="timeline-item__metadata__row">
+              <dd class="timeline-item__metadata__value timeline-item__metadata__value--link">
+                <a
+                  igntLink
+                  size="small"
+                  sentiment="primary"
+                  [routerLink]="['/validation']"
+                  [queryParams]="{ id: orderIdValue, type: 'order' }"
+                  (click)="onOrderDetailsClick(orderIdValue)"
+                >
+                  {{ 'fundraising.patronDetails.activityTimeline.metadata.seeOrderDetailLink' | translate }}
+                </a>
+              </dd>
+            </div>
+          }
+        }
+
+        @if (hasFollowUpMetadata()) {
+          <div class="timeline-item__follow-up" data-testid="timeline-item-follow-up">
+            <div class="timeline-item__follow-up__main">
+              <div class="timeline-item__follow-up__title-row">
+                <ignt-icon class="timeline-item__flag-icon" name="flag" variant="solid" aria-hidden="true" />
+                <div class="timeline-item__follow-up__title">
+                  {{ 'fundraising.patronDetails.activityTimeline.followUpSectionTitle' | translate }}
+                </div>
+              </div>
+              @if (nextActionText()) {
+                <p class="timeline-item__follow-up__text">{{ nextActionText() }}</p>
+              }
+              @if (formattedFollowUpDate()) {
+                <div class="timeline-item__follow-up__due">
+                  <ignt-icon class="timeline-item__follow-up__calendar" name="calendar" variant="solid" aria-hidden="true" />
+                  <span>{{ 'fundraising.patronDetails.activityTimeline.followUpDue' | translate: { date: formattedFollowUpDate() } }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      }
+    </div>
+  }
+</article>
+
+<ng-template #membershipMetadata>
+  @if (hasMembershipMetadata()) {
+    <dl
+      class="timeline-item__metadata"
+      [class.timeline-item__metadata--after-body]="hasNonEmptyContent()"
+      data-testid="timeline-item-metadata"
+    >
+      @if (structuredMetadataValidationDate(); as validationDateValue) {
+        <div class="timeline-item__metadata__row">
+          <dt class="timeline-item__metadata__label">
+            {{ 'fundraising.patronDetails.activityTimeline.metadata.renewalDateLabel' | translate }}
+          </dt>
+          <dd class="timeline-item__metadata__value">{{ validationDateValue }}</dd>
+        </div>
+      }
+      @if (formattedAmountPart(); as metadataAmount) {
+        <div class="timeline-item__metadata__row">
+          <dt class="timeline-item__metadata__label">
+            {{ 'fundraising.patronDetails.activityTimeline.metadata.amountLabel' | translate }}
+          </dt>
+          <dd class="timeline-item__metadata__value">{{ metadataAmount }}</dd>
+        </div>
+      }
+      @if (structuredPaymentMethodLabel(); as paymentMethodValue) {
+        <div class="timeline-item__metadata__row">
+          <dt class="timeline-item__metadata__label">
+            {{ 'fundraising.patronDetails.activityTimeline.metadata.paymentMethodLabel' | translate }}
+          </dt>
+          <dd class="timeline-item__metadata__value">
+            {{ paymentMethodValue }}
+          </dd>
+        </div>
+      }
+      @if (structuredMetadataAutoRenewal() !== null) {
+        <div class="timeline-item__metadata__row">
+          <dt class="timeline-item__metadata__label">
+            {{ 'fundraising.patronDetails.activityTimeline.metadata.autoRenewalLabel' | translate }}
+          </dt>
+          <dd class="timeline-item__metadata__value">
+            {{ structuredMetadataAutoRenewal() ? ('common.yes' | translate) : ('common.no' | translate) }}
+          </dd>
+        </div>
+      }
+      @if (structuredMetadataChannel(); as channelValue) {
+        <div class="timeline-item__metadata__row">
+          <dt class="timeline-item__metadata__label">
+            {{ 'fundraising.patronDetails.activityTimeline.metadata.channelLabel' | translate }}
+          </dt>
+          <dd class="timeline-item__metadata__value">{{ channelValue }}</dd>
+        </div>
+      }
+      @if (structuredMetadataRefundType(); as refundTypeValue) {
+        <div class="timeline-item__metadata__row">
+          <dt class="timeline-item__metadata__label">
+            {{ 'fundraising.patronDetails.activityTimeline.metadata.refundTypeLabel' | translate }}
+          </dt>
+          <dd class="timeline-item__metadata__value">{{ refundTypeValue }}</dd>
+        </div>
+      }
+      @if (structuredMetadataIsPartialCancellation() !== null) {
+        <div class="timeline-item__metadata__row">
+          <dt class="timeline-item__metadata__label">
+            {{ 'fundraising.patronDetails.activityTimeline.metadata.partialCancellationLabel' | translate }}
+          </dt>
+          <dd class="timeline-item__metadata__value">
+            {{ structuredMetadataIsPartialCancellation() ? ('common.yes' | translate) : ('common.no' | translate) }}
+          </dd>
+        </div>
+      }
+      @if (structuredMetadataOrderId(); as orderIdValue) {
+        <div class="timeline-item__metadata__row">
+          <dd class="timeline-item__metadata__value timeline-item__metadata__value--link">
+            <a
+              igntLink
+              size="small"
+              sentiment="primary"
+              [routerLink]="['/validation']"
+              [queryParams]="{ id: orderIdValue, type: 'order' }"
+              (click)="onOrderDetailsClick(orderIdValue)"
+            >
+              {{ 'fundraising.patronDetails.activityTimeline.metadata.seeOrderDetailLink' | translate }}
+            </a>
+          </dd>
+        </div>
+      }
+    </dl>
+  }
+</ng-template>

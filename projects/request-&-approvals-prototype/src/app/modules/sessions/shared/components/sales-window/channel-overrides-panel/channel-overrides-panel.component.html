@@ -1,0 +1,77 @@
+<div class="channel-overrides-panel">
+  <div class="channel-overrides-panel__header">
+    <h4 class="channel-overrides-panel__title">
+      {{ 'salesWindow.exception.title' | translate }}
+    </h4>
+    <p class="channel-overrides-panel__subtitle">
+      {{ 'salesWindow.exception.subtitle' | translate }}
+    </p>
+  </div>
+
+  <div class="channel-overrides-panel__rows" data-testid="channel-overrides-rows">
+    @for (row of overridesArray.controls; track row; let i = $index) {
+      <ignt-wrapper-card class="channel-overrides-panel__card">
+        <div class="channel-overrides-panel__card-header">
+          <span class="channel-overrides-panel__card-title">
+            {{ 'salesWindow.exception.channelLabel' | translate: { index: i + 1 } }}
+          </span>
+          <button
+            ignt-icon-button
+            type="button"
+            sentiment="tertiary"
+            size="small"
+            [icon]="['fas', 'trash']"
+            (click)="removeRow(i)"
+            data-testid="remove-row-btn"
+          ></button>
+        </div>
+
+        <div class="channel-overrides-panel__channel-select">
+          <app-multi-select
+            [disabled]="row.controls.channelIds.disabled"
+            [displayInPlaceMaximum]="1"
+            [options]="channelSelectOptionsPerRow()[i]"
+            [selectedOptions]="selectedChannelOptionsPerRow()[i]"
+            [placeholder]="'salesWindow.exception.selectChannels' | translate"
+            [isSelectAllVisible]="true"
+            (selected)="onRowChannelsSelected(i, $event)"
+            data-testid="channel-select"
+          ></app-multi-select>
+
+          @if (row.controls.channelIds.invalid && row.controls.channelIds.dirty) {
+            <div class="channel-overrides-panel__error" data-testid="error-channels-required">
+              <ignt-icon name="exclamation-circle" variant="solid" class="channel-overrides-panel__error-icon"></ignt-icon>
+              {{ 'salesWindow.errors.channelsRequired' | translate }}
+            </div>
+          }
+        </div>
+
+        @if (showHelperText()) {
+          <p class="channel-overrides-panel__helper-text">
+            {{ 'salesWindow.exception.helperText' | translate }}
+          </p>
+        }
+
+        <app-sales-window-field
+          [formControl]="row.controls.window"
+          [availableMax]="availableMax()"
+          [availableMin]="availableMin()"
+          [embedded]="embedded()"
+          [maxBoundType]="maxBoundType()"
+          [timezone]="timezone()"
+        />
+      </ignt-wrapper-card>
+    }
+
+    <a
+      igntLink
+      role="button"
+      [leadingIcon]="['fas', 'plus']"
+      [class.disabled]="isAddDisabled()"
+      (click)="!isAddDisabled() && addRow()"
+      data-testid="add-row-btn"
+    >
+      {{ 'salesWindow.exception.addRow' | translate }}
+    </a>
+  </div>
+</div>

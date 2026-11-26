@@ -1,0 +1,86 @@
+<section class="inventory-page" [attr.aria-label]="'menu.inventory' | translate">
+  <app-event-selection-band data-testid="inventory-selectors" [summary]="selectedPlanTitle() || ('inventory.searchFilters' | translate)">
+    <app-search-bar
+      data-testid="inventory-search-bar"
+      [mandatoryFilters]="[SearchBarFilter.plan, SearchBarFilter.place]"
+      [preselectActiveCity]="false"
+      [preselectActivePlan]="false"
+      [screen]="screen.inventory"
+      [searchOnChange]="true"
+      [showVenue]="true"
+      (searchEmitter)="loadNewSearch($event)"
+    ></app-search-bar>
+  </app-event-selection-band>
+
+  <div class="inventory-page__title">
+    <span class="inventory-page__section">{{ 'menu.events' | translate }}</span>
+    <h1 class="inventory-page__heading" data-testid="page-title">{{ 'menu.inventory' | translate }}</h1>
+  </div>
+
+  @if (lockService.showLockedBanner()) {
+    <app-plan-review-locked-banner></app-plan-review-locked-banner>
+  }
+  @if (shouldShowTabs) {
+    <ignt-tabs
+      class="inventory-page__tabs"
+      data-testid="inventory-tabs"
+      [hasExtraLine]="false"
+      [selectedIndex]="selectedTabIndex()"
+      (selectedIndexChange)="onTabIndexChange($event)"
+    >
+      @for (tab of tabs(); track tab.id) {
+        <ignt-tabs-item data-testid="tabs-option" [attr.data-tabid]="tab.id" [label]="tab.label | translate"></ignt-tabs-item>
+      }
+    </ignt-tabs>
+  }
+  @if (showSpinner()) {
+    <div class="inventory-plan-loading" data-testid="inventory-plan-loading">
+      <ignt-icon
+        class="inventory-plan-loading__icon"
+        name="spinner"
+        variant="solid"
+        size="display"
+        [spin]="true"
+        aria-hidden="true"
+      ></ignt-icon>
+    </div>
+  } @else {
+    <div class="inventory-page__content">
+      <router-outlet></router-outlet>
+    </div>
+  }
+
+  <div class="help-topic" appHideWrapperOnHelpTopicClose *ngIf="getHelpTopicByTab as help">
+    <app-help-topic-banner
+      [message]="help.message | translate"
+      [ctaLabel]="help.ctaLabel | translate"
+      [ctaLink]="help.ctaLink | translate"
+    ></app-help-topic-banner>
+  </div>
+</section>
+
+<div class="inventory-footer" *ngIf="!isFooterForcedHidden && (shouldShowFooter || (actionButton$ | async)?.visible)">
+  @if (shouldShowPreviousButton()) {
+    <ignt-button
+      data-testid="inventory-previous-button"
+      variant="tertiary"
+      [label]="'common.previous' | translate"
+      (click)="onPreviousClick()"
+    />
+  }
+  @if (shouldShowNextButton()) {
+    <ignt-button data-testid="inventory-next-button" variant="secondary" [label]="'common.next' | translate" (click)="onNextClick()" />
+  }
+  <ng-container *ngIf="actionButton$ | async as actionButton">
+    @if (actionButton.visible) {
+      <ignt-button
+        data-testid="inventory-action-button"
+        [disabled]="actionButton.disabled || !inventoryEditingService.canEditInventory()"
+        [label]="actionButton.labelKey | translate"
+        [leadingIcon]="actionButton.icon"
+        [variant]="actionButton.variant"
+        (click)="onActionButtonClick()"
+      />
+    }
+  </ng-container>
+</div>

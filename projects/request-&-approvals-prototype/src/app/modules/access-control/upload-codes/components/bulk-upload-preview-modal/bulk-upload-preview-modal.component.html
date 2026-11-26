@@ -1,0 +1,188 @@
+<div class="bulk-upload-preview-modal">
+  <div class="modal-header">
+    <h4 class="modal-title">
+      <i class="fas fa-eye"></i>
+      {{ 'accessControl.uploadCodes.preview.title' | translate }}
+    </h4>
+  </div>
+
+  <div class="modal-body">
+    <div class="file-info">
+      <h5><i class="fas fa-file-csv"></i> {{ 'accessControl.uploadCodes.preview.fileInfo' | translate }}</h5>
+      <div class="info-item">
+        <strong>{{ 'accessControl.uploadCodes.preview.fileName' | translate }}:</strong> {{ fileName }}
+      </div>
+      <div class="info-item">
+        <strong>{{ 'accessControl.uploadCodes.preview.totalSessions' | translate }}:</strong>
+        {{ getTotalSessionsInFile() }}
+      </div>
+      <div class="info-item">
+        <strong>{{ 'accessControl.uploadCodes.preview.validSessions' | translate }}:</strong>
+        {{ getValidSessionsCount() }}
+      </div>
+      <div class="info-item">
+        <strong>{{ 'accessControl.uploadCodes.preview.totalErrors' | translate }}:</strong>
+        {{ getTotalErrorsCount() }}
+      </div>
+    </div>
+
+    <div class="validation-errors" *ngIf="hasValidationErrors()">
+      <h5><i class="fas fa-exclamation-triangle"></i> {{ 'accessControl.uploadCodes.preview.validationErrors' | translate }}</h5>
+
+      <div class="error-section" *ngIf="getNonIntegerSessionIdsCount() > 0">
+        <h6 class="error-title">
+          <i class="fas fa-times-circle text-danger"></i>
+          {{ 'accessControl.uploadCodes.preview.nonIntegerSessionIds' | translate }}
+          ({{ getNonIntegerSessionIdsCount() }})
+        </h6>
+        <div class="error-list">
+          <span class="error-item" *ngFor="let sessionId of previewData.sessionsNotInt">
+            {{ sessionId }}
+          </span>
+        </div>
+      </div>
+
+      <div class="error-section" *ngIf="getSessionsWithAccessControlRecordsCount() > 0">
+        <h6 class="error-title">
+          <i class="fas fa-exclamation-circle text-warning"></i>
+          {{ 'accessControl.uploadCodes.preview.sessionsWithAccessControlRecords' | translate }} ({{
+            getSessionsWithAccessControlRecordsCount()
+          }})
+        </h6>
+        <div class="error-list">
+          <span class="error-item" *ngFor="let sessionId of previewData.sessionsWithAccessControlRecords">
+            {{ sessionId }}
+          </span>
+        </div>
+      </div>
+
+      <div class="error-section" *ngIf="getNotFoundSessionsCount() > 0">
+        <h6 class="error-title">
+          <i class="fas fa-search text-danger"></i>
+          {{ 'accessControl.uploadCodes.preview.notFoundSessions' | translate }} ({{ getNotFoundSessionsCount() }})
+        </h6>
+        <div class="error-list">
+          <span class="error-item" *ngFor="let sessionId of previewData.sessionsNotFound">
+            {{ sessionId }}
+          </span>
+        </div>
+      </div>
+
+      <div class="error-section" *ngIf="getNotBelongToPartnerCount() > 0">
+        <h6 class="error-title">
+          <i class="fas fa-user-times text-danger"></i>
+          {{ 'accessControl.uploadCodes.preview.notBelongToPartnerSessions' | translate }}
+          ({{ getNotBelongToPartnerCount() }})
+        </h6>
+        <div class="error-list">
+          <span class="error-item" *ngFor="let sessionId of previewData.sessionsNotBelongToPartner">
+            {{ sessionId }}
+          </span>
+        </div>
+      </div>
+
+      <div class="error-section" *ngIf="getNotBelongToMainPlanCount() > 0">
+        <h6 class="error-title">
+          <i class="fas fa-calendar-times text-danger"></i>
+          {{ 'accessControl.uploadCodes.preview.notBelongToMainPlanSessions' | translate }}
+          ({{ getNotBelongToMainPlanCount() }})
+        </h6>
+        <div class="error-list">
+          <span class="error-item" *ngFor="let sessionId of previewData.sessionsNotBelongToMainPlan">
+            {{ sessionId }}
+          </span>
+        </div>
+      </div>
+
+      <div class="error-section" *ngIf="getRepeatedCodesCount() > 0">
+        <h6 class="error-title">
+          <i class="fas fa-copy text-warning"></i>
+          {{ 'accessControl.uploadCodes.preview.repeatedCodes' | translate }} ({{ getRepeatedCodesCount() }})
+        </h6>
+        <div class="error-list">
+          <span class="error-item" *ngFor="let code of previewData.repeatedCodes">
+            {{ code }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="session-previews" *ngIf="hasPreviewResults()">
+      <h5><i class="fas fa-list"></i> {{ 'accessControl.uploadCodes.preview.sessionDetails' | translate }}</h5>
+
+      <div class="session-card" *ngFor="let sessionId of getValidSessionIds()">
+        <div class="session-header">
+          <h6>{{ 'accessControl.uploadCodes.preview.session' | translate }} {{ sessionId }}</h6>
+        </div>
+
+        <div class="session-content">
+          <div class="code-counts">
+            <div class="count-item">
+              <span class="count-label">{{ 'accessControl.uploadCodes.preview.existingCodes' | translate }}:</span>
+              <span class="count-value existing">{{ getSessionPreview(sessionId)?.existingCodes?.length || 0 }}</span>
+            </div>
+            <div class="count-item">
+              <span class="count-label">{{ 'accessControl.uploadCodes.preview.newCodes' | translate }}:</span>
+              <span class="count-value new">{{ getSessionPreview(sessionId)?.newCodes?.length || 0 }}</span>
+            </div>
+            <div class="count-item">
+              <span class="count-label">{{ 'accessControl.uploadCodes.preview.repeatedCodes' | translate }}:</span>
+              <span class="count-value repeated">{{ getSessionPreview(sessionId)?.repeatedCodes?.length || 0 }}</span>
+            </div>
+          </div>
+
+          <div class="code-lists">
+            <div class="code-list" *ngIf="getSessionPreview(sessionId)?.existingCodes?.length > 0">
+              <h6>{{ 'accessControl.uploadCodes.preview.existingCodesList' | translate }}</h6>
+              <div class="codes-container">
+                <span class="code-pill existing" *ngFor="let code of getSessionPreview(sessionId)?.existingCodes">
+                  {{ code }}
+                </span>
+              </div>
+            </div>
+
+            <div class="code-list" *ngIf="getSessionPreview(sessionId)?.newCodes?.length > 0">
+              <h6>{{ 'accessControl.uploadCodes.preview.newCodesList' | translate }}</h6>
+              <div class="codes-container">
+                <span class="code-pill new" *ngFor="let code of getSessionPreview(sessionId)?.newCodes">
+                  {{ code }}
+                </span>
+              </div>
+            </div>
+
+            <div class="code-list" *ngIf="getSessionPreview(sessionId)?.repeatedCodes?.length > 0">
+              <h6>{{ 'accessControl.uploadCodes.preview.repeatedCodesList' | translate }}</h6>
+              <div class="codes-container">
+                <span class="code-pill repeated" *ngFor="let code of getSessionPreview(sessionId)?.repeatedCodes">
+                  {{ code }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="warning-message" *ngIf="hasPreviewResults()">
+      <div class="alert alert-warning" *ngIf="hasExistingCodes()">
+        <i class="fas fa-exclamation-triangle"></i>
+        {{ 'accessControl.uploadCodes.preview.existingCodesWarning' | translate }}
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" (click)="onCancel()">
+      <i class="fas fa-times"></i>
+      {{ 'accessControl.uploadCodes.preview.cancel' | translate }}
+    </button>
+    <button type="button" class="btn btn-warning" (click)="onConfirmMerge()" [disabled]="!hasPreviewResults()">
+      <i class="fas fa-plus"></i>
+      {{ 'accessControl.uploadCodes.preview.confirmMerge' | translate }}
+    </button>
+    <button type="button" class="btn btn-danger" (click)="onConfirmReplace()" [disabled]="!hasPreviewResults()">
+      <i class="fas fa-trash"></i>
+      {{ 'accessControl.uploadCodes.preview.confirmReplace' | translate }}
+    </button>
+  </div>
+</div>

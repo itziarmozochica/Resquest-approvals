@@ -1,0 +1,152 @@
+<div class="ambassadors-register">
+  <div class="ambassadors-register-view">
+    <div class="ambassadors-register-header">
+      <div class="ambassadors-register-header__curve"></div>
+      <div class="ambassadors-register-header__container container">
+        <div class="ambassadors-register-header__img">
+          <div class="ambassadors-register-header__img-wrapper ambassadors-register-header__img-wrapper--overlay">
+            <img class="ambassadors-register-header__cover-image" [src]="plan.coverImage" alt="Plan image" />
+            <div class="ambassadors-register-header__rating">
+              <ignt-rating
+                variant="full"
+                [contrast]="true"
+                [realValuation]="false"
+                size="small"
+                [score]="plan.rating.average"
+                [ratingsCount]="plan.rating.num_ratings"
+              ></ignt-rating>
+            </div>
+          </div>
+        </div>
+        <div class="ambassadors-register-header__overlay">
+          <div class="ambassadors-register-header__info-wrapper">
+            <span *ngIf="plan.logoUrl" class="label label--partner-logo d-desktop">
+              <img [ngSrc]="plan.logoUrl" alt="Partner Logo" />
+            </span>
+            <h1 class="ambassadors-register-header__title" data-testid="ambassadors-register-name">{{ plan.name }}</h1>
+            <span class="ambassadors-register-header__venue">
+              <fa-icon [icon]="['far', 'map-marker-alt']"></fa-icon>
+              {{ plan.venue }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="container container--paddings ambassadors-register-view__container">
+      <div
+        class="ambassadors-register-view__flex"
+        *ngIf="!ambassadorCreatedSuccessfully && !ambassadorCreatedError && !ambassadorCreatedPendingUser; else messages"
+      >
+        <div class="ambassadors-register-content">
+          <h3 class="ambassadors-register-content__title">{{ 'ambassadors.register.title' | translate }}</h3>
+          <div [innerHTML]="'ambassadors.register.content' | translate | sanitize"></div>
+        </div>
+        <div class="ambassadors-register-content__aside">
+          <ignt-wrapper-card [elevation]="3">
+            <h3 class="ambassadors-register-content__title">{{ 'ambassadors.register.form.title' | translate }}</h3>
+            <p class="ambassadors-register-content__subtitle">{{ 'ambassadors.register.form.subtitle' | translate }}</p>
+            <form [formGroup]="formGroup" (ngSubmit)="onSubmitForm()" class="ambassadors-register__form">
+              <ignt-input-field
+                formControlName="fullName"
+                [label]="'ambassadors.register.form.fields.fullName' | translate"
+                [customFormErrors]="[
+                  {
+                    type: 'required',
+                    message: 'form.error.required' | translate,
+                  },
+                  {
+                    type: 'minlength',
+                    message: 'form.error.minLength' | translate: { value: '3' },
+                  },
+                  {
+                    type: 'maxlength',
+                    message: 'form.error.maxLength' | translate: { value: '150' },
+                  },
+                ]"
+              ></ignt-input-field>
+              <ignt-input-field
+                formControlName="email"
+                [label]="'ambassadors.register.form.fields.email' | translate"
+                [customFormErrors]="[
+                  {
+                    type: 'required',
+                    message: 'form.error.required' | translate,
+                  },
+                ]"
+              ></ignt-input-field>
+              <ignt-input-field
+                formControlName="repeatEmail"
+                [label]="'ambassadors.register.form.fields.repeatEmail' | translate"
+                [helperText]="'ambassadors.register.form.fields.repeatEmailHelperText' | translate"
+                [customFormErrors]="[
+                  {
+                    type: 'required',
+                    message: 'form.error.required' | translate,
+                  },
+                  {
+                    type: 'mustMatch',
+                    message: 'form.error.confirmEmail' | translate,
+                  },
+                ]"
+              ></ignt-input-field>
+              <label for="termsAndConditions" class="checkbox">
+                <input id="termsAndConditions" class="checkbox__input" type="checkbox" formControlName="termsAndConditions" />
+                <span
+                  class="checkbox__icon"
+                  [class.checkbox__icon__unchecked]="!formGroup.controls['termsAndConditions'].value"
+                  [class.checkbox__icon--error]="
+                    formGroup.controls['termsAndConditions'].errors && formGroup.controls['termsAndConditions'].touched
+                  "
+                >
+                  <fa-icon [icon]="['fas', 'check']"></fa-icon>
+                </span>
+                <span class="checkbox__label">
+                  <span>
+                    {{ 'ambassadors.register.form.GDPRTermsAndConditionsPre' | translate }}
+                    <a tabindex="-1" target="_blank" [href]="'ambassadors.register.form.GDPRPrivacyPolicyLink' | translate">{{
+                      'ambassadors.register.form.GDPRTermsAndConditions' | translate
+                    }}</a>
+                    {{ 'ambassadors.register.form.GDPRand' | translate }}
+                    <a tabindex="-1" target="_blank" [href]="'ambassadors.register.form.GDPRTermsAndConditionsLink' | translate">{{
+                      'ambassadors.register.form.GDPRPrivacyPolicy' | translate
+                    }}</a>
+                  </span>
+                </span>
+              </label>
+              <ignt-button
+                htmlType="submit"
+                fill
+                [label]="'ambassadors.register.form.submit' | translate"
+                [loading]="submittingForm"
+                [disabled]="submittingForm"
+              />
+              <span
+                class="ambassadors-register__form--disclaimer"
+                [innerHTML]="'ambassadors.register.form.GDPRText' | translate | sanitize"
+              ></span>
+            </form>
+          </ignt-wrapper-card>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #messages>
+  <app-ambassador-register-message type="success" *ngIf="ambassadorCreatedSuccessfully">
+    <span app-ambassador-register-message-title>{{ 'ambassadors.register.successMessage.title' | translate }}</span>
+    <span app-ambassador-register-message-content>{{ 'ambassadors.register.successMessage.content' | translate }}</span>
+  </app-ambassador-register-message>
+  <app-ambassador-register-message type="success" *ngIf="ambassadorCreatedPendingUser">
+    <span app-ambassador-register-message-title>{{ 'ambassadors.register.successMessagePendingUser.title' | translate }}</span>
+    <span app-ambassador-register-message-content>{{ 'ambassadors.register.successMessagePendingUser.content' | translate }}</span>
+  </app-ambassador-register-message>
+  <app-ambassador-register-message type="error" *ngIf="ambassadorCreatedError" (closeMessage)="tryAgain()">
+    <span app-ambassador-register-message-title>{{ 'ambassadors.register.errorMessage.title' | translate }}</span>
+    <span app-ambassador-register-message-content>{{ 'ambassadors.register.errorMessage.content' | translate }}</span>
+  </app-ambassador-register-message>
+  <app-ambassador-register-message type="error" *ngIf="ambassadorAlreadyExistingUserError" (closeMessage)="tryAgain()">
+    <span app-ambassador-register-message-title>{{ 'ambassadors.register.errorMessageAlreadyExistingUser.title' | translate }}</span>
+    <span app-ambassador-register-message-content>{{ 'ambassadors.register.errorMessageAlreadyExistingUser.content' | translate }}</span>
+  </app-ambassador-register-message>
+</ng-template>

@@ -1,0 +1,48 @@
+<div class="plan-settings-edit">
+  @if (isLoading()) {
+    <div class="plan-settings-edit__loading loader" data-testid="content-loading">
+      <ignt-icon name="spinner" variant="solid" size="display" [spin]="true"></ignt-icon>
+    </div>
+  } @else if (settingsComponent()) {
+    @if (showLockedBanner()) {
+      <app-plan-review-locked-banner></app-plan-review-locked-banner>
+    }
+    @if (showStepper() && planId(); as planId) {
+      <app-plan-stepper
+        [currentStepId]="'settings'"
+        [hideContent]="true"
+        [planCreationStatus]="planCreationStatus()"
+        [planId]="planId"
+      ></app-plan-stepper>
+    }
+    @if (showSettingsTabs()) {
+      <ignt-tabs [selectedIndex]="activeTabIndex()" (selectedIndexChange)="onTabIndexChange($event)">
+        <ignt-tabs-item [label]="'planSettings.mainSettings' | translate"></ignt-tabs-item>
+        <ignt-tabs-item [label]="'dynamicFields.tabs.customFields' | translate"></ignt-tabs-item>
+      </ignt-tabs>
+      @if (activeTabIndex() === MAIN_SETTINGS_TAB_INDEX) {
+        @if (isRefreshingSettings()) {
+          <div class="plan-settings-edit__loading loader" data-testid="settings-refreshing">
+            <ignt-icon name="spinner" variant="solid" size="display" [spin]="true"></ignt-icon>
+          </div>
+        } @else if (refreshSettingsFailed()) {
+          <app-plan-error [showRetryButton]="true" (retry)="retryRefreshSettings()"></app-plan-error>
+        } @else {
+          <ng-container *ngComponentOutlet="settingsComponent(); inputs: componentInputs()"></ng-container>
+        }
+      } @else {
+        <app-plan-dynamic-fields
+          [canEditPlan]="canEditPlan()"
+          [continueTranslationKey]="'planSettings.confirm'"
+          [mode]="mode()"
+          (continued)="onCustomFieldsContinued()"
+          (dirtyChange)="onCustomFieldsDirtyChange($event)"
+        ></app-plan-dynamic-fields>
+      }
+    } @else {
+      <ng-container *ngComponentOutlet="settingsComponent(); inputs: componentInputs()"></ng-container>
+    }
+  } @else {
+    <app-plan-error [showRetryButton]="!!planId()" (retry)="retryLoad(planId())"></app-plan-error>
+  }
+</div>

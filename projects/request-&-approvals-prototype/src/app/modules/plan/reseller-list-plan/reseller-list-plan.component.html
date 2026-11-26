@@ -1,0 +1,113 @@
+<app-page-title [title]="'listPlan.title' | translate" class="new-design"></app-page-title>
+
+<app-search-bar
+  [typedSearchFilters]="[selectOptionTypeaheadInput.plan]"
+  [mandatoryFilters]="mandatoryFields"
+  [showVenue]="true"
+  [screen]="screen.salesAndControl"
+  [preselectActiveCity]="false"
+  [preselectActivePlan]="false"
+  [showChannels]="true"
+  [showPartners]="true"
+  (searchEmitter)="loadNewSearch($event)"
+>
+</app-search-bar>
+
+<ng-container>
+  <div class="plans-container">
+    <div class="plans">
+      <ignt-alert
+        *ngIf="outage && !error && !loadingPlans"
+        class="my-4 d-block"
+        sentiment="warning"
+        [description]="'outage.message' | translate"
+        data-testid="outage-banner"
+      ></ignt-alert>
+      <div class="plans-table">
+        <ng-container>
+          <ng-container *ngTemplateOutlet="b2cSiteLink"></ng-container>
+          <div *ngIf="!outage" class="plans-table__updated">{{ 'planDetail.metabaseUpdatedMessage' | translate }}</div>
+          <app-ambassador-overview
+            *permissionBased="Permissions.CAN_VIEW_AMBASSADOR_DASHBOARD"
+            [channelId]="channelId"
+          ></app-ambassador-overview>
+          <app-organization-dashboard
+            *permissionBased="Permissions.CAN_VIEW_AFFILIATE_DASHBOARD"
+            [groupName]="GraphGroup.affiliatesOverview"
+            [channelId]="channelId"
+          ></app-organization-dashboard>
+          <ignt-alert
+            *ngIf="!loadingPlans && error"
+            sentiment="danger"
+            [description]="'reviews.error' | translate"
+            showCloseButton
+            [closeButtonAriaLabel]="'common.close' | translate"
+            (closeAlert)="closeError()"
+          />
+          <app-table
+            [type]="TableType.TABLE"
+            [headers]="headers"
+            [orderBy]="orderBy"
+            (updateOrderByEmit)="updateOrderBy($event)"
+            (updateFilterByEmit)="filterBy($event)"
+          >
+            <ng-container *ngIf="paginatedPlans && plans.length > 0">
+              <ng-container *ngFor="let plan of plans; trackBy: trackById">
+                <app-plan-card
+                  [screenSize]="screenSize"
+                  (navigate)="navigate($event)"
+                  [plan]="plan"
+                  [channelId]="channelId"
+                ></app-plan-card>
+              </ng-container>
+            </ng-container>
+          </app-table>
+          <div *ngIf="paginatedPlans && plans.length === 0 && !loadingPlans" class="plans-no-results">
+            {{ 'filters.noPlansFound' | translate }}
+          </div>
+        </ng-container>
+      </div>
+      <ng-container *ngIf="paginatedPlans && plans.length > 0 && !nextPageParam">
+        <div class="end-result">
+          <span class="end-result-line" data-testid="list-plan-end-result-line"></span>
+          <fa-icon [icon]="['fas', 'circle']" class="end-result-icon"></fa-icon>
+          <span class="end-result-text">{{ 'reviews.endResults' | translate }}</span>
+          <fa-icon [icon]="['fas', 'circle']" class="end-result-icon"></fa-icon>
+          <span class="end-result-line"></span>
+        </div>
+      </ng-container>
+      <ng-container *ngIf="loadingPlans">
+        <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'4x'"></fa-icon>
+      </ng-container>
+    </div>
+  </div>
+</ng-container>
+
+<ng-template #b2cSiteLink>
+  <div *ngIf="!!eventSiteLink" class="b2c-site-link-card wrapper-card wrapper-card--elevation-100">
+    <div>
+      <h6 class="b2c-site-link-card__title">Events Site</h6>
+      <a class="b2c-site-link-card__link" target="_blank" [href]="eventSiteLink">{{ eventSiteLink }}</a>
+    </div>
+    <div class="b2c-site-link-card__buttons--desktop">
+      <button igntButton (click)="openB2cSite()" sentiment="secondary">
+        <fa-icon [icon]="['fal', 'eye']"></fa-icon>
+        <span translate>listPlan.viewLive</span>
+      </button>
+
+      <button igntButton (click)="shareB2CSiteModal()" sentiment="secondary">
+        <fa-icon [icon]="['fas', 'share']"></fa-icon>
+        <span translate>listPlan.trackingLink.shareLink</span>
+      </button>
+    </div>
+    <div class="b2c-site-link-card__buttons--mobile">
+      <button igntButton (click)="openB2cSite()" sentiment="tertiary" size="small">
+        <fa-icon [icon]="['fal', 'eye']"></fa-icon>
+      </button>
+
+      <button igntButton (click)="shareB2CSiteModal()" sentiment="tertiary" size="small">
+        <fa-icon [icon]="['fas', 'share']"></fa-icon>
+      </button>
+    </div>
+  </div>
+</ng-template>

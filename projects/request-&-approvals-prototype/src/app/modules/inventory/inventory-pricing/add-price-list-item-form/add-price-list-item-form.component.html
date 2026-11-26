@@ -1,0 +1,95 @@
+<div class="common-session-edit lateral-slider-body__wrapper">
+  <div class="add-price-list-item-search">
+    <fa-icon class="add-price-list-item-search__icon" [icon]="['far', 'search']"> </fa-icon>
+    <input
+      #searchInput
+      data-testid="add-price-list-item-search"
+      (input)="searchInputChanged()"
+      class="add-price-list-item-search__input"
+      [attr.placeholder]="'common.search' | translate"
+      type="text"
+    />
+  </div>
+  <table class="add-price-list-item-table">
+    <thead class="add-price-list-item-table__header">
+      <tr class="add-price-list-item-table__row">
+        <th class="add-price-list-item-table__cell">
+          <input
+            #toggleSelectAllCheckbox
+            [disabled]="!hasSelectableDisplayItems"
+            data-testid="add-price-list-item-select-all"
+            id="item-checkbox-all"
+            (change)="toggleSelectAll($event)"
+            type="checkbox"
+          />
+        </th>
+        <th class="add-price-list-item-table__cell">
+          <label for="item-checkbox-all">
+            {{ 'sessions.pricing.priceList.table.headers.ticketType' | translate }}
+          </label>
+        </th>
+        <th class="add-price-list-item-table__cell">
+          {{ 'sessions.pricing.priceList.table.headers.group' | translate }}
+        </th>
+      </tr>
+    </thead>
+
+    <tbody data-testid="add-price-list-item-table-body" class="add-price-list-item-table__body price-list-table__body--spacing">
+      <tr
+        *ngFor="let displayItem of displayItems; trackBy: trackById"
+        data-testid="add-price-list-item-table-row"
+        [attr.data-item-id]="displayItem.id"
+        class="add-price-list-item-table__row"
+        [class.add-price-list-item-table__row--archived]="displayItem.isArchived"
+      >
+        <td data-testid="add-price-list-item-table-checkbox-cell" class="add-price-list-item-table__cell">
+          @if (getItemControl(displayItem.id); as itemControl) {
+            <input
+              data-testid="add-price-list-item-table-checkbox"
+              [attr.id]="'item-checkbox-' + displayItem.id"
+              [formControl]="itemControl"
+              type="checkbox"
+            />
+          }
+        </td>
+        <td data-testid="add-price-list-item-table-name-cell" class="add-price-list-item-table__cell">
+          <label class="add-price-list-ticket-label" [attr.for]="'item-checkbox-' + displayItem.id.toString()">
+            <fa-icon [icon]="['fal', 'ticket-alt']"></fa-icon>
+            <span class="add-price-list-ticket-label__content">
+              <span [innerHTML]="displayItem.label"></span>
+              @if (displayItem.isArchived) {
+                <app-archived-ticket-type-badge />
+              }
+              @if (displayItem.disabledReasonKey) {
+                <span class="add-price-list-ticket-label__disabled-reason font-sm" data-testid="add-price-list-item-disabled-reason">
+                  {{ displayItem.disabledReasonKey | translate }}
+                </span>
+              }
+            </span>
+          </label>
+        </td>
+        <td data-testid="add-price-list-item-table-group-cell" class="add-price-list-item-table__cell">
+          <span>{{ displayItem.groups }}</span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <div *ngIf="isLoading" data-testid="add-price-list-item-spinner" class="spinner">
+    <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'3x'"></fa-icon>
+  </div>
+</div>
+
+<div class="lateral-slider-body__footer">
+  <button data-testid="add-price-list-item-discard-button" class="button button--large button--tertiary" (click)="cancel()">
+    {{ 'sessions.pricing.priceList.selectTicketTypesForm.discardButton' | translate }}
+  </button>
+
+  <button
+    data-testid="add-price-list-item-save-button"
+    class="button button--large button--primary"
+    (click)="save()"
+    [disabled]="!hasChanges"
+  >
+    {{ 'sessions.pricing.priceList.selectTicketTypesForm.saveButton' | translate }}
+  </button>
+</div>

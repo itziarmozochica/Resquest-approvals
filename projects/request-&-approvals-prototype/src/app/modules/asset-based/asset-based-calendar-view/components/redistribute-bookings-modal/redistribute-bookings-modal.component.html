@@ -1,0 +1,81 @@
+<ignt-dialog-header data-testid="redistribute-bookings-modal-title">
+  <span class="redistribute-bookings-modal__heading">
+    <span class="redistribute-bookings-modal__icon" aria-hidden="true">
+      <!-- The glyph only ships in the regular set; with `light` the icon renders empty. -->
+      <ignt-icon name="right-left" variant="regular"></ignt-icon>
+    </span>
+    {{ titleKey | translate }}
+  </span>
+</ignt-dialog-header>
+
+<ignt-dialog-content class="redistribute-bookings-modal__body">
+  <p class="redistribute-bookings-modal__description" data-testid="redistribute-bookings-modal-description">
+    {{ descriptionKey | translate: descriptionParams }}
+  </p>
+
+  @if (data.requiresApproval) {
+    <p class="redistribute-bookings-modal__time-change-notice" data-testid="redistribute-bookings-modal-time-change-notice">
+      {{ 'bookedSlots.redistributeModal.timeChangeNotice' | translate }}
+    </p>
+  }
+
+  <div class="redistribute-bookings-modal__groups" data-testid="redistribute-bookings-modal-list">
+    @for (group of data.groups; track group.sourceAssetId) {
+      <div class="redistribute-bookings-modal__group" role="group" [attr.aria-label]="group.sourceAssetName">
+        @if (showGroupHeaders) {
+          <p class="redistribute-bookings-modal__group-header" data-testid="redistribute-bookings-modal-group-header">
+            {{ group.sourceAssetName }}
+          </p>
+        }
+        <ul class="redistribute-bookings-modal__list">
+          @for (row of group.rows; track $index) {
+            <li
+              class="redistribute-bookings-modal__item"
+              [attr.aria-label]="
+                (row.newTimeLabel ? 'bookedSlots.redistributeModal.rowMovesToAtTime' : 'bookedSlots.redistributeModal.rowMovesTo')
+                  | translate: { booking: row.bookingLabel, newTime: row.newTimeLabel, target: row.targetLabel, time: row.timeLabel }
+              "
+              data-testid="redistribute-bookings-modal-item"
+            >
+              <span class="redistribute-bookings-modal__label" igntTooltip [tooltipLabel]="row.bookingLabel">
+                {{ row.bookingLabel }}
+              </span>
+              <span class="redistribute-bookings-modal__time">{{ row.timeLabel }}</span>
+              <ignt-icon class="redistribute-bookings-modal__arrow" name="arrow-right" variant="light" aria-hidden="true"></ignt-icon>
+              <span class="redistribute-bookings-modal__target">{{ row.targetLabel }}</span>
+              @if (row.newTimeLabel) {
+                <span class="redistribute-bookings-modal__new-time" data-testid="redistribute-bookings-modal-new-time">
+                  {{ row.newTimeLabel }}
+                </span>
+              }
+            </li>
+          }
+        </ul>
+      </div>
+    }
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer [hideCancelButton]="true">
+  <div class="redistribute-bookings-modal__footer">
+    <ignt-button
+      #confirmButton
+      class="redistribute-bookings-modal__action"
+      data-testid="confirm-redistribute-bookings"
+      variant="primary"
+      sentiment="brand"
+      [loading]="data.isPending()"
+      [label]="'bookedSlots.redistributeModal.confirm' | translate: { count: data.movableCount }"
+      (click)="onConfirm()"
+    ></ignt-button>
+    <ignt-button
+      class="redistribute-bookings-modal__action"
+      data-testid="cancel-redistribute-bookings"
+      variant="tertiary"
+      sentiment="neutral"
+      [disabled]="data.isPending()"
+      [label]="'bookedSlots.redistributeModal.cancel' | translate"
+      (click)="onCancel()"
+    ></ignt-button>
+  </div>
+</ignt-dialog-footer>

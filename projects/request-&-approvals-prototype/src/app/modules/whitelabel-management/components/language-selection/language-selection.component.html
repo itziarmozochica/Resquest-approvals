@@ -1,0 +1,134 @@
+<div class="language-selection">
+  @if (catalogStatus() === 'loading') {
+    <p class="language-selection__hint" data-testid="language-selection-catalog-loading">
+      {{ 'languageSelection.catalogLoading' | translate }}
+    </p>
+  } @else if (catalogStatus() === 'unavailable') {
+    <p class="language-selection__config" role="alert" data-testid="language-selection-catalog-unavailable">
+      {{ 'languageSelection.catalogUnavailable' | translate }}
+    </p>
+  } @else if (catalogStatus() === 'empty') {
+    <p class="language-selection__hint" data-testid="language-selection-catalog-empty">
+      {{ 'languageSelection.catalogEmpty' | translate }}
+    </p>
+  }
+
+  <div class="language-selection__dual">
+    @if (!disabled()) {
+      <section class="language-selection__panel" data-testid="language-selection-available-panel">
+        <h3 class="language-selection__section-title">{{ 'languageSelection.availableSectionLabel' | translate }}</h3>
+        <ignt-input-field
+          class="language-selection__filter"
+          data-testid="language-selection-filter"
+          [formControl]="filterControl"
+          [label]="'languageSelection.filterLabel' | translate"
+          [placeholder]="'languageSelection.filterPlaceholder' | translate"
+        />
+
+        <div class="language-selection__list-frame">
+          @if (catalogStatus() !== 'ready') {
+            <!-- The catalog status above already explains the empty list. -->
+          } @else if (filteredAvailableLanguages().length === 0) {
+            <p class="language-selection__empty" data-testid="language-selection-available-empty">
+              {{
+                (availableLanguages().length === 0 ? 'languageSelection.noAvailableLanguages' : 'languageSelection.noFilterMatches')
+                  | translate
+              }}
+            </p>
+          } @else {
+            <ul class="language-selection__list" data-testid="language-selection-available-list">
+              @for (language of filteredAvailableLanguages(); track language.locale) {
+                <li class="language-selection__item" [attr.data-testid]="'language-selection-available-' + language.locale">
+                  <span class="language-selection__item-label">{{ language.name }}</span>
+                  <div class="language-selection__item-actions">
+                    <ignt-button
+                      class="language-selection__add-as-default"
+                      size="small"
+                      variant="tertiary"
+                      [ariaLabel]="'languageSelection.addAsDefaultAriaLabel' | translate: { code: language.locale }"
+                      [attr.data-testid]="'language-selection-add-default-' + language.locale"
+                      [disabled]="busy()"
+                      [label]="'languageSelection.addAsDefault' | translate"
+                      (click)="onAddFromList(language.locale, true)"
+                    />
+                    <ignt-button
+                      size="small"
+                      variant="secondary"
+                      [ariaLabel]="'languageSelection.addAriaLabel' | translate: { code: language.locale }"
+                      [attr.data-testid]="'language-selection-add-' + language.locale"
+                      [disabled]="busy()"
+                      [label]="'languageSelection.add' | translate"
+                      (click)="onAddFromList(language.locale)"
+                    />
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </section>
+    }
+
+    <section class="language-selection__panel" data-testid="language-selection-selected-panel">
+      <h3 class="language-selection__section-title">{{ 'languageSelection.selectedSectionLabel' | translate }}</h3>
+      <ignt-input-field
+        class="language-selection__filter"
+        data-testid="language-selection-selected-filter"
+        [formControl]="selectedFilterControl"
+        [label]="'languageSelection.filterLabel' | translate"
+        [placeholder]="'languageSelection.filterPlaceholder' | translate"
+      />
+
+      <div class="language-selection__list-frame">
+        @if (selectedEntries().length === 0) {
+          <p class="language-selection__empty" data-testid="language-selection-current-empty">
+            {{ 'languageSelection.emptyCurrent' | translate }}
+          </p>
+        } @else if (filteredSelectedEntries().length === 0) {
+          <p class="language-selection__empty" data-testid="language-selection-selected-empty">
+            {{ 'languageSelection.noFilterMatches' | translate }}
+          </p>
+        } @else {
+          <ul class="language-selection__list" data-testid="language-selection-current-list">
+            @for (language of filteredSelectedEntries(); track language.code) {
+              <li class="language-selection__item" [attr.data-testid]="'language-selection-selected-' + language.code">
+                <span class="language-selection__item-label">{{ language.label }}</span>
+                @if (language.isDefault) {
+                  <ignt-tag
+                    class="language-selection__default-badge"
+                    sentiment="sharp"
+                    variant="outline"
+                    [attr.data-testid]="'language-selection-default-' + language.code"
+                  >
+                    {{ 'languageSelection.defaultBadge' | translate }}
+                  </ignt-tag>
+                }
+                @if (!disabled()) {
+                  <div class="language-selection__item-actions">
+                    <ignt-button
+                      size="small"
+                      variant="tertiary"
+                      [ariaLabel]="'languageSelection.removeAriaLabel' | translate: { code: language.code }"
+                      [attr.data-testid]="'language-selection-remove-' + language.code"
+                      [disabled]="busy()"
+                      [label]="'languageSelection.remove' | translate"
+                      [loading]="removingCode() === language.code"
+                      (click)="onRemove(language.code)"
+                    />
+                  </div>
+                }
+              </li>
+            }
+          </ul>
+        }
+      </div>
+
+      @if (addError(); as message) {
+        <p class="language-selection__error" role="alert" data-testid="language-selection-add-error">{{ message }}</p>
+      }
+      @if (removeError(); as message) {
+        <p class="language-selection__error" role="alert" data-testid="language-selection-remove-error">{{ message }}</p>
+      }
+    </section>
+  </div>
+</div>

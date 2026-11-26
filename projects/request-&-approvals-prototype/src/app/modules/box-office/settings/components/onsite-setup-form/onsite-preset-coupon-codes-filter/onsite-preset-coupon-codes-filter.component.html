@@ -1,0 +1,59 @@
+<div *ngIf="(isLoadingTemplateCoupons$ | async) === false; else templateCouponsLoader">
+  <div class="filters-container" cdkDropList (cdkDropListDropped)="dropChangeCoupon($event)">
+    <ng-container *ngIf="selectedCoupons().length === 0 && !showAddCouponSelect()">
+      <div class="filters-container__empty-message">
+        {{ 'boxOffice.settings.actions.onsiteSetup.presetCouponCodes.emptyPlaceHolder' | translate }}
+      </div>
+    </ng-container>
+    <ng-container *ngFor="let couponOption of selectedCoupons(); let i = index">
+      <div
+        class="filter-container"
+        cdkDrag
+        cdkDragLockAxis="y"
+        cdkDragBoundary=".filters-container"
+        [cdkDragDisabled]="selectedCoupons().length < 2"
+      >
+        <div class="filter__card-placeholder" *cdkDragPlaceholder></div>
+        <div class="filter__card">
+          <div class="filter__icon-drag-container" cdkDragHandle>
+            <ignt-icon class="filter__icon-drag" name="grip-vertical" variant="solid" aria-hidden="true"></ignt-icon>
+          </div>
+          <div class="filter__description" [title]="couponOption.title">
+            {{ couponOption.title }}
+          </div>
+        </div>
+        <div class="filter__icon-remove-container">
+          <ignt-icon
+            class="filter__icon-remove"
+            name="times"
+            variant="solid"
+            aria-hidden="true"
+            [fixedWidth]="true"
+            (click)="deleteCoupon(i)"
+          ></ignt-icon>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+  <div class="select-container">
+    <app-multi-select
+      #multiSelect
+      [allowCustomOption]="true"
+      [options]="printableCouponOptions()"
+      [customOptions]="customCouponOptions()"
+      [selectedOptions]="selectedCoupons()"
+      (selected)="updateCouponSelection($event)"
+      (customDeselected)="onCustomDeselected()"
+      [maxSelectedOptions]="totalAvailableOptions()"
+      [displayInPlaceMaximum]="3"
+      [defaultOrdering]="false"
+      [defaultOpening]="false"
+      [placeholder]="'boxOffice.settings.actions.onsiteSetup.presetCouponCodes.addButton' | translate"
+    />
+  </div>
+</div>
+<ng-template #templateCouponsLoader>
+  <div class="loader">
+    <ignt-icon class="loader__icon" name="spinner" variant="solid" aria-hidden="true" [spin]="true"></ignt-icon>
+  </div>
+</ng-template>

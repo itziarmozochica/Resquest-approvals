@@ -1,0 +1,684 @@
+.builder {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr) 280px;
+  gap: 16px;
+  align-items: start;
+  min-width: 0;
+}
+
+// Responsive collapse: at narrow widths only the preview is shown. The
+// palette is removed entirely from the visual flow, and the properties side
+// panel is replaced by a bottom-sheet (rendered by the template only when a
+// block is selected). The 1024 px threshold matches the TS-side `matchMedia`
+// query so the CSS and Angular state stay in sync.
+@media (max-width: 1024px) {
+  .builder {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .palette {
+    display: none;
+  }
+}
+
+// Bottom-sheet (narrow viewports). The wrapper is always rendered when the
+// viewport is narrow; we toggle the `--open` modifier on selection change
+// so both entry AND exit animate via CSS transitions. With `@if`-based
+// rendering only the entry would be animated (exit removes the DOM
+// instantly, no chance for a leave transition).
+.properties-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease-out;
+
+  &--open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.properties-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.18);
+  z-index: 1000;
+  overflow: hidden;
+  transform: translateY(100%);
+  pointer-events: none;
+  transition: transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
+  // `will-change` hints the browser to compositor-layer this element so the
+  // transform animation is GPU-accelerated (avoids paint thrash on slower
+  // mobile devices where this layout is most likely to be used).
+  will-change: transform;
+
+  &--open {
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  // Make the properties panel inside take the remaining height and scroll
+  // internally if its content overflows.
+  app-db-properties-panel {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 0;
+  }
+}
+
+// Top strip: just the drag-handle, centered. No other elements share this
+// row so the handle never competes visually with the close button.
+.properties-sheet__handle-row {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0 0;
+  flex-shrink: 0;
+}
+
+.properties-sheet__handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: #d1d5db;
+}
+
+// Below the handle strip: a slim header that holds the close button at the
+// right. Keeping the close in its own row gives a clear visual break from
+// the handle (which is a slim line itself) and matches the convention of
+// mobile bottom sheets where the dismissal button sits below the grab
+// indicator. Padding kept tight so the combined header stays under ~40 px.
+.properties-sheet__header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 2px 6px 0;
+  flex-shrink: 0;
+}
+
+.properties-sheet__close {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #1f2937;
+
+  &:hover {
+    background: #f3f4f6;
+  }
+
+  .ms {
+    font-size: 20px;
+  }
+}
+
+// ── Palette ──────────────────────────────────────────────────────────────────
+
+.palette {
+  background: #fff;
+  border: 1px solid var(--border-subtle, #e8e8e8);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.palette-title {
+  font-weight: 700;
+  font-size: 13px;
+  margin: 0 0 2px;
+  color: var(--fg-1, #252525);
+}
+
+.palette-sub {
+  font-size: 12px;
+  color: var(--fg-2, #414141);
+  margin: 0 0 12px;
+}
+
+.palette-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 10px;
+}
+
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-default, #c6c6c6);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 13px;
+  color: var(--fg-1, #252525);
+  cursor: grab;
+  user-select: none;
+  transition:
+    border-color 120ms,
+    background 120ms;
+
+  &:hover {
+    border-color: var(--brand-primary, #009ee0);
+    background: var(--brand-tint, #e0f3fb);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  // CDK adds `.cdk-drag-disabled` when `[cdkDragDisabled]` is true. Strip the
+  // grab cursor and the blue hover highlight so the panel reads as locked.
+  &.cdk-drag-disabled {
+    cursor: default;
+    opacity: 0.6;
+
+    &:hover {
+      border-color: var(--border-default, #c6c6c6);
+      background: #fff;
+    }
+
+    &:active {
+      cursor: default;
+    }
+  }
+
+  .ms {
+    font-size: 18px !important;
+    color: var(--fg-2, #414141);
+    flex-shrink: 0;
+  }
+}
+
+.palette-item-label {
+  flex: 1;
+}
+
+.palette-drag-ghost {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fff;
+  border: 2px solid var(--brand-primary, #009ee0);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-1, #252525);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+
+  .ms {
+    font-size: 16px !important;
+    color: var(--fg-2, #414141);
+  }
+}
+
+// ── Canvas ────────────────────────────────────────────────────────────────────
+
+.canvas-wrap {
+  position: relative;
+  background: #fff;
+  border: 1px solid var(--border-subtle, #e8e8e8);
+  border-radius: 10px;
+  padding: 16px;
+  min-height: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.canvas-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.canvas-header-label {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--fg-1, #252525);
+}
+
+.canvas-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.canvas-header-count {
+  font-size: 12px;
+  color: var(--fg-2, #414141);
+}
+
+// Scroll wrapper around the gray canvas, so the scrollbar sits OUTSIDE the
+// canvas box. Caps the height so the editor page doesn't grow unbounded; no
+// `scrollbar-gutter`, so the canvas fills 100% when it fits and only yields
+// width to the scrollbar when it overflows.
+// NOTE: this is a plain block (not flexbox). A flex child would be sized to the
+// scroll *viewport* height, so the dashed canvas border would stop at the fold
+// and its blocks would spill below it once scrolled. As a block, `.canvas`
+// grows to its own content height and the border wraps every block (mirrors
+// `.description-preview` in /translations-edit).
+.canvas-scroll {
+  flex: 1;
+  min-height: 0;
+  max-height: 70vh;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.canvas {
+  border: 1px dashed var(--c-grey-200, #c6c6c6);
+  border-radius: 8px;
+  background: var(--c-grey-50, #f2f2f2);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  // Grows to its content (so the dashed border wraps all blocks); `min-height`
+  // keeps the canvas tall when nearly empty.
+  min-height: 500px;
+  min-width: 0;
+  // `position: relative` keeps the canvas the offset ancestor for the block
+  // wrappers; the scroll now lives on `.canvas-scroll` (see `#scrollBlockToTop`).
+  position: relative;
+  transition:
+    background 120ms,
+    border-color 120ms;
+
+  &.cdk-drop-list-dragging .block-wrapper:not(.cdk-drag-placeholder) {
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+// ── Add-component button + popover ────────────────────────────────────────────
+
+.canvas-add {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 6px;
+  position: relative;
+
+  // Empty-state layout: centered vertically inside the canvas, no top margin
+  // (instead the flex parent centers it via flex:1).
+  &--centered {
+    flex: 1;
+    justify-content: center;
+    margin-top: 0;
+  }
+
+  // Removed from the layout entirely while a drag is in progress. `display:
+  // none` (NOT `opacity: 0`) is load-bearing: this element lives inside the
+  // canvas `cdkDropList` and CDK appends the drop placeholder after the last
+  // child — if the button only faded out but kept its box, the placeholder
+  // would render below an invisible spacer (at the bottom of the canvas when
+  // empty, because `--centered` sets `flex: 1`; or with a phantom gap after
+  // the last block otherwise).
+  &--hidden {
+    display: none;
+  }
+
+  &__button {
+    align-items: center;
+    background: #fff;
+    border: 2px solid var(--c-grey-200, #c6c6c6);
+    border-radius: 50%;
+    color: var(--fg-3, #767676);
+    cursor: pointer;
+    display: inline-flex;
+    height: 56px;
+    justify-content: center;
+    transition:
+      background 120ms,
+      border-color 120ms,
+      color 120ms,
+      transform 120ms,
+      box-shadow 120ms;
+    width: 56px;
+
+    &:hover {
+      background: var(--brand-tint, #e0f3fb);
+      border-color: var(--brand-primary, #009ee0);
+      box-shadow: 0 4px 12px rgba(0, 158, 224, 0.18);
+      color: var(--brand-primary, #009ee0);
+      transform: scale(1.05);
+    }
+
+    // Mouse-down feedback during the click itself (before the menu opens and
+    // the `--active` modifier takes over).
+    &:active {
+      background: #c6e7f5;
+      border-color: #0080b8;
+      box-shadow: inset 0 2px 4px rgba(0, 158, 224, 0.25);
+      color: #0080b8;
+      transform: scale(0.97);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--fg-2, #414141);
+      outline-offset: 2px;
+    }
+
+    .ms {
+      font-size: 28px !important;
+    }
+  }
+
+  &__text {
+    color: var(--fg-3, #767676);
+    font-size: 14px;
+    pointer-events: none;
+    text-align: center;
+  }
+}
+
+.add-menu-backdrop {
+  background: rgba(0, 0, 0, 0.45);
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: fixed;
+  transition: opacity 220ms ease;
+  z-index: 10000;
+
+  &--open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+.add-menu {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+  left: 50%;
+  max-height: 80vh;
+  max-width: 92vw;
+  min-width: 280px;
+  opacity: 0;
+  overflow-y: auto;
+  padding: 8px 0;
+  pointer-events: none;
+  position: fixed;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0.96);
+  transition:
+    opacity 220ms ease,
+    transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 10001;
+
+  &--open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  &__item {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: var(--fg-1, #252525);
+    cursor: pointer;
+    display: flex;
+    font-size: 14px;
+    gap: 12px;
+    padding: 12px 20px;
+    text-align: left;
+    transition: background 120ms;
+    width: 100%;
+
+    &:hover {
+      background: var(--c-grey-50, #f2f2f2);
+    }
+
+    .ms {
+      color: var(--fg-2, #414141);
+      flex-shrink: 0;
+      font-size: 20px !important;
+    }
+  }
+}
+
+.canvas-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.canvas-footer-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--c-grey-200, #c6c6c6);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--fg-1, #252525);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 120ms,
+    border-color 120ms;
+
+  &:hover:not(:disabled) {
+    background: var(--c-grey-50, #f2f2f2);
+    border-color: var(--fg-2, #414141);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .ms {
+    font-size: 16px;
+  }
+}
+
+// ── Block wrapper ─────────────────────────────────────────────────────────────
+
+.block-wrapper {
+  position: relative;
+  background: #fff;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 14px 16px;
+  cursor: pointer;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+
+  &:hover {
+    border-color: var(--brand-primary, #009ee0);
+  }
+
+  &--selected {
+    border-color: var(--brand-primary, #009ee0);
+    box-shadow: 0 0 0 1px var(--brand-primary, #009ee0);
+    cursor: grab;
+  }
+
+  // When the canvas is locked (no edit permission), the block stays selectable
+  // but is not draggable — keep the pointer cursor on hover AND on selection,
+  // overriding the `--selected` rule above. The global `body.db-dragging`
+  // override (further down) doesn't apply because we also short-circuit the
+  // mousedown hold timer in TS, so `db-dragging` is never added.
+  &--locked,
+  &--locked.block-wrapper--selected {
+    cursor: pointer;
+  }
+}
+
+// Global grabbing cursor during drag — class added to body via TypeScript
+/* stylelint-disable-next-line selector-pseudo-element-no-unknown */
+::ng-deep body.db-dragging,
+::ng-deep body.db-dragging * {
+  cursor: grabbing !important;
+}
+
+.block-drag-placeholder {
+  border: 2px dashed var(--brand-primary, #009ee0);
+  border-radius: 6px;
+  background: rgba(0, 158, 224, 0.06);
+  min-height: 60px;
+}
+
+// ── Delete zone ───────────────────────────────────────────────────────────────
+
+.delete-zone {
+  position: fixed;
+  bottom: 64px;
+  // left is set via [style.left] binding (center of canvas panel)
+  transform: translateX(-50%) translateY(16px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--status-danger-soft, #f54900);
+  border: 2px solid var(--status-danger-soft, #f54900);
+  color: #fff;
+  z-index: 9999;
+  box-shadow: 0 4px 20px rgba(245, 73, 0, 0.3);
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease,
+    background 150ms,
+    border-color 150ms,
+    color 150ms,
+    box-shadow 150ms,
+    scale 150ms;
+
+  .ms {
+    font-size: 26px !important;
+  }
+
+  // Suppress CDK placeholder dots inside the delete zone
+  .cdk-drag-placeholder {
+    display: none !important;
+  }
+
+  &__ring {
+    height: 100%;
+    left: 0;
+    pointer-events: none;
+    position: absolute;
+    top: 0;
+    transform: rotate(-90deg);
+    width: 100%;
+  }
+
+  &__ring-circle {
+    // 2π × 28 ≈ 175.93 — full circumference of the progress ring
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.85);
+    stroke-dasharray: 175.93;
+    stroke-dashoffset: 175.93;
+    stroke-linecap: round;
+    stroke-width: 4;
+  }
+
+  &--visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  // Cursor enters: button scales up + ring starts sweeping. Background is
+  // already red from `--visible`. Driven by the `--hovering` class (set by
+  // cdkDropListEntered/Exited), NOT by CDK's `cdk-drop-list-receiving`, which
+  // fires as soon as a drag starts in a connected list.
+  &--hovering {
+    box-shadow: 0 8px 28px rgba(245, 73, 0, 0.4);
+    transform: translateX(-50%) translateY(0) scale(1.18);
+
+    .delete-zone__ring-circle {
+      animation: delete-ring-progress 750ms linear forwards;
+    }
+  }
+
+  // Ring completed (after 1s hover): button turns yellow — deletion is now armed.
+  &--ready {
+    background: #f59e0b;
+    border-color: #f59e0b;
+    box-shadow: 0 8px 28px rgba(245, 158, 11, 0.5);
+
+    .delete-zone__ring-circle {
+      stroke: #fff;
+    }
+  }
+}
+
+@keyframes delete-ring-progress {
+  from {
+    stroke-dashoffset: 175.93;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+// Blur + red tint on the CDK drag preview when hovering the delete zone
+::ng-deep body.db-over-delete .cdk-drag-preview {
+  opacity: 0.35 !important;
+  filter: blur(2px) sepia(0.6) saturate(3) hue-rotate(-10deg) !important;
+  transition:
+    opacity 150ms,
+    filter 150ms;
+}
+
+// ── CDK drag states ───────────────────────────────────────────────────────────
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drag-preview {
+  border-radius: 6px;
+  background: #fff;
+  border: 2px solid var(--brand-primary, #009ee0);
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.1),
+    0 12px 24px rgba(66, 66, 66, 0.15);
+  padding: 12px 16px;
+  opacity: 0.92;
+  cursor: grabbing !important;
+  overflow: hidden;
+}
+
+.palette-drag-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-1, #252525);
+
+  .ms {
+    font-size: 16px !important;
+    color: var(--fg-2, #414141);
+  }
+}

@@ -1,0 +1,219 @@
+<section class="obo-settings-page" [class.obo-settings-page--editor]="editorRouteActive" [attr.aria-label]="'menu.oboSettings' | translate">
+  @let hasVenue = currentStateOnsiteSetup !== stateEnum.noFiltersSelected;
+  @let hasTabs = hasVenue && !showsPageSkeleton;
+
+  <app-event-selection-band
+    data-testid="obo-settings-selectors"
+    [heading]="'listPlan.venueSelection' | translate"
+    [summary]="selectedPlace?.title || ('boxOffice.settings.searchFilters' | translate)"
+  >
+    <app-search-bar
+      data-testid="obo-settings-search-bar"
+      [mandatoryFilters]="mandatoryFilters"
+      [screen]="screen.oboSettings"
+      [searchOnChange]="true"
+      [showPlan]="false"
+      [showVenue]="true"
+      (searchEmitter)="loadNewSearch($event)"
+    ></app-search-bar>
+  </app-event-selection-band>
+
+  <div class="obo-settings-page__title">
+    <div class="obo-settings-page__title-content">
+      <span class="obo-settings-page__section">{{ 'menu.boxOffice' | translate }}</span>
+      <h1 class="obo-settings-page__heading" data-testid="page-title">{{ 'menu.oboSettings' | translate }}</h1>
+    </div>
+    @if (!editorRouteActive && hasTabs) {
+      <div class="obo-settings-page__actions" data-testid="obo-settings-title-actions">
+        @switch (selectedTab?.id) {
+          @case (tabIds.OnsiteSetup) {
+            <ignt-button
+              data-testid="obo-settings-button-create-configuration"
+              size="large"
+              [label]="'boxOffice.settings.createSetupButton' | translate"
+              (click)="showForm(actionsEnum.createSetup)"
+            />
+          }
+          @case (tabIds.CashRegister) {
+            <ignt-button
+              data-testid="obo-settings-button-create-configuration"
+              size="large"
+              [label]="'boxOffice.settings.createCashRegisterButton' | translate"
+              (click)="showForm(actionsEnum.createCashRegister)"
+            />
+          }
+          @case (tabIds.PaymentConfigurations) {
+            <ignt-button
+              data-testid="payment-configurations-list-create"
+              size="large"
+              [label]="'paymentConfig.list.createConfigurationButton' | translate"
+              (click)="createPaymentConfiguration()"
+            />
+          }
+        }
+      </div>
+    }
+  </div>
+
+  @if (!editorRouteActive) {
+    @if (showsPageSkeleton) {
+      <ng-container [ngTemplateOutlet]="loading" />
+    } @else if (hasVenue) {
+      <ignt-tabs
+        class="obo-settings-page__tabs"
+        data-testid="obo-settings-tabs"
+        [selectedIndex]="selectedTabIndex"
+        (selectedIndexChange)="onTabIndexChange($event)"
+      >
+        @for (tab of tabs; track tab.id) {
+          <ignt-tabs-item [label]="tab.label | translate">
+            <ng-container [ngTemplateOutlet]="tab.content" />
+          </ignt-tabs-item>
+        }
+      </ignt-tabs>
+    } @else {
+      <ng-container [ngTemplateOutlet]="noFilterSelected" />
+    }
+  }
+</section>
+
+<router-outlet />
+
+<ng-template #onsiteSetupSearch>
+  <ng-container
+    [ngTemplateOutlet]="bodySettings"
+    [ngTemplateOutletContext]="{
+      currentStep: currentStateOnsiteSetup,
+      noResultMessage: 'boxOffice.settings.noResults',
+      resultTemplate: onsiteSetupsResults,
+    }"
+  />
+</ng-template>
+
+<ng-template #cashRegisterSearch>
+  <ng-container
+    [ngTemplateOutlet]="bodySettings"
+    [ngTemplateOutletContext]="{
+      currentStep: currentStateCashRegister,
+      noResultMessage: 'boxOffice.settings.cashRegisterNoResults',
+      resultTemplate: cashRegistersResult,
+    }"
+  />
+</ng-template>
+
+<ng-template #paymentConfigurationsContent>
+  <app-payment-configurations-list />
+</ng-template>
+
+<ng-template #bodySettings let-currentStep="currentStep" let-noResultMessage="noResultMessage" let-resultTemplate="resultTemplate">
+  @switch (currentStep) {
+    @case (stateEnum.loading) {
+      <ng-container [ngTemplateOutlet]="cardsLoading" />
+    }
+    @case (stateEnum.noResults) {
+      <div data-testid="obo-settings-no-results" class="obo-settings__state">
+        <ignt-icon name="receipt" variant="regular" size="h1" aria-hidden="true" />
+        <span>{{ noResultMessage | translate }}</span>
+      </div>
+    }
+    @case (stateEnum.withResults) {
+      <ng-container [ngTemplateOutlet]="resultTemplate" />
+    }
+    @case (stateEnum.error) {
+      <div data-testid="obo-settings-error">
+        <ignt-alert sentiment="danger" [description]="'boxOffice.settings.error' | translate" />
+      </div>
+    }
+  }
+</ng-template>
+
+<!-- Where the tabs and the setup cards land once the venue's setups arrive, drawn as skeletons meanwhile. -->
+<ng-template #loading>
+  <div class="obo-settings-page__skeleton" data-testid="obo-settings-page-loading">
+    <div class="obo-settings-page__skeleton-tabs" data-testid="obo-settings-skeleton-tabs" aria-hidden="true">
+      @for (width of skeletonTabWidths(); track width) {
+        <ignt-skeleton-base class="obo-settings-page__skeleton-tab" [animation]="true" [height]="20" [width]="width" />
+      }
+    </div>
+    <ng-container [ngTemplateOutlet]="cardsLoading" />
+  </div>
+</ng-template>
+
+<ng-template #cardsLoading>
+  <div class="obo-settings__with-results" data-testid="obo-settings-loading" role="status" aria-busy="true">
+    @for (row of skeletonRows; track row) {
+      <ignt-skeleton-base aria-hidden="true" [animation]="true" [height]="skeletonRowHeight" />
+    }
+    <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
+  </div>
+</ng-template>
+
+<ng-template #noFilterSelected>
+  <div data-testid="obo-settings-no-filters-selected" class="obo-settings__state">
+    <ignt-icon name="sensor-alert" variant="light" size="h1" aria-hidden="true" />
+    <span>{{ 'boxOffice.settings.noFilterSelected' | translate }}</span>
+  </div>
+</ng-template>
+
+<ng-template #cashRegistersResult>
+  <div data-testid="obo-settings-with-results" class="obo-settings__with-results">
+    @for (cashRegister of cashRegisterList; track cashRegister.id) {
+      <app-cash-register-card
+        [cashRegister]="cashRegister"
+        (delete)="showDeleteModal(actionsEnum.deleteCashRegister, $event)"
+        (edit)="showForm(actionsEnum.editCashRegister, $event)"
+      ></app-cash-register-card>
+    }
+  </div>
+</ng-template>
+
+<ng-template #onsiteSetupsResults>
+  <div data-testid="obo-settings-with-results" class="obo-settings__with-results">
+    @for (setup of setupsList; track setup.id) {
+      <app-onsite-setup-card
+        [setup]="setup"
+        (delete)="showDeleteModal(actionsEnum.deleteSetup, $event)"
+        (duplicate)="showDuplicateModal($event)"
+        (openInBoxOffice)="openSetupInBoxOffice($event)"
+        (edit)="showForm(actionsEnum.editSetup, $event)"
+        (editCustomTabs)="goToCustomTabsSettings($event, false)"
+        (addCustomTabs)="goToCustomTabsSettings($event, true)"
+        [isActive]="setup.id === activeOnsiteSetupId"
+        [isMobile]="isMobile()"
+        [isTablet]="isTablet()"
+      >
+      </app-onsite-setup-card>
+    }
+  </div>
+</ng-template>
+
+<app-lateral-slider
+  [showDetails]="showLateralSlider"
+  [title]="'boxOffice.settings.actions.' + currentAction + '.title'"
+  [contentTemplate]="actionForm"
+  (closeSlider)="closeMenuLateral()"
+>
+</app-lateral-slider>
+
+<ng-template #cashRegisterForm>
+  <app-cash-register-form [cashRegister]="cashRegisterSelected" (formChanges)="executeAction($event)"> </app-cash-register-form>
+</ng-template>
+
+<ng-template #onsiteSetupForm>
+  <app-onsite-setup-form
+    [onsiteSetup]="onsiteSetupSelected"
+    [cashRegisters]="cashRegisterList"
+    [plans]="salesChannelService.plans()"
+    [retailSetups]="retailSetupsList"
+    [placeId]="selectedPlace ? selectedPlace.id : null"
+    [validationProfilesOptions]="validationProfilesOptions"
+    [accessControlSetupsOptions]="accessControlSetupsOptions"
+    [overrideCapacityEnabled]="overrideCapacityEnabled()"
+    [appearanceConfigEnabled]="appearanceConfigEnabled()"
+    [canViewBrandingConfig]="canViewBrandingConfig()"
+    (cashRegisterCreated)="onCashRegisterCreatedFromSetup($event)"
+    (formChanges)="executeAction($event)"
+    (paymentConfigurationsTabRequested)="goToPaymentConfigurationsTab()"
+  >
+  </app-onsite-setup-form>
+</ng-template>

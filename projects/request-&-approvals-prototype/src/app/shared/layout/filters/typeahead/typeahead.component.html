@@ -1,0 +1,58 @@
+<div [class.typeahead-floating-label-wrapper]="floatingLabel" [style.position]="floatingLabel ? 'relative' : 'static'">
+  <input
+    appInputMobileBehavior
+    data-testid="typeahead-input"
+    type="text"
+    class="form-control typeahead-input"
+    [class.typeahead-input--floating-label]="floatingLabel"
+    [class.typeahead-input--has-value]="floatingLabel && hasValue()"
+    [placeholder]="placeholderLabel"
+    [disabled]="disabled"
+    (keyup.arrowDown)="onPressArrow($event)"
+    (keyup.arrowUp)="onPressArrow($event)"
+    (keyup.enter)="onEnter($event)"
+    (focusout)="onFocusOutEvent($event)"
+    (click)="onClickInput()"
+    [(ngModel)]="model"
+    [ngModelOptions]="{ standalone: true }"
+    [focusFirst]="false"
+    [showHint]="true"
+    [ngbTypeahead]="search"
+    (selectItem)="onSelectItem($event)"
+    [inputFormatter]="formatter"
+    [resultTemplate]="rt"
+    [readonly]="!isEditable"
+    [popupClass]="customPopupClass"
+    [attr.data-test-options-length]="options?.length || 0"
+    #instance="ngbTypeahead"
+    #inputTypeahead
+    enterkeyhint="go"
+  />
+  <span *ngIf="floatingLabel" class="typeahead-floating-label">{{ floatingLabelText || emptyLabel }}</span>
+  <fa-icon
+    *ngIf="icon"
+    class="typeahead-icon"
+    [class.typeahead-icon--floating-label]="floatingLabel"
+    [class.typeahead-icon__disabled]="disabled"
+    [icon]="icon"
+    (click)="onClickIcon($event)"
+  >
+  </fa-icon>
+</div>
+
+<ng-template #rt let-r="result" let-t="term" let-index="index">
+  <div class="dropdown-item__container" data-testid="dropdown-item" [class]="getOptionClass(r)" (click)="onClickSelectOption()">
+    <ng-container *ngIf="!isLoadingOption(r); else loadingOption">
+      <ngb-highlight [result]="formatter(r)" [term]="t.trim()"></ngb-highlight>
+      <div *ngIf="r.status && r.status !== 'on_sale'" class="status-container">
+        <app-plan-status-tag [status]="r.status" [style]="r.status === 'off_sale' ? 'solid' : 'outline'"></app-plan-status-tag>
+      </div>
+    </ng-container>
+  </div>
+</ng-template>
+
+<ng-template #loadingOption>
+  <div class="dropdown-item__loading">
+    <fa-icon [icon]="['fas', 'spinner']" [spin]="true"></fa-icon>
+  </div>
+</ng-template>

@@ -1,0 +1,126 @@
+<div class="main-wrapper">
+  <div class="memberships-page__title">
+    <span class="memberships-page__section">{{ 'menu.memberships' | translate }}</span>
+    <h1 class="memberships-page__heading" data-testid="page-title">{{ title }}</h1>
+  </div>
+  <ng-container *ngIf="isLoading(); else programmesListWrapper">
+    <div class="loading-spinner">
+      <ignt-icon aria-hidden="true" class="loader" name="spinner" size="display" variant="solid" [spin]="true" />
+    </div>
+  </ng-container>
+</div>
+
+<ng-template #programmesListWrapper>
+  <div class="wrapper-card wrapper-card--main wrapper-card--elevation-100">
+    <ng-container *ngIf="!formGroup.controls['searchField'].value && !hasProgrammes(); else programmesList">
+      <div class="empty-state">
+        <img
+          class="empty-state__image"
+          src="assets/images/memberships/hand-card.svg"
+          alt="{{ 'memberships.programmes.emptyState.alt' | translate }}"
+        />
+        <h3>{{ 'memberships.programmes.emptyState.title' | translate }}</h3>
+        <h3>{{ 'memberships.programmes.emptyState.subtitle' | translate }}</h3>
+        <ignt-button [label]="'memberships.programmes.emptyState.createButton' | translate" routerLink="/memberships/programmes/create" />
+      </div>
+    </ng-container>
+  </div>
+
+  <ng-template #programmesList>
+    <div class="programmes-list__layout-container">
+      <div class="programmes-list__main-content">
+        <div class="programmes-list__header">
+          <label class="cell field">
+            <form [formGroup]="formGroup">
+              <ignt-input-field
+                formControlName="searchField"
+                class="cell cell--fill-md"
+                type="search"
+                [customFormErrors]="[
+                  {
+                    type: 'required',
+                    message: 'form.error.mandatoryField' | translate,
+                  },
+                ]"
+                [required]="false"
+                [placeholder]="'memberships.programmes.header.searchByName' | translate"
+                [label]="'memberships.programmes.header.searchByName' | translate"
+              ></ignt-input-field>
+            </form>
+            <ignt-icon class="field__icon field__icon--lead" name="search" variant="regular" />
+          </label>
+          <ignt-button label="Create new programme" routerLink="/memberships/programmes/create" data-testid="create-programme-button" />
+        </div>
+
+        <div class="programmes-list__table-wrapper">
+          <app-table
+            [headers]="headers"
+            [type]="tableType"
+            [scrollable]="true"
+            [orderBy]="orderBy()"
+            (updateOrderByEmit)="updateOrderBy($event)"
+          >
+            <tr *ngFor="let programme of programmes()" [class.selected]="programme === selectedProgramme()">
+              <td>
+                <span class="link" (click)="showProgramme(programme)"
+                  ><strong>{{ programme.name }}</strong></span
+                >
+              </td>
+              <td>{{ programme.members }}</td>
+              <td>{{ programme.tiers.length }}</td>
+              <td>{{ programme.createdAt | date: 'd MMM, y' }}</td>
+              <td>
+                <span [ngClass]="['programmes-list__status', 'programmes-list__status--' + programme.status]">{{ programme.status }}</span>
+              </td>
+              <td>
+                <button [igntMenuTriggerFor]="programmeActionsMenu" (click)="$event.stopPropagation()" class="dropdown-container__button">
+                  <ignt-icon name="ellipsis-h" variant="regular" [fixedWidth]="true" />
+                </button>
+
+                <ng-template #programmeActionsMenu>
+                  <ignt-menu>
+                    <ignt-menu-item
+                      value="toggle-publish"
+                      [label]="
+                        (programme.status === ProgrammeStatusEnum.PUBLISHED
+                          ? 'memberships.programmes.table.dropdown.unpublish'
+                          : 'memberships.programmes.table.dropdown.publish'
+                        ) | translate
+                      "
+                      (triggered)="updateProgramme(programme)"
+                    >
+                      <ignt-icon [name]="programme.status === ProgrammeStatusEnum.PUBLISHED ? 'eye-slash' : 'eye'" variant="solid" />
+                    </ignt-menu-item>
+                    <ignt-menu-item
+                      value="delete"
+                      [label]="'memberships.tiers.table.dropdown.delete' | translate"
+                      (triggered)="deleteProgramme(programme)"
+                    >
+                      <ignt-icon name="trash-alt" variant="solid" />
+                    </ignt-menu-item>
+                  </ignt-menu>
+                </ng-template>
+              </td>
+            </tr>
+          </app-table>
+        </div>
+      </div>
+
+      <ng-container *ngIf="selectedProgramme()">
+        <div class="programmes-list__divider"></div>
+      </ng-container>
+
+      <div [ngClass]="{ 'programmes-detail-wrapper': true, 'programmes-detail-wrapper--active': selectedProgramme() }">
+        <ng-container *ngIf="selectedProgramme()">
+          <app-programmes-preview
+            (deleteProgrammeClicked)="deleteProgramme(selectedProgramme())"
+            (closePreviewClicked)="hideProgramme()"
+            [programme]="selectedProgramme()"
+          ></app-programmes-preview>
+        </ng-container>
+      </div>
+    </div>
+  </ng-template>
+</ng-template>
+
+<app-confirmation-dialog></app-confirmation-dialog>

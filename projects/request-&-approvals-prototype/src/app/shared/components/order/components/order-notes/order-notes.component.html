@@ -1,0 +1,68 @@
+<div class="notes">
+  <header class="notes__header header">
+    <h3 class="header__title">{{ 'boxOffice.order.notes.title' | translate }}</h3>
+  </header>
+  <ul class="notes-list">
+    <li class="notes-list__item notes-list-item" tabindex="0" *ngFor="let note of notes" (click)="clickOnShowNoteDetail(note)">
+      <header class="notes-list-item__header">
+        <div class="notes-list-item__header-user-name">{{ note.username }}</div>
+        <time class="notes-list-item__header-date">
+          {{ note.modifiedAt | momentDate: 'd MMM, HH:mm' : localTimezone }}
+        </time>
+      </header>
+      <div class="notes-list-item__comment">
+        <div class="notes-list-item__comment-title">{{ note.title }}</div>
+        <div class="notes-list-item__comment-description">{{ note.message }}</div>
+      </div>
+    </li>
+  </ul>
+</div>
+
+<app-lateral-slider
+  [showDetails]="!!selectedNote"
+  [contentTemplate]="editNoteMode ? editNoteDetail : previewNoteDetail"
+  [title]="editNoteMode ? ('boxOffice.order.notes.editTitle' | translate) : ('boxOffice.order.notes.detailsTitle' | translate)"
+  (closeSlider)="hideNoteDetails()"
+>
+</app-lateral-slider>
+
+<ng-template #previewNoteDetail>
+  <div class="note-details-slider">
+    <div class="note-details-slider__content">
+      <div class="date">
+        <div class="date__updated">
+          <div class="title">{{ 'boxOffice.order.notes.lastUpdate' | translate }}</div>
+          <div class="user">{{ selectedNote?.username }}</div>
+          <div class="time">
+            {{ selectedNote?.modifiedAt | momentDate: 'dd/MM/yyyy - HH:mm' : localTimezone }}
+          </div>
+        </div>
+      </div>
+
+      <div class="note-details-info">
+        <div class="title">{{ selectedNote?.title }}</div>
+        <div class="description">{{ selectedNote?.message }}</div>
+      </div>
+    </div>
+
+    <div class="note-details-slider__footer">
+      <button class="button button--secondary button--large" (click)="hideNoteDetails()">
+        {{ 'boxOffice.order.notes.closeButton' | translate }}
+      </button>
+      <button class="button button--primary button--large" (click)="editNote()">
+        {{ 'boxOffice.order.notes.editButton' | translate }}
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #editNoteDetail>
+  <app-order-notes-edit-form
+    [timezone]="localTimezone"
+    [orderNote]="selectedNote"
+    [mode]="OrderNoteEditFormMode.Update"
+    (formChanges)="processFormChanges($event)"
+    (deleteNote)="deleteNote()"
+  >
+  </app-order-notes-edit-form>
+</ng-template>

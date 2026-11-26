@@ -1,0 +1,235 @@
+<div class="extend-dates-calendar-view">
+  <div class="view-header">
+    <a [routerLink]="'/sessions/calendar'" queryParamsHandling="preserve" data-testid="back-button-header" class="back-button">
+      <fa-icon class="back-button__icon" [icon]="['far', 'chevron-left']" [fixedWidth]="true"></fa-icon>
+      <span class="header__text">{{ 'sessions.extendDatesCalendar.backToCalendar' | translate }}</span>
+    </a>
+    <h5 class="title">{{ 'sessions.extendDatesCalendar.pageTitle' | translate }}</h5>
+  </div>
+
+  <div class="form-wrapper">
+    <form [formGroup]="formGroup">
+      <div class="form-section">
+        <h5 class="title">{{ 'sessions.extendDatesCalendar.sectionSelectDatesTitle' | translate }}</h5>
+        <p class="description">{{ 'sessions.extendDatesCalendar.sectionSelectDatesDescription' | translate }}</p>
+        <div formArrayName="selectedDates" class="selected-dates-wrapper">
+          <ng-container *ngFor="let selectedDate of selectedDates.controls; let index = index">
+            <div class="dates-row">
+              <app-date-range-form-group class="date-range-form-control" (formGroupCreated)="onDateRangeFormGroupCreated($event, index)" />
+              <ignt-button
+                variant="secondary"
+                sentiment="danger"
+                size="small"
+                [label]="'sessions.extendDatesCalendar.selectDatesRemoveButton' | translate"
+                [disabled]="selectedDates.length === 1"
+                (click)="removeSelectedDate(index)"
+                data-testid="select-dates-remove-button"
+              />
+            </div>
+            <div
+              class="form-error"
+              *ngIf="
+                (selectedDate.get('range')?.get('start')?.errors?.dateInThePast ||
+                  selectedDate.get('range')?.get('end')?.errors?.dateInThePast) &&
+                (selectedDate.get('range')?.get('start')?.dirty || selectedDate.get('range')?.get('end')?.dirty)
+              "
+            >
+              <fa-icon [icon]="['fas', 'exclamation-circle']" class="form-error--icon"></fa-icon>
+              {{ 'sessions.extendDatesCalendar.dateInThePastError' | translate }}
+            </div>
+            <div
+              class="form-error"
+              *ngIf="
+                (selectedDate.get('range')?.get('start')?.errors?.dateBeyondOneYear ||
+                  selectedDate.get('range')?.get('end')?.errors?.dateBeyondOneYear) &&
+                (selectedDate.get('range')?.get('start')?.dirty || selectedDate.get('range')?.get('end')?.dirty)
+              "
+            >
+              <fa-icon [icon]="['fas', 'exclamation-circle']" class="form-error--icon"></fa-icon>
+              {{ 'sessions.extendDatesCalendar.dateBeyondOneYearError' | translate }}
+            </div>
+          </ng-container>
+          <h6 class="add-dates-btn" data-testid="add-dates-button" (click)="addSelectedDateFormControl()">
+            {{ 'sessions.extendDatesCalendar.addSelectedDate' | translate }}
+            <fa-icon [icon]="['fas', 'plus-circle']" class="placeholder__more-icon"></fa-icon>
+          </h6>
+        </div>
+        <div>
+          <label>
+            <input
+              [formControl]="formGroup.get('showExcludeDates')"
+              [checked]="formGroup.get('showExcludeDates').value"
+              (change)="resetExcludeDates($event)"
+              data-testid="attendees-filter-addons"
+              type="checkbox"
+            />
+            {{ 'sessions.extendDatesCalendar.excludeDates' | translate }}
+          </label>
+        </div>
+        <div formArrayName="excludedDates" *ngIf="formGroup.get('showExcludeDates').value" class="exclude-dates-card">
+          <div class="exclude-date-row" *ngFor="let excludedDate of excludedDates.controls; let index = index; trackBy: trackByIndex">
+            <label class="field">
+              <input
+                #excludedDateField
+                class="field__input"
+                type="date"
+                (focus)="showNativeDatePicker(excludedDateField)"
+                [formControl]="excludedDate"
+              />
+              <span class="field__label">{{ 'sessions.extendDatesCalendar.excludeDateFieldLabel' | translate }}</span>
+              <fa-icon class="field__icon field__icon--trail" [fixedWidth]="true" [icon]="['fal', 'calendar-day']"></fa-icon>
+            </label>
+            <ignt-button
+              variant="secondary"
+              sentiment="danger"
+              size="small"
+              [label]="'sessions.extendDatesCalendar.excludeDateRemoveButton' | translate"
+              [disabled]="excludedDates.length === 1"
+              (click)="removeExcludedDate(index)"
+              data-testid="exclude-specific-dates-remove-button"
+            />
+          </div>
+
+          <h6 class="add-exclude-dates-btn" data-testid="add-exclude-dates-btn" (click)="addExcludedDateFormControl()">
+            {{ 'sessions.extendDatesCalendar.excludeDateAddDate' | translate }}
+            <fa-icon [icon]="['fas', 'plus-circle']" class="placeholder__more-icon"></fa-icon>
+          </h6>
+        </div>
+      </div>
+      <div class="form-section">
+        <h5 class="title">{{ 'sessions.extendDatesCalendar.sectionCalendarTitle' | translate }}</h5>
+        <p class="description">{{ 'sessions.extendDatesCalendar.sectionCalendarDescription' | translate }}</p>
+        <div class="calendar-view-header">
+          <app-time-slots-calendar-filters
+            class="calendar-view-header__filters"
+            [dateSelected]="dateSelected"
+            (dateSelectedChange)="setDateSelected($event)"
+            (dateRangeSelectedChange)="dateRangeSelected = $event"
+            [timezone]="filters?.timezone"
+            [isDisabled]="!filters?.selectedPlan || !filters.selectedPlace || !filters.selectedCity"
+          >
+          </app-time-slots-calendar-filters>
+        </div>
+        <app-time-slots-calendar
+          [filters]="timeSlotsRequestParams$ | async"
+          [slotTemplate]="calendarItem"
+          [timezone]="filters?.timezone"
+          [selectedDate]="dateSelected"
+          [selectedDateRange]="dateRangeSelected"
+          [request]="request"
+          [checkHasMandatoryFilters]="hasMandatoryParams"
+          (searchResults)="onSearchResults($event)"
+        >
+        </app-time-slots-calendar>
+      </div>
+      <div class="form-section">
+        <h5 class="title">{{ 'sessions.extendDatesCalendar.sectionConfirmSettingsTitle' | translate }}</h5>
+        <h6 class="title">{{ 'sessions.extendDatesCalendar.sectionConfirmSettingsSubTitle' | translate }}</h6>
+        <p class="description">{{ 'sessions.extendDatesCalendar.sectionConfirmSettingsDescription' | translate }}</p>
+        <div class="visibility-radio-selector">
+          <label
+            *ngFor="
+              let radioOption of [
+                { translateKey: 'current', value: null },
+                { translateKey: 'visible', value: true },
+                { translateKey: 'hidden', value: false },
+              ]
+            "
+          >
+            <input
+              [attr.data-testid]="'visibility-radio-' + radioOption.translateKey"
+              type="radio"
+              [value]="radioOption.value"
+              formControlName="visibility"
+            />
+            {{ 'sessions.extendTimeSlotForm.visibilityOptions.' + radioOption.translateKey | translate }}
+          </label>
+        </div>
+        <ng-container *ngIf="shouldRenderExceptedGrossMarginInput">
+          <h6 class="title">{{ 'sessions.extendDatesCalendar.grossMarginTitle' | translate }}</h6>
+          <label class="cell field">
+            <input
+              class="field__input expected-gross-margin-input"
+              data-testid="expected-gross-margin-input"
+              formControlName="expectedGrossMargin"
+              appAutoformatNumericInput
+              min="0"
+              max="100"
+              suffixText=" %"
+              [decimalPlaces]="2"
+              [placeHolderValue]="'sessions.extendDatesCalendar.grossMarginInputPlaceholder' | translate"
+            />
+            <span class="field__label">{{ 'sessions.extendTimeSlotForm.grossMarginInputTitle' | translate }}</span>
+          </label>
+        </ng-container>
+      </div>
+      <div class="form-footer">
+        <ignt-button
+          [fill]="isMobile()"
+          [label]="'sessions.extendDatesCalendar.buttonCTA' | translate"
+          [loading]="isLoading"
+          data-testid="extend-time-slot-save-button"
+          [disabled]="ctaDisabled()"
+          (click)="onSave()"
+        />
+      </div>
+    </form>
+  </div>
+
+  <ng-template #calendarItem let-props let-isClamped="isClamped">
+    <div
+      *ngIf="unselectedTimeSlotIds.has(props.id)"
+      class="unselected-extend-dates-calendar-item-container"
+      (click)="unselectedTimeSlotIds.delete(props.id)"
+    >
+      <fa-icon [icon]="['fal', 'circle']" class="icon"></fa-icon>
+      @if (props.sessions?.length) {
+        <button class="sessions-info-button" (click)="$event.stopPropagation(); openSessionsSheet(props.sessions, props.startsAt)">
+          <fa-icon [icon]="['fal', 'info-circle']"></fa-icon>
+        </button>
+      }
+    </div>
+    <div
+      *ngIf="!unselectedTimeSlotIds.has(props.id)"
+      class="selected-extend-dates-calendar-item-container"
+      (click)="unselectedTimeSlotIds.add(props.id)"
+    >
+      <fa-icon [icon]="['fas', 'check-circle']" class="icon"></fa-icon>
+      @if (props.sessions?.length) {
+        <button class="sessions-info-button" (click)="$event.stopPropagation(); openSessionsSheet(props.sessions, props.startsAt)">
+          <fa-icon [icon]="['fal', 'info-circle']"></fa-icon>
+        </button>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template #sessionsPanel>
+    <ignt-dialog-header>{{ selectedSlotInfo()?.title }}</ignt-dialog-header>
+    <ignt-dialog-content data-testid="extend-dates-sessions-panel">
+      @for (session of selectedSlotInfo()?.sessions; track session.label; let i = $index) {
+        <app-shared-timeline-item [id]="'session-' + i" [title]="session.label" [initialExpanded]="true" [showIcon]="false">
+          <ng-template #expandedContent>
+            <p>
+              <strong>{{ 'sessions.extendDatesCalendar.timeSlotDetails.capacity.title' | translate }} </strong>
+              @if (session.capacity === null) {
+                ∞
+              } @else {
+                {{ session.capacity }}
+              }
+            </p>
+            <p>
+              <strong>{{ 'sessions.extendDatesCalendar.timeSlotDetails.visibility.title' | translate }} </strong>
+              {{
+                (session.isHidden
+                  ? 'sessions.extendDatesCalendar.timeSlotDetails.visibility.values.hidden'
+                  : 'sessions.extendDatesCalendar.timeSlotDetails.visibility.values.visible'
+                ) | translate
+              }}
+              <fa-icon [icon]="session.isHidden ? ['fal', 'eye-slash'] : ['fal', 'eye']"></fa-icon>
+            </p>
+          </ng-template>
+        </app-shared-timeline-item>
+      }
+    </ignt-dialog-content>
+  </ng-template>
+</div>

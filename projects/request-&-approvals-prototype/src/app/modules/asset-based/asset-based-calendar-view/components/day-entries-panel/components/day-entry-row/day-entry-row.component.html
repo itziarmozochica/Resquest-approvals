@@ -1,0 +1,82 @@
+@let entry = row();
+<article class="day-entry-row" [class.day-entry-row--done]="entry.isDone" [attr.data-testid]="'day-entry-row-' + entry.id">
+  <header class="day-entry-row__header">
+    @if (entry.timeLabel) {
+      <span class="day-entry-row__time" data-testid="day-entry-row-time">{{ entry.timeLabel }}</span>
+    } @else {
+      <ignt-tag sentiment="sharp" variant="outline" data-testid="day-entry-row-all-day">
+        {{ 'bookedSlots.dayEntries.allDay' | translate }}
+      </ignt-tag>
+    }
+    <ignt-tag sentiment="info" variant="outline" data-testid="day-entry-row-category">
+      {{ entry.categoryLabelKey | translate }}
+    </ignt-tag>
+  </header>
+
+  <h4 class="day-entry-row__title" data-testid="day-entry-row-title">{{ entry.title }}</h4>
+
+  @if (entry.description) {
+    <p class="day-entry-row__description" data-testid="day-entry-row-description">{{ entry.description }}</p>
+  }
+
+  <div class="day-entry-row__attribution">
+    @if (entry.created; as created) {
+      <p class="day-entry-row__attribution-line" data-testid="day-entry-row-created">
+        {{
+          'bookedSlots.dayEntries.addedBy'
+            | translate: { date: created.atLabel, name: created.actorName ?? ('bookedSlots.dayEntries.unknownUser' | translate) }
+        }}
+      </p>
+    }
+    @if (entry.updated; as updated) {
+      <p class="day-entry-row__attribution-line" data-testid="day-entry-row-updated">
+        {{
+          'bookedSlots.dayEntries.editedBy'
+            | translate: { date: updated.atLabel, name: updated.actorName ?? ('bookedSlots.dayEntries.unknownUser' | translate) }
+        }}
+      </p>
+    }
+    @if (entry.isDone && entry.resolved; as resolved) {
+      <p class="day-entry-row__attribution-line" data-testid="day-entry-row-resolved">
+        {{
+          'bookedSlots.dayEntries.resolvedBy'
+            | translate: { date: resolved.atLabel, name: resolved.actorName ?? ('bookedSlots.dayEntries.unknownUser' | translate) }
+        }}
+      </p>
+    }
+  </div>
+
+  @if (canManage()) {
+    <footer class="day-entry-row__actions">
+      <ignt-button
+        size="small"
+        variant="secondary"
+        [disabled]="isBusy()"
+        [leadingIcon]="entry.isDone ? reopenIcon : resolveIcon"
+        [label]="(entry.isDone ? 'bookedSlots.dayEntries.reopen' : 'bookedSlots.dayEntries.resolve') | translate"
+        (click)="onStatusClick()"
+        [attr.data-testid]="'day-entry-row-status-' + entry.id"
+      />
+      @if (!entry.isDone) {
+        <ignt-button
+          size="small"
+          variant="tertiary"
+          [disabled]="isBusy()"
+          [leadingIcon]="editIcon"
+          [label]="'common.edit' | translate"
+          (click)="onEditClick()"
+          [attr.data-testid]="'day-entry-row-edit-' + entry.id"
+        />
+      }
+      <ignt-button
+        size="small"
+        variant="tertiary"
+        [disabled]="isBusy()"
+        [leadingIcon]="deleteIcon"
+        [label]="'common.delete' | translate"
+        (click)="onDeleteClick()"
+        [attr.data-testid]="'day-entry-row-delete-' + entry.id"
+      />
+    </footer>
+  }
+</article>

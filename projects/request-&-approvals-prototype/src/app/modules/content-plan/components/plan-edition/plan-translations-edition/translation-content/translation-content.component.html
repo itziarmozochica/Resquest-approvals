@@ -1,0 +1,472 @@
+<div class="translation-content">
+  <div class="translation-content__frame">
+    @for (item of dynamicContentItems(); track item.id) {
+      <div class="translation-content__item" [class.translation-content__item--expanded]="item.isExpanded">
+        <div class="translation-content__item-header" (click)="toggleContentItem(item.id)">
+          <ignt-icon
+            class="translation-content__chevron"
+            name="chevron-right"
+            variant="solid"
+            [class.translation-content__chevron--expanded]="item.isExpanded"
+          ></ignt-icon>
+          <span class="translation-content__item-name">{{ item.titleKey | translate }}</span>
+          <div class="translation-content__item-status">
+            @if (isDefaultLanguageOnDefaultChannel()) {
+              <span class="translation-content__status-text">
+                {{ 'planEdition.translationsEdition.fieldCountBadge' | translate: { totalFieldsCount: item.totalCount } }}
+              </span>
+            } @else {
+              <span class="translation-content__status-text">
+                {{
+                  'planEdition.translationsEdition.translatedFieldsStatus'
+                    | translate: { translatedFieldsCount: item.translatedCount, totalFieldsCount: item.totalCount }
+                }}
+              </span>
+              @if (shouldShowSectionStatusIcon(item) && isSectionComplete(item)) {
+                <ignt-icon
+                  class="translation-content__status-icon translation-content__status-icon--complete"
+                  name="check-circle"
+                  variant="solid"
+                ></ignt-icon>
+              }
+              @if (shouldShowSectionStatusIcon(item) && !isSectionComplete(item)) {
+                <ignt-icon
+                  class="translation-content__status-icon translation-content__status-icon--warning"
+                  name="exclamation-triangle"
+                  variant="solid"
+                ></ignt-icon>
+              }
+            }
+          </div>
+        </div>
+
+        @if (item.isExpanded) {
+          <div class="translation-content__item-content">
+            @if (item.id === 'event-content') {
+              <div class="translation-content__field">
+                <label class="translation-content__field-label">{{ 'planEdition.translationsEdition.titleLabel' | translate }} *</label>
+                <div class="translation-content__field-input-wrapper">
+                  <input
+                    type="text"
+                    class="translation-content__field-input"
+                    [value]="selectedTranslation()?.name || ''"
+                    [placeholder]="'planEdition.translationsEdition.titlePlaceholder' | translate"
+                    readonly
+                  />
+                  @if (!isDefaultLanguageOnDefaultChannel() && selectedTranslation()?.name) {
+                    <ignt-icon
+                      class="translation-content__field-status translation-content__field-status--complete"
+                      name="check-circle"
+                      variant="solid"
+                    ></ignt-icon>
+                  }
+                  @if (selectedLanguage() && !isDefaultLanguageOnDefaultChannel() && !selectedTranslation()?.name) {
+                    <ignt-icon
+                      class="translation-content__field-status translation-content__field-status--warning"
+                      name="exclamation-triangle"
+                      variant="solid"
+                    ></ignt-icon>
+                  }
+                </div>
+              </div>
+
+              <div class="translation-content__field">
+                <div class="translation-content__description-label-row">
+                  <label class="translation-content__field-label"
+                    >{{ 'planEdition.translationsEdition.descriptionLabel' | translate }} *</label
+                  >
+                  @if (shouldShowDescriptionComponentBadge) {
+                    <div class="translation-content__item-status" data-testid="translation-content-description-component-status">
+                      <span class="translation-content__status-text">
+                        {{
+                          'planEdition.translationsEdition.translatedFieldsStatus'
+                            | translate
+                              : {
+                                  translatedFieldsCount: descriptionComponentTranslatedCount(),
+                                  totalFieldsCount: descriptionComponentTotalCount(),
+                                }
+                        }}
+                      </span>
+                      @if (isDescriptionComponentComplete) {
+                        <ignt-icon
+                          class="translation-content__status-icon translation-content__status-icon--complete"
+                          name="check-circle"
+                          variant="solid"
+                          aria-hidden="true"
+                        ></ignt-icon>
+                      } @else {
+                        <ignt-icon
+                          class="translation-content__status-icon translation-content__status-icon--warning"
+                          name="exclamation-triangle"
+                          variant="solid"
+                          aria-hidden="true"
+                        ></ignt-icon>
+                      }
+                    </div>
+                  }
+                </div>
+                @if (channelHasNoSchema()) {
+                  <ignt-alert class="translation-content__no-schema-hint" data-testid="translation-content-no-schema-hint" sentiment="info">
+                    <ng-template #igntAlertContent>
+                      <span class="translation-content__no-schema-hint-text">
+                        {{ 'planEdition.translationsEdition.channelHasNoSchema' | translate }}
+                      </span>
+                      <ignt-button
+                        variant="tertiary"
+                        size="small"
+                        data-testid="translation-content-no-schema-hint-link"
+                        [label]="'planEdition.translationsEdition.createSchemaForChannel' | translate"
+                        (click)="goToContent.emit()"
+                      ></ignt-button>
+                    </ng-template>
+                  </ignt-alert>
+                } @else if (descriptionInherited()) {
+                  <ignt-alert
+                    class="translation-content__inherited-hint"
+                    data-testid="translation-content-inherited-hint"
+                    sentiment="info"
+                    [description]="'planEdition.translationsEdition.inheritedFromBaseSchema' | translate"
+                  ></ignt-alert>
+                }
+                @if (showComponentDescription()) {
+                  <app-description-translation
+                    class="translation-content__description-cards"
+                    [baseSchema]="contentSchema()"
+                    [translationOverlay]="descriptionOverlay()"
+                    [statusByCode]="descriptionStatusByCode()"
+                    [readOnly]="true"
+                    [hideOriginal]="true"
+                    [showStatus]="!isDefaultLanguageOnDefaultChannel()"
+                    [uploadFileCallback]="noopUploadCallback"
+                  ></app-description-translation>
+                } @else {
+                  <div class="translation-content__field-input-wrapper">
+                    @if (isDescriptionPreviewMeaningful(selectedTranslation()?.description)) {
+                      <app-translation-text-field
+                        class="translation-content__rich-text-preview"
+                        data-testid="translation-content-description-readonly-html"
+                        label=""
+                        [htmlContent]="selectedTranslation()?.description || ''"
+                        [readonly]="true"
+                        type="html"
+                      ></app-translation-text-field>
+                    } @else {
+                      <textarea
+                        class="translation-content__field-textarea"
+                        data-testid="translation-content-description-textarea"
+                        [value]="selectedTranslation()?.description || ''"
+                        [placeholder]="'planEdition.translationsEdition.descriptionPlaceholder' | translate"
+                        readonly
+                        rows="4"
+                      ></textarea>
+                    }
+                    @if (!isDefaultLanguageOnDefaultChannel() && isDescriptionPreviewMeaningful(selectedTranslation()?.description)) {
+                      <ignt-icon
+                        class="translation-content__field-status translation-content__field-status--complete"
+                        name="check-circle"
+                        variant="solid"
+                      ></ignt-icon>
+                    }
+                    @if (
+                      !isDefaultLanguageOnDefaultChannel() &&
+                      selectedTranslation() &&
+                      !isDescriptionPreviewMeaningful(selectedTranslation()!.description)
+                    ) {
+                      <ignt-icon
+                        class="translation-content__field-status translation-content__field-status--warning"
+                        name="exclamation-triangle"
+                        variant="solid"
+                      ></ignt-icon>
+                    }
+                  </div>
+                }
+              </div>
+
+              @if (canManageLabelFormatTranslations) {
+                <div class="translation-content__field">
+                  <div class="translation-content__field-label-row">
+                    <span class="translation-content__field-label translation-content__field-label--inline">
+                      {{ 'planEdition.translationsEdition.labelFormatLabel' | translate }}
+                    </span>
+                    <app-tooltip-icon [tooltip]="'planEdition.translationsEdition.labelFormatTooltip' | translate"></app-tooltip-icon>
+                  </div>
+                  <div class="translation-content__field-input-wrapper">
+                    <input
+                      type="text"
+                      class="translation-content__field-input"
+                      [value]="selectedTranslation()?.labelFormat || ''"
+                      [placeholder]="'planEdition.translationsEdition.labelFormatPlaceholder' | translate"
+                      readonly
+                    />
+                    @if (
+                      !isDefaultLanguageOnDefaultChannel() && originalLabelFormat().trim() && selectedTranslation()?.labelFormat?.trim()
+                    ) {
+                      <ignt-icon
+                        class="translation-content__field-status translation-content__field-status--complete"
+                        name="check-circle"
+                        variant="solid"
+                      ></ignt-icon>
+                    }
+                    @if (
+                      !isDefaultLanguageOnDefaultChannel() &&
+                      originalLabelFormat().trim() &&
+                      selectedTranslation() &&
+                      !selectedTranslation()!.labelFormat?.trim()
+                    ) {
+                      <ignt-icon
+                        class="translation-content__field-status translation-content__field-status--warning"
+                        name="exclamation-triangle"
+                        variant="solid"
+                      ></ignt-icon>
+                    }
+                  </div>
+                </div>
+              }
+
+              <div class="translation-content__field">
+                <label class="translation-content__field-label">{{
+                  'planEdition.translationsEdition.shortDescriptionLabel' | translate
+                }}</label>
+                <div class="translation-content__field-input-wrapper">
+                  <input
+                    type="text"
+                    class="translation-content__field-input"
+                    [value]="selectedTranslation()?.shortDescription || ''"
+                    [placeholder]="'planEdition.translationsEdition.shortDescriptionPlaceholder' | translate"
+                    readonly
+                  />
+                  @if (
+                    !isDefaultLanguageOnDefaultChannel() &&
+                    shouldCountEventShortDescriptionField &&
+                    selectedTranslation()?.shortDescription?.trim()
+                  ) {
+                    <ignt-icon
+                      class="translation-content__field-status translation-content__field-status--complete"
+                      name="check-circle"
+                      variant="solid"
+                    ></ignt-icon>
+                  }
+                  @if (
+                    !isDefaultLanguageOnDefaultChannel() &&
+                    shouldCountEventShortDescriptionField &&
+                    selectedTranslation() &&
+                    !selectedTranslation()!.shortDescription?.trim()
+                  ) {
+                    <ignt-icon
+                      class="translation-content__field-status translation-content__field-status--warning"
+                      name="exclamation-triangle"
+                      variant="solid"
+                    ></ignt-icon>
+                  }
+                </div>
+              </div>
+            }
+
+            @if (item.id === 'ticket-types') {
+              <div class="translation-content__ticket-types-header">
+                <ignt-toggle
+                  id="ticket-types-filter"
+                  [checked]="hideTicketTypesNotOnSale()"
+                  [attr.data-testid]="'ticket-types-filter-toggle'"
+                  (change)="onHideTicketTypesNotOnSaleToggleChange($event)"
+                ></ignt-toggle>
+                <label for="ticket-types-filter">
+                  <span>{{ 'planEdition.translationsEdition.hideTicketTypesNotOnSale' | translate }}</span>
+                </label>
+              </div>
+              <div class="translation-content__ticket-types">
+                <ng-content select="[ticketTypesEmptyState]"></ng-content>
+                @for (sessionType of sessionTypes(); track sessionType.entityId; let i = $index) {
+                  <div
+                    class="translation-content__session-type"
+                    [class.translation-content__session-type--expanded]="isSessionTypeExpanded(sessionType.entityId)"
+                  >
+                    <div class="translation-content__session-type-header" (click)="toggleSessionTypeExpansion(i)">
+                      <ignt-icon
+                        class="translation-content__chevron"
+                        name="chevron-right"
+                        variant="solid"
+                        [class.translation-content__chevron--expanded]="isSessionTypeExpanded(sessionType.entityId)"
+                      ></ignt-icon>
+                      <span class="translation-content__session-type-title">{{
+                        sessionType.displayName || ('planEdition.translationsEdition.sessionTypeDisplayNameFallback' | translate)
+                      }}</span>
+                    </div>
+
+                    @if (isSessionTypeExpanded(sessionType.entityId)) {
+                      <div class="translation-content__session-type-content">
+                        <div class="translation-content__field">
+                          <label class="translation-content__field-label"
+                            >{{ 'planEdition.translationsEdition.sessionTypeLabelLabel' | translate }} *</label
+                          >
+                          <div class="translation-content__field-input-wrapper">
+                            <input
+                              type="text"
+                              class="translation-content__field-input"
+                              [value]="sessionType.label"
+                              [placeholder]="'planEdition.translationsEdition.sessionTypeLabelPlaceholder' | translate"
+                              readonly
+                            />
+                            @if (!isDefaultLanguageOnDefaultChannel() && sessionType.label.trim()) {
+                              <ignt-icon
+                                class="translation-content__field-status translation-content__field-status--complete"
+                                name="check-circle"
+                                variant="solid"
+                              ></ignt-icon>
+                            }
+                            @if (!isDefaultLanguageOnDefaultChannel() && !sessionType.label.trim()) {
+                              <ignt-icon
+                                class="translation-content__field-status translation-content__field-status--warning"
+                                name="exclamation-triangle"
+                                variant="solid"
+                              ></ignt-icon>
+                            }
+                          </div>
+                        </div>
+
+                        <div class="translation-content__field">
+                          <label class="translation-content__field-label">{{
+                            'planEdition.translationsEdition.sessionTypeDetailsLabel' | translate
+                          }}</label>
+                          <div class="translation-content__field-input-wrapper">
+                            @if (isSessionTypeDetailsPreviewMeaningful(sessionType.details)) {
+                              <app-translation-text-field
+                                class="translation-content__rich-text-preview"
+                                data-testid="translation-content-session-type-details-readonly-html"
+                                label=""
+                                [htmlContent]="sessionType.details"
+                                [readonly]="true"
+                                type="html"
+                              ></app-translation-text-field>
+                            } @else {
+                              <textarea
+                                class="translation-content__field-textarea"
+                                data-testid="translation-content-session-type-details-textarea"
+                                [value]="sessionType.details"
+                                [placeholder]="'planEdition.translationsEdition.sessionTypeDetailsPlaceholder' | translate"
+                                readonly
+                                rows="4"
+                              ></textarea>
+                            }
+                            @if (
+                              !isDefaultLanguageOnDefaultChannel() &&
+                              shouldCountSessionTypeOptionalField(sessionType.entityId, 'details') &&
+                              isSessionTypeDetailsPreviewMeaningful(sessionType.details)
+                            ) {
+                              <ignt-icon
+                                class="translation-content__field-status translation-content__field-status--complete-optional"
+                                name="check-circle"
+                                variant="solid"
+                              ></ignt-icon>
+                            }
+                            @if (
+                              !isDefaultLanguageOnDefaultChannel() &&
+                              shouldCountSessionTypeOptionalField(sessionType.entityId, 'details') &&
+                              !isSessionTypeDetailsPreviewMeaningful(sessionType.details)
+                            ) {
+                              <ignt-icon
+                                class="translation-content__field-status translation-content__field-status--warning"
+                                name="exclamation-triangle"
+                                variant="solid"
+                              ></ignt-icon>
+                            }
+                          </div>
+                        </div>
+
+                        <div class="translation-content__field">
+                          <label class="translation-content__field-label">{{
+                            'planEdition.translationsEdition.sessionTypeInstructionsLabel' | translate
+                          }}</label>
+                          <div class="translation-content__field-input-wrapper">
+                            @if (isSessionTypeInstructionsPreviewMeaningful(sessionType.instructions)) {
+                              <app-translation-text-field
+                                class="translation-content__rich-text-preview"
+                                data-testid="translation-content-session-type-instructions-readonly-html"
+                                label=""
+                                [htmlContent]="sessionType.instructions"
+                                [readonly]="true"
+                                type="html"
+                              ></app-translation-text-field>
+                            } @else {
+                              <textarea
+                                class="translation-content__field-textarea"
+                                data-testid="translation-content-session-type-instructions-textarea"
+                                [value]="sessionType.instructions"
+                                [placeholder]="'planEdition.translationsEdition.sessionTypeInstructionsPlaceholder' | translate"
+                                readonly
+                                rows="4"
+                              ></textarea>
+                            }
+                            @if (
+                              !isDefaultLanguageOnDefaultChannel() &&
+                              shouldCountSessionTypeOptionalField(sessionType.entityId, 'instructions') &&
+                              isSessionTypeInstructionsPreviewMeaningful(sessionType.instructions)
+                            ) {
+                              <ignt-icon
+                                class="translation-content__field-status translation-content__field-status--complete-optional"
+                                name="check-circle"
+                                variant="solid"
+                              ></ignt-icon>
+                            }
+                            @if (
+                              !isDefaultLanguageOnDefaultChannel() &&
+                              shouldCountSessionTypeOptionalField(sessionType.entityId, 'instructions') &&
+                              !isSessionTypeInstructionsPreviewMeaningful(sessionType.instructions)
+                            ) {
+                              <ignt-icon
+                                class="translation-content__field-status translation-content__field-status--warning"
+                                name="exclamation-triangle"
+                                variant="solid"
+                              ></ignt-icon>
+                            }
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+
+            @if (item.id === 'terms-and-conditions') {
+              @if (!isRequiredPurchaseTermsSourceMeaningful) {
+                <ignt-alert
+                  class="translation-content__terms-placeholder"
+                  sentiment="neutral"
+                  [description]="'planEdition.translationsEdition.termsAndConditionsEmptySource' | translate"
+                ></ignt-alert>
+              } @else {
+                <div class="translation-content__field">
+                  <label class="translation-content__field-label">
+                    {{ 'planEdition.translationsEdition.termsAndConditionsFieldLabel' | translate }}
+                  </label>
+                  <div class="translation-content__field-input-wrapper">
+                    @if (isTermsConditionsTranslationMeaningful) {
+                      <app-translation-text-field
+                        class="translation-content__rich-text-preview"
+                        data-testid="translation-content-terms-readonly-html"
+                        label=""
+                        [htmlContent]="termsReadonlyDisplayHtml"
+                        [readonly]="true"
+                        type="html"
+                      ></app-translation-text-field>
+                    } @else {
+                      <textarea
+                        class="translation-content__field-textarea"
+                        data-testid="translation-content-terms-textarea"
+                        [value]="termsReadonlyDisplayHtml"
+                        [placeholder]="'planEdition.translationsEdition.termsAndConditionsPlaceholder' | translate"
+                        readonly
+                        rows="6"
+                      ></textarea>
+                    }
+                  </div>
+                </div>
+              }
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

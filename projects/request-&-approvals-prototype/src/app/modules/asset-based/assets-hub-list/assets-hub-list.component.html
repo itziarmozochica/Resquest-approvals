@@ -1,0 +1,178 @@
+<div class="assets-hub-list">
+  <div class="assets-hub-list__wrapper">
+    @switch (getViewMode()) {
+      @case (AssetsHubListViewMode.LOADING) {
+        <ng-container [ngTemplateOutlet]="loadingSkeleton"></ng-container>
+      }
+      @case (AssetsHubListViewMode.EMPTY) {
+        <ng-container [ngTemplateOutlet]="emptyList"></ng-container>
+      }
+      @case (AssetsHubListViewMode.CARDS) {
+        <ng-container [ngTemplateOutlet]="cardsList"></ng-container>
+      }
+      @case (AssetsHubListViewMode.TABLE) {
+        <ng-container [ngTemplateOutlet]="tableList"></ng-container>
+      }
+    }
+  </div>
+  <app-lateral-slider
+    [showDetails]="showAssetsHubCreationSlider"
+    [title]="'assetsHubs.creationSliderTitle' | translate"
+    [contentTemplate]="createHubLateralSlider"
+    (closeSlider)="closeCreationSlider()"
+  ></app-lateral-slider>
+</div>
+
+<ng-template #loadingSkeleton>
+  <div class="assets-hub-list__header">
+    <div class="header-content">
+      <div class="menu-heading">
+        <span class="menu-section">{{ 'menu.assetBasedConfig' | translate }}</span>
+        <h3 class="menu-title">{{ 'assetsHubs.pageTitle' | translate }}</h3>
+      </div>
+    </div>
+  </div>
+  <div class="loading-skeleton">
+    <ignt-skeleton [type]="'image'" [animation]="true" [numElements]="1" [height]="200"></ignt-skeleton>
+  </div>
+</ng-template>
+
+<ng-template #emptyList>
+  <div class="menu-heading">
+    <span class="menu-section">{{ 'menu.assetBasedConfig' | translate }}</span>
+    <h3 class="menu-title">{{ 'assetsHubs.pageTitle' | translate }}</h3>
+  </div>
+  <div class="empty-menu-container">
+    <div class="empty-menu-container__content">
+      <h1 class="empty-menu-container__title">{{ 'assetsHubs.emptyList.title' | translate }}</h1>
+      <p class="empty-menu-container__definition" [innerHTML]="'assetsHubs.emptyList.hubDefinition' | translate"></p>
+    </div>
+    @if (canManageHub()) {
+      <button class="button button--primary button--large" (click)="openCreationSlider()" data-testid="create-hub-button">
+        {{ 'assetsHubs.createHub' | translate }}
+      </button>
+    }
+  </div>
+</ng-template>
+
+<ng-template #cardsList>
+  <ng-container [ngTemplateOutlet]="hubsHeader"></ng-container>
+  <div class="assets-hub-list__cards-grid">
+    @for (hub of assetsHubs; track hub.id) {
+      <app-assets-hub-card [hub]="hub" [canManage]="canManageHub()" />
+    }
+  </div>
+</ng-template>
+
+<ng-template #tableList>
+  <ng-container [ngTemplateOutlet]="hubsHeader"></ng-container>
+  <div class="assets-hub-list__table-wrapper">
+    <ignt-table
+      data-testid="assets-hub-table"
+      [data]="assetsHubs ?? []"
+      [interactiveRows]="true"
+      (rowInteraction)="onRowInteraction($event)"
+    >
+      <ignt-table-column key="name" [header]="'assetsHubs.name' | translate" columnType="primary" [width]="columnWidthPx.name">
+        <ng-template [igntTableColumnTemplateType]="assetsHubs![0]" let-item="item">{{ item.name }}</ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column
+        key="venuesCount"
+        [header]="'assetsHubs.components.venues' | translate"
+        columnType="secondary"
+        [width]="columnWidthPx.count"
+      >
+        <ng-template [igntTableColumnTemplateType]="assetsHubs![0]" let-value="value">
+          <ng-container *ngTemplateOutlet="hubCountCell; context: { count: value }"></ng-container>
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column
+        key="assetsCount"
+        [header]="'assetsHubs.components.assets' | translate"
+        columnType="secondary"
+        [width]="columnWidthPx.count"
+      >
+        <ng-template [igntTableColumnTemplateType]="assetsHubs![0]" let-value="value">
+          <ng-container *ngTemplateOutlet="hubCountCell; context: { count: value }"></ng-container>
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column
+        key="activitiesCount"
+        [header]="'assetsHubs.components.activities' | translate"
+        columnType="secondary"
+        [width]="columnWidthPx.count"
+      >
+        <ng-template [igntTableColumnTemplateType]="assetsHubs![0]" let-value="value">
+          <ng-container *ngTemplateOutlet="hubCountCell; context: { count: value }"></ng-container>
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column
+        key="packsCount"
+        [header]="'assetsHubs.components.packs' | translate"
+        columnType="secondary"
+        [width]="columnWidthPx.count"
+      >
+        <ng-template [igntTableColumnTemplateType]="assetsHubs![0]" let-value="value">
+          <ng-container *ngTemplateOutlet="hubCountCell; context: { count: value }"></ng-container>
+        </ng-template>
+      </ignt-table-column>
+
+      @if (canManageHub()) {
+        <ignt-table-column [header]="'common.edit' | translate" align="right" columnType="action" [width]="columnWidthPx.action">
+          <ng-template [igntTableColumnTemplateType]="assetsHubs![0]" let-item="item">
+            <button
+              type="button"
+              class="assets-hub-list__edit-button"
+              [attr.data-testid]="'edit-hub-' + item.id"
+              [attr.aria-label]="'common.edit' | translate"
+              (click)="$event.stopPropagation(); editHub(item)"
+              (keydown)="$event.stopPropagation()"
+            >
+              <ignt-icon name="pen" variant="light"></ignt-icon>
+            </button>
+          </ng-template>
+        </ignt-table-column>
+      }
+    </ignt-table>
+  </div>
+</ng-template>
+
+<ng-template #hubCountCell let-count="count">
+  <div class="assets-hub-list__count-cell">
+    @if (count === 0) {
+      <fa-icon [icon]="['fal', 'circle']" class="assets-hub-list__count-icon assets-hub-list__count-icon--empty" />
+    } @else {
+      <fa-icon [icon]="['fas', 'check-circle']" class="assets-hub-list__count-icon" />
+    }
+    <span>{{ count }}</span>
+  </div>
+</ng-template>
+
+<ng-template #hubsHeader>
+  <div class="assets-hub-list__header">
+    <div class="header-content">
+      <div class="menu-heading">
+        <span class="menu-section">{{ 'menu.assetBasedConfig' | translate }}</span>
+        <h3 class="menu-title">{{ 'assetsHubs.pageTitle' | translate }}</h3>
+      </div>
+      <p class="menu-subtitle">{{ 'assetsHubs.pageSubtitle' | translate }}</p>
+    </div>
+    @if (canManageHub()) {
+      <button class="button button--primary button--large" (click)="openCreationSlider()" data-testid="create-hub-button">
+        {{ 'assetsHubs.createHub' | translate }}
+      </button>
+    }
+  </div>
+</ng-template>
+<ng-template #createHubLateralSlider>
+  <app-create-assets-hub-form
+    [isSubmitting]="isCreatingAssetsHub"
+    [resetToken]="createAssetsHubFormResetToken"
+    (createAssetsHubSubmitted)="createAssetsHub($event)"
+    (discard)="closeCreationSlider()"
+  ></app-create-assets-hub-form>
+</ng-template>

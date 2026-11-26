@@ -1,0 +1,59 @@
+<div class="retail-view" [class.retail-view--error]="fetchError()">
+  <fz-retail-page-title>
+    @if (showSyncProductsButton()) {
+      <ignt-button
+        data-testid="product-variations-sync-products"
+        size="large"
+        [label]="'retailSetup.productVariations.syncProductsButton' | translate"
+        [leadingIcon]="syncProductsIcon"
+        (click)="onSyncProducts()"
+      />
+    }
+  </fz-retail-page-title>
+  @if (fetchError()) {
+    <ignt-alert sentiment="danger" data-testid="retail-view-error">
+      {{ 'retailSetup.retailError' | translate }}
+    </ignt-alert>
+  } @else if (showRetailDetails()) {
+    @if (retailSetup(); as retailSetup) {
+      <fz-retail-details
+        [availableRetailSetups]="availableRetailSetups()"
+        [retailSetup]="retailSetup"
+        (editRetailSetup)="onEditIntegration()"
+        (selectedRetailSetupId)="onRetailSetupSelected($event)"
+      />
+      <fz-retail-product-variations [retail]="retailSetup" />
+    }
+  }
+</div>
+
+<ng-template #syncProductsDialogTemplate>
+  <ignt-dialog-header>{{ 'retailSetup.syncRetailProducts.title' | translate }}</ignt-dialog-header>
+  <ignt-dialog-content>
+    <div class="sync-retail-products-modal__content" data-testid="sync-retail-products-modal-content">
+      <p>{{ 'retailSetup.syncRetailProducts.firstDescription' | translate }}</p>
+      <p>{{ 'retailSetup.syncRetailProducts.secondDescription' | translate }}</p>
+    </div>
+  </ignt-dialog-content>
+  <ignt-dialog-footer [hideCancelButton]="true">
+    <ignt-button igntDialogClose variant="primary" [label]="'common.continue' | translate" />
+  </ignt-dialog-footer>
+</ng-template>
+
+<ng-template #syncByPlansToastTemplate>
+  <p>{{ 'retailSetup.syncRetailProducts.syncByPlansDescription' | translate }}</p>
+  <ul class="sync-products-by-plans-toast__list">
+    @for (planId of syncedPlans(); track planId) {
+      <li>
+        <a
+          queryParamsHandling="merge"
+          rel="noopener noreferrer"
+          target="_blank"
+          [queryParams]="{ planId }"
+          [routerLink]="['/settings/tasks']"
+          >{{ planId }}</a
+        >
+      </li>
+    }
+  </ul>
+</ng-template>

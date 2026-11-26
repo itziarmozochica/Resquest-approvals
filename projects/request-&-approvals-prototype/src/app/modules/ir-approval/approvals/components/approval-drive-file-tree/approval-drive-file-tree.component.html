@@ -1,0 +1,119 @@
+<section class="approval-drive-file-tree" data-testid="approval-drive-file-tree">
+  <header class="approval-drive-file-tree__toolbar">
+    <div class="approval-drive-file-tree__toolbar-copy">
+      <p class="approval-drive-file-tree__summary">
+        {{
+          'approvals.new.upload.driveFileTreeSelection' | translate: { selectedCount: selectedFileCount(), totalCount: totalFileCount() }
+        }}
+      </p>
+    </div>
+
+    <div class="approval-drive-file-tree__toolbar-actions">
+      @if (rootUrl()) {
+        <button type="button" igntButton sentiment="tertiary" size="small" (click)="openInDrive(rootUrl())">
+          {{ 'approvals.new.upload.driveFileTreeOpenInDrive' | translate }}
+        </button>
+      }
+      <button
+        type="button"
+        igntButton
+        sentiment="tertiary"
+        size="small"
+        [disabled]="selectedFileCount() === totalFileCount()"
+        (click)="selectAll()"
+      >
+        {{ 'approvals.detail.itemActions.selectAll' | translate }}
+      </button>
+      <button type="button" igntButton sentiment="tertiary" size="small" [disabled]="selectedFileCount() === 0" (click)="clearSelection()">
+        {{ 'approvals.new.upload.driveFileTreeClearSelection' | translate }}
+      </button>
+      @if (hasFolders()) {
+        @if (allCollapsed()) {
+          <button type="button" igntButton sentiment="tertiary" size="small" (click)="expandAll()">
+            {{ 'approvals.new.upload.driveFileTreeExpandAll' | translate }}
+          </button>
+        } @else {
+          <button type="button" igntButton sentiment="tertiary" size="small" (click)="collapseAll()">
+            {{ 'approvals.new.upload.driveFileTreeCollapseAll' | translate }}
+          </button>
+        }
+      }
+    </div>
+  </header>
+
+  <ul class="approval-drive-file-tree__list">
+    @for (row of rows(); track row.key) {
+      <li class="approval-drive-file-tree__item">
+        <div class="approval-drive-file-tree__row" [class.approval-drive-file-tree__row--folder]="row.kind === 'folder'">
+          <div class="approval-drive-file-tree__row-main" [style.padding-inline-start.rem]="row.depth * 1.25">
+            <ignt-checkbox
+              class="approval-drive-file-tree__checkbox"
+              [class.approval-drive-file-tree__checkbox--indeterminate]="row.indeterminate"
+              [checked]="row.checked"
+              [dataTestId]="'approval-drive-file-tree-checkbox-' + row.key"
+              [attr.aria-checked]="row.indeterminate ? 'mixed' : row.checked"
+              size="small"
+              (change)="onCheckboxChange(row, $event)"
+            ></ignt-checkbox>
+            @if (row.kind === 'folder') {
+              <button
+                type="button"
+                igntButton
+                sentiment="tertiary"
+                size="small"
+                class="approval-drive-file-tree__toggle"
+                [attr.aria-label]="
+                  row.collapsed
+                    ? ('approvals.new.upload.driveFileTreeExpandFolder' | translate: { name: row.name })
+                    : ('approvals.new.upload.driveFileTreeCollapseFolder' | translate: { name: row.name })
+                "
+                (click)="toggleFolder(row)"
+              >
+                <span
+                  class="approval-drive-file-tree__toggle-chevron"
+                  [class.approval-drive-file-tree__toggle-chevron--collapsed]="row.collapsed"
+                ></span>
+              </button>
+            } @else {
+              <span class="approval-drive-file-tree__toggle-spacer" aria-hidden="true"></span>
+            }
+            @if (row.kind === 'folder') {
+              <span class="approval-drive-file-tree__marker approval-drive-file-tree__marker--folder"></span>
+            } @else {
+              <app-file-thumbnail
+                [driveFileId]="row.driveFileId"
+                [mimeType]="row.mimeType"
+                [fileName]="row.name"
+                [testId]="'approval-drive-file-tree-thumb-' + row.key"
+              />
+            }
+            <div class="approval-drive-file-tree__copy">
+              <span class="approval-drive-file-tree__name" [class.approval-drive-file-tree__name--folder]="row.kind === 'folder'">
+                {{ row.name }}
+              </span>
+              <span class="approval-drive-file-tree__meta">
+                @if (row.kind === 'folder') {
+                  {{ 'approvals.new.upload.driveFileTreeFolderCount' | translate: { count: row.descendantFileIds.length } }}
+                } @else {
+                  {{ fileTypeLabel(row) }}
+                }
+              </span>
+            </div>
+          </div>
+
+          <div class="approval-drive-file-tree__row-actions">
+            @if (row.kind === 'folder') {
+              <span class="approval-drive-file-tree__count">{{ row.descendantFileIds.length }}</span>
+            } @else {
+              <button type="button" igntButton sentiment="tertiary" size="small" (click)="openPreview(row)">
+                {{ 'fzUpload.preview' | translate }}
+              </button>
+            }
+          </div>
+        </div>
+      </li>
+    }
+  </ul>
+</section>
+
+<app-file-preview-dialog [file]="previewFile()" (closed)="closePreview()" />

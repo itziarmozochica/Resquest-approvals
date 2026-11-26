@@ -1,0 +1,77 @@
+<div class="immersive-content-plan-editor">
+  @switch (screenState()) {
+    @case ('loading') {
+      <app-immersive-state-panel icon="spinner" [iconSpin]="true" [title]="'common.loading' | translate" />
+    }
+    @case ('empty') {
+      <app-immersive-state-panel
+        icon="sparkles"
+        [actionDisabled]="isLoading()"
+        [actionLabel]="'planEdition.immersiveContentPlan.generateCta' | translate"
+        [actionLoading]="isLoading()"
+        [body]="'planEdition.immersiveContentPlan.emptyBody' | translate"
+        [secondaryBody]="scheduleAction() === 'scheduleError' ? ('planEdition.immersiveContentPlan.scheduleErrorBody' | translate) : null"
+        [title]="'planEdition.immersiveContentPlan.emptyTitle' | translate"
+        (actionClick)="generate()"
+      />
+    }
+    @case ('generating') {
+      @if (fetchAction() === 'pollTimeout') {
+        <app-immersive-state-panel
+          icon="spinner"
+          [actionLabel]="'common.retry' | translate"
+          [actionVariant]="'secondary'"
+          [body]="'planEdition.immersiveContentPlan.pollTimeoutBody' | translate"
+          [title]="'planEdition.immersiveContentPlan.generatingTitle' | translate"
+          (actionClick)="retry()"
+        />
+      } @else {
+        <app-immersive-state-panel
+          icon="spinner"
+          [iconSpin]="true"
+          [body]="'planEdition.immersiveContentPlan.generatingBody' | translate"
+          [title]="'planEdition.immersiveContentPlan.generatingTitle' | translate"
+        />
+      }
+    }
+    @case ('failed') {
+      <app-immersive-state-panel
+        icon="times-circle"
+        [actionDisabled]="isLoading()"
+        [actionLabel]="'common.retry' | translate"
+        [actionLoading]="isLoading()"
+        [actionVariant]="'secondary'"
+        [body]="failedReason() || ('planEdition.immersiveContentPlan.failedGenericReason' | translate)"
+        [secondaryBody]="scheduleAction() === 'scheduleError' ? ('planEdition.immersiveContentPlan.scheduleErrorBody' | translate) : null"
+        [title]="'planEdition.immersiveContentPlan.failedTitle' | translate"
+        (actionClick)="generate()"
+      />
+    }
+    @case ('error') {
+      <app-immersive-state-panel
+        icon="times-circle"
+        [actionLabel]="'common.retry' | translate"
+        [actionVariant]="'secondary'"
+        [body]="'planEdition.immersiveContentPlan.fetchErrorBody' | translate"
+        [title]="'planEdition.immersiveContentPlan.errorTitle' | translate"
+        (actionClick)="retry()"
+      />
+    }
+    @case ('document') {
+      <app-immersive-layout-bar />
+      <div class="immersive-content-plan-editor__layout" data-testid="immersive-content-plan-layout">
+        <app-immersive-module-panel
+          class="immersive-content-plan-editor__modules-panel"
+          [generalEdited]="generalSettingsDirty()"
+          [modules]="moduleViews()"
+          [selectedModuleId]="selectedModuleId()"
+          (moduleAdd)="addModule($event)"
+          (moduleMoved)="moveModule($event)"
+          (moduleSelected)="selectModule($event)"
+        />
+        <app-immersive-module-content class="immersive-content-plan-editor__content" />
+      </div>
+      <app-immersive-actions-bar />
+    }
+  }
+</div>

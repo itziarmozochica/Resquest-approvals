@@ -1,0 +1,205 @@
+<ignt-dialog-header data-testid="immersive-module-replication-dialog" [hideCloseButton]="isRunning()">
+  {{ headerTitleKey() | translate }}
+</ignt-dialog-header>
+@switch (store.step()) {
+  @case ('form') {
+    <ignt-dialog-content>
+      <p data-testid="immersive-module-replication-modules-hint">
+        {{ 'planEdition.immersiveContentPlan.replication.modulesHint' | translate }}
+      </p>
+      @if (store.source()?.modules?.length === 0) {
+        <p data-testid="immersive-module-replication-modules-empty">
+          {{ 'planEdition.immersiveContentPlan.replication.modulesEmpty' | translate }}
+        </p>
+      } @else {
+        @for (candidate of store.source()?.modules ?? []; track candidate.id) {
+          <div class="module-row">
+            <ignt-checkbox
+              data-testid="immersive-module-replication-module-item"
+              [checked]="store.selectedModuleIds().includes(candidate.id)"
+              [description]="candidate.hasMediaRisk ? ('planEdition.immersiveContentPlan.replication.mediaHint' | translate) : null"
+              [label]="candidate.label"
+              (change)="store.toggleModule(candidate.id, $event)"
+            ></ignt-checkbox>
+            @if (candidate.changed) {
+              <ignt-tag data-testid="immersive-module-replication-module-changed-tag" sentiment="neutral" variant="solid">
+                {{ 'planEdition.immersiveContentPlan.replication.changedTag' | translate }}
+              </ignt-tag>
+            }
+          </div>
+        }
+      }
+      <p data-testid="immersive-module-replication-form-summary">
+        {{
+          'planEdition.immersiveContentPlan.replication.formSummary'
+            | translate: { locales: store.source()?.availableLanguages?.length ?? 0, modules: store.selectedCandidates().length }
+        }}
+      </p>
+      <ignt-textarea-field
+        data-testid="immersive-module-replication-plan-ids"
+        [label]="'planEdition.immersiveContentPlan.replication.planIdsLabel' | translate"
+        [placeholder]="'planEdition.immersiveContentPlan.replication.planIdsPlaceholder' | translate"
+        [helperText]="'planEdition.immersiveContentPlan.replication.planIdsHelper' | translate"
+        [ngModel]="store.planIdsInput()"
+        (ngModelChange)="store.setPlanIdsInput($event)"
+      ></ignt-textarea-field>
+      @if (store.parsedPlanIds().invalidTokens.length > 0) {
+        <p data-testid="immersive-module-replication-parse-invalid">
+          {{
+            'planEdition.immersiveContentPlan.replication.parseInvalidTokens'
+              | translate: { tokens: store.parsedPlanIds().invalidTokens.join(', ') }
+          }}
+        </p>
+      }
+      @if (store.parsedPlanIds().duplicateCount > 0) {
+        <p data-testid="immersive-module-replication-parse-duplicates">
+          {{
+            'planEdition.immersiveContentPlan.replication.parseDuplicatesDropped'
+              | translate: { count: store.parsedPlanIds().duplicateCount }
+          }}
+        </p>
+      }
+      @if (store.parsedPlanIds().droppedSourceId) {
+        <p data-testid="immersive-module-replication-parse-source-dropped">
+          {{ 'planEdition.immersiveContentPlan.replication.parseSourceDropped' | translate }}
+        </p>
+      }
+      @if (store.parsedPlanIds().overflowCount > 0) {
+        <p data-testid="immersive-module-replication-parse-overflow">
+          {{ 'planEdition.immersiveContentPlan.replication.parseOverflow' | translate }}
+        </p>
+      }
+      @if (store.requiresMediaAcknowledgement()) {
+        <ignt-alert
+          data-testid="immersive-module-replication-media-risk-warning"
+          [description]="'planEdition.immersiveContentPlan.replication.mediaRiskWarning' | translate"
+          sentiment="warning"
+        ></ignt-alert>
+        <ignt-checkbox
+          data-testid="immersive-module-replication-media-risk-acknowledge"
+          [checked]="store.isMediaRiskAcknowledged()"
+          [label]="'planEdition.immersiveContentPlan.replication.mediaRiskAcknowledge' | translate"
+          (change)="store.acknowledgeMediaRisk($event)"
+        ></ignt-checkbox>
+      }
+    </ignt-dialog-content>
+    <ignt-dialog-footer>
+      <ignt-button
+        data-testid="immersive-module-replication-publish-and-apply"
+        htmlType="button"
+        sentiment="brand"
+        variant="primary"
+        [disabled]="!store.canStart()"
+        [label]="copy().ctaKey | translate: { count: store.parsedPlanIds().ids.length }"
+        (click)="publishAndApply()"
+      ></ignt-button>
+    </ignt-dialog-footer>
+  }
+  @case ('run') {
+    <ignt-dialog-content>
+      <ul aria-live="polite" class="replication-status" data-testid="immersive-module-replication-status-list">
+        @for (row of statusRows(); track row.id) {
+          <li
+            class="replication-status__row"
+            [attr.data-status]="row.status"
+            [attr.data-testid]="'immersive-module-replication-status-' + row.id"
+          >
+            <ignt-icon
+              aria-hidden="true"
+              class="replication-status__icon"
+              [fixedWidth]="true"
+              [name]="rowIcons[row.status].name"
+              [spin]="rowIcons[row.status].spin"
+              [variant]="rowIcons[row.status].variant"
+            />
+            <span>{{ row.labelKey | translate: row.params }}</span>
+            <span class="visually-hidden">{{ statusLabelKeys[row.status] | translate }}</span>
+          </li>
+          @if (row.messageKey) {
+            <li>
+              <ignt-alert
+                [attr.data-testid]="'immersive-module-replication-status-' + row.id + '-message'"
+                [description]="row.messageKey | translate"
+                sentiment="danger"
+              ></ignt-alert>
+            </li>
+          }
+        }
+      </ul>
+      @if (footerMode() === 'results') {
+        @for (moduleResult of store.groupedResultsByModule(); track moduleResult.moduleId) {
+          <div data-testid="immersive-module-replication-results-section">
+            <h4>
+              {{ moduleResult.label }} —
+              {{ statusLabelKeys[moduleResult.status] | translate }}
+            </h4>
+            @let messageKey = moduleResult.messageKey ?? '';
+            @switch (moduleResult.status) {
+              @case ('forbidden') {
+                <ignt-alert
+                  data-testid="immersive-module-replication-forbidden-banner"
+                  [description]="messageKey | translate"
+                  sentiment="danger"
+                ></ignt-alert>
+              }
+              @case ('notSent') {
+                <p data-testid="immersive-module-replication-not-sent">{{ messageKey | translate }}</p>
+              }
+              @default {
+                @if (moduleResult.status === 'error' && messageKey) {
+                  <ignt-alert
+                    data-testid="immersive-module-replication-error-banner"
+                    [description]="messageKey | translate"
+                    sentiment="danger"
+                  ></ignt-alert>
+                  @if (moduleResult.details.length > 0) {
+                    <ul class="replication-error-details" data-testid="immersive-module-replication-error-details">
+                      @for (detail of moduleResult.details; track $index) {
+                        <li data-testid="immersive-module-replication-error-detail">{{ detail }}</li>
+                      }
+                    </ul>
+                  }
+                }
+                @if (moduleResult.groups.length > 0) {
+                  <app-immersive-module-replication-results-table [groups]="moduleResult.groups" />
+                }
+              }
+            }
+          </div>
+        }
+      }
+    </ignt-dialog-content>
+    <ignt-dialog-footer [hideCancelButton]="true">
+      @if (footerMode() === 'publishFailed') {
+        <ignt-button
+          data-testid="immersive-module-replication-back"
+          htmlType="button"
+          sentiment="brand"
+          variant="tertiary"
+          [label]="'common.back' | translate"
+          (click)="store.back()"
+        ></ignt-button>
+      }
+      @if (footerMode() === 'results' && store.hasFailed()) {
+        <ignt-button
+          data-testid="immersive-module-replication-retry"
+          htmlType="button"
+          sentiment="brand"
+          variant="secondary"
+          [label]="'planEdition.immersiveContentPlan.replication.retryCta' | translate"
+          (click)="store.retryFailed()"
+        ></ignt-button>
+      }
+      @if (footerMode() !== 'running') {
+        <ignt-button
+          data-testid="immersive-module-replication-close"
+          htmlType="button"
+          [igntDialogClose]="true"
+          sentiment="brand"
+          variant="primary"
+          [label]="'common.close' | translate"
+        ></ignt-button>
+      }
+    </ignt-dialog-footer>
+  }
+}

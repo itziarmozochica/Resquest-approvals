@@ -1,0 +1,159 @@
+<div class="bl-billing">
+  <app-page-title [title]="'menu.billing' | translate"></app-page-title>
+  <app-filters>
+    <div class="el-filters">
+      <app-filter-select
+        (selected)="filterByDate($event)"
+        [options]="dateFilterOptions"
+        [preloadedOption]="dateFilterOptions.length > 1 ? dateFilterOptions[1] : dateFilterOptions[0]"
+      ></app-filter-select>
+    </div>
+  </app-filters>
+  <div class="bl-billing-overview">
+    @if (!!partner) {
+      <div class="bl-billing-overview-content">
+        @if (billingPeriods?.length === 0 && simplifiedBillsStatements?.length === 0) {
+          <div class="bl-billing-overview-no-results" data-testid="billing-overview-no-result">
+            <ignt-icon name="user" variant="solid" class="bl-billing-overview-no-results__icon"></ignt-icon>
+            <p class="bl-billing-overview-no-results__text">{{ 'common.noResults' | translate }}</p>
+          </div>
+        }
+
+        @if (billingPeriods?.length > 0) {
+          <div>
+            <h3 class="bl-simplified-bill-title" translate>listInvoices.billingPeriodsTitle</h3>
+            <div class="bl-billing-overview-table-header bl-billing-overview-table-header--billing-periods">
+              <span class="bl-billing-overview-table-header__period">{{ 'listInvoices.tableHeader.period' | translate }}</span>
+              <span class="bl-billing-overview-table-header__invoices">{{ 'listInvoices.tableHeader.invoices' | translate }}</span>
+              <span class="bl-billing-overview-table-header__settlements">{{ 'listInvoices.tableHeader.settlements' | translate }}</span>
+            </div>
+            <div class="bl-billing-overview-row">
+              @for (bp of billingPeriods; track bp.startDate) {
+                @if (shouldShowBillingPeriod(bp)) {
+                  <div class="bl-billing-overview-pdf" data-testid="billing-period-row">
+                    <div class="co-billing-overview-pdf">
+                      <span class="co-billing-overview-pdf__info co-billing-overview-pdf__info--period" data-testid="billing-period-dates">
+                        {{ bp.startDate }} — {{ bp.endDate }}
+                      </span>
+                      <span
+                        class="co-billing-overview-pdf__info co-billing-overview-pdf__info--invoices"
+                        data-testid="billing-period-invoices"
+                      >
+                        @if (bp.invoices.length > 0) {
+                          @for (invoice of bp.invoices; track invoice.number) {
+                            <a
+                              class="co-billing-overview-pdf__doc-link"
+                              [href]="invoice.url"
+                              target="_blank"
+                              (click)="handleInvoiceDownload()"
+                            >
+                              {{ invoice.number }}
+                              <ignt-icon name="file-pdf" variant="light"></ignt-icon>
+                            </a>
+                          }
+                        } @else {
+                          —
+                        }
+                      </span>
+                      <span
+                        class="co-billing-overview-pdf__info co-billing-overview-pdf__info--settlements"
+                        data-testid="billing-period-settlements"
+                      >
+                        @if (bp.settlements.length > 0) {
+                          @for (settlement of bp.settlements; track settlement.settlementFilePath) {
+                            <a
+                              class="co-billing-overview-pdf__doc-link"
+                              [href]="settlement.settlementFilePath"
+                              target="_blank"
+                              (click)="handleSettlementDownload()"
+                            >
+                              {{ settlement.finalPartnerSettlement | currency: settlement.currency : 'symbol-narrow' }}
+                              <ignt-icon name="file-pdf" variant="light"></ignt-icon>
+                            </a>
+                          }
+                        } @else {
+                          —
+                        }
+                      </span>
+                    </div>
+                  </div>
+                }
+              }
+            </div>
+          </div>
+        }
+
+        @if (simplifiedBillsStatements?.length > 0) {
+          <div>
+            <h3 class="bl-simplified-bill-title bl-simplified-bill-title--simplified" translate>
+              listInvoices.simplifiedBillsStatementsTitle
+            </h3>
+
+            <div class="bl-simplified-bill-row">
+              <div class="bl-billing-overview-table">
+                <div class="bl-billing-overview-table-header">
+                  <span class="bl-billing-overview-table-header__created bl-billing-overview-table-header__created--simplified">
+                    {{ 'listInvoices.tableHeader.date' | translate }}
+                  </span>
+                  <span class="bl-billing-overview-table-header__range bl-billing-overview-table-header__range--simplified">
+                    {{ 'listInvoices.tableHeader.from' | translate }}<br />
+                    {{ 'listInvoices.tableHeader.to' | translate }}
+                  </span>
+                  <span class="bl-billing-overview-table-header__start bl-billing-overview-table-header__start--simplified">
+                    {{ 'listInvoices.tableHeader.from' | translate }}
+                  </span>
+                  <span class="bl-billing-overview-table-header__end bl-billing-overview-table-header__end--simplified">
+                    {{ 'listInvoices.tableHeader.to' | translate }}
+                  </span>
+                  <span class="bl-billing-overview-table-header__icon bl-billing-overview-table-header__icon--simplified">
+                    {{ 'listInvoices.tableHeader.download' | translate }}
+                  </span>
+                </div>
+                <div class="bl-billing-overview-row">
+                  @for (simplifiedBillsStatement of simplifiedBillsStatements; track simplifiedBillsStatement.issuedFrom) {
+                    @if (shouldShowStatement(simplifiedBillsStatement)) {
+                      <div class="bl-billing-overview-pdf">
+                        <div class="co-billing-overview-pdf">
+                          <span class="el-billing-overview-pdf__date">
+                            {{ simplifiedBillsStatement.createdAt | date: 'yyyy-MM-dd' : '+00:00' }}
+                          </span>
+                          <div class="el-billing-overview-pdf__range">
+                            <span class="el-billing-overview-pdf__date">
+                              {{ simplifiedBillsStatement.issuedFrom | date: 'yyyy-MM-dd' : '+00:00' }}
+                            </span>
+                            <span class="el-billing-overview-pdf__date">
+                              {{ simplifiedBillsStatement.issuedTo | date: 'yyyy-MM-dd' : '+00:00' }}
+                            </span>
+                          </div>
+                          <a [href]="simplifiedBillsStatement.simplifiedBillsStatementFile" class="el-billing-overview-pdf" target="_blank">
+                            <ignt-icon name="file-pdf" variant="light" class="el-billing-overview-pdf_icon"></ignt-icon>
+                          </a>
+                        </div>
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
+              <div class="bl-simplified-bill-sidebar">
+                <div class="bl-simplified-bill-generator">
+                  <p translate>listInvoices.generateCustomSimplifiedBillsInfo</p>
+                  <button (click)="onGenerateCustomStatementButtonClicked()" class="btn btn-round bl-cta-button">
+                    <span translate>listInvoices.generateCustomSimplifiedBillsStatement</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <div class="bl-billing__help-topic" appHideWrapperOnHelpTopicClose>
+          <app-help-topic-banner
+            [message]="'helpTopics.finances.message' | translate"
+            [ctaLabel]="'helpTopics.generic.cta.label' | translate"
+            [ctaLink]="'helpTopics.finances.cta.href' | translate"
+          ></app-help-topic-banner>
+        </div>
+      </div>
+    }
+  </div>
+</div>

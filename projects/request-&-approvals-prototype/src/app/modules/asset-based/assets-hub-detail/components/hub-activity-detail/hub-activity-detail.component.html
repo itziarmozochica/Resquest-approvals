@@ -1,0 +1,697 @@
+<form [formGroup]="formGroup" class="hub-activity-detail" id="hub-activity-detail-form">
+  <div class="hub-activity-detail__wrapper">
+    <ng-container *ngTemplateOutlet="pageHeader"></ng-container>
+
+    @if (isLoading()) {
+      <div class="hub-activity-detail__loading" data-testid="hub-activity-detail-loading">
+        <span translate>common.loading</span>
+      </div>
+    } @else {
+      <div class="hub-activity-detail__content">
+        <ng-container *ngTemplateOutlet="activityDetailsSection"></ng-container>
+        <hr class="hub-activity-detail__divider" />
+        <ng-container *ngTemplateOutlet="activityAssetsSection"></ng-container>
+        <hr class="hub-activity-detail__divider" />
+        <ng-container *ngTemplateOutlet="durationSection"></ng-container>
+        <hr class="hub-activity-detail__divider" />
+        <ignt-expansion-panel
+          class="hub-activity-detail__advanced-settings"
+          [title]="'assetsHubs.detail.activities.form.advancedSettingsTitle' | translate"
+          variant="borderless"
+          [isCollapsed]="false"
+          chevronPosition="start"
+        >
+          <div class="hub-activity-detail__advanced-settings-content">
+            <ng-container *ngTemplateOutlet="turnaroundSection"></ng-container>
+            <hr class="hub-activity-detail__divider" />
+            <ng-container *ngTemplateOutlet="startTimesSection"></ng-container>
+            <hr class="hub-activity-detail__divider" />
+            <ng-container *ngTemplateOutlet="startDelaySection"></ng-container>
+            <hr class="hub-activity-detail__divider" />
+            <ng-container *ngTemplateOutlet="exclusiveHireSection"></ng-container>
+            @if (showLargePartySection()) {
+              <hr class="hub-activity-detail__divider" />
+              <ng-container *ngTemplateOutlet="largeBookingsSection"></ng-container>
+              @if (showMinPeoplePerSplitAssetSection()) {
+                <hr class="hub-activity-detail__divider" />
+                <ng-container *ngTemplateOutlet="minPeoplePerSplitAssetSection"></ng-container>
+              }
+            }
+          </div>
+        </ignt-expansion-panel>
+      </div>
+    }
+  </div>
+  @if (!isLoading() && (isCreateMode() || isEditMode())) {
+    <ng-container *ngTemplateOutlet="actionsFooter"></ng-container>
+  }
+</form>
+
+<ng-template #pageHeader>
+  <div class="hub-activity-detail__page-header">
+    <div class="hub-activity-detail__hub-header">
+      <a class="hub-activity-detail__breadcrumb-link" href="#" (click)="onNavigateToHubList($event)" role="link">{{
+        'assetsHubs.pageTitle' | translate
+      }}</a>
+      <span class="hub-activity-detail__breadcrumb-separator">/</span>
+      <a class="hub-activity-detail__breadcrumb-link" href="#" (click)="onNavigateToHubDetail($event)" role="link">{{ hubName() }}</a>
+      @if (isViewMode() || isEditMode()) {
+        <span class="hub-activity-detail__breadcrumb-separator">/</span>
+        <a class="hub-activity-detail__breadcrumb-link" href="#" (click)="onNavigateToHubDetail($event)" role="link">{{
+          'assetsHubs.components.activities' | translate
+        }}</a>
+      }
+      @if (isViewMode() || isEditMode()) {
+        <h1 class="hub-activity-detail__title" data-testid="page-title">{{ formGroup.controls.name.value }}</h1>
+      } @else {
+        <h1 class="hub-activity-detail__title" data-testid="page-title">{{ pageTitleKey() | translate }}</h1>
+      }
+    </div>
+    @if (isViewMode() && canManageHub()) {
+      <div class="hub-activity-detail__actions-wrapper">
+        <ignt-button-dropdown
+          [options]="activityEditActionsOptions"
+          [sentiment]="'primary'"
+          [size]="'large'"
+          [align]="'right'"
+          [autoWidth]="true"
+          [borderless]="true"
+          [hoverEffect]="true"
+          (optionClick)="onActivityEditActionClick($event)"
+          data-testid="hub-activity-detail-actions"
+        >
+          <span translate>assetsHubs.detail.activities.actions</span>
+        </ignt-button-dropdown>
+      </div>
+    }
+  </div>
+</ng-template>
+
+<ng-template #activityDetailsSection>
+  <section class="hub-activity-detail__section">
+    <h2 class="hub-activity-detail__section-title" translate>assetsHubs.detail.activities.form.activityDetailsTitle</h2>
+    <p class="hub-activity-detail__section-description" translate>assetsHubs.detail.activities.form.activityDetailsDescription</p>
+    <div class="hub-activity-detail__field hub-activity-detail__field--half">
+      <ignt-input-field
+        id="activity-name"
+        [formControl]="formGroup.controls.name"
+        [label]="'assetsHubs.detail.activities.form.activityName' | translate"
+        [placeholder]="'assetsHubs.detail.activities.form.activityNamePlaceholder' | translate"
+        [disabled]="isViewMode()"
+      ></ignt-input-field>
+    </div>
+    <div class="hub-activity-detail__field">
+      <ignt-textarea-field
+        id="activity-description"
+        [formControl]="formGroup.controls.description"
+        [label]="('assetsHubs.detail.activities.form.activityDescription' | translate) + ' (' + ('common.optional' | translate) + ')'"
+        [placeholder]="'assetsHubs.detail.activities.form.activityDescriptionPlaceholder' | translate"
+        [disabled]="isViewMode()"
+      ></ignt-textarea-field>
+    </div>
+  </section>
+</ng-template>
+
+<ng-template #activityAssetsSection>
+  <section class="hub-activity-detail__section">
+    <h2 class="hub-activity-detail__section-title" translate>assetsHubs.detail.activities.form.assetsTitle</h2>
+    <p class="hub-activity-detail__section-description" translate>assetsHubs.detail.activities.form.assetsDescription</p>
+    <app-activity-asset-type-shortcuts
+      [assets]="assets()"
+      [isDisabled]="isViewMode()"
+      [selectedAssetIds]="selectedAssetIds()"
+      (selectedAssetIdsChange)="onAssetIdsChange($event)"
+    ></app-activity-asset-type-shortcuts>
+    <div class="hub-activity-detail__field hub-activity-detail__field--half">
+      <app-multi-select
+        [placeholder]="'assetsHubs.detail.activities.form.assetsPlaceholder' | translate"
+        [searchPlaceholder]="'assetsHubs.detail.activities.form.assetsSearchPlaceholder' | translate"
+        [options]="assetOptions()"
+        [selectedOptions]="selectedAssetOptions()"
+        [defaultOrdering]="false"
+        [disabled]="isViewMode()"
+        [displayInPlaceMaximum]="6"
+        [optionBadgeTemplate]="assetTypeBadge"
+        [useDescriptionInSearch]="true"
+        (selected)="onAssetSelectionChange($event)"
+      ></app-multi-select>
+    </div>
+  </section>
+</ng-template>
+
+<ng-template #assetTypeBadge let-option>
+  @if (option.description) {
+    <ignt-tag sentiment="sharp" variant="outline">{{ option.description }}</ignt-tag>
+  }
+</ng-template>
+
+<ng-template #durationSection>
+  <section class="hub-activity-detail__section">
+    <h2 class="hub-activity-detail__section-title" translate>assetsHubs.detail.activities.form.durationTitle</h2>
+    <p class="hub-activity-detail__section-description" translate>assetsHubs.detail.activities.form.durationDescription</p>
+
+    @if (isPerPersonDurationDisabled) {
+      <ignt-alert
+        class="hub-activity-detail__constraint-warning"
+        role="status"
+        sentiment="warning"
+        [title]="'assetsHubs.detail.activities.form.durationPerPersonUnavailableTitle' | translate"
+        [description]="'assetsHubs.detail.activities.form.durationPerPersonUnavailableDescription' | translate"
+      ></ignt-alert>
+    }
+
+    <ignt-radio-group
+      [formControl]="formGroup.controls.durationMode"
+      class="hub-activity-detail__radio-group"
+      [class.hub-activity-detail__radio-group--readonly]="isViewMode()"
+    >
+      <ignt-list-item
+        class="hub-activity-detail__duration-card"
+        [class.hub-activity-detail__duration-card--selected]="isDurationModeSelected(ActivityDurationMode.Fixed)"
+        [title]="'assetsHubs.detail.activities.form.durationFixedTitle' | translate"
+        [description]="'assetsHubs.detail.activities.form.durationFixedDescription' | translate"
+        [selected]="isDurationModeSelected(ActivityDurationMode.Fixed)"
+        [type]="isViewMode() ? 'borderless' : 'default'"
+        (click)="onToggleDurationMode(ActivityDurationMode.Fixed)"
+        [leadingIconTemplate]="fixedDurationRadio"
+      >
+        <ng-template #fixedDurationRadio>
+          <ignt-radio [value]="ActivityDurationMode.Fixed" [name]="'durationMode'"></ignt-radio>
+        </ng-template>
+      </ignt-list-item>
+
+      <ignt-list-item
+        class="hub-activity-detail__duration-card"
+        [class.hub-activity-detail__duration-card--selected]="isDurationModeSelected(ActivityDurationMode.PerPerson)"
+        [class.hub-activity-detail__duration-card--disabled]="isPerPersonDurationDisabled"
+        [title]="'assetsHubs.detail.activities.form.durationPerPersonTitle' | translate"
+        [description]="'assetsHubs.detail.activities.form.durationPerPersonDescription' | translate"
+        [selected]="isDurationModeSelected(ActivityDurationMode.PerPerson)"
+        [type]="isViewMode() ? 'borderless' : 'default'"
+        (click)="onToggleDurationMode(ActivityDurationMode.PerPerson)"
+        [leadingIconTemplate]="durationPerPersonRadio"
+      >
+        <ng-template #durationPerPersonRadio>
+          <ignt-radio
+            [value]="ActivityDurationMode.PerPerson"
+            [name]="'durationMode'"
+            [disabled]="isPerPersonDurationDisabled"
+          ></ignt-radio>
+        </ng-template>
+      </ignt-list-item>
+    </ignt-radio-group>
+
+    <h3 class="hub-activity-detail__section-title hub-activity-detail__duration-value-title">{{ getDurationValueTitle() | translate }}</h3>
+    <p class="hub-activity-detail__section-description">{{ getDurationValueDescription() | translate }}</p>
+
+    <div class="hub-activity-detail__field hub-activity-detail__field--half hub-activity-detail__duration-input">
+      <ignt-input-field
+        id="activity-duration-minutes"
+        type="number"
+        [formControl]="formGroup.controls.durationMinutes"
+        [customFormErrors]="[
+          {
+            type: 'min',
+            message: ('assetsHubs.detail.activities.form.durationMinimumError' | translate),
+          },
+          {
+            type: 'durationMinutesStep',
+            message: ('assetsHubs.detail.activities.form.durationStepError' | translate),
+          },
+        ]"
+        [label]="getDurationInputLabel() | translate"
+        [placeholder]="getDurationInputLabel() | translate"
+        [disabled]="isViewMode()"
+      ></ignt-input-field>
+    </div>
+  </section>
+</ng-template>
+
+<ng-template #turnaroundSection>
+  <section class="hub-activity-detail__section" data-testid="turnaround-section">
+    <h2 class="hub-activity-detail__section-title" translate>assetsHubs.detail.activities.form.turnaroundTitle</h2>
+    <p class="hub-activity-detail__section-description" translate>assetsHubs.detail.activities.form.turnaroundDescription</p>
+
+    <div class="hub-activity-detail__help">
+      <ignt-icon aria-hidden="true" class="hub-activity-detail__help-icon" name="info-circle" variant="solid"></ignt-icon>
+      <div>
+        <h3 class="hub-activity-detail__help-title" translate>assetsHubs.detail.activities.form.turnaroundHelpTitle</h3>
+        <p class="hub-activity-detail__help-description" translate>assetsHubs.detail.activities.form.turnaroundHelpDescription</p>
+      </div>
+    </div>
+
+    @let turnaroundErrors =
+      [
+        {
+          type: 'turnaroundMinutesFormat',
+          message: 'assetsHubs.detail.activities.form.turnaroundFormatError' | translate,
+        },
+        {
+          type: 'turnaroundMinutesNegative',
+          message: 'assetsHubs.detail.activities.form.turnaroundNegativeError' | translate,
+        },
+        {
+          type: 'turnaroundMinutesMax',
+          message: 'assetsHubs.detail.activities.form.turnaroundMaxError' | translate,
+        },
+        {
+          type: 'turnaroundMinutesStep',
+          message: 'assetsHubs.detail.activities.form.turnaroundStepError' | translate,
+        },
+      ];
+
+    <div class="hub-activity-detail__turnaround-fields">
+      <div class="hub-activity-detail__field hub-activity-detail__turnaround-field" data-testid="turnaround-pre-field">
+        <ignt-input-field
+          id="activity-pre-turnaround-minutes"
+          [formControl]="formGroup.controls.preTurnaroundMinutes"
+          [customFormErrors]="turnaroundErrors"
+          [label]="'assetsHubs.detail.activities.form.preTurnaroundLabel' | translate"
+          [placeholder]="'assetsHubs.detail.activities.form.turnaroundPlaceholder' | translate"
+          [helperText]="'assetsHubs.detail.activities.form.preTurnaroundHelperText' | translate"
+          [disabled]="isViewMode()"
+        ></ignt-input-field>
+      </div>
+
+      <div class="hub-activity-detail__field hub-activity-detail__turnaround-field" data-testid="turnaround-post-field">
+        <ignt-input-field
+          id="activity-post-turnaround-minutes"
+          [formControl]="formGroup.controls.postTurnaroundMinutes"
+          [customFormErrors]="turnaroundErrors"
+          [label]="'assetsHubs.detail.activities.form.postTurnaroundLabel' | translate"
+          [placeholder]="'assetsHubs.detail.activities.form.turnaroundPlaceholder' | translate"
+          [helperText]="'assetsHubs.detail.activities.form.postTurnaroundHelperText' | translate"
+          [disabled]="isViewMode()"
+        ></ignt-input-field>
+      </div>
+    </div>
+
+    <p class="hub-activity-detail__start-times-preview" data-testid="turnaround-preview" aria-live="polite">
+      @if (isTurnaroundDescribable()) {
+        @if (hasTurnaround()) {
+          @if (isPerPersonDuration()) {
+            {{
+              'assetsHubs.detail.activities.form.turnaroundPerPersonPreview'
+                | translate: { preMinutes: preTurnaroundMinutes(), postMinutes: postTurnaroundMinutes() }
+            }}
+          } @else {
+            {{
+              'assetsHubs.detail.activities.form.turnaroundPreview'
+                | translate
+                  : {
+                      blockMinutes: assetBlockMinutes(),
+                      preMinutes: preTurnaroundMinutes(),
+                      postMinutes: postTurnaroundMinutes(),
+                    }
+            }}
+          }
+        } @else {
+          {{ 'assetsHubs.detail.activities.form.turnaroundNoneHint' | translate }}
+        }
+      }
+    </p>
+  </section>
+</ng-template>
+
+<ng-template #startTimesSection>
+  <section class="hub-activity-detail__section" data-testid="start-times-section">
+    <h2 class="hub-activity-detail__section-title" translate>assetsHubs.detail.activities.form.startTimesTitle</h2>
+    <p class="hub-activity-detail__section-description" translate>assetsHubs.detail.activities.form.startTimesDescription</p>
+
+    <div class="hub-activity-detail__help">
+      <ignt-icon aria-hidden="true" class="hub-activity-detail__help-icon" name="info-circle" variant="solid"></ignt-icon>
+      <div>
+        <h3 class="hub-activity-detail__help-title" translate>assetsHubs.detail.activities.form.startTimesHelpTitle</h3>
+        <p class="hub-activity-detail__help-description" translate>assetsHubs.detail.activities.form.startTimesHelpDescription</p>
+      </div>
+    </div>
+
+    <div
+      class="hub-activity-detail__start-times-modes"
+      role="radiogroup"
+      [attr.aria-label]="'assetsHubs.detail.activities.form.startTimesTitle' | translate"
+    >
+      <ignt-radio
+        value="none"
+        name="startTimesMode"
+        [checked]="isStartTimesUnrestricted()"
+        [label]="'assetsHubs.detail.activities.form.startTimesNoRestrictionOption' | translate"
+        [disabled]="isViewMode()"
+        (change)="onStartTimesModeChange('none')"
+        dataTestId="start-times-mode-none"
+      ></ignt-radio>
+      <ignt-radio
+        value="interval"
+        name="startTimesMode"
+        [checked]="isStartTimesIntervalMode()"
+        [label]="'assetsHubs.detail.activities.form.startTimesIntervalOption' | translate"
+        [disabled]="isViewMode()"
+        (change)="onStartTimesModeChange('interval')"
+        dataTestId="start-times-mode-interval"
+      ></ignt-radio>
+      <ignt-radio
+        value="custom"
+        name="startTimesMode"
+        [checked]="isStartTimesCustomMode()"
+        [label]="'assetsHubs.detail.activities.form.startTimesCustomOption' | translate"
+        [disabled]="isViewMode()"
+        (change)="onStartTimesModeChange('custom')"
+        dataTestId="start-times-mode-custom"
+      ></ignt-radio>
+    </div>
+
+    @if (isStartTimesIntervalMode()) {
+      <div class="hub-activity-detail__start-times-input">
+        <ignt-input-field
+          id="activity-start-times-interval"
+          type="number"
+          [formControl]="formGroup.controls.startTimesInterval"
+          [customFormErrors]="[
+            {
+              type: 'required',
+              message: ('assetsHubs.detail.activities.form.startTimesIntervalRequiredError' | translate),
+            },
+            {
+              type: 'startTimeInterval',
+              message: ('assetsHubs.detail.activities.form.startTimesIntervalError' | translate),
+            },
+          ]"
+          [label]="'assetsHubs.detail.activities.form.startTimesIntervalLabel' | translate"
+          [placeholder]="'assetsHubs.detail.activities.form.startTimesIntervalPlaceholder' | translate"
+          [helperText]="'assetsHubs.detail.activities.form.startTimesIntervalHelperText' | translate"
+          [disabled]="isViewMode()"
+        ></ignt-input-field>
+      </div>
+    }
+
+    @if (isStartTimesCustomMode()) {
+      <div class="hub-activity-detail__start-times-input">
+        <ignt-input-field
+          id="activity-start-times-custom"
+          [formControl]="formGroup.controls.startTimesCustomMinutes"
+          [customFormErrors]="[
+            {
+              type: 'required',
+              message: ('assetsHubs.detail.activities.form.startTimesCustomRequiredError' | translate),
+            },
+            {
+              type: 'startMinutesListFormat',
+              message: ('assetsHubs.detail.activities.form.startTimesCustomFormatError' | translate),
+            },
+            {
+              type: 'startMinutesListRange',
+              message: ('assetsHubs.detail.activities.form.startTimesCustomRangeError' | translate),
+            },
+            {
+              type: 'startMinutesListStep',
+              message: ('assetsHubs.detail.activities.form.startTimesCustomStepError' | translate),
+            },
+            {
+              type: 'startMinutesListDuplicated',
+              message: ('assetsHubs.detail.activities.form.startTimesCustomDuplicatedError' | translate),
+            },
+          ]"
+          [label]="'assetsHubs.detail.activities.form.startTimesCustomLabel' | translate"
+          [placeholder]="'assetsHubs.detail.activities.form.startTimesCustomPlaceholder' | translate"
+          [helperText]="'assetsHubs.detail.activities.form.startTimesCustomHelperText' | translate"
+          [disabled]="isViewMode()"
+        ></ignt-input-field>
+      </div>
+    }
+
+    <p class="hub-activity-detail__start-times-preview" data-testid="start-times-preview" aria-live="polite">
+      @if (isStartTimesUnrestricted()) {
+        {{ 'assetsHubs.detail.activities.form.startTimesAnyHint' | translate }}
+      } @else if (startTimesPreview(); as preview) {
+        {{ 'assetsHubs.detail.activities.form.startTimesPreview' | translate: { minutes: preview } }}
+      }
+    </p>
+  </section>
+</ng-template>
+
+<ng-template #startDelaySection>
+  <section class="hub-activity-detail__section" data-testid="start-delay-section">
+    <h2 class="hub-activity-detail__section-title" translate>assetsHubs.detail.activities.form.startDelayTitle</h2>
+    <p class="hub-activity-detail__section-description" translate>assetsHubs.detail.activities.form.startDelayDescription</p>
+
+    <div class="hub-activity-detail__help">
+      <ignt-icon aria-hidden="true" class="hub-activity-detail__help-icon" name="info-circle" variant="solid"></ignt-icon>
+      <div>
+        <h3 class="hub-activity-detail__help-title" translate>assetsHubs.detail.activities.form.startDelayHelpTitle</h3>
+        <p class="hub-activity-detail__help-description" translate>assetsHubs.detail.activities.form.startDelayHelpDescription</p>
+      </div>
+    </div>
+
+    <div class="hub-activity-detail__field hub-activity-detail__field--half">
+      <ignt-input-field
+        id="activity-start-delay-minutes"
+        [formControl]="formGroup.controls.maximumStartDelayMinutes"
+        [customFormErrors]="[
+          {
+            type: 'startDelayMinutesFormat',
+            message: ('assetsHubs.detail.activities.form.startDelayFormatError' | translate),
+          },
+          {
+            type: 'startDelayMinutesNegative',
+            message: ('assetsHubs.detail.activities.form.startDelayNegativeError' | translate),
+          },
+          {
+            type: 'startDelayMinutesStep',
+            message: ('assetsHubs.detail.activities.form.startDelayStepError' | translate),
+          },
+        ]"
+        [label]="'assetsHubs.detail.activities.form.startDelayLabel' | translate"
+        [placeholder]="'assetsHubs.detail.activities.form.startDelayPlaceholder' | translate"
+        [helperText]="'assetsHubs.detail.activities.form.startDelayHelperText' | translate"
+        [disabled]="isViewMode()"
+      ></ignt-input-field>
+    </div>
+
+    <p class="hub-activity-detail__start-times-preview" data-testid="start-delay-preview" aria-live="polite">
+      @if (isStartDelayDescribable()) {
+        @if (isStartDelayPinned()) {
+          {{ 'assetsHubs.detail.activities.form.startDelayPinnedHint' | translate }}
+        } @else {
+          {{ 'assetsHubs.detail.activities.form.startDelayPreview' | translate: { minutes: maximumStartDelayMinutes() } }}
+        }
+      }
+    </p>
+  </section>
+</ng-template>
+
+<ng-template #exclusiveHireSection>
+  <section class="hub-activity-detail__section">
+    <h2 class="hub-activity-detail__section-title" translate>assetsHubs.detail.activities.form.exclusiveHireTitle</h2>
+    <p class="hub-activity-detail__section-description" translate>assetsHubs.detail.activities.form.exclusiveHireDescription</p>
+
+    <div class="hub-activity-detail__help">
+      <ignt-icon aria-hidden="true" class="hub-activity-detail__help-icon" name="info-circle" variant="solid"></ignt-icon>
+      <div>
+        <h3 class="hub-activity-detail__help-title" translate>assetsHubs.detail.activities.form.exclusiveHireHelpTitle</h3>
+        <p class="hub-activity-detail__help-description" translate>assetsHubs.detail.activities.form.exclusiveHireHelpDescription</p>
+      </div>
+    </div>
+
+    <div class="hub-activity-detail__exclusive-hire-toggle">
+      <div>
+        <h3 class="hub-activity-detail__exclusive-hire-toggle-title" translate>assetsHubs.detail.activities.form.enableExclusiveHire</h3>
+        <p class="hub-activity-detail__exclusive-hire-toggle-description" translate>
+          assetsHubs.detail.activities.form.enableExclusiveHireDescription
+        </p>
+      </div>
+      <ignt-toggle
+        [checked]="formGroup.controls.isExclusiveHire.value"
+        [disabled]="isViewMode()"
+        (change)="onExclusiveHireChange($event)"
+      ></ignt-toggle>
+    </div>
+
+    <div
+      class="hub-activity-detail__exclusive-hire-pricing"
+      [class.hub-activity-detail__exclusive-hire-pricing--hidden]="!formGroup.controls.isExclusiveHire.value"
+    >
+      <h3 class="hub-activity-detail__exclusive-hire-pricing-title" translate>
+        assetsHubs.detail.activities.form.exclusiveHirePricingTitle
+      </h3>
+      @if (isExclusiveHireFixedPriceDisabled && formGroup.controls.isExclusiveHire.value) {
+        <ignt-alert
+          class="hub-activity-detail__constraint-warning"
+          role="status"
+          sentiment="warning"
+          [title]="'assetsHubs.detail.activities.form.exclusiveHireFixedPriceUnavailableTitle' | translate"
+          [description]="'assetsHubs.detail.activities.form.exclusiveHireFixedPriceUnavailableDescription' | translate"
+        ></ignt-alert>
+      }
+
+      <ignt-radio-group
+        [formControl]="formGroup.controls.exclusiveHirePricingMode"
+        class="hub-activity-detail__radio-group hub-activity-detail__radio-group--vertical"
+        [class.hub-activity-detail__radio-group--readonly]="isViewMode()"
+      >
+        <ignt-list-item
+          class="hub-activity-detail__duration-card"
+          [class.hub-activity-detail__duration-card--disabled]="isExclusiveHireFixedPriceDisabled"
+          [title]="'assetsHubs.detail.activities.form.exclusiveHireFixedPriceTitle' | translate"
+          [description]="'assetsHubs.detail.activities.form.exclusiveHireFixedPriceDescription' | translate"
+          type="borderless"
+          (click)="onExclusiveHirePricingModeChange('fixed')"
+          [leadingIconTemplate]="fixedPricePerBookingRadio"
+          data-testid="exclusive-hire-fixed-price-option"
+        >
+          <ng-template #fixedPricePerBookingRadio>
+            <ignt-radio value="fixed" name="exclusiveHirePricingMode" [disabled]="isExclusiveHireFixedPriceDisabled"></ignt-radio>
+          </ng-template>
+        </ignt-list-item>
+
+        <ignt-list-item
+          class="hub-activity-detail__duration-card"
+          [title]="'assetsHubs.detail.activities.form.exclusiveHirePerPersonTitle' | translate"
+          [description]="'assetsHubs.detail.activities.form.exclusiveHirePerPersonDescription' | translate"
+          type="borderless"
+          (click)="onExclusiveHirePricingModeChange('perPerson')"
+          [leadingIconTemplate]="pricePerPersonRadio"
+          data-testid="exclusive-hire-per-person-option"
+        >
+          <ng-template #pricePerPersonRadio>
+            <ignt-radio value="perPerson" name="exclusiveHirePricingMode"></ignt-radio>
+          </ng-template>
+        </ignt-list-item>
+      </ignt-radio-group>
+    </div>
+  </section>
+</ng-template>
+
+<ng-template #largeBookingsSection>
+  <section class="hub-activity-detail__section" data-testid="large-party-section">
+    <h2 class="hub-activity-detail__section-title" translate>assetsHubs.detail.activities.form.largePartyTitle</h2>
+    <p class="hub-activity-detail__section-description" translate>assetsHubs.detail.activities.form.largePartyDescription</p>
+
+    @if (formGroup.controls.isExclusiveHire.value) {
+      <div class="hub-activity-detail__large-party-exclusive-hire-notice">
+        <ignt-icon
+          aria-hidden="true"
+          class="hub-activity-detail__large-party-exclusive-hire-notice-icon"
+          name="info-circle"
+          variant="solid"
+        ></ignt-icon>
+        <div>
+          <h3 class="hub-activity-detail__large-party-exclusive-hire-notice-title" translate>
+            assetsHubs.detail.activities.form.largePartyExclusiveHireNoticeTitle
+          </h3>
+          <p class="hub-activity-detail__large-party-exclusive-hire-notice-description" translate>
+            assetsHubs.detail.activities.form.largePartyExclusiveHireNoticeDescription
+          </p>
+        </div>
+      </div>
+    } @else {
+      <ignt-radio-group
+        [formControl]="formGroup.controls.largePartyBookingPolicy"
+        class="hub-activity-detail__radio-group"
+        [class.hub-activity-detail__radio-group--readonly]="isViewMode()"
+      >
+        <ignt-list-item
+          class="hub-activity-detail__duration-card"
+          [class.hub-activity-detail__duration-card--selected]="isLargePartyPolicySelected(LargePartyBookingPolicy.SplitAcrossAssets)"
+          [title]="'assetsHubs.detail.activities.form.splitIntoGroupsTitle' | translate"
+          [description]="'assetsHubs.detail.activities.form.splitIntoGroupsDescription' | translate"
+          [selected]="isLargePartyPolicySelected(LargePartyBookingPolicy.SplitAcrossAssets)"
+          [type]="isViewMode() ? 'borderless' : 'default'"
+          (click)="onToggleLargePartyPolicy(LargePartyBookingPolicy.SplitAcrossAssets)"
+          [leadingIconTemplate]="splitAcrossAssetsRadio"
+          data-testid="large-party-split-option"
+        >
+          <ng-template #splitAcrossAssetsRadio>
+            <ignt-radio [value]="LargePartyBookingPolicy.SplitAcrossAssets" [name]="'largePartyBookingPolicy'"></ignt-radio>
+          </ng-template>
+        </ignt-list-item>
+
+        <ignt-list-item
+          class="hub-activity-detail__duration-card"
+          [class.hub-activity-detail__duration-card--selected]="isLargePartyPolicySelected(LargePartyBookingPolicy.SingleAssetOnly)"
+          [title]="'assetsHubs.detail.activities.form.doNotSplitGroupTitle' | translate"
+          [description]="'assetsHubs.detail.activities.form.doNotSplitGroupDescription' | translate"
+          [selected]="isLargePartyPolicySelected(LargePartyBookingPolicy.SingleAssetOnly)"
+          [type]="isViewMode() ? 'borderless' : 'default'"
+          (click)="onToggleLargePartyPolicy(LargePartyBookingPolicy.SingleAssetOnly)"
+          [leadingIconTemplate]="singleAssetOnlyRadio"
+          data-testid="large-party-single-option"
+        >
+          <ng-template #singleAssetOnlyRadio>
+            <ignt-radio [value]="LargePartyBookingPolicy.SingleAssetOnly" [name]="'largePartyBookingPolicy'"></ignt-radio>
+          </ng-template>
+        </ignt-list-item>
+      </ignt-radio-group>
+    }
+  </section>
+</ng-template>
+
+<ng-template #minPeoplePerSplitAssetSection>
+  <section class="hub-activity-detail__section" data-testid="min-people-per-split-asset-section">
+    <h2 class="hub-activity-detail__section-title" translate>assetsHubs.detail.activities.form.minPeoplePerSplitAssetTitle</h2>
+    <p class="hub-activity-detail__section-description" translate>assetsHubs.detail.activities.form.minPeoplePerSplitAssetDescription</p>
+
+    <div class="hub-activity-detail__help">
+      <ignt-icon aria-hidden="true" class="hub-activity-detail__help-icon" name="info-circle" variant="solid"></ignt-icon>
+      <div>
+        <h3 class="hub-activity-detail__help-title" translate>assetsHubs.detail.activities.form.minPeoplePerSplitAssetHelpTitle</h3>
+        <p class="hub-activity-detail__help-description" translate>
+          assetsHubs.detail.activities.form.minPeoplePerSplitAssetHelpDescription
+        </p>
+      </div>
+    </div>
+
+    <div class="hub-activity-detail__field hub-activity-detail__field--half" data-testid="min-people-per-split-asset-field">
+      <ignt-input-field
+        id="activity-min-people-per-split-asset"
+        [formControl]="formGroup.controls.minPeoplePerSplitAsset"
+        [customFormErrors]="[
+          {
+            type: 'minPeoplePerSplitAssetFormat',
+            message: ('assetsHubs.detail.activities.form.minPeoplePerSplitAssetFormatError' | translate),
+          },
+          {
+            type: 'minPeoplePerSplitAssetMin',
+            message: ('assetsHubs.detail.activities.form.minPeoplePerSplitAssetMinError' | translate),
+          },
+        ]"
+        [label]="'assetsHubs.detail.activities.form.minPeoplePerSplitAssetLabel' | translate"
+        [placeholder]="'assetsHubs.detail.activities.form.minPeoplePerSplitAssetPlaceholder' | translate"
+        [helperText]="'assetsHubs.detail.activities.form.minPeoplePerSplitAssetHelperText' | translate"
+        [disabled]="isViewMode()"
+      ></ignt-input-field>
+    </div>
+
+    <p class="hub-activity-detail__start-times-preview" data-testid="min-people-per-split-asset-preview" aria-live="polite">
+      @if (isMinPeoplePerSplitAssetDescribable()) {
+        @if (minPeoplePerSplitAsset(); as people) {
+          {{ 'assetsHubs.detail.activities.form.minPeoplePerSplitAssetPreview' | translate: { people } }}
+        } @else {
+          {{ 'assetsHubs.detail.activities.form.minPeoplePerSplitAssetNoneHint' | translate }}
+        }
+      }
+    </p>
+  </section>
+</ng-template>
+
+<ng-template #actionsFooter>
+  <div class="hub-activity-detail__footer">
+    <div class="hub-activity-detail__footer-actions">
+      <ignt-button
+        variant="secondary"
+        size="large"
+        [label]="isEditMode() ? ('common.back' | translate) : ('common.cancel' | translate)"
+        (click)="onCancel()"
+        data-testid="hub-activity-detail-cancel"
+      ></ignt-button>
+      <ignt-button
+        htmlType="submit"
+        variant="primary"
+        size="large"
+        [disabled]="(isEditMode() ? formGroup.pristine || formGroup.invalid : formGroup.invalid) || isSaving()"
+        [label]="isEditMode() ? ('assetsHubs.detail.saveChanges' | translate) : ('common.save' | translate)"
+        (click)="onSave($event)"
+        data-testid="hub-activity-detail-save"
+      ></ignt-button>
+    </div>
+  </div>
+</ng-template>

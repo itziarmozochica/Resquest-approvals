@@ -1,0 +1,132 @@
+@let weeklyEntries = weeklyRuleEntries();
+@let specialRules = specialDayRules();
+<div class="booked-slot-details asset-capacity-rules" data-testid="asset-capacity-rules-details">
+  <div class="booked-slot-details__header">
+    <div class="booked-slot-details__header-text">
+      <p class="booked-slot-details__subtitle">{{ 'bookedSlots.capacityRulesPanelSubtitle' | translate }}</p>
+      <div class="booked-slot-details__header-title-row">
+        <h3 class="booked-slot-details__title">{{ asset().name }}</h3>
+      </div>
+      <p class="asset-capacity-rules__date-line">
+        <ignt-icon aria-hidden="true" class="asset-capacity-rules__date-line-icon" name="calendar" variant="light"></ignt-icon>
+        <span>{{ selectedDate() | momentDate: 'EEE, d MMM' : timezone() }}</span>
+      </p>
+    </div>
+  </div>
+  <div class="asset-capacity-rules__hint" role="note">
+    <ignt-icon aria-hidden="true" class="asset-capacity-rules__hint-icon" name="info-circle" variant="regular"></ignt-icon>
+    <p class="asset-capacity-rules__hint-text">{{ 'bookedSlots.capacityRulesPanelSelectRuleHint' | translate }}</p>
+  </div>
+  @if (weeklyEntries.length > 0) {
+    <section class="asset-capacity-rules__section" [attr.aria-labelledby]="'asset-capacity-rules-weekly-' + asset().id">
+      @if (showsRecurringNotApplicableWarning()) {
+        <div
+          class="asset-capacity-rules__warning"
+          role="alert"
+          aria-live="polite"
+          data-testid="asset-capacity-rules-recurring-not-applicable-warning"
+        >
+          <ignt-icon
+            aria-hidden="true"
+            class="asset-capacity-rules__warning-icon"
+            name="triangle-exclamation"
+            variant="regular"
+          ></ignt-icon>
+          <div class="asset-capacity-rules__warning-content">
+            <p class="asset-capacity-rules__warning-title">{{ recurringNotApplicableWarningTitle() }}</p>
+            <p class="asset-capacity-rules__warning-text">
+              {{ 'bookedSlots.capacityRulesPanelRecurringNotApplicableWarningBody' | translate }}
+            </p>
+          </div>
+        </div>
+      }
+      <div class="asset-capacity-rules__section-head">
+        <ignt-icon aria-hidden="true" class="asset-capacity-rules__section-icon" name="repeat" variant="light"></ignt-icon>
+        <h3 [id]="'asset-capacity-rules-weekly-' + asset().id" class="asset-capacity-rules__section-title">
+          @if (showsRecurringNotApplicableWarning()) {
+            {{ 'bookedSlots.capacityRulesPanelExistingSchedulesHeading' | translate }}
+          } @else {
+            {{ 'bookedSlots.capacityRulesPanelWeeklyHeading' | translate }}
+          }
+        </h3>
+      </div>
+      @if (showsWeeklyReplacedBySpecialDayNote()) {
+        <div class="asset-capacity-rules__hint" role="note" data-testid="asset-capacity-rules-weekly-replaced-by-special-day-note">
+          <ignt-icon aria-hidden="true" class="asset-capacity-rules__hint-icon" name="info-circle" variant="regular"></ignt-icon>
+          <p class="asset-capacity-rules__hint-text">{{ 'bookedSlots.capacityRulesPanelWeeklyReplacedBySpecialDay' | translate }}</p>
+        </div>
+      }
+      <ul class="asset-capacity-rules__list">
+        @for (entry of weeklyEntries; track entry.rule.id) {
+          <li class="asset-capacity-rules__list-item">
+            @if (isRuleClickable(entry.rule)) {
+              <button
+                type="button"
+                class="asset-capacity-rules__row"
+                [class.asset-capacity-rules__row--selected]="isRuleSelected(entry.rule)"
+                [attr.aria-label]="'bookedSlots.capacityRulesPanelRuleGoToCalendarTime' | translate"
+                (click)="onRuleRowClick(entry.rule)"
+              >
+                <div class="asset-capacity-rules__row-main">
+                  @if (recurringWeekdaysLine(entry.rule); as weekdaysLine) {
+                    @if (weekdaysLine) {
+                      <div class="asset-capacity-rules__row-weekdays">{{ weekdaysLine }}</div>
+                    }
+                  }
+                  <div class="asset-capacity-rules__row-primary">{{ recurringPrimaryLine(entry.rule) }}</div>
+                  <div class="asset-capacity-rules__row-secondary">{{ timeRange(entry.rule) }}</div>
+                </div>
+                <ignt-icon aria-hidden="true" class="asset-capacity-rules__row-chevron" name="chevron-right" variant="light"></ignt-icon>
+              </button>
+            } @else {
+              <div
+                class="asset-capacity-rules__row asset-capacity-rules__row--not-applicable"
+                [attr.aria-label]="'bookedSlots.capacityRulesPanelRecurringNotApplicableRowAria' | translate"
+              >
+                <div class="asset-capacity-rules__row-main">
+                  @if (recurringWeekdaysLine(entry.rule); as weekdaysLine) {
+                    @if (weekdaysLine) {
+                      <div class="asset-capacity-rules__row-weekdays">{{ weekdaysLine }}</div>
+                    }
+                  }
+                  <div class="asset-capacity-rules__row-primary">{{ recurringPrimaryLine(entry.rule) }}</div>
+                  <div class="asset-capacity-rules__row-secondary">{{ timeRange(entry.rule) }}</div>
+                </div>
+              </div>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+  }
+  @if (specialRules.length > 0) {
+    <section class="asset-capacity-rules__section" [attr.aria-labelledby]="'asset-capacity-rules-special-' + asset().id">
+      <div class="asset-capacity-rules__section-head">
+        <ignt-icon aria-hidden="true" class="asset-capacity-rules__section-icon" name="calendar" variant="light"></ignt-icon>
+        <h3 [id]="'asset-capacity-rules-special-' + asset().id" class="asset-capacity-rules__section-title">
+          {{ 'bookedSlots.capacityRulesPanelSpecialHeading' | translate }}
+        </h3>
+      </div>
+      <ul class="asset-capacity-rules__list">
+        @for (rule of specialRules; track rule.id) {
+          <li class="asset-capacity-rules__list-item">
+            <button
+              type="button"
+              class="asset-capacity-rules__row"
+              [class.asset-capacity-rules__row--selected]="isRuleSelected(rule)"
+              [attr.aria-label]="'bookedSlots.capacityRulesPanelRuleGoToCalendarTime' | translate"
+              (click)="onRuleRowClick(rule)"
+            >
+              <div class="asset-capacity-rules__row-main">
+                <div class="asset-capacity-rules__row-weekdays">{{ specialNameLine(rule) }}</div>
+                <div class="asset-capacity-rules__row-primary">{{ specialCapacityLine(rule) }}</div>
+                <div class="asset-capacity-rules__row-secondary">{{ dateExceptionTimeLine(rule) }}</div>
+              </div>
+              <ignt-icon aria-hidden="true" class="asset-capacity-rules__row-chevron" name="chevron-right" variant="light"></ignt-icon>
+            </button>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+</div>

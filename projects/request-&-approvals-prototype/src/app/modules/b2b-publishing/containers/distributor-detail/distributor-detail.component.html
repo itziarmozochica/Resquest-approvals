@@ -1,0 +1,67 @@
+<div class="distributor-detail" data-testid="distributor-detail">
+  <ignt-breadcrumb class="distributor-detail__breadcrumb" [items]="breadcrumbItems()" />
+
+  <header class="distributor-detail__header">
+    <h1 class="distributor-detail__title" data-testid="distributor-detail-title">{{ heading() }}</h1>
+    @if (subheading()) {
+      <p class="distributor-detail__subtitle" data-testid="distributor-detail-subtitle">{{ subheading() }}</p>
+    }
+  </header>
+
+  @if (isLoading()) {
+    <p class="distributor-detail__status" aria-busy="true" data-testid="distributor-detail-loading">
+      {{ 'distributors.detail.load.loading' | translate }}
+    </p>
+  } @else if (isNotFound()) {
+    <p class="distributor-detail__status" role="alert" data-testid="distributor-detail-not-found">
+      {{ 'distributors.detail.load.notFound' | translate }}
+    </p>
+  } @else if (isProfileUnavailable()) {
+    <p class="distributor-detail__status" role="alert" data-testid="distributor-detail-profile-unavailable">
+      {{ 'distributors.detail.load.profileUnavailable' | translate }}
+    </p>
+  } @else if (hasFailed()) {
+    <div class="distributor-detail__status" role="alert" data-testid="distributor-detail-error">
+      <p class="distributor-detail__status-text">{{ 'distributors.detail.load.error' | translate }}</p>
+      <ignt-button
+        data-testid="distributor-detail-retry"
+        size="small"
+        variant="secondary"
+        [label]="'distributors.detail.load.retry' | translate"
+        (click)="load()"
+      />
+    </div>
+  } @else if (distributor(); as distributor) {
+    <app-distributor-detail-tabs class="distributor-detail__tabs" [selected]="activeTab()" (selectedChange)="selectTab($event)" />
+
+    @if (activeTab() === 'general') {
+      <div class="distributor-detail__general">
+        <app-distributor-section-nav class="distributor-detail__nav" [sections]="sections" />
+
+        <div class="distributor-detail__sections">
+          <app-distributor-relationship-card
+            [canManage]="canManage()"
+            [catalogAccess]="distributor.catalogAccess"
+            [isDeciding]="isDeciding()"
+            (actionTaken)="onAccessAction($event)"
+          />
+          <app-distributor-detail-info [distributor]="distributor" />
+        </div>
+      </div>
+    } @else if (activeTab() === 'balance') {
+      <app-distributor-balance
+        class="distributor-detail__section"
+        [distributorId]="distributor.distributorId"
+        [distributorName]="distributor.name"
+      />
+    } @else if (activeTab() === 'paymentInstructions') {
+      <app-distributor-payment-instructions
+        class="distributor-detail__section"
+        [distributorId]="distributor.distributorId"
+        [distributorName]="distributor.name"
+      />
+    } @else {
+      <app-distributor-pricing class="distributor-detail__section" [distributor]="distributor" />
+    }
+  }
+</div>

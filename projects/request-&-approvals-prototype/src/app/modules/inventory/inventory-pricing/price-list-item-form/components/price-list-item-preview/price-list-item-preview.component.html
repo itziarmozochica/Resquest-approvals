@@ -1,0 +1,188 @@
+<div class="preview-container">
+  @if (isPack()) {
+    <div class="preview-section">
+      <div class="preview-section__title">
+        {{ 'sessions.pricing.priceList.priceEditForm.preview.packPriceDetails' | translate }}
+      </div>
+      <div class="preview-divider"></div>
+      <div class="preview-section__content">
+        @if (discountPercentage(); as discount) {
+          <div class="preview-row preview-row--discount" data-testid="preview-discount-percentage">
+            <span class="discount-badge">
+              <ignt-icon aria-hidden="true" name="badge-percent" size="caption" variant="light" />
+              <span
+                >{{ discount | toFixed: 2 : true }}%
+                {{ 'sessions.pricing.priceList.priceEditForm.strikethroughPrice.discountTagText' | translate }}</span
+              >
+            </span>
+          </div>
+        }
+        <div class="preview-row" data-testid="pack-ticket-price-row">
+          <span class="preview-row__label">
+            {{
+              (mustUseTaxBase()
+                ? 'sessions.pricing.priceList.priceEditForm.priceSummary.ticketPriceTaxExcluded'
+                : 'sessions.pricing.priceList.priceEditForm.priceSummary.ticketPrice'
+              ) | translate
+            }}
+          </span>
+          <span class="preview-row__value">
+            @if (strikethroughPrice() !== null) {
+              <span class="preview-row__value--strikethrough" data-testid="preview-strikethrough-price">
+                {{ strikethroughPrice() | currency: currency() }}
+              </span>
+            }
+            <span data-testid="preview-ticket-price">
+              {{ (mustUseTaxBase() ? ticketPriceTaxBaseAmount() : ticketPriceAmount()) | currency: currency() }}
+            </span>
+          </span>
+        </div>
+        <div class="preview-pack-breakdown-wrapper">
+          <app-preview-breakdown-box
+            [currency]="currency()"
+            [rows]="packBreakdownRows()"
+            [title]="'sessions.pricing.priceList.priceEditForm.preview.packBreakdownTitle' | translate"
+            data-testid="pack-breakdown-box"
+          />
+        </div>
+        <div class="preview-row">
+          <span class="preview-row__label">
+            {{
+              (mustUseTaxBase()
+                ? 'sessions.pricing.priceList.priceEditForm.priceSummary.surchargeTaxExcluded'
+                : 'sessions.pricing.priceList.priceEditForm.priceSummary.surcharge'
+              ) | translate
+            }}
+          </span>
+          <span class="preview-row__value">
+            <span data-testid="surcharge-field">
+              {{ (mustUseTaxBase() ? surchargePriceTaxBaseAmount() : surchargePriceAmount()) | currency: currency() }}
+            </span>
+          </span>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div class="preview-section">
+      <div class="preview-section__title">
+        {{ 'sessions.pricing.priceList.priceEditForm.preview.priceDetails' | translate }}
+      </div>
+      <div class="preview-divider"></div>
+      <div class="preview-section__content">
+        <ng-container *ngTemplateOutlet="ticketPriceRow" />
+      </div>
+    </div>
+    <div class="preview-section">
+      <div class="preview-section__content">
+        <div class="preview-row">
+          <span class="preview-row__label">
+            {{
+              (mustUseTaxBase()
+                ? 'sessions.pricing.priceList.priceEditForm.priceSummary.surchargeTaxExcluded'
+                : 'sessions.pricing.priceList.priceEditForm.priceSummary.surcharge'
+              ) | translate
+            }}
+          </span>
+          <span class="preview-row__value">
+            <span data-testid="surcharge-field">
+              {{ (mustUseTaxBase() ? surchargePriceTaxBaseAmount() : surchargePriceAmount()) | currency: currency() }}
+            </span>
+          </span>
+        </div>
+      </div>
+    </div>
+  }
+
+  <div class="preview-divider"></div>
+
+  @if (mustUseTaxBase()) {
+    <div class="preview-section preview-section--subtotal">
+      <div class="preview-row">
+        <span class="preview-row__label">{{ 'sessions.pricing.priceList.priceEditForm.preview.subtotalTaxExcluded' | translate }}</span>
+        <span class="preview-row__value">{{ subtotalTaxBase() | currency: currency() }}</span>
+      </div>
+    </div>
+    @if (totalTaxes() > 0) {
+      <div class="preview-section preview-section--taxes">
+        <div class="preview-row">
+          <span class="preview-row__label">{{ 'sessions.pricing.priceList.priceEditForm.priceSummary.taxes' | translate }}</span>
+          <span class="preview-row__value">{{ totalTaxes() | currency: currency() }}</span>
+        </div>
+        <app-preview-breakdown-box
+          [currency]="currency()"
+          [footer]="null"
+          [rows]="taxBoxRows()"
+          [title]="'sessions.pricing.priceList.priceEditForm.preview.taxesBreakdownTitle' | translate"
+          data-testid="tax-breakdown-box"
+        />
+      </div>
+    }
+    <div class="preview-divider"></div>
+    <div class="preview-section preview-section--total">
+      <div class="preview-row">
+        <span class="preview-row__label preview-row__label--total">
+          {{ 'sessions.pricing.priceList.priceEditForm.priceSummary.total' | translate }}
+        </span>
+        <span class="preview-row__value preview-row__value--total">
+          <span data-testid="preview-total-price">{{ totalPrice() | currency: currency() }}</span>
+        </span>
+      </div>
+    </div>
+  } @else {
+    <div class="preview-section preview-section--total">
+      <div class="preview-row">
+        <span class="preview-row__label preview-row__label--total">
+          {{ 'sessions.pricing.priceList.priceEditForm.priceSummary.total' | translate }}
+        </span>
+        <span class="preview-row__value preview-row__value--total">
+          <span data-testid="preview-total-price">{{ totalPrice() | currency: currency() }}</span>
+        </span>
+      </div>
+    </div>
+    @if (totalTaxes() > 0) {
+      <div class="preview-tax-breakdown-wrapper">
+        <app-preview-breakdown-box
+          [currency]="currency()"
+          [footer]="{ label: ('sessions.pricing.priceList.priceEditForm.preview.totalTaxes' | translate), amount: totalTaxes() }"
+          [rows]="taxBoxRows()"
+          [title]="'sessions.pricing.priceList.priceEditForm.preview.includedTaxesTitle' | translate"
+          data-testid="tax-breakdown-box"
+        />
+      </div>
+    }
+  }
+</div>
+
+<ng-template #ticketPriceRow>
+  @if (discountPercentage(); as discount) {
+    <div class="preview-row preview-row--discount" data-testid="preview-discount-percentage">
+      <span class="discount-badge">
+        <ignt-icon aria-hidden="true" name="badge-percent" size="caption" variant="light" />
+        <span
+          >{{ discount | toFixed: 2 : true }}%
+          {{ 'sessions.pricing.priceList.priceEditForm.strikethroughPrice.discountTagText' | translate }}</span
+        >
+      </span>
+    </div>
+  }
+  <div class="preview-row">
+    <span class="preview-row__label">
+      {{
+        (mustUseTaxBase()
+          ? 'sessions.pricing.priceList.priceEditForm.priceSummary.ticketPriceTaxExcluded'
+          : 'sessions.pricing.priceList.priceEditForm.priceSummary.ticketPrice'
+        ) | translate
+      }}
+    </span>
+    <span class="preview-row__value">
+      @if (strikethroughPrice() !== null) {
+        <span class="preview-row__value--strikethrough" data-testid="preview-strikethrough-price">
+          {{ strikethroughPrice() | currency: currency() }}
+        </span>
+      }
+      <span data-testid="preview-ticket-price">
+        {{ (mustUseTaxBase() ? ticketPriceTaxBaseAmount() : ticketPriceAmount()) | currency: currency() }}
+      </span>
+    </span>
+  </div>
+</ng-template>

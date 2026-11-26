@@ -1,0 +1,118 @@
+<section class="static-html-preview">
+  <div class="static-html-preview__header">
+    <h2 class="static-html-preview__title">{{ 'staticHtml.preview.title' | translate }}</h2>
+
+    <div class="static-html-preview__view-toggle" role="group" [attr.aria-label]="'staticHtml.preview.viewToggle' | translate">
+      <ignt-pill-button
+        value="mobile"
+        data-testid="static-html-preview-view-mobile"
+        [checked]="isViewMode('mobile')"
+        [icon]="mobileIcon"
+        [label]="'staticHtml.preview.mobile' | translate"
+        (checkedChange)="setViewMode('mobile')"
+      />
+      <ignt-pill-button
+        value="desktop"
+        data-testid="static-html-preview-view-desktop"
+        [checked]="isViewMode('desktop')"
+        [icon]="desktopIcon"
+        [label]="'staticHtml.preview.desktop' | translate"
+        (checkedChange)="setViewMode('desktop')"
+      />
+    </div>
+
+    <button
+      ignt-icon-button
+      type="button"
+      class="static-html-preview__full-screen"
+      sentiment="tertiary"
+      size="small"
+      data-testid="static-html-preview-full-screen"
+      [attr.aria-label]="'staticHtml.preview.fullScreen' | translate"
+      [icon]="fullScreenIcon"
+      (click)="openFullScreen()"
+    ></button>
+  </div>
+
+  <!--
+    Sits above the frame, not inside it: the previewed page has to lay out exactly as the whitelabel
+    will serve it, and this says the whitelabel will not serve it that way yet.
+  -->
+  @if (hasLocalAssets()) {
+    <ignt-alert
+      class="static-html-preview__notice"
+      sentiment="warning"
+      role="status"
+      data-testid="static-html-preview-local-assets"
+      [description]="localAssetNoticeKey() | translate: { count: localAssetCount() }"
+    />
+  }
+
+  @if (popupBlocked()) {
+    <ignt-alert
+      class="static-html-preview__notice"
+      sentiment="danger"
+      data-testid="static-html-preview-popup-blocked"
+      [description]="'staticHtml.preview.popupBlocked' | translate"
+    />
+  }
+
+  <div
+    #previewCanvas
+    class="static-html-preview__frame"
+    data-testid="static-html-preview-canvas"
+    [class.static-html-preview__frame--desktop]="isViewMode('desktop')"
+    [class.static-html-preview__frame--mobile]="isViewMode('mobile')"
+  >
+    <!--
+      Holds the space the scaled document actually takes, which its own layout box no longer does:
+      a transform shrinks what is painted and leaves the box behind, and an unshrunk box is
+      whitespace the author would read as part of their page.
+    -->
+    <div
+      class="static-html-preview__stage"
+      data-testid="static-html-preview-stage"
+      [style.height.px]="stageHeight()"
+      [style.width.px]="stageWidth()"
+    >
+      <!--
+        A frame, so the authored document is rendered as a document. Its width and height are the
+        viewport the page lays itself out against, which is what makes `@media`, `vw`/`vh`, `:root`
+        and a `height: 100%` chain behave as they will once the whitelabel serves the page — see
+        `writePreviewDocument` for what a shadow root got wrong about each of them.
+
+        `sandbox` with only `allow-same-origin`: nothing in the frame runs, no form submits, and the
+        top window cannot be navigated away from the author's unsaved edits, while the frame stays in
+        this origin so the author's local files resolve in it and its page can be measured. On mobile
+        it is focusable and scrolls its own document, so the phone's scroll needs no tab stop invented
+        for it.
+
+        `scrolling` is deprecated and still the only way to say the one thing desktop needs said: the
+        frame is as tall as the page, so a scrollbar there is never a page the author has to scroll —
+        it is the body margins overflowing a `min-height: 100vh` answer by 16px, and it would steal
+        15px off a 1280px viewport and re-lay the page out at a width no visitor will ever see.
+      -->
+      <iframe
+        #previewFrame
+        class="static-html-preview__document"
+        sandbox="allow-same-origin"
+        data-testid="static-html-preview-document"
+        [attr.scrolling]="isDesktop() ? 'no' : null"
+        [style.height.px]="documentHeight()"
+        [style.transform]="documentTransform()"
+        [style.width.px]="documentWidth()"
+        [title]="'staticHtml.preview.frameTitle' | translate"
+      ></iframe>
+    </div>
+  </div>
+
+  <!-- What this frame is showing, and what it is deliberately not showing, on one line. -->
+  <div class="static-html-preview__footer">
+    <span class="static-html-preview__state" data-testid="static-html-preview-state">
+      <span class="static-html-preview__state-dot" aria-hidden="true"></span>
+      {{ (isDirty() ? 'staticHtml.preview.stateDirty' : 'staticHtml.preview.stateSaved') | translate }}
+    </span>
+
+    <span class="static-html-preview__note">{{ 'staticHtml.preview.scriptsDisabled' | translate }}</span>
+  </div>
+</section>

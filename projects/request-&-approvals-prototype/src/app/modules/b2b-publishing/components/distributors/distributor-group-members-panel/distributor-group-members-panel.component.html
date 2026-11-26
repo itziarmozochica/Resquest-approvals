@@ -1,0 +1,235 @@
+<ignt-dialog-header class="group-members__header" data-testid="group-members-panel-header">
+  {{ groupName() }}
+  <span class="group-members__subtitle">{{ 'distributors.groups.members.subtitle' | translate }}</span>
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  @if (isAddView()) {
+    <app-distributor-group-add-distributors
+      data-testid="group-members-add-view"
+      [groupId]="group.id"
+      [groupName]="groupName()"
+      [isDefaultGroup]="group.isDefault"
+      [partnerId]="partnerId"
+      (added)="onAddDone()"
+      (back)="closeAddView()"
+    />
+  } @else {
+    <div class="group-members">
+      @if (showRename()) {
+        <form class="group-members__rename" data-testid="group-members-rename" (submit)="onRenameSubmit($event)">
+          <ignt-input-field
+            class="group-members__rename-field"
+            id="distributor-group-name"
+            [customFormErrors]="nameErrors"
+            [formControl]="name"
+            [helperText]="isDefaultGroup ? ('distributors.groups.members.renameDefaultHelp' | translate) : ''"
+            [label]="'distributors.groups.nameField.label' | translate"
+            [placeholder]="'distributors.groups.nameField.placeholder' | translate"
+            [placeholderAsEmptyValue]="true"
+          />
+          <ignt-button
+            class="group-members__rename-save"
+            variant="secondary"
+            data-testid="group-members-rename-save"
+            [disabled]="isRenameDisabled()"
+            [label]="'common.save' | translate"
+            [loading]="isRenaming()"
+            (click)="rename()"
+          />
+        </form>
+      }
+
+      <ignt-tabs class="group-members__tabs" [hasExtraLine]="true" (selectedIndexChange)="onTabChange($event)">
+        <ignt-tabs-item [label]="'distributors.groups.members.tabs.distributors' | translate">
+          <div class="group-members__tab" data-testid="group-members-distributors">
+            <p class="group-members__intro" data-testid="group-members-intro">{{ introKey | translate }}</p>
+
+            @if (group.isDefault) {
+              <ignt-alert
+                class="group-members__alert"
+                data-testid="group-members-alert"
+                sentiment="info"
+                [description]="'distributors.groups.members.alert' | translate"
+              />
+            }
+
+            @if (selectedCount() > 0) {
+              <div class="group-members__selection" data-testid="group-members-selection">
+                <div class="group-members__selection-header">
+                  <span class="group-members__selection-count" data-testid="group-members-selected-count">
+                    {{ 'distributors.groups.members.selection.count' | translate: { count: selectedCount() } }}
+                  </span>
+                  <ignt-button
+                    size="small"
+                    variant="tertiary"
+                    data-testid="group-members-clear-selection"
+                    [label]="'distributors.groups.members.selection.clear' | translate"
+                    (click)="clearSelection()"
+                  />
+                </div>
+
+                @if (isOverMoveLimit()) {
+                  <span class="group-members__selection-limit" data-testid="group-members-selection-limit">
+                    {{ 'distributors.groups.members.selection.limit' | translate: { max: moveLimit } }}
+                  </span>
+                }
+
+                <div class="group-members__selection-move">
+                  @if (hasGroupsError()) {
+                    <span class="group-members__selection-error" data-testid="group-members-groups-error">
+                      {{ 'distributors.groups.loadError' | translate }}
+                    </span>
+                    <ignt-button
+                      size="small"
+                      variant="secondary"
+                      data-testid="group-members-groups-retry"
+                      [label]="'distributors.retry' | translate"
+                      (click)="loadGroups()"
+                    />
+                  } @else {
+                    <span class="group-members__selection-label">{{ 'distributors.groups.members.selection.moveTo' | translate }}</span>
+                    <ignt-typeahead
+                      class="group-members__selection-group"
+                      container="body"
+                      [isInDialog]="true"
+                      [editable]="false"
+                      [fieldLabel]="'distributors.groups.members.selection.groupPlaceholder' | translate"
+                      [options]="groupOptions()"
+                      [selectedOption]="selectedGroupOption()"
+                      (selected)="selectTargetGroup($event)"
+                    ></ignt-typeahead>
+                    <ignt-button
+                      variant="primary"
+                      data-testid="group-members-move"
+                      [disabled]="targetGroupId() === null || isOverMoveLimit()"
+                      [label]="'distributors.groups.members.selection.move' | translate"
+                      [loading]="isMoving()"
+                      (click)="confirmMove()"
+                    />
+                    @if (canRemove()) {
+                      <ignt-button
+                        variant="secondary"
+                        data-testid="group-members-remove"
+                        [disabled]="isOverMoveLimit()"
+                        [label]="'distributors.groups.members.selection.remove' | translate"
+                        [loading]="isMoving()"
+                        (click)="confirmRemove()"
+                      />
+                    }
+                  }
+                </div>
+              </div>
+            }
+
+            @if (hasError()) {
+              <div class="group-members__message" data-testid="group-members-error">
+                {{ 'distributors.groups.members.loadError' | translate }}
+
+                <div class="group-members__message-actions">
+                  <ignt-button
+                    size="small"
+                    variant="secondary"
+                    data-testid="group-members-retry"
+                    [label]="'distributors.retry' | translate"
+                    (click)="load()"
+                  />
+                  @if (searchQuery()) {
+                    <ignt-button
+                      size="small"
+                      variant="tertiary"
+                      data-testid="group-members-clear-search"
+                      [label]="'distributors.groups.members.clearSearch' | translate"
+                      (click)="clearSearch()"
+                    />
+                  }
+                </div>
+              </div>
+            } @else {
+              <ignt-table
+                layout="table"
+                [data]="distributors()"
+                [hasFullWidthSearch]="true"
+                [hasServerSidePagination]="true"
+                [isLoading]="isLoading()"
+                [pageIndex]="pageIndex()"
+                [pageSize]="pageSize"
+                [searchConfig]="searchConfig()"
+                [totalRowCount]="total()"
+                (paginationChange)="onPaginationChange($event)"
+                (searchChanged)="onSearchChanged($event)"
+              >
+                <ignt-table-column [header]="''" [width]="48">
+                  <ng-template igntTableHeaderTemplate>
+                    @if (distributors().length) {
+                      <ignt-checkbox
+                        dataTestId="group-member-select-all"
+                        [ariaLabel]="'distributors.groups.members.selectAll' | translate"
+                        [checked]="areAllRowsSelected()"
+                        (change)="toggleAllRows()"
+                      />
+                    }
+                  </ng-template>
+                  <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+                    <ignt-checkbox
+                      dataTestId="group-member-checkbox"
+                      [ariaLabel]="item.name"
+                      [attr.data-selected]="isRowSelected(item) ? '' : null"
+                      [checked]="isRowSelected(item)"
+                      (change)="toggleRow(item)"
+                    />
+                  </ng-template>
+                </ignt-table-column>
+
+                <ignt-table-column key="name" columnType="primary" [header]="'distributors.columns.distributor' | translate" [width]="400">
+                  <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+                    <span class="group-members__name" data-testid="group-member-name">{{ item.name }}</span>
+                    <span class="group-members__meta" data-testid="group-member-meta">{{ memberMeta(item) }}</span>
+                  </ng-template>
+                </ignt-table-column>
+              </ignt-table>
+            }
+          </div>
+        </ignt-tabs-item>
+
+        <ignt-tabs-item [label]="'distributors.groups.members.tabs.rules' | translate" (tabClick)="onRulesTabOpened()">
+          @if (hasOpenedRules()) {
+            <app-distributor-group-rules data-testid="group-members-rules" [groupId]="group.id" [partnerId]="partnerId" />
+          }
+        </ignt-tabs-item>
+      </ignt-tabs>
+    </div>
+  }
+</ignt-dialog-content>
+
+@if (isAddView() || isDistributorsTab()) {
+  <ignt-dialog-footer hideCancelButton>
+    @if (isAddView()) {
+      <ignt-button
+        data-testid="group-members-add-cancel"
+        variant="secondary"
+        [disabled]="isAdding()"
+        [fill]="isPhone()"
+        [label]="'common.cancel' | translate"
+        (click)="addView()?.goBack()"
+      />
+      <ignt-button
+        data-testid="group-members-add-submit"
+        variant="primary"
+        [disabled]="isAddSubmitDisabled()"
+        [fill]="isPhone()"
+        [label]="addSubmitLabel()"
+        [loading]="isAdding()"
+        (click)="addView()?.submit()"
+      />
+    } @else if (isDistributorsTab()) {
+      <ignt-button
+        data-testid="group-members-add-open"
+        variant="primary"
+        [fill]="isPhone()"
+        [label]="'distributors.groups.members.add.button' | translate"
+        (click)="openAddView()"
+      />
+    }
+  </ignt-dialog-footer>
+}

@@ -1,0 +1,196 @@
+<app-go-back
+  [goBackTitle]="'listWhitelabels.generalSettings.label' | translate"
+  [urlGoBack]="'/whitelabels/general-settings'"
+></app-go-back>
+<app-page-title
+  [title]="'listWhitelabels.generalSettings.mediaMigrationTool' | translate"
+  [section]="'menu.whitelabel' | translate"
+  class="new-design"
+></app-page-title>
+
+<div class="p-4 d-flex flex-column gap-3">
+  <div class="d-flex flex-column gap-1">
+    <label class="form-label fw-semibold mb-0" for="media-migration-wl-select">{{ 'menu.whitelabel' | translate }}</label>
+    <div class="d-flex align-items-start gap-2">
+      <ng-select
+        #wl
+        inputId="media-migration-wl-select"
+        class="flex-grow-1 min-w-0"
+        [items]="facade.whitelabels()"
+        bindLabel="name"
+        bindValue="id"
+        [multiple]="true"
+        [closeOnSelect]="false"
+        [searchable]="true"
+        [clearSearchOnAdd]="true"
+        [loading]="facade.isLoading()"
+        [placeholder]="'common.search' | translate"
+        [ngModel]="facade.selectedWhitelabelIds()"
+        (ngModelChange)="setSelectedWhitelabelIds($event)"
+      ></ng-select>
+      <button
+        igntButton
+        type="button"
+        class="flex-shrink-0 align-self-center"
+        sentiment="secondary"
+        size="small"
+        [disabled]="visibleItemCount(facade.whitelabels(), wl.searchTerm) === 0"
+        (click)="selectAllWhitelabels(wl.searchTerm)"
+      >
+        {{ 'common.selectAll' | translate }}
+      </button>
+    </div>
+  </div>
+
+  <div class="d-flex flex-column gap-1">
+    <label class="form-label fw-semibold mb-0" for="media-migration-config-select">{{ 'menu.whitelabelConfig' | translate }}</label>
+    <div class="d-flex align-items-start gap-2">
+      <ng-select
+        #cfg
+        inputId="media-migration-config-select"
+        class="flex-grow-1 min-w-0"
+        [items]="facade.availableConfigs()"
+        bindLabel="label"
+        bindValue="id"
+        [multiple]="true"
+        [closeOnSelect]="false"
+        [searchable]="true"
+        [clearSearchOnAdd]="true"
+        [loading]="facade.isLoading()"
+        [disabled]="facade.selectedWhitelabelIds().length === 0"
+        [placeholder]="'common.search' | translate"
+        [ngModel]="facade.selectedConfigIds()"
+        (ngModelChange)="facade.selectedConfigIds.set($event)"
+      ></ng-select>
+      <button
+        igntButton
+        type="button"
+        class="flex-shrink-0 align-self-center"
+        sentiment="secondary"
+        size="small"
+        [disabled]="facade.selectedWhitelabelIds().length === 0 || visibleItemCount(facade.availableConfigs(), cfg.searchTerm) === 0"
+        (click)="selectAllConfigs(cfg.searchTerm)"
+      >
+        {{ 'common.selectAll' | translate }}
+      </button>
+    </div>
+  </div>
+
+  <div class="d-flex flex-column gap-1">
+    <label class="form-label fw-semibold mb-0" for="media-migration-editor-select">{{
+      'whitelabelManagement.mediaMigration.items' | translate
+    }}</label>
+    <div class="d-flex align-items-start gap-2">
+      <ng-select
+        #edi
+        inputId="media-migration-editor-select"
+        class="flex-grow-1 min-w-0"
+        [items]="facade.itemSelectOptions()"
+        bindLabel="label"
+        bindValue="key"
+        [multiple]="true"
+        [closeOnSelect]="false"
+        [searchable]="true"
+        [clearSearchOnAdd]="true"
+        [loading]="facade.isLoading()"
+        [disabled]="facade.selectedWhitelabelIds().length === 0"
+        [placeholder]="'common.search' | translate"
+        [ngModel]="facade.selectedItemKeys()"
+        (ngModelChange)="facade.selectedItemKeys.set($event)"
+      ></ng-select>
+      <button
+        igntButton
+        type="button"
+        class="flex-shrink-0 align-self-center"
+        sentiment="secondary"
+        size="small"
+        [disabled]="facade.selectedWhitelabelIds().length === 0 || visibleItemCount(facade.itemSelectOptions(), edi.searchTerm) === 0"
+        (click)="selectAllEditorItems(edi.searchTerm)"
+      >
+        {{ 'common.selectAll' | translate }}
+      </button>
+    </div>
+  </div>
+
+  @if (facade.error()) {
+    <p class="small text-danger mb-0">{{ facade.error() }}</p>
+  }
+
+  <div class="border-top pt-4 d-flex flex-column gap-4">
+    <h3 class="h6 fw-semibold mb-0">{{ 'whitelabelManagement.mediaMigration.changesHeading' | translate }}</h3>
+
+    @if (facade.isLoadingPreview()) {
+      <p class="mb-0">{{ 'common.loading' | translate }}</p>
+    } @else if (facade.previewRows().length > 0) {
+      <div class="d-flex flex-column gap-3">
+        <div class="media-migration__preview">
+          <div class="media-migration__scroll">
+            <table class="media-migration__table">
+              <thead>
+                <tr>
+                  <th scope="col">{{ 'menu.whitelabel' | translate }}</th>
+                  <th scope="col">{{ 'menu.whitelabelConfig' | translate }}</th>
+                  <th scope="col">{{ 'whitelabelManagement.mediaMigration.items' | translate }}</th>
+                  <th scope="col">{{ 'common.details' | translate }}</th>
+                  <th scope="col">{{ 'whitelabelManagement.mediaMigration.statusColumn' | translate }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of facade.previewRows(); track row.whitelabelId + row.configId + row.configPath + row.editorItemKey) {
+                  <tr>
+                    <td class="text-break">{{ row.whitelabelName }}</td>
+                    <td class="text-break">{{ row.configName }}</td>
+                    <td class="text-break">{{ itemLabel(row.editorItemKey) }}</td>
+                    <td class="text-break text-secondary font-monospace">{{ row.currentValue }}</td>
+                    <td class="text-break">
+                      @if (applyResultFor(row); as result) {
+                        @if (result.success) {
+                          <span class="text-success">{{ 'whitelabelManagement.mediaMigration.migrated' | translate }}</span>
+                        } @else if (result.error) {
+                          <span class="text-danger">{{ result.error }}</span>
+                        }
+                      } @else {
+                        <span class="text-secondary">{{ 'whitelabelManagement.mediaMigration.statusPending' | translate }}</span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="media-migration__footer">
+          <div class="media-migration__footer-actions">
+            @if (facade.applyResults().length > 0 && !facade.isApplying()) {
+              <button igntButton type="button" (click)="resetFlow()">
+                {{ 'whitelabelManagement.mediaMigration.startNewMigration' | translate }}
+              </button>
+            } @else if (!facade.isApplying()) {
+              <button igntButton type="button" (click)="applyMigration()">
+                {{ 'whitelabelManagement.mediaMigration.applyChanges' | translate }}
+              </button>
+            }
+          </div>
+          <div class="media-migration__footer-status">
+            @if (facade.isApplying()) {
+              <p class="media-migration__footer-text mb-0">{{ 'common.saving' | translate }}</p>
+            } @else if (facade.applyResults().length > 0) {
+              <p class="media-migration__footer-summary mb-0">
+                <span class="media-migration__footer-text">
+                  {{ 'whitelabelManagement.mediaMigration.applySuccessLabel' | translate }}: {{ facade.applyCounts().ok }}
+                </span>
+                <span class="media-migration__footer-text">
+                  {{ 'whitelabelManagement.mediaMigration.applyErrorLabel' | translate }}: {{ facade.applyCounts().err }}
+                </span>
+              </p>
+            }
+          </div>
+        </div>
+      </div>
+    } @else if (facade.canBuildPreview()) {
+      <p class="mb-0 text-secondary">{{ 'whitelabelManagement.mediaMigration.emptyAssetList' | translate }}</p>
+    } @else {
+      <p class="mb-0 text-secondary">{{ 'whitelabelConfiguration.noChanges' | translate }}</p>
+    }
+  </div>
+</div>

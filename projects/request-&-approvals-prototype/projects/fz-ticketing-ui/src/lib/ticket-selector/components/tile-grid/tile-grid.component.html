@@ -1,0 +1,62 @@
+@let grid = vm();
+
+<div class="oss-hierarchy-tiles">
+  <div class="oss-hierarchy-tiles__left-content">
+    <div #pagedViewport class="oss-hierarchy-tiles__container">
+      @if (grid.skeleton) {
+        <div class="ticket-type-form">
+          <fzt-tile-grid-skeleton />
+        </div>
+      } @else {
+        <div #slidesWrapper class="oss-hierarchy-tiles__slides-wrapper" [class.is-animating]="paging.isAnimating()">
+          @for (slide of slides(); track $index) {
+            <div class="oss-hierarchy-tiles__slide ticket-type-form">
+              @for (child of slide; track child.key) {
+                @if (child.kind === 'hidden') {
+                  <div class="ticket-selector__hidden-section" data-testid="ticketing-hidden-section">
+                    <h3 class="ticket-selector__title">
+                      <ignt-icon name="eye-slash" variant="light" size="base" aria-hidden="true" />
+                      {{ translations().hiddenTicketsSection }}
+                    </h3>
+                    <div class="ticket-selector__hidden-section-tiles">
+                      @for (tile of child.tiles; track tile.key) {
+                        <fzt-tile
+                          [attr.data-tile-key]="tile.key"
+                          [isMobile]="isMobile()"
+                          [translations]="translations()"
+                          [vm]="tile"
+                          (add)="onTileAdd(tile)"
+                        />
+                      }
+                    </div>
+                  </div>
+                } @else {
+                  <fzt-tile
+                    [attr.data-tile-key]="child.tile.key"
+                    [igntTourAnchor]="tourAnchorFor(child.tile)"
+                    [isMobile]="isMobile()"
+                    [translations]="translations()"
+                    [vm]="child.tile"
+                    (add)="onTileAdd(child.tile)"
+                  />
+                }
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+  <div
+    class="oss-hierarchy-tiles__pagination"
+    [class.oss-hierarchy-tiles__pagination--placeholder]="paging.pages().length <= 1"
+    [attr.aria-hidden]="paging.pages().length > 1 ? null : true"
+  >
+    <fzt-page-dots
+      [pageCount]="paging.pages().length"
+      [selectedIndex]="paging.pageIndex()"
+      [translations]="translations()"
+      (pageSelected)="paging.onPageSelected($event)"
+    />
+  </div>
+</div>

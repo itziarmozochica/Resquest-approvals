@@ -1,0 +1,87 @@
+<ng-template #linkTooltipTemplate let-html="html">
+  <div class="seat-list-panel__tooltip" [innerHTML]="html"></div>
+</ng-template>
+
+<div class="seat-list-panel">
+  <div class="seat-list-panel__search">
+    <fa-icon class="seat-list-panel__search-icon" [icon]="['far', 'search']"></fa-icon>
+    <input
+      class="seat-list-panel__search-input"
+      type="text"
+      [placeholder]="'sessions.seatingMap.seatListPanel.searchPlaceholder' | translate"
+      [value]="searchTerm()"
+      (input)="onSearchInput($event)"
+    />
+  </div>
+
+  <div class="seat-list-panel__table-header">
+    <span class="seat-list-panel__table-header-seats">{{ 'sessions.seatingMap.seatListPanel.seatsColumn' | translate }}</span>
+    <span class="seat-list-panel__table-header-state">
+      {{ 'sessions.seatingMap.seatListPanel.stateColumn' | translate }}
+      <app-seat-status-filter
+        [activeFilter]="statusFilter()"
+        [availableStatuses]="availableStatuses()"
+        (filterChange)="onFilterChange($event)"
+      />
+    </span>
+  </div>
+
+  <ul class="seat-list-panel__seat-list">
+    @for (
+      item of filteredSeats();
+      track item.seat.section.id + '-' + (item.seat.row ? item.seat.row.id : '') + '-' + item.seat.reference.id
+    ) {
+      <li class="seat-list-panel__seat-item">
+        <div class="seat-list-panel__seat-info">
+          <span class="seat-list-panel__seat-name">
+            {{ item.displayLabel }}
+          </span>
+          @if (item.seat.ticket) {
+            <a
+              class="seat-list-panel__order-link"
+              [routerLink]="['/validation']"
+              [queryParams]="{ type: 'order', id: item.seat.ticket.orderId }"
+              target="_blank"
+              rel="noopener noreferrer"
+              [appTemplatedTooltip]="linkTooltipTemplate"
+              [appTemplatedTooltipContext]="{
+                html: 'sessions.seatingMap.seatListPanel.tooltip.order' | translate: { id: item.seat.ticket.orderId },
+              }"
+            >
+              <fa-icon [icon]="['far', 'arrow-up-right-from-square']"></fa-icon>
+            </a>
+          } @else if (item.seat.reservation) {
+            <a
+              class="seat-list-panel__order-link"
+              [routerLink]="['/reservations/list', item.seat.reservation.id]"
+              [queryParams]="{ planId: planId() }"
+              target="_blank"
+              rel="noopener noreferrer"
+              [appTemplatedTooltip]="linkTooltipTemplate"
+              [appTemplatedTooltipContext]="{
+                html: 'sessions.seatingMap.seatListPanel.tooltip.reservation' | translate: { id: item.seat.reservation.locator },
+              }"
+            >
+              <fa-icon [icon]="['far', 'arrow-up-right-from-square']"></fa-icon>
+            </a>
+          }
+          @if (!item.seat.forSale) {
+            <span class="seat-list-panel__not-for-sale-badge">
+              <fa-icon [icon]="['fas', 'ban']"></fa-icon>
+              {{ 'sessions.seatingMap.seatListPanel.notForSale' | translate }}
+            </span>
+          }
+        </div>
+        <span class="seat-list-panel__status-badge seat-list-panel__status-badge--{{ item.seat.status }}">
+          {{ 'sessions.seatingMap.seatListPanel.status.' + item.seat.status | translate }}
+        </span>
+      </li>
+    }
+  </ul>
+
+  <div class="seat-list-panel__footer">
+    <button class="seat-list-panel__close-btn" type="button" (click)="closePanel.emit()">
+      {{ 'sessions.seatingMap.seatListPanel.close' | translate }}
+    </button>
+  </div>
+</div>

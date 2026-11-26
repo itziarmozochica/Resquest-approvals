@@ -1,0 +1,92 @@
+<section class="week-matrix">
+  <div class="week-matrix__legend">
+    <span class="week-matrix__legend-hint">
+      <ignt-icon name="chart-line" variant="light" size="sm" />
+      {{ 'bookedSlots.weeklyView.legendHint' | translate }}
+    </span>
+
+    <span class="week-matrix__legend-scale">
+      <span class="week-matrix__scale-end">{{ 'bookedSlots.weeklyView.bucket.empty' | translate }}</span>
+      <span class="week-matrix__scale-strip">
+        @for (bucket of occupancyScale; track bucket) {
+          <span class="week-matrix__scale-step" [attr.data-bucket]="bucket"></span>
+        }
+      </span>
+      <span class="week-matrix__scale-end">{{ 'bookedSlots.weeklyView.bucket.full' | translate }}</span>
+    </span>
+  </div>
+
+  <div class="week-matrix__scroll">
+    <div class="week-matrix__matrix" role="table" [attr.aria-label]="'bookedSlots.weeklyView.title' | translate">
+      <div class="week-matrix__row" role="row">
+        <div class="week-matrix__corner" role="columnheader">{{ 'bookedSlots.weeklyView.asset' | translate }}</div>
+        @for (day of dayHeaders(); track day.localDate) {
+          <div class="week-matrix__day" [class.week-matrix__day--today]="day.isToday" role="columnheader">
+            <span class="week-matrix__day-name">{{ day.dayOfWeek }}</span>
+            <span class="week-matrix__day-date">{{ day.dayOfMonth }}</span>
+          </div>
+        }
+      </div>
+
+      <div class="week-matrix__row week-matrix__row--totals" role="row">
+        <div class="week-matrix__corner" role="rowheader">
+          <span class="week-matrix__total-label">{{ 'bookedSlots.weeklyView.dayTotal' | translate }}</span>
+          <span class="week-matrix__total-hint">{{ 'bookedSlots.weeklyView.dayTotalHint' | translate }}</span>
+        </div>
+        @for (total of matrix().dayTotals; track total.localDate) {
+          <div class="week-matrix__total" [attr.data-bucket]="total.bucket" [attr.title]="dayTotalTooltip(total)" role="cell">
+            @if (total.percentage === null) {
+              <span class="week-matrix__closed">{{ 'bookedSlots.weeklyView.closed' | translate }}</span>
+            } @else {
+              <span class="week-matrix__total-value">{{ total.percentage }}%</span>
+              <span class="week-matrix__meter">
+                <span class="week-matrix__meter-fill" [style.width.%]="total.percentage > 100 ? 100 : total.percentage"></span>
+              </span>
+              <span class="week-matrix__detail">
+                {{ 'bookedSlots.weeklyView.paxAndBookings' | translate: { bookings: total.bookings, pax: total.pax } }}
+              </span>
+            }
+          </div>
+        }
+      </div>
+
+      @for (row of matrix().rows; track row.assetId) {
+        <div class="week-matrix__row" role="row">
+          <div class="week-matrix__asset" role="rowheader">
+            <span class="week-matrix__asset-name">{{ row.assetName }}</span>
+            <span class="week-matrix__asset-strategy">
+              {{ 'bookedSlots.weeklyView.strategy.' + row.availabilityStrategy | translate }}
+            </span>
+          </div>
+          @for (cell of row.cells; track cell.localDate) {
+            <div
+              class="week-matrix__cell"
+              [class.week-matrix__cell--selectable]="cell.bookedSlots.length > 0"
+              [attr.data-bucket]="cell.bucket"
+              [attr.title]="cellTooltip(row, cell)"
+              [attr.role]="cell.bookedSlots.length > 0 ? 'button' : 'cell'"
+              [attr.tabindex]="cell.bookedSlots.length > 0 ? 0 : null"
+              (click)="selectCell(row, cell)"
+              (keyup.enter)="selectCell(row, cell)"
+            >
+              @if (cell.isClosed) {
+                <span class="week-matrix__closed">{{ 'bookedSlots.weeklyView.closed' | translate }}</span>
+              } @else {
+                <span class="week-matrix__cell-value">{{ cell.percentage }}%</span>
+                <span class="week-matrix__detail">
+                  {{ 'bookedSlots.weeklyView.paxAndBookings' | translate: { bookings: cell.bookings, pax: cell.pax } }}
+                </span>
+                @if (cell.hasBlock) {
+                  <span class="week-matrix__block">
+                    <ignt-icon name="lock-alt" variant="solid" size="sm" />
+                    {{ (cell.isFullyBlocked ? 'bookedSlots.weeklyView.blocked' : 'bookedSlots.weeklyView.partiallyBlocked') | translate }}
+                  </span>
+                }
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</section>

@@ -1,0 +1,189 @@
+<ignt-dialog-header>{{ 'inventory.ticketTypes.steps.layout.title' | translate }}</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="selector-layout">
+    <ignt-typeahead
+      data-testid="selector-layout-event-page"
+      container="body"
+      [editable]="false"
+      [isInDialog]="true"
+      [fieldLabel]="'inventory.ticketTypes.steps.layout.eventPage' | translate"
+      [options]="eventPageOptions"
+      [selectedOption]="selectedEventPage()"
+      (selected)="onEventPageSelected($event)"
+    ></ignt-typeahead>
+    <!-- The typeahead keeps its helper text for custom options, so each field's helper sits under it here. -->
+    @if (hasTriedShowcasePages()) {
+      <p class="selector-layout__helper" data-testid="selector-layout-coming-soon">
+        {{ 'inventory.ticketTypes.steps.layout.showcasePagesComingSoon' | translate }}
+      </p>
+    }
+
+    @if (channelOptions().length > 0) {
+      <ignt-typeahead
+        data-testid="selector-layout-channel"
+        container="body"
+        [editable]="false"
+        [isInDialog]="true"
+        [fieldLabel]="'inventory.ticketTypes.steps.layout.channel' | translate"
+        [options]="channelOptions()"
+        [selectedOption]="selectedChannel()"
+        (selected)="onChannelSelected($event)"
+      ></ignt-typeahead>
+      <p class="selector-layout__helper">
+        {{
+          (onSale().length === 1
+            ? 'inventory.ticketTypes.steps.layout.channelHelper.one'
+            : 'inventory.ticketTypes.steps.layout.channelHelper.other'
+          ) | translate: { count: onSale().length }
+        }}
+      </p>
+    } @else {
+      <p class="selector-layout__note" data-testid="selector-layout-not-on-sale">
+        {{ 'inventory.ticketTypes.steps.layout.notOnSale' | translate }}
+      </p>
+    }
+
+    @if (isFlat() && tree().notInSteps.length < onSale().length) {
+      <ignt-alert
+        data-testid="selector-layout-flat-alert"
+        sentiment="warning"
+        [description]="
+          (tree().notInSteps.length === 1 ? 'inventory.ticketTypes.steps.layout.flat.one' : 'inventory.ticketTypes.steps.layout.flat.other')
+            | translate: { count: tree().notInSteps.length }
+        "
+      />
+    }
+
+    <!-- Why it looks like this, next to where to change it. A new tab keeps this panel as it is. -->
+    <p class="selector-layout__note">
+      {{ 'inventory.ticketTypes.steps.layout.settings' | translate: { settings: settingNames } }}
+      @if (laterAddOnCount() > 0) {
+        {{
+          (laterAddOnCount() === 1
+            ? 'inventory.ticketTypes.steps.layout.laterAddOns.one'
+            : 'inventory.ticketTypes.steps.layout.laterAddOns.other'
+          ) | translate: { count: laterAddOnCount() }
+        }}
+      }
+      <a
+        class="selector-layout__link"
+        data-testid="selector-layout-settings-link"
+        routerLink="/event-settings"
+        target="_blank"
+        rel="noopener"
+        [queryParams]="{ planId: plan.id }"
+        >{{ 'inventory.ticketTypes.steps.layout.changeSettings' | translate
+        }}<ignt-icon name="arrow-up-right-from-square" variant="light" size="xs"
+      /></a>
+    </p>
+
+    <!-- webclient3's plan page selector (wl-plan-ticket-selector), drawn with its own values. -->
+    <div class="wc" data-testid="selector-layout-preview">
+      <div class="wc__body">
+        @if (!isDateAfterSteps) {
+          <ng-container [ngTemplateOutlet]="dateLevel" />
+        }
+        @if (!isFlat()) {
+          @for (level of levels(); track $index; let depth = $index) {
+            <div class="wc__level" role="listbox" [attr.aria-label]="'inventory.ticketTypes.steps.step' | translate: { index: depth + 1 }">
+              @for (option of level.options; track option.key) {
+                <div
+                  class="wc__chip"
+                  role="option"
+                  tabindex="0"
+                  [class.wc__chip--active]="option === level.picked"
+                  [attr.aria-selected]="option === level.picked"
+                  (click)="pick(depth, option)"
+                  (keydown.enter)="$event.preventDefault(); pick(depth, option)"
+                  (keydown.space)="$event.preventDefault(); pick(depth, option)"
+                >
+                  @if (option === level.picked) {
+                    <span class="wc__check"
+                      ><span class="wc__check-icon"><ignt-icon name="check" variant="light" /></span
+                    ></span>
+                  }
+                  {{ option.label }}
+                </div>
+              }
+            </div>
+          }
+        }
+        @if (isDateAfterSteps) {
+          <ng-container [ngTemplateOutlet]="dateLevel" />
+        }
+        <div class="wc__tickets" [class.wc__tickets--detailed]="isDetailed">
+          <!-- As on the plan page, the first ticket type starts at 1. -->
+          @for (name of ticketNames(); track $index; let first = $first) {
+            <div class="wc__ticket" [class.wc__ticket--active]="first">
+              <div class="wc__ticket-info">
+                <div>
+                  <div class="wc__ticket-name">{{ name }}</div>
+                  @if (isDetailed) {
+                    <span class="wc__more">{{ 'inventory.ticketTypes.steps.layout.moreInfo' | translate }}</span>
+                  }
+                </div>
+                <span class="wc__skeleton wc__skeleton--price" aria-hidden="true"></span>
+              </div>
+              @if (isDetailed) {
+                <span class="wc__separator"></span>
+              }
+              <div class="wc__amount" aria-hidden="true">
+                <ng-container [ngTemplateOutlet]="stepper" [ngTemplateOutletContext]="{ $implicit: first ? 1 : 0 }" />
+              </div>
+            </div>
+          }
+        </div>
+        <!-- Add-ons set to show inside the ticket selector: under the tickets, as webclient3's add-ons list (legacy style). -->
+        @if (addOns().length > 0) {
+          <div class="wc__add-ons" data-testid="selector-layout-add-ons">
+            @for (addOn of addOns(); track $index) {
+              <div class="wc__add-on">
+                <p class="wc__add-on-label">{{ addOn.label }}</p>
+                <div class="wc__add-on-control" aria-hidden="true">
+                  @if (addOn.isToggle) {
+                    <span class="wc__toggle"></span>
+                  }
+                  <span class="wc__add-for"
+                    >{{ 'inventory.ticketTypes.steps.layout.addFor' | translate }}<span class="wc__skeleton wc__skeleton--price"></span
+                  ></span>
+                  @if (!addOn.isToggle) {
+                    <ng-container [ngTemplateOutlet]="stepper" [ngTemplateOutletContext]="{ $implicit: 0 }" />
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+      <div class="wc__cta" [class.wc__cta--on]="ticketNames().length > 0" aria-hidden="true">
+        <span>
+          @if (ticketNames().length > 0) {
+            <span class="wc__skeleton wc__skeleton--cta"></span>{{ 'inventory.ticketTypes.steps.layout.getIt' | translate }}
+          } @else {
+            {{ 'inventory.ticketTypes.steps.layout.cta' | translate }}
+          }
+        </span>
+      </div>
+    </div>
+  </div>
+</ignt-dialog-content>
+
+<!-- Date and time are not what this checks: one row keeps their place in the order. -->
+<ng-template #dateLevel>
+  @if (dateLevelKey; as dateLevelKey) {
+    <div class="wc__when">
+      <ignt-icon name="calendar-day" variant="light" size="sm" />{{ dateLevelKey | translate
+      }}<span class="wc__skeleton" aria-hidden="true"></span>
+    </div>
+  }
+</ng-template>
+
+<!-- webclient3's amount selector, at the count given. -->
+<ng-template #stepper let-count>
+  <span class="wc__stepper"
+    ><span class="wc__step" [class.wc__step--off]="count === 0"><ignt-icon name="minus" variant="solid" size="xs" /></span
+    ><span class="wc__count" [class.wc__count--on]="count > 0">{{ count }}</span
+    ><span class="wc__step"><ignt-icon name="plus" variant="solid" size="xs" /></span
+  ></span>
+</ng-template>

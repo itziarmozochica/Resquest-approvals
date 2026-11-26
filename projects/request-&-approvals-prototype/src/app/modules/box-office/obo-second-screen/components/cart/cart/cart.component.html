@@ -1,0 +1,61 @@
+<div class="cart" [class.cart--animated]="paymentInProgress">
+  <div class="cart__body">
+    @if (planGroups.length > 0) {
+      <ul class="cart-plan-list">
+        @for (planGroup of planGroups; track $index) {
+          <li class="cart-plan-list__item">
+            <div class="cart-plan-header">
+              @if (planGroup.plan?.imageUrl; as imageUrl) {
+                <img class="cart-plan-header__image" [src]="imageUrl" alt="" width="40" height="40" />
+              }
+              <div class="cart-plan-header__info">
+                <div class="cart-plan-header__title">{{ planGroup.plan?.name ?? (planGroup.mainPlanId === null ? plan?.name : '') }}</div>
+                @if (getPlanGroupPlaceName(planGroup); as placeName) {
+                  <div class="cart-plan-header__place">
+                    <ignt-icon name="map-marker-alt" variant="regular" size="base" [fixedWidth]="true" aria-hidden="true" />
+                    {{ placeName }}
+                  </div>
+                }
+              </div>
+            </div>
+            <ul class="cart-list">
+              @for (sessionGroup of planGroup.sessionGroups; track sessionGroup.isoDate) {
+                <li
+                  class="cart-list__date"
+                  [textContent]="sessionGroup.isoDate | momentDate: 'd MMM yyyy - HH:mm' : cart?.timeZone : locale"
+                ></li>
+                @for (cartSession of sessionGroup.sessions; track $index) {
+                  <li class="cart-list__item">
+                    <app-cart-item [cartSession]="cartSession" />
+                  </li>
+                }
+              }
+            </ul>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+  <footer class="cart__footer cart-footer">
+    <ul>
+      @if (cart?.coupon; as coupon) {
+        <li class="coupon-footer">
+          <div class="coupon-footer__label">{{ 'coupons.form.attributes.fieldsetsHelpTexts.discount' | translate }}:</div>
+          <div class="coupon-footer__amount">
+            {{ { amount: -coupon.discount.amount, currency: coupon.discount.currency } | money: locale }}
+          </div>
+        </li>
+      }
+      @if (cart?.totalTax; as totalTax) {
+        <li class="tax-footer" data-testid="tax-footer">
+          <div class="tax-footer__label" [textContent]="'boxOffice.taxesIncluded' | translate"></div>
+          <div class="tax-footer__amount">{{ totalTax | money: locale }}</div>
+        </li>
+      }
+      <li class="cart-footer">
+        <div class="cart-footer__label" [textContent]="'oboSecondScreen.checkout.total' | translate"></div>
+        <div class="cart-footer__amount">{{ cart?.totalPrice | money: locale }}</div>
+      </li>
+    </ul>
+  </footer>
+</div>

@@ -1,0 +1,122 @@
+<section class="day-entries-panel" data-testid="day-entries-panel">
+  <header class="day-entries-panel__header">
+    <h3 class="day-entries-panel__title" id="day-entries-panel-title">{{ 'bookedSlots.dayEntries.title' | translate }}</h3>
+    <p class="day-entries-panel__subtitle" data-testid="day-entries-panel-day">{{ dayLabel() }}</p>
+  </header>
+
+  <div class="day-entries-panel__body">
+    @if (writeErrorKey(); as errorKey) {
+      <ignt-alert
+        sentiment="danger"
+        [showCloseButton]="true"
+        [description]="errorKey | translate"
+        (closeAlert)="onDismissWriteError()"
+        data-testid="day-entries-write-error"
+      ></ignt-alert>
+    }
+
+    @if (isShowingStaleDay()) {
+      <div class="day-entries-panel__notice" data-testid="day-entries-stale">
+        <ignt-alert sentiment="warning" [description]="'bookedSlots.dayEntries.errors.load' | translate"></ignt-alert>
+        <ignt-button
+          size="small"
+          variant="secondary"
+          [label]="'common.retry' | translate"
+          [loading]="isRefreshing()"
+          (click)="onRetryClick()"
+          data-testid="day-entries-stale-retry"
+        />
+      </div>
+    }
+
+    @if (isFormOpen()) {
+      <app-day-entry-form
+        [entry]="editingEntry()"
+        [isSubmitting]="isSubmitting()"
+        (cancelForm)="onFormCancel()"
+        (submitEntry)="onFormSubmit($event)"
+      />
+    } @else if (isLoading()) {
+      <div class="day-entries-panel__skeleton" data-testid="day-entries-skeleton">
+        @for (line of skeletonLines; track $index) {
+          <ignt-skeleton-base [animation]="true" [height]="96" width="100%"></ignt-skeleton-base>
+        }
+      </div>
+    } @else if (hasUnreadableDay()) {
+      <div class="day-entries-panel__notice" data-testid="day-entries-error">
+        <ignt-alert sentiment="danger" [description]="'bookedSlots.dayEntries.errors.load' | translate"></ignt-alert>
+        <ignt-button
+          size="small"
+          variant="secondary"
+          [label]="'common.retry' | translate"
+          (click)="onRetryClick()"
+          data-testid="day-entries-retry"
+        />
+      </div>
+    } @else if (isEmptyDay()) {
+      <div class="day-entries-panel__empty" data-testid="day-entries-empty">
+        <p class="day-entries-panel__empty-title">{{ 'bookedSlots.dayEntries.empty.title' | translate }}</p>
+        <p class="day-entries-panel__empty-text">{{ 'bookedSlots.dayEntries.empty.description' | translate }}</p>
+      </div>
+    } @else {
+      <ul class="day-entries-panel__list" data-testid="day-entries-open-list">
+        @for (row of openRows(); track row.id) {
+          <li>
+            <app-day-entry-row
+              [canManage]="canManage()"
+              [row]="row"
+              [isBusy]="isSubmitting()"
+              (editEntry)="onEditEntry($event)"
+              (removeEntry)="onRemoveEntry($event)"
+              (toggleStatus)="onToggleStatus($event)"
+            />
+          </li>
+        }
+      </ul>
+
+      @if (doneRows().length > 0) {
+        <ignt-expansion-panel
+          class="day-entries-panel__done"
+          variant="borderless"
+          [badgeCount]="doneRows().length"
+          [elevation]="0"
+          [isCollapsed]="true"
+          [title]="'bookedSlots.dayEntries.doneGroupTitle' | translate"
+          data-testid="day-entries-done-group"
+        >
+          <ul class="day-entries-panel__list" data-testid="day-entries-done-list">
+            @for (row of doneRows(); track row.id) {
+              <li>
+                <app-day-entry-row
+                  [canManage]="canManage()"
+                  [row]="row"
+                  [isBusy]="isSubmitting()"
+                  (removeEntry)="onRemoveEntry($event)"
+                  (toggleStatus)="onToggleStatus($event)"
+                />
+              </li>
+            }
+          </ul>
+        </ignt-expansion-panel>
+      }
+    }
+  </div>
+
+  @if (canManage() && !isFormOpen()) {
+    <footer class="day-entries-panel__footer">
+      <!--
+        Busy while another row's write is in flight, like the rows themselves: the form it would
+        open disables its own Cancel until the write settles, so opening it here would leave the
+        operator in a draft that Escape and the backdrop cannot leave either.
+      -->
+      <ignt-button
+        [fill]="true"
+        variant="primary"
+        [disabled]="isSubmitting()"
+        [label]="'bookedSlots.dayEntries.addEntry' | translate"
+        (click)="onAddClick()"
+        data-testid="day-entries-add"
+      />
+    </footer>
+  }
+</section>

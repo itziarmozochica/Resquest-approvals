@@ -1,0 +1,149 @@
+<ignt-expansion-panel variant="menu" [label]="selectedPlan?.title || ''" [closeIt]="closeIt()" [isCollapsed]="false">
+  <app-page-title
+    page-title
+    [title]="(isRescheduleFlow ? 'menu.reschedule' : 'menu.boxOffice') | translate"
+    class="new-design"
+  ></app-page-title>
+  <app-search-bar
+    (searchEmitter)="loadNewSearch($event)"
+    [disabled]="true"
+    [screen]="screen.boxOffice"
+    [searchButtonLabel]="'boxOffice.show'"
+    [showVenue]="true"
+    (hasAllMandatoryFilters)="hasAllMandatoryFilters($event)"
+  >
+  </app-search-bar>
+</ignt-expansion-panel>
+
+<div class="box-office-content">
+  <div class="box-office-content__container">
+    <div class="box-office-content__row box-office-content__row">
+      <ng-container>
+        <ng-container>
+          <div class="box-office-content__sidebar" data-testid="box-office-sidebar">
+            <app-plan-detail-card
+              #planDetailCardRef
+              *ngIf="plan && selectedOnsiteSetup"
+              [planPaymentConfiguration]="paymentConfiguration"
+              [plan]="plan"
+              [showPaymentConfiguration]="true"
+              [selectedOnsiteSetup]="selectedOnsiteSetup"
+              [deviceSelectionInvalid]="deviceSelectionInvalid"
+              (deviceSelected)="onDeviceSelected($event)"
+            >
+            </app-plan-detail-card>
+            <ng-container *ngIf="cart">
+              <cart-detail
+                [cart]="cart"
+                [showClearAll]="false"
+                [showSeatingInModal]="true"
+                [isRescheduleFlow]="isRescheduleFlow"
+              ></cart-detail>
+            </ng-container>
+          </div>
+          <div class="box-office-content__content">
+            <div class="only-in-mobile">
+              <app-plan-detail-card
+                *ngIf="plan && selectedOnsiteSetup"
+                [planPaymentConfiguration]="paymentConfiguration"
+                [plan]="plan"
+                [showPaymentConfiguration]="true"
+                [selectedOnsiteSetup]="selectedOnsiteSetup"
+                [deviceSelectionInvalid]="deviceSelectionInvalid"
+                (deviceSelected)="onDeviceSelected($event)"
+              >
+              </app-plan-detail-card>
+            </div>
+            <div class="box-office-content__content-card">
+              <ng-container *ngIf="!isRescheduleFlow">
+                <app-coupon
+                  (isApplyingCoupon)="isApplyingCoupon = $event"
+                  (updatedCart)="updateCart($event)"
+                  [appliedCoupon]="cart.appliedCoupon"
+                  [cartId]="cart?.id"
+                  [userId]="cart?.userId ?? userId"
+                ></app-coupon>
+              </ng-container>
+              <ng-container *ngIf="selectedOnsiteSetup">
+                <div class="payment-method-container">
+                  <app-box-office-payment-method
+                    [paymentMethods]="paymentMethods"
+                    (updateData)="updatePaymentMethod($event)"
+                    (receiptDocumentChange)="onReceiptDocumentChange($event)"
+                  >
+                  </app-box-office-payment-method>
+                  <app-cash-change-calculator
+                    (cashReceived)="cashCalculatorCashReceived = $event"
+                    *ngIf="purchase?.paymentMethod?.paymentType === paymentTypeEnum.CASH"
+                    [cart]="cart"
+                    data-testid="checkout-cash-calculator"
+                  ></app-cash-change-calculator>
+                </div>
+              </ng-container>
+            </div>
+            <div class="box-office-content__buttons only-in-desktop">
+              <ng-container
+                *ngTemplateOutlet="isRescheduleFlow ? buttonsRescheduleCheckoutTemplate : buttonsCheckoutTemplate"
+              ></ng-container>
+            </div>
+          </div>
+        </ng-container>
+      </ng-container>
+    </div>
+  </div>
+</div>
+
+<div class="only-in-mobile">
+  <bottom-slider
+    [buttonsTemplate]="isRescheduleFlow ? buttonsRescheduleCheckoutTemplate : buttonsCheckoutTemplate"
+    [detailsTemplate]="cartTemplate"
+    [hideDetailsLabel]="'boxOffice.cart.hideCart' | translate"
+    [showDetailsLabel]="'boxOffice.cart.viewCart' | translate"
+  >
+  </bottom-slider>
+</div>
+
+<ng-template #cartTemplate>
+  <ng-container *ngIf="cart">
+    <cart-detail [cart]="cart" [showClearAll]="false" [isRescheduleFlow]="isRescheduleFlow"></cart-detail>
+  </ng-container>
+</ng-template>
+
+<ng-template #buttonsCheckoutTemplate>
+  <button
+    igntButton
+    sentiment="secondary"
+    variant="danger"
+    [fill]="true"
+    (click)="reservationId ? navigateToLastPage() : cancel()"
+    data-testid="checkout-cancel"
+  >
+    {{ 'common.cancel' | translate }}
+  </button>
+  <button
+    igntButton
+    [fill]="true"
+    (click)="confirm()"
+    [disabled]="!isPaymentConfigurationReady || !purchase || isApplyingCoupon"
+    data-testid="checkout-confirm"
+  >
+    {{ 'common.confirm' | translate }}
+  </button>
+</ng-template>
+
+<ng-template #buttonsRescheduleCheckoutTemplate>
+  <div class="reschedule-footer-buttons">
+    <button igntButton sentiment="secondary" (click)="goBack()" data-testid="reschedule-back">
+      {{ 'common.back' | translate }}
+    </button>
+    <button
+      igntButton
+      type="submit"
+      (click)="confirm()"
+      data-testid="reschedule-confirm"
+      [disabled]="!isPaymentConfigurationReady || !purchase"
+    >
+      {{ 'reschedule.confirm' | translate }}
+    </button>
+  </div>
+</ng-template>

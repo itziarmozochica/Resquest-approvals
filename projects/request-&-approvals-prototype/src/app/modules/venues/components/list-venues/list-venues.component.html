@@ -1,0 +1,76 @@
+<div class="list-venues">
+  <div class="list-venues__header">
+    <div class="list-venues__title-row">
+      <h1 class="list-venues__heading" data-testid="page-title">{{ 'venues.title' | translate }}</h1>
+      <ignt-button
+        [label]="'venues.createButton' | translate"
+        [leadingIcon]="{ name: 'plus', variant: 'light' }"
+        [size]="isMobile() ? 'small' : 'large'"
+        [disabled]="isLoading()"
+        (click)="openCreateModal()"
+        data-testid="list-venues-create-button"
+      />
+    </div>
+    <p class="list-venues__description" translate>venues.description</p>
+  </div>
+
+  <div class="list-venues__content">
+    <ignt-table
+      [data]="venues()"
+      [hasServerSidePagination]="true"
+      [isLoading]="isLoading()"
+      [filterConfig]="filterConfig()"
+      [searchConfig]="searchConfig()"
+      [pageIndex]="tablePageIndex()"
+      [pageSize]="pageSize"
+      [totalRowCount]="totalCount()"
+      (searchChanged)="onSearchChanged($event)"
+      (pageIndexChange)="onTablePageIndexChange($event)"
+      (filterPillRemoved)="onFilterPillRemoved($event)"
+      (filterClearAll)="onFilterClearAll()"
+      (filterClosed)="onFilterClosed($event)"
+      class="list-venues__table"
+    >
+      <ignt-table-column key="name" [header]="'venues.table.name' | translate" columnType="primary"></ignt-table-column>
+      <ignt-table-column key="address" [header]="'venues.table.address' | translate" columnType="secondary"></ignt-table-column>
+      <ignt-table-column key="cityName" [header]="'venues.table.city' | translate" columnType="secondary"></ignt-table-column>
+      <ignt-table-column [header]="'common.actions' | translate" columnType="action" [width]="100">
+        <ng-template let-item="item">
+          @if (canShowVenueActions(item)) {
+            <button
+              ignt-icon-button
+              [icon]="['fas', 'ellipsis-v']"
+              sentiment="tertiary"
+              size="small"
+              [igntMenuTriggerFor]="actionsMenu"
+            ></button>
+
+            <ng-template #actionsMenu>
+              <ignt-menu>
+                <ignt-menu-item
+                  [label]="'venues.actions.edit' | translate"
+                  value="edit"
+                  [disabled]="isLoading()"
+                  (triggered)="onEditVenue(item)"
+                >
+                  <ignt-icon name="edit" variant="solid" />
+                </ignt-menu-item>
+                <ignt-menu-item
+                  [label]="'venues.actions.delete' | translate"
+                  value="delete"
+                  sentiment="danger"
+                  [disabled]="isLoading()"
+                  (triggered)="onDeleteVenue(item)"
+                >
+                  <ignt-icon name="trash" variant="solid" />
+                </ignt-menu-item>
+              </ignt-menu>
+            </ng-template>
+          }
+        </ng-template>
+      </ignt-table-column>
+    </ignt-table>
+  </div>
+
+  <app-create-venue-modal (venueSaved)="onVenueSaved()"></app-create-venue-modal>
+</div>

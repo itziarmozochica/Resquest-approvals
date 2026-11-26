@@ -1,0 +1,139 @@
+<ignt-dialog-header>
+  <span data-testid="sidebar-title">{{ productLabel }}</span>
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="price-level-sidebar">
+    @for (group of form.controls; track $index; let i = $index) {
+      <section class="price-level-sidebar__level" [formGroup]="group">
+        <header
+          class="price-level-sidebar__level-head"
+          role="button"
+          tabindex="0"
+          [attr.data-testid]="'sidebar-level-' + (i + 1)"
+          (click)="toggleLevel(i)"
+          (keydown.enter)="toggleLevel(i)"
+          (keydown.space)="$event.preventDefault(); toggleLevel(i)"
+        >
+          <ignt-icon [name]="expanded() === i ? 'chevron-down' : 'chevron-right'" variant="light" size="sm"></ignt-icon>
+          <span class="price-level-sidebar__level-name">{{ levels[i].name }}</span>
+        </header>
+
+        @if (expanded() === i) {
+          <div class="price-level-sidebar__level-body" [attr.data-testid]="'sidebar-level-body-' + (i + 1)">
+            <div class="price-level-sidebar__group">
+              <span class="price-level-sidebar__group-title">
+                {{ 'inventory.dynamicPricing.families.wizard.priceLevels.sidebar.packPriceDetails' | translate }}
+              </span>
+              <div class="price-level-sidebar__fields">
+                <ignt-typeahead
+                  class="price-level-sidebar__field"
+                  [attr.data-testid]="'sidebar-price-rule-' + (i + 1)"
+                  [fieldLabel]="'inventory.dynamicPricing.families.wizard.priceLevels.sidebar.priceRule' | translate"
+                  [options]="ruleOptions"
+                  [selectedOption]="ruleOptionFor(group.controls.rule.value)"
+                  [editable]="false"
+                  (selected)="onRuleSelected(group, levels[i], $event)"
+                ></ignt-typeahead>
+                <div class="price-level-sidebar__value">
+                  <ignt-input-field
+                    class="price-level-sidebar__field"
+                    type="number"
+                    formControlName="value"
+                    data-testid="sidebar-value"
+                    [label]="'inventory.dynamicPricing.families.wizard.priceLevels.sidebar.setValue' | translate"
+                    [customFormErrors]="[
+                      { type: 'required', message: 'form.error.mandatoryField' | translate },
+                      { type: 'min', message: 'inventory.dynamicPricing.families.wizard.priceLevels.sidebar.negativeValue' | translate },
+                    ]"
+                  />
+                  <span class="price-level-sidebar__value-unit" data-testid="sidebar-value-unit">{{ valueSuffix(group) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="price-level-sidebar__group">
+              <span class="price-level-sidebar__group-title">
+                {{ 'inventory.dynamicPricing.families.wizard.priceLevels.sidebar.surcharge' | translate }}
+              </span>
+              <div class="price-level-sidebar__fields">
+                <ignt-input-field
+                  class="price-level-sidebar__field"
+                  type="number"
+                  formControlName="surchargeFixed"
+                  data-testid="sidebar-surcharge-fixed"
+                  [label]="'inventory.dynamicPricing.families.wizard.priceLevels.sidebar.surchargeFixed' | translate"
+                  [customFormErrors]="[
+                    { type: 'min', message: 'inventory.dynamicPricing.families.wizard.priceLevels.sidebar.negativeValue' | translate },
+                  ]"
+                />
+                <ignt-input-field
+                  class="price-level-sidebar__field"
+                  type="number"
+                  formControlName="surchargeVariable"
+                  data-testid="sidebar-surcharge-variable"
+                  [label]="'inventory.dynamicPricing.families.wizard.priceLevels.sidebar.surchargeVariable' | translate"
+                  [customFormErrors]="[
+                    { type: 'min', message: 'inventory.dynamicPricing.families.wizard.priceLevels.sidebar.negativeValue' | translate },
+                  ]"
+                />
+              </div>
+            </div>
+
+            <div class="price-level-sidebar__group">
+              <span class="price-level-sidebar__group-title">
+                {{ 'inventory.dynamicPricing.families.wizard.priceLevels.sidebar.strikethroughPrice' | translate }}
+              </span>
+              <span class="price-level-sidebar__group-hint">
+                {{ 'inventory.dynamicPricing.families.wizard.priceLevels.sidebar.strikethroughDescription' | translate }}
+              </span>
+              <ignt-checkbox
+                dataTestId="sidebar-strikethrough-enabled"
+                [checked]="group.controls.strikethroughEnabled.value"
+                [label]="'inventory.dynamicPricing.families.wizard.priceLevels.sidebar.strikethroughEnable' | translate"
+                (change)="onStrikethroughToggle(group, $event)"
+              ></ignt-checkbox>
+
+              @if (group.controls.strikethroughEnabled.value) {
+                <ignt-input-field
+                  class="price-level-sidebar__field"
+                  type="number"
+                  formControlName="strikethroughValue"
+                  data-testid="sidebar-strikethrough-value"
+                  [label]="'inventory.dynamicPricing.families.wizard.priceLevels.sidebar.setValue' | translate"
+                  [customFormErrors]="[
+                    { type: 'required', message: 'form.error.mandatoryField' | translate },
+                    { type: 'min', message: 'inventory.dynamicPricing.families.wizard.priceLevels.sidebar.negativeValue' | translate },
+                  ]"
+                />
+                <ignt-checkbox
+                  dataTestId="sidebar-show-discount-tag"
+                  [checked]="group.controls.showDiscountTag.value"
+                  [label]="'inventory.dynamicPricing.families.wizard.priceLevels.sidebar.showDiscountTag' | translate"
+                  (change)="group.controls.showDiscountTag.setValue($event); group.markAsDirty()"
+                ></ignt-checkbox>
+              }
+            </div>
+          </div>
+        }
+      </section>
+    }
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer hideCancelButton>
+  <ignt-button
+    variant="primary"
+    data-testid="sidebar-save"
+    [disabled]="form.invalid"
+    [label]="'inventory.dynamicPricing.families.wizard.priceLevels.sidebar.save' | translate"
+    (click)="onSave()"
+  ></ignt-button>
+  <ignt-button
+    variant="secondary"
+    sentiment="neutral"
+    data-testid="sidebar-cancel"
+    [label]="'inventory.dynamicPricing.families.wizard.priceLevels.sidebar.cancel' | translate"
+    (click)="onCancel()"
+  ></ignt-button>
+</ignt-dialog-footer>

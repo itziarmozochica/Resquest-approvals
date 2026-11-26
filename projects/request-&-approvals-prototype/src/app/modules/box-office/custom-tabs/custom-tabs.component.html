@@ -1,0 +1,111 @@
+<app-page-title
+  class="new-design page-title"
+  [title]="'menu.customTabs' | translate"
+  [section]="'menu.boxOffice' | translate"
+  [subsections]="subsections()"
+></app-page-title>
+
+<div class="custom-tabs">
+  <div class="custom-tabs__container wrapper-card wrapper-card--elevation-75">
+    <div class="custom-tabs__container__content">
+      <div class="custom-tabs__container__content__header">
+        @if (customTabs().length > 1) {
+          <ignt-button
+            class="custom-tabs__container__content__header__order-tabs-button"
+            size="small"
+            variant="tertiary"
+            [label]="'boxOffice.customTabs.dialogs.editCustomTabsOrder.title' | translate"
+            [leadingIcon]="orderTabsIcon"
+            (click)="onOrderTabsClick()"
+          />
+        }
+        <ignt-tabs
+          [variant]="'default'"
+          [hasExtraLine]="false"
+          [selectedIndex]="activeTabIndex()"
+          (selectedIndexChange)="onTabChange($event)"
+          class="custom-tabs__container__content__tabs"
+        >
+          @for (tab of customTabs(); track tab) {
+            <ignt-tabs-item [label]="tab.name" [icon]="getIconProp(tab.icon)">
+              <app-custom-tabs-tiles-grid
+                class="custom-tabs__container__content__tiles-grid"
+                [tiles]="tab.tiles"
+                [tabType]="tab.type"
+                (emptyTabAction)="onEmptyTilesGridAction($index)"
+                (tileDelete)="onTileDeleteFromGrid($index, $event.tileIndex)"
+                (tileEditAppearance)="onTileEditAppearanceFromGrid($index, $event.tileIndex)"
+              ></app-custom-tabs-tiles-grid>
+            </ignt-tabs-item>
+          }
+          <ignt-tabs-item
+            [label]="'boxOffice.customTabs.actions.newTabButton' | translate"
+            [icon]="['fal', 'plus']"
+            [isSelectable]="false"
+            (tabClick)="onAddNewTabClick()"
+          >
+          </ignt-tabs-item>
+        </ignt-tabs>
+        <ignt-alert sentiment="neutral">
+          <ng-template #igntAlertContent>
+            <span
+              [innerHTML]="
+                'boxOffice.customTabs.notifications.previewWarning'
+                  | translate: { boxOfficeLink: boxOfficeLink(), boxOfficeLinkTarget: boxOfficeLinkTarget() }
+              "
+            ></span>
+          </ng-template>
+        </ignt-alert>
+      </div>
+    </div>
+    <div class="custom-tabs__container__divider"></div>
+    <app-custom-tabs-actions
+      class="custom-tabs__container__actions"
+      [config]="customTabsActionsConfig()"
+      (buttonClick)="onActionButtonClick($event.actionType, $event.tabIndex)"
+      (publishClick)="onPublishClick()"
+    ></app-custom-tabs-actions>
+  </div>
+</div>
+
+<ng-template #loadingSection>
+  <div class="custom-tabs__loading">
+    <ignt-icon name="spinner" variant="solid" size="h4" [spin]="true"></ignt-icon>
+  </div>
+</ng-template>
+
+<app-confirmation-dialog />
+
+<app-dialog-edit-custom-tab-info
+  [initialTab]="dialogEditInfoState().tab"
+  [isVisible]="dialogEditInfoState().isVisible"
+  (closed)="onEditCustomTabInfoDismiss()"
+  (submitted)="onDialogCustomTabInfoSubmit($event)"
+  [mode]="dialogEditInfoState().mode"
+></app-dialog-edit-custom-tab-info>
+
+<app-dialog-edit-custom-tabs-elements
+  [initialTiles]="selectedCustomTab()?.tiles ?? []"
+  [isVisible]="dialogEditTilesState().isVisible"
+  [partnerId]="partnerId()!"
+  [retailSetupId]="retailSetupId()!"
+  [warehouse]="warehouse()!"
+  [tabType]="selectedCustomTab()?.type!"
+  (closed)="onEditCustomTabElementsDismiss()"
+  (submitted)="onDialogCustomTabTilesSubmit($event)"
+></app-dialog-edit-custom-tabs-elements>
+
+<app-dialog-edit-custom-tabs-order
+  [initialTabs]="customTabs()"
+  [isVisible]="dialogEditTabsOrderOpen()"
+  (closed)="dialogEditTabsOrderOpen.set(false)"
+  (submitted)="onDialogCustomTabsOrderSubmit($event)"
+></app-dialog-edit-custom-tabs-order>
+
+<app-dialog-edit-tile-appearance
+  [defaultColorKey]="dialogEditTileAppearanceState().defaultColorKey"
+  [initialTile]="dialogEditTileAppearanceState().tile"
+  [isVisible]="dialogEditTileAppearanceState().isVisible"
+  (closed)="onEditTileAppearanceDismiss()"
+  (submitted)="onDialogTileAppearanceSubmit($event)"
+></app-dialog-edit-tile-appearance>

@@ -1,0 +1,246 @@
+<div class="jump-rules-step">
+  @if (copyReport(); as report) {
+    <ignt-alert
+      class="jump-rules-step__copy-summary"
+      data-testid="copy-rules-summary"
+      sentiment="warning"
+      [title]="'inventory.dynamicPricing.families.wizard.copy.rulesCopiedTitle' | translate: { rules: report.rules }"
+      [description]="'inventory.dynamicPricing.families.wizard.copy.rulesCopiedBody' | translate"
+    ></ignt-alert>
+  }
+
+  <div class="jump-rules-step__rules">
+    @for (rule of ruleControls(); track $index; let i = $index) {
+      <div class="jump-rules-step__rule" [formGroup]="rule" data-testid="jump-rule">
+        <div class="jump-rules-step__rule-head">
+          <div class="jump-rules-step__rule-summary" data-testid="jump-rule-toggle" (click)="toggle(i)">
+            <ignt-icon
+              class="jump-rules-step__chevron"
+              aria-hidden="true"
+              [name]="isExpanded(i) ? 'chevron-down' : 'chevron-right'"
+              variant="light"
+            />
+            <span class="jump-rules-step__rule-title">
+              {{
+                'inventory.dynamicPricing.families.wizard.rules.ruleTitle'
+                  | translate
+                    : {
+                        index: i + 1,
+                        from: nameByAlias().get(rule.controls.sourceAlias.value),
+                        to: targetName(rule),
+                      }
+              }}
+            </span>
+          </div>
+
+          @if (ruleControls().length > 1) {
+            <button
+              class="jump-rules-step__rule-delete"
+              ignt-icon-button
+              variant="sharp"
+              sentiment="tertiary"
+              data-testid="jump-rule-delete"
+              [icon]="deleteIcon"
+              [attr.aria-label]="'inventory.dynamicPricing.families.wizard.rules.deleteRule' | translate"
+              (click)="removeRule(i)"
+            ></button>
+          }
+        </div>
+
+        @if (isExpanded(i)) {
+          <div class="jump-rules-step__rule-body">
+            <ignt-input-field
+              class="jump-rules-step__rule-name"
+              type="text"
+              formControlName="name"
+              data-testid="jump-rule-name"
+              [label]="'inventory.dynamicPricing.families.wizard.rules.nameLabel' | translate"
+              [placeholder]="'inventory.dynamicPricing.families.wizard.rules.namePlaceholder' | translate"
+              [customFormErrors]="[{ type: 'required', message: 'form.error.mandatoryField' | translate }]"
+            />
+            <section class="jump-rules-step__conditions">
+              <h4 class="jump-rules-step__section-title">
+                {{ 'inventory.dynamicPricing.families.wizard.rules.conditionsTitle' | translate }}
+              </h4>
+              <p class="jump-rules-step__section-hint">
+                {{ 'inventory.dynamicPricing.families.wizard.rules.conditionsHint' | translate }}
+              </p>
+
+              <div class="jump-rules-step__condition-rows" formArrayName="conditions">
+                @for (condition of rule.controls.conditions.controls; track $index; let c = $index) {
+                  @if (c > 0) {
+                    <ignt-typeahead
+                      class="jump-rules-step__logical-operator"
+                      data-testid="jump-rule-logical-operator"
+                      [fieldLabel]="'sessions.dynamicPricing.rules.form.logicalOperator' | translate"
+                      [options]="logicalOperatorOptions"
+                      [selectedOption]="rule.controls.logicalOperator.value ?? undefined"
+                      [editable]="false"
+                      [error]="rule.controls.logicalOperator.value === null"
+                      (selected)="rule.controls.logicalOperator.setValue($event)"
+                    ></ignt-typeahead>
+                  }
+                  <div class="jump-rules-step__condition" [formGroupName]="c" data-testid="jump-rule-condition">
+                    <ignt-typeahead
+                      class="jump-rules-step__when"
+                      data-testid="jump-rule-when"
+                      [fieldLabel]="'inventory.dynamicPricing.families.wizard.rules.when' | translate"
+                      [options]="whenOptionsFor(rule, c)"
+                      [selectedOption]="condition.controls.when.value ?? undefined"
+                      [editable]="false"
+                      (selected)="onWhenSelected(condition, $event)"
+                    ></ignt-typeahead>
+
+                    @if (condition.controls.when.value?.id === 'weather-type') {
+                      <app-multi-select
+                        class="jump-rules-step__comparator"
+                        data-testid="jump-rule-weather-types"
+                        [options]="weatherTypeOptions"
+                        [selectedOptions]="selectedWeatherOptions(condition)"
+                        [displayInPlaceMaximum]="1"
+                        [defaultOrdering]="false"
+                        [placeholder]="'sessions.dynamicPricing.rules.table.types' | translate"
+                        (selected)="onWeatherTypesSelected(condition, $event)"
+                      />
+
+                      <ignt-input-field
+                        class="jump-rules-step__value"
+                        type="number"
+                        formControlName="forecast"
+                        data-testid="jump-rule-forecast"
+                        [minValue]="0"
+                        [customFormErrors]="[{ type: 'range', message: valueRangeErrorMessage(condition.controls.when.value) }]"
+                        [label]="'sessions.dynamicPricing.rules.form.forecast' | translate"
+                        [placeholder]="'sessions.dynamicPricing.rules.form.forecast' | translate"
+                      />
+                    } @else {
+                      <ignt-typeahead
+                        class="jump-rules-step__comparator"
+                        data-testid="jump-rule-comparator"
+                        [fieldLabel]="'sessions.dynamicPricing.rules.form.comparation' | translate"
+                        [options]="comparatorOptions"
+                        [selectedOption]="condition.controls.comparator.value ?? undefined"
+                        [editable]="false"
+                        (selected)="condition.controls.comparator.setValue($event)"
+                      ></ignt-typeahead>
+
+                      <ignt-input-field
+                        class="jump-rules-step__value"
+                        type="number"
+                        formControlName="value"
+                        data-testid="jump-rule-value"
+                        [minValue]="0"
+                        [customFormErrors]="[{ type: 'range', message: valueRangeErrorMessage(condition.controls.when.value) }]"
+                        [label]="valueLabelKey(condition.controls.when.value) | translate"
+                        [placeholder]="'inventory.dynamicPricing.families.wizard.rules.valuePlaceholder' | translate"
+                      />
+                    }
+                  </div>
+                }
+              </div>
+
+              <div class="jump-rules-step__condition-actions">
+                @if (rule.controls.conditions.length < 2) {
+                  <ignt-button
+                    variant="tertiary"
+                    sentiment="brand"
+                    size="small"
+                    data-testid="jump-rule-add-condition"
+                    [label]="'inventory.dynamicPricing.families.wizard.rules.addCondition' | translate"
+                    (click)="addCondition(rule)"
+                  ></ignt-button>
+                }
+                @if (rule.controls.conditions.length > 1) {
+                  <ignt-button
+                    variant="tertiary"
+                    sentiment="danger"
+                    size="small"
+                    data-testid="jump-rule-delete-condition"
+                    [label]="'inventory.dynamicPricing.families.wizard.rules.deleteLastCondition' | translate"
+                    (click)="removeLastCondition(rule)"
+                  ></ignt-button>
+                }
+              </div>
+            </section>
+
+            <section class="jump-rules-step__prices">
+              <h4
+                class="jump-rules-step__section-title jump-rules-step__prices-toggle"
+                role="button"
+                tabindex="0"
+                data-testid="jump-rule-prices-toggle"
+                (click)="togglePrices(i)"
+                (keydown.enter)="togglePrices(i)"
+                (keydown.space)="$event.preventDefault(); togglePrices(i)"
+              >
+                <ignt-icon
+                  class="jump-rules-step__chevron"
+                  aria-hidden="true"
+                  [name]="isPricesExpanded(i) ? 'chevron-down' : 'chevron-right'"
+                  variant="light"
+                />
+                {{ 'inventory.dynamicPricing.families.wizard.rules.pricesTitle' | translate }}
+              </h4>
+              <p class="jump-rules-step__section-hint">
+                {{ 'inventory.dynamicPricing.families.wizard.rules.pricesHint' | translate }}
+              </p>
+
+              <div class="jump-rules-step__price-controls">
+                <ignt-typeahead
+                  class="jump-rules-step__from"
+                  data-testid="jump-rule-from"
+                  [fieldLabel]="'inventory.dynamicPricing.families.wizard.rules.from' | translate"
+                  [options]="fromOptions(rule)"
+                  [selectedOption]="
+                    rule.controls.sourceAlias.value
+                      ? { id: rule.controls.sourceAlias.value, title: nameByAlias().get(rule.controls.sourceAlias.value) ?? '' }
+                      : undefined
+                  "
+                  [editable]="false"
+                  (selected)="onFromSelected(rule, $event)"
+                ></ignt-typeahead>
+
+                <ignt-typeahead
+                  class="jump-rules-step__to"
+                  data-testid="jump-rule-to"
+                  [fieldLabel]="'inventory.dynamicPricing.families.wizard.rules.to' | translate"
+                  [options]="targetOptions(rule.controls.sourceAlias.value)"
+                  [selectedOption]="rule.controls.target.value ? { id: rule.controls.target.value.id, title: targetName(rule) } : undefined"
+                  [editable]="false"
+                  (selected)="rule.controls.target.setValue($event)"
+                ></ignt-typeahead>
+              </div>
+
+              @if (products().length > 0 && isPricesExpanded(i)) {
+                <div class="jump-rules-step__price-table" data-testid="jump-rule-price-table">
+                  <div class="jump-rules-step__price-head">
+                    <span>{{ 'inventory.dynamicPricing.families.wizard.rules.ticketType' | translate }}</span>
+                    <span>{{ nameByAlias().get(rule.controls.sourceAlias.value) }}</span>
+                    <span>{{ targetName(rule) }}</span>
+                  </div>
+                  @for (row of priceRows(rule); track row.label) {
+                    <div class="jump-rules-step__price-row" data-testid="jump-rule-price-row">
+                      <span>{{ row.label }}</span>
+                      <span>{{ row.fromPrice }}</span>
+                      <span>{{ row.toPrice }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </section>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <ignt-button
+    class="jump-rules-step__add-rule"
+    variant="tertiary"
+    sentiment="brand"
+    size="small"
+    data-testid="jump-rule-add"
+    [label]="'inventory.dynamicPricing.families.wizard.rules.addRule' | translate"
+    (click)="addRule()"
+  ></ignt-button>
+</div>

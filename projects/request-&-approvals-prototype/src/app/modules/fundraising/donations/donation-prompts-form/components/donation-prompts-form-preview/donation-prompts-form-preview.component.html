@@ -1,0 +1,110 @@
+<section class="donation-preview" [attr.aria-label]="'fundraising.donations.form.preview.ariaLabel' | translate">
+  <div class="donation-preview__event-row">
+    <img class="donation-preview__event-row__img" src="assets/images/fundraising/event-image.png" alt="" aria-hidden="true" />
+    <div class="donation-preview__event-row__info">
+      <span class="donation-preview__event-row__name">{{ 'fundraising.donations.form.preview.eventMock.name' | translate }}</span>
+      <span class="donation-preview__event-row__venue">
+        <ignt-icon class="donation-preview__event-venue-pin" name="map-marker-alt" variant="light" aria-hidden="true" />
+        {{ 'fundraising.donations.form.preview.eventMock.venue' | translate }}
+      </span>
+    </div>
+  </div>
+
+  <div class="donation-preview__divider"></div>
+
+  <section class="donation-preview__module">
+    <header class="donation-preview__module-header">
+      @if (showModuleImage()) {
+        <img
+          class="donation-preview__module-image"
+          [src]="imageUrl()"
+          [alt]="title() || ('fundraising.donations.form.preview.titlePlaceholder' | translate)"
+          (error)="onImageError()"
+        />
+      } @else {
+        <div class="donation-preview__module-image donation-preview__module-image--placeholder"></div>
+      }
+      <h3 class="donation-preview__module-title">
+        {{ title() || ('fundraising.donations.form.preview.titlePlaceholder' | translate) }}
+      </h3>
+    </header>
+
+    <div>
+      <div class="donation-preview__module-description" [innerHTML]="descriptionHtml()"></div>
+
+      @if (allowDisclaimer() && disclaimerText()) {
+        <div class="donation-preview__disclaimer" [innerHTML]="disclaimerHtml()"></div>
+      }
+    </div>
+
+    <div
+      class="donation-preview__options"
+      [class.donation-preview__options--three]="!allowCustomDonations()"
+      [class.donation-preview__options--grid]="allowCustomDonations()"
+    >
+      @for (pill of presetPills(); track pill.key) {
+        <button
+          type="button"
+          class="donation-preview__option"
+          [class.donation-preview__option--selected]="activePillValue() === pill.key"
+          (click)="onPillSelect(pill.key)"
+        >
+          <span class="donation-preview__option-amount">{{ pill.label }}</span>
+        </button>
+      }
+
+      @if (allowCustomDonations()) {
+        <button
+          type="button"
+          class="donation-preview__option donation-preview__option--custom"
+          [class.donation-preview__option--selected]="activePillValue() === previewPillKeys.CUSTOM"
+          (click)="onPillSelect(previewPillKeys.CUSTOM)"
+        >
+          <span class="donation-preview__option-amount">{{ customButtonLabel() }}</span>
+        </button>
+      }
+    </div>
+
+    @if (showAboveLimitAlert()) {
+      <ignt-alert data-testid="above-limit-alert" sentiment="warning">
+        <ng-template #igntAlertContent>
+          <span [innerHTML]="aboveLimitHtml()"></span>
+        </ng-template>
+      </ignt-alert>
+    }
+
+    @if (showCustomAmountInput()) {
+      <div class="donation-preview__custom-amount">
+        <div class="donation-preview__custom-field">
+          <span class="donation-preview__custom-field-symbol" aria-hidden="true">{{ amountSymbol() }}</span>
+          <input
+            type="number"
+            class="donation-preview__custom-input"
+            [placeholder]="'fundraising.donations.form.preview.customPlaceholder' | translate"
+            [value]="customAmount()"
+            (input)="onCustomAmountInput($event)"
+          />
+        </div>
+
+        <button type="button" class="donation-preview__add-button" [disabled]="!customAmountValid()" (click)="onAddCustom()">
+          {{ buttonText() || ('fundraising.donations.form.preview.addDonationCta' | translate) }}
+        </button>
+      </div>
+    }
+
+    @if (showThankYouMessage()) {
+      <ignt-alert data-testid="confirmation-alert" sentiment="positive">
+        <ng-template #igntAlertContent>
+          <span [innerHTML]="'fundraising.donations.form.preview.confirmationBannerShort' | translate"></span>
+        </ng-template>
+      </ignt-alert>
+    }
+  </section>
+
+  <div class="donation-preview__divider"></div>
+
+  <div class="donation-preview__date">
+    <span class="donation-preview__date-label">{{ 'fundraising.donations.form.preview.dateMock.label' | translate }}</span>
+    <span class="donation-preview__date-event">{{ 'fundraising.donations.form.preview.dateMock.event' | translate }}</span>
+  </div>
+</section>

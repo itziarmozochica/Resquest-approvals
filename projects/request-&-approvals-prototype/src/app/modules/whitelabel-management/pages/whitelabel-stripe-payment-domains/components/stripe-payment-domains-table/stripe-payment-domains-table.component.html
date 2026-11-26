@@ -1,0 +1,241 @@
+<div class="stripe-payment-domains-table">
+  @if (isVerifying()) {
+    <p aria-live="polite" class="stripe-payment-domains-table__progress" data-testid="stripe-payment-domains-progress">
+      {{ 'whitelabelManagement.stripePaymentDomains.loading.checking' | translate: { count: accountCount() } }}
+    </p>
+  }
+
+  @if (isLoading()) {
+    <section class="stripe-payment-domains-table__group">
+      <ng-container [ngTemplateOutlet]="accountTable" [ngTemplateOutletContext]="{ rows: noRows, isLoading: true }" />
+    </section>
+  } @else if (groups().length === 0) {
+    <section class="stripe-payment-domains-table__group">
+      <ng-container [ngTemplateOutlet]="accountTable" [ngTemplateOutletContext]="{ rows: noRows, isLoading: false }" />
+    </section>
+  } @else {
+    @for (band of bands(); track band.group) {
+      <section class="stripe-payment-domains-table__group">
+        <div
+          class="stripe-payment-domains-table__band stripe-payment-domains-table__band--{{ band.group }}"
+          [attr.data-testid]="'stripe-payment-domains-band-' + band.group"
+          [class.stripe-payment-domains-table__band--folded]="!isExpanded(band.group)"
+        >
+          @if (isCollapsible(band.group)) {
+            <!-- The APG disclosure pattern needs `aria-expanded` on the element carrying the button
+                 role. `ignt-icon-button` selects the native `<button>` itself, so the state lands
+                 there — unlike `ignt-button`, which hides that element inside its own host. It
+                 projects no content, so the band title stays outside as its own heading and
+                 reaches the control as its accessible name. -->
+            <button
+              ignt-icon-button
+              class="stripe-payment-domains-table__band-toggle"
+              sentiment="tertiary"
+              size="small"
+              type="button"
+              [attr.aria-expanded]="isExpanded(band.group)"
+              [attr.aria-label]="'whitelabelManagement.stripePaymentDomains.groups.' + band.group + '.title' | translate"
+              [attr.data-testid]="'stripe-payment-domains-band-toggle-' + band.group"
+              [icon]="isExpanded(band.group) ? bandToggleIcons.expanded : bandToggleIcons.collapsed"
+              (click)="toggleGroup(band.group)"
+            ></button>
+          }
+          <h2 class="stripe-payment-domains-table__band-title">
+            {{ 'whitelabelManagement.stripePaymentDomains.groups.' + band.group + '.title' | translate }}
+          </h2>
+          <span class="stripe-payment-domains-table__band-count">{{ band.rows.length }}</span>
+          <span class="stripe-payment-domains-table__band-hint">
+            {{ 'whitelabelManagement.stripePaymentDomains.groups.' + band.group + '.hint' | translate }}
+          </span>
+        </div>
+
+        @if (isExpanded(band.group)) {
+          <ng-container [ngTemplateOutlet]="accountTable" [ngTemplateOutletContext]="{ rows: band.rows, isLoading: false }" />
+        }
+      </section>
+    }
+  }
+</div>
+
+<ng-template #accountTable let-rows="rows" let-isTableLoading="isLoading">
+  <ignt-table data-testid="stripe-payment-domains-table" [data]="rows" [isLoading]="isTableLoading">
+    <ignt-table-column
+      key="account"
+      [header]="'whitelabelManagement.stripePaymentDomains.columns.account' | translate"
+      [width]="columnWidths.account"
+    >
+      <ng-template igntTableColumnTemplateType let-item="item">
+        <span class="stripe-payment-domains-table__account" [attr.data-testid]="'stripe-payment-domains-row-' + item.account">
+          {{ item.account }}
+        </span>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column key="suggestedBy" [header]="'whitelabelManagement.stripePaymentDomains.columns.suggestedBy' | translate">
+      <ng-template igntTableColumnTemplateType let-item="item">
+        <span [attr.data-testid]="'stripe-payment-domains-cities-' + item.account">
+          @if (item.suggestedBy.length === 0) {
+            <span class="stripe-payment-domains-table__no-city">
+              {{ 'whitelabelManagement.stripePaymentDomains.suggestedBy.notSuggested' | translate }}
+            </span>
+          } @else {
+            <span class="stripe-payment-domains-table__cities">
+              @for (suggestion of item.suggestedBy.slice(0, maxInlineCityChips); track suggestion.configId) {
+                <ignt-button
+                  class="stripe-payment-domains-table__city"
+                  sentiment="neutral"
+                  size="small"
+                  variant="tertiary"
+                  [ariaLabel]="
+                    'whitelabelManagement.stripePaymentDomains.configDetails.showOne'
+                      | translate: { city: suggestion.cityLabel, config: suggestion.configName }
+                  "
+                  [attr.data-testid]="'stripe-payment-domains-city-' + item.account + '-' + suggestion.configId"
+                  [label]="suggestion.cityLabel"
+                  (click)="configDetailsRequested.emit({ account: item.account, configs: [suggestion] })"
+                />
+              }
+              @if (item.suggestedBy.length > 1) {
+                <ignt-button
+                  class="stripe-payment-domains-table__chip-count"
+                  sentiment="neutral"
+                  size="small"
+                  variant="tertiary"
+                  [ariaLabel]="
+                    'whitelabelManagement.stripePaymentDomains.configDetails.showAll'
+                      | translate: { account: item.account, count: item.suggestedBy.length }
+                  "
+                  [attr.data-testid]="'stripe-payment-domains-city-count-' + item.account"
+                  [label]="
+                    'whitelabelManagement.stripePaymentDomains.suggestedBy.configCount' | translate: { count: item.suggestedBy.length }
+                  "
+                  (click)="configDetailsRequested.emit({ account: item.account, configs: item.suggestedBy })"
+                />
+              }
+            </span>
+          }
+        </span>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column
+      key="status"
+      [header]="'whitelabelManagement.stripePaymentDomains.columns.status' | translate"
+      [width]="columnWidths.status"
+    >
+      <ng-template igntTableColumnTemplateType let-item="item">
+        <span class="stripe-payment-domains-table__status-cell">
+          @if (item.busyAction; as busyAction) {
+            <span
+              aria-live="polite"
+              class="stripe-payment-domains-table__status stripe-payment-domains-table__status--busy"
+              [attr.data-testid]="'stripe-payment-domains-busy-' + item.account"
+            >
+              <ignt-icon aria-hidden="true" name="spinner-third" size="caption" variant="duotone" [spin]="true" />
+              {{ 'whitelabelManagement.stripePaymentDomains.busy.' + busyAction | translate }}
+            </span>
+          } @else {
+            <span
+              class="stripe-payment-domains-table__status stripe-payment-domains-table__status--{{ item.status }}"
+              [attr.data-testid]="'stripe-payment-domains-status-' + item.account"
+            >
+              <ignt-icon
+                aria-hidden="true"
+                size="caption"
+                [name]="statusIcons[item.status].name"
+                [variant]="statusIcons[item.status].variant"
+              />
+              {{ 'whitelabelManagement.stripePaymentDomains.status.' + item.status | translate }}
+            </span>
+          }
+
+          @if (item.errorMessage; as errorMessage) {
+            <p class="stripe-payment-domains-table__error" role="alert" [attr.data-testid]="'stripe-payment-domains-error-' + item.account">
+              {{ errorMessage }}
+            </p>
+          }
+        </span>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column key="wallets" [header]="'whitelabelManagement.stripePaymentDomains.columns.wallets' | translate">
+      <ng-template igntTableColumnTemplateType let-item="item">
+        <span [attr.data-testid]="'stripe-payment-domains-wallets-' + item.account">
+          @if (item.wallets.length > 0) {
+            <span class="stripe-payment-domains-table__wallets stripe-payment-domains-table__wallets--{{ item.status }}">
+              @for (wallet of item.wallets; track wallet.method) {
+                <span class="stripe-payment-domains-table__wallet">
+                  {{ 'whitelabelManagement.stripePaymentDomains.wallets.' + wallet.method | translate }}
+                </span>
+              }
+              @if (item.wallets.length > 1) {
+                <ignt-button
+                  class="stripe-payment-domains-table__chip-count"
+                  sentiment="neutral"
+                  size="small"
+                  variant="tertiary"
+                  [ariaLabel]="
+                    'whitelabelManagement.stripePaymentDomains.wallets.showAll'
+                      | translate: { account: item.account, count: item.wallets.length }
+                  "
+                  [attr.data-testid]="'stripe-payment-domains-wallet-count-' + item.account"
+                  [label]="'whitelabelManagement.stripePaymentDomains.wallets.walletCount' | translate: { count: item.wallets.length }"
+                  (click)="walletDetailsRequested.emit({ account: item.account, status: item.status, wallets: item.wallets })"
+                />
+              }
+            </span>
+          } @else {
+            <span class="stripe-payment-domains-table__wallet-note">
+              {{ 'whitelabelManagement.stripePaymentDomains.walletsPlaceholder.' + item.status | translate }}
+            </span>
+          }
+        </span>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column
+      columnType="action"
+      [header]="'whitelabelManagement.stripePaymentDomains.columns.actions' | translate"
+      [width]="columnWidths.actions"
+    >
+      <ng-template igntTableColumnTemplateType let-item="item">
+        <div class="stripe-payment-domains-table__actions">
+          <span class="stripe-payment-domains-table__action" igntTooltip [tooltipLabel]="actionTooltip(item, 'verify')">
+            <button
+              ignt-icon-button
+              sentiment="tertiary"
+              size="small"
+              [attr.aria-label]="actionLabel('verify')"
+              [attr.data-testid]="'stripe-payment-domains-verify-' + item.account"
+              [disabled]="!item.actions.verify.isAllowed"
+              [icon]="actionIcons.verify"
+              (click)="verifyRequested.emit(item)"
+            ></button>
+          </span>
+
+          @if (item.isHostReadOnly) {
+            <span class="stripe-payment-domains-table__read-only" [attr.data-testid]="'stripe-payment-domains-read-only-' + item.account">
+              {{ 'whitelabelManagement.stripePaymentDomains.readOnlyHost' | translate }}
+            </span>
+          } @else {
+            @for (write of writeActions; track write.action) {
+              <span class="stripe-payment-domains-table__action" igntTooltip [tooltipLabel]="actionTooltip(item, write.action)">
+                <button
+                  ignt-icon-button
+                  sentiment="tertiary"
+                  size="small"
+                  [attr.aria-label]="actionLabel(write.action)"
+                  [attr.data-testid]="'stripe-payment-domains-' + write.action + '-' + item.account"
+                  [disabled]="!item.actions[write.action].isAllowed"
+                  [icon]="actionIcons[write.action]"
+                  [variant]="write.isDanger ? 'danger' : 'default'"
+                  (click)="requestWrite(item, write.action)"
+                ></button>
+              </span>
+            }
+          }
+        </div>
+      </ng-template>
+    </ignt-table-column>
+  </ignt-table>
+</ng-template>

@@ -1,0 +1,72 @@
+<ng-template #tagAndStatus let-copy="copy">
+  @if (tagSentiment(); as sentiment) {
+    <ignt-tag [attr.data-testid]="copy ? null : dataTestId()" [sentiment]="sentiment" [variant]="'solid'">
+      {{ 'leads.statusCategories.' + category() | translate }}
+    </ignt-tag>
+    <span
+      class="lead-status-tag__status"
+      [attr.data-testid]="copy ? null : 'lead-status-tag-status'"
+      [class]="'lead-status-tag__status--' + sentiment"
+    >
+      {{ 'leads.statuses.' + status() | translate }}
+    </span>
+  } @else {
+    <ignt-tag sentiment="disable" [attr.data-testid]="copy ? null : dataTestId()" [variant]="'solid'">{{ status() }}</ignt-tag>
+  }
+</ng-template>
+
+@if (menuEntries().length > 0) {
+  <!-- A `role="button"` span rather than `ignt-button`, which only takes a text label and so cannot carry
+       the category tag. The CDK menu trigger on it handles Enter, Space and the arrow keys, and puts
+       `aria-haspopup`/`aria-expanded` on this focusable element. -->
+  <span
+    appMenuAlignStart
+    class="lead-status-tag__trigger"
+    data-testid="lead-status-tag-trigger"
+    role="button"
+    tabindex="0"
+    [attr.aria-disabled]="disabled() || null"
+    [igntMenuTriggerFor]="disabled() ? null : statusMenu"
+  >
+    <ng-container [ngTemplateOutlet]="tagAndStatus" />
+    <ignt-icon aria-hidden="true" class="lead-status-tag__chevron" name="chevron-down" variant="light" />
+  </span>
+
+  <ng-template #statusMenu>
+    <ignt-menu class="lead-status-tag__menu">
+      @for (entry of menuEntries(); track entry.status) {
+        <ignt-menu-item
+          class="lead-status-tag__option"
+          [attr.data-testid]="'lead-status-tag-option-' + entry.status"
+          [disabled]="disabled()"
+          [label]="'leads.statuses.' + entry.status | translate"
+          [value]="entry.status"
+          (triggered)="onStatusSelected(entry.status)"
+        />
+      }
+
+      <ng-template igntMenuItemCustomTemplate let-menuItem>
+        @if (menuEntriesByStatus()[menuItem.value]; as entry) {
+          <ignt-tag [sentiment]="entry.sentiment" [variant]="'solid'">
+            {{ 'leads.statusCategories.' + entry.category | translate }}
+          </ignt-tag>
+          <span
+            class="lead-status-tag__status lead-status-tag__status--entry"
+            data-testid="lead-status-tag-option-status"
+            [class]="'lead-status-tag__status--' + entry.sentiment"
+          >
+            {{ menuItem.label }}
+          </span>
+          @if (entry.status === menuEntries()[0].status) {
+            <span aria-hidden="true" class="lead-status-tag__copy" data-testid="lead-status-tag-copy">
+              <ng-container [ngTemplateOutlet]="tagAndStatus" [ngTemplateOutletContext]="{ copy: true }" />
+              <ignt-icon class="lead-status-tag__chevron" name="chevron-down" variant="light" />
+            </span>
+          }
+        }
+      </ng-template>
+    </ignt-menu>
+  </ng-template>
+} @else {
+  <ng-container [ngTemplateOutlet]="tagAndStatus" />
+}

@@ -1,0 +1,69 @@
+<div class="ticket-type-external-codes-field">
+  <h5 class="font-h5 ticket-type-external-codes-field__title">{{ 'externalCodes.configuration.breadcrumb' | translate }}</h5>
+  <p class="ticket-type-external-codes-field__description">{{ 'externalCodes.ticketTypeField.subtitle' | translate }}</p>
+
+  <div class="ticket-type-external-codes-field__fields" data-testid="ticket-type-external-codes-fields">
+    <ignt-typeahead
+      data-testid="ticket-type-external-codes-group"
+      [customPopupClass]="'dropdown-menu--on-sidebar'"
+      [disabled]="isDisabled() || isLoading()"
+      [editable]="false"
+      [emptyLabel]="'externalCodes.ticketTypeField.noGroupOption' | translate"
+      [fieldLabel]="'externalCodes.ticketTypeField.groupLabel' | translate"
+      [options]="groupOptions()"
+      [selectedOption]="selectedGroupOption()"
+      (selected)="onGroupSelected($event)"
+    ></ignt-typeahead>
+
+    @for (field of levelFields(); track field.level.id) {
+      @if (field.isAutomatic) {
+        <ignt-input-field
+          [attr.data-testid]="'ticket-type-external-codes-level-' + field.level.id"
+          [formControl]="automaticLevelControl"
+          [label]="field.level.name"
+          [placeholder]="'externalCodes.levelModal.levelType.automatic' | translate"
+          [placeholderAsEmptyValue]="true"
+        ></ignt-input-field>
+      } @else {
+        <ignt-typeahead
+          [attr.data-testid]="'ticket-type-external-codes-level-' + field.level.id"
+          [customPopupClass]="'dropdown-menu--on-sidebar'"
+          [disabled]="isDisabled()"
+          [editable]="false"
+          [emptyLabel]="'externalCodes.ticketTypeField.noValueOption' | translate"
+          [fieldLabel]="field.level.name"
+          [options]="field.options"
+          [selectedOption]="field.selectedOption"
+          (selected)="onLevelSelected(field.level, $event)"
+        ></ignt-typeahead>
+      }
+    }
+
+    @if (tree()) {
+      <ignt-input-field
+        data-testid="ticket-type-external-codes-composed-code"
+        [formControl]="composedCodeControl"
+        [label]="'externalCodes.ticketTypeField.codeLabel' | translate"
+      ></ignt-input-field>
+    }
+  </div>
+
+  <p class="ticket-type-external-codes-field__status" data-testid="ticket-type-external-codes-loading" role="status">
+    @if (isLoading()) {
+      {{ 'common.loading' | translate }}
+    }
+  </p>
+
+  @if (groupId() !== null && !isDisabled()) {
+    <div class="ticket-type-external-codes-field__actions">
+      <ignt-button
+        data-testid="ticket-type-external-codes-remove"
+        size="small"
+        variant="tertiary"
+        [label]="'externalCodes.ticketTypeField.removeCode' | translate"
+        [trailingIcon]="{ name: 'trash-alt', variant: 'solid' }"
+        (click)="removeCode()"
+      ></ignt-button>
+    </div>
+  }
+</div>

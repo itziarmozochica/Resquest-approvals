@@ -1,0 +1,87 @@
+<div class="editor-item editor-item--localized-text">
+  @if (!isConfigLoaded()) {
+    <span class="editor-item__label">{{ 'whitelabelEditor.items.' + item().key | translate }}</span>
+    <p class="editor-item__hint" data-testid="editor-item-localized-text-not-loaded">
+      {{ 'whitelabelEditor.localizedTextItem.notLoaded' | translate }}
+    </p>
+  } @else {
+    <span class="editor-item__label" [id]="labelId()">{{ 'whitelabelEditor.items.' + item().key | translate }}</span>
+    @if (item().key | editorItemHint; as hint) {
+      <p class="editor-item__hint">{{ hint }}</p>
+    }
+
+    @if (localized()) {
+      <div class="editor-item__locale-picker">
+        <span class="editor-item__hint">{{ 'whitelabelEditor.localizedTextItem.localeLabel' | translate }}</span>
+        <div class="editor-item__locale-options" role="group" data-testid="editor-item-localized-text-locales">
+          <ignt-button
+            size="small"
+            [label]="'whitelabelEditor.localizedTextItem.everyLanguage' | translate"
+            [variant]="currentLocale() === defaultLocale ? 'primary' : 'secondary'"
+            (click)="onLocalePicked(defaultLocale)"
+          />
+          @for (locale of locales(); track locale) {
+            <ignt-button
+              size="small"
+              [label]="localesWithOwnValue().has(locale) ? locale + ' •' : locale"
+              [variant]="currentLocale() === locale ? 'primary' : 'secondary'"
+              (click)="onLocalePicked(locale)"
+            />
+          }
+        </div>
+      </div>
+    }
+
+    @if (multiline()) {
+      <ignt-textarea-field
+        label=""
+        data-testid="editor-item-localized-text-default"
+        [id]="inputId()"
+        [attr.aria-labelledby]="labelId()"
+        [ngModel]="fieldValue()"
+        (ngModelChange)="onValueChanged($event)"
+      />
+    } @else {
+      <ignt-input-field
+        label=""
+        data-testid="editor-item-localized-text-default"
+        [id]="inputId()"
+        [attr.aria-labelledby]="labelId()"
+        [ngModel]="fieldValue()"
+        (ngModelChange)="onValueChanged($event)"
+      />
+    }
+  }
+
+  @if (canLocalize() || hasEdits()) {
+    <div class="editor-item__footer">
+      @if (hasEdits()) {
+        <span class="editor-item__status editor-item__status--pending" data-testid="editor-item-localized-text-unsaved">
+          {{ 'whitelabelEditor.unsavedChanges' | translate }}
+        </span>
+      }
+      @if (canLocalize()) {
+        <ignt-button
+          variant="tertiary"
+          sentiment="neutral"
+          size="small"
+          data-testid="editor-item-localized-text-localize-toggle"
+          [label]="
+            (localized() ? 'whitelabelEditor.localizedTextItem.useOneValue' : 'whitelabelEditor.localizedTextItem.localize') | translate
+          "
+          (click)="onLocalizedToggle(!localized())"
+        />
+      }
+      @if (hasEdits()) {
+        <ignt-button
+          variant="tertiary"
+          sentiment="neutral"
+          size="small"
+          data-testid="editor-item-localized-text-discard"
+          [label]="'common.undo' | translate"
+          (click)="discardEdits()"
+        />
+      }
+    </div>
+  }
+</div>

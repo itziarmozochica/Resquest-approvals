@@ -1,0 +1,100 @@
+<div class="prp-edit-container">
+  <!-- Price Input Section: title + bordered form share one flex child so parent gap does not sit between them -->
+  <div class="prp-price-details">
+    <div class="section-title">
+      <span class="section-title__text">{{ 'sessions.pricing.priceList.priceEditForm.priceDetails' | translate }}</span>
+    </div>
+
+    <div class="bordered-form-container">
+      <div class="rule-and-value">
+        <label class="field">
+          <input
+            appAutoformatNumericInput
+            autocomplete="off"
+            class="field__input"
+            data-testid="prp-percentage-input"
+            min="0"
+            max="100"
+            [decimalPlaces]="0"
+            [formControl]="prpValueControl"
+            [placeHolderValue]="'sessions.pricing.priceList.priceEditForm.percentage_over_base_price.label' | translate"
+            [suffixText]="' %'"
+          />
+          <span class="field__label">{{ 'sessions.pricing.priceList.priceEditForm.percentage_over_base_price.label' | translate }}</span>
+          @if (prpValueControl.touched && (prpValueControl.hasError('min') || prpValueControl.hasError('max'))) {
+            <ignt-field-error
+              data-testid="prp-percentage-input-error"
+              [formControlValue]="prpValueControl"
+              [errorName]="prpValueControl.hasError('min') ? 'min' : 'max'"
+            >
+              {{ 'sessions.pricing.priceList.priceEditForm.percentage_over_base_price.rangeError' | translate }}
+            </ignt-field-error>
+          }
+        </label>
+        @if ((item().taxProductRate ?? null) !== null) {
+          <label class="field">
+            <input class="field__input" data-testid="prp-tax-field" readonly [value]="item().taxProductRate + '%'" />
+            <span class="field__label">{{ 'sessions.pricing.priceList.priceEditForm.tax.label' | translate }}</span>
+          </label>
+        }
+      </div>
+
+      <!-- Content projection for additional fields -->
+      <ng-content select="[priceDetailsAdditionalFields]"></ng-content>
+    </div>
+  </div>
+
+  <!-- PRP Explanation Section: title and description in same container with 4px gap -->
+  <div class="prp-explanation">
+    <h3 class="prp-explanation__title">
+      {{ 'sessions.pricing.priceList.priceEditForm.percentage_over_base_price_explanation.title' | translate }}
+    </h3>
+    <p class="prp-explanation__description">
+      {{ 'sessions.pricing.priceList.priceEditForm.percentage_over_base_price_explanation.description' | translate }}
+    </p>
+
+    <p class="prp-explanation__example-label">
+      {{ 'sessions.pricing.priceList.priceEditForm.percentage_over_base_price_explanation.example_label' | translate }}
+    </p>
+
+    <!-- Inline preview calculation -->
+    @if (calculationPreview; as preview) {
+      <div class="price-summary">
+        <div class="price-summary__row">
+          <span>{{
+            'sessions.pricing.priceList.priceEditForm.percentage_over_base_price_explanation.total_ticket_price' | translate
+          }}</span>
+          <span>{{ percentageCalculationExampleBasePrice | currency: currency() }}</span>
+        </div>
+        <div class="price-summary__row price-summary__surcharge">
+          <span>{{ 'sessions.pricing.priceList.priceEditForm.percentage_over_base_price_explanation.percentage' | translate }}</span>
+          <span>{{ preview.percentageAmount | currency: currency() }}</span>
+        </div>
+        <div class="price-summary__row price-summary__taxes">
+          <span>{{ 'sessions.pricing.priceList.priceEditForm.tax.label' | translate }}</span>
+          <span>{{ preview.taxAmount | currency: currency() }}</span>
+        </div>
+        <div class="price-summary__divider"></div>
+        <div class="price-summary__row price-summary__total">
+          <span>{{
+            'sessions.pricing.priceList.priceEditForm.percentage_over_base_price_explanation.total_percentage_over_base_price_add_on'
+              | translate
+          }}</span>
+          <span>{{ preview.total | currency: currency() }}</span>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Footer with Set price button (anchored at bottom like non-PRP form) -->
+  <div class="prp-footer lateral-slider-body__footer">
+    <button
+      data-testid="save-price-button"
+      class="button button--large button--primary button--fill"
+      [disabled]="!isSaveEnabled"
+      (click)="onSave()"
+    >
+      {{ 'sessions.pricing.priceList.priceEditForm.setPriceButton' | translate }}
+    </button>
+  </div>
+</div>

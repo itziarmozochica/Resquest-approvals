@@ -1,0 +1,136 @@
+<div class="approval-spreadsheet" data-testid="approval-spreadsheet">
+  @if (rows().length === 0) {
+    <p class="approval-spreadsheet__empty" data-testid="approval-spreadsheet-empty">
+      {{ 'approvals.spreadsheet.empty' | translate }}
+    </p>
+  } @else {
+    @if (reviewable()) {
+      <div class="approval-spreadsheet__bulk-actions">
+        <ignt-button
+          sentiment="positive"
+          variant="secondary"
+          [label]="'approvals.detail.itemActions.approveAll' | translate"
+          [leadingIcon]="{ name: 'check-circle', variant: 'solid' }"
+          [disabled]="disabled() || pendingRows().length === 0"
+          data-testid="approval-spreadsheet-bulk-approve"
+          (click)="reviewAll('APPROVE')"
+        />
+        <ignt-button
+          sentiment="danger"
+          variant="secondary"
+          [label]="'approvals.detail.itemActions.rejectAll' | translate"
+          [leadingIcon]="{ name: 'times-circle', variant: 'solid' }"
+          [disabled]="disabled() || pendingRows().length === 0"
+          data-testid="approval-spreadsheet-bulk-reject"
+          (click)="reviewAll('REJECT')"
+        />
+      </div>
+    }
+    <div class="approval-spreadsheet__scroll">
+      <table class="approval-spreadsheet__table" data-testid="approval-spreadsheet-table">
+        <thead>
+          <tr>
+            @if (reviewable()) {
+              <th scope="col" class="approval-spreadsheet__th approval-spreadsheet__select-col"></th>
+            }
+            @for (column of displayColumns(); track column; let colIndex = $index) {
+              <th
+                scope="col"
+                class="approval-spreadsheet__th"
+                [class.approval-spreadsheet__col--hidden]="editableColumns() && isColumnHidden(colIndex)"
+              >
+                @if (editableColumns()) {
+                  <div class="approval-spreadsheet__col-head">
+                    <span>{{ column }}</span>
+                    <button
+                      type="button"
+                      class="approval-spreadsheet__col-toggle"
+                      [disabled]="disabled()"
+                      [attr.aria-pressed]="isColumnHidden(colIndex)"
+                      (click)="columnToggle.emit(colIndex)"
+                      [attr.data-testid]="'approval-spreadsheet-col-toggle-' + colIndex"
+                    >
+                      {{ (isColumnHidden(colIndex) ? 'approvals.new.payload.sheet.show' : 'approvals.new.payload.sheet.hide') | translate }}
+                    </button>
+                  </div>
+                } @else {
+                  {{ column }}
+                }
+              </th>
+            }
+            <th scope="col" class="approval-spreadsheet__th approval-spreadsheet__comment-col">
+              {{ 'approvals.spreadsheet.comment' | translate }}
+            </th>
+            <th
+              scope="col"
+              class="approval-spreadsheet__th approval-spreadsheet__actions-th"
+              data-testid="approval-spreadsheet-status-header"
+            >
+              {{ 'approvals.spreadsheet.status' | translate }}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of displayRows(); track row.id) {
+            <tr class="approval-spreadsheet__row" data-testid="approval-spreadsheet-row" [attr.data-row-id]="row.id">
+              @if (reviewable()) {
+                <td class="approval-spreadsheet__select-col">
+                  <input
+                    type="checkbox"
+                    [checked]="isSelected(row)"
+                    [disabled]="disabled()"
+                    (change)="onSelect(row, $event.target)"
+                    [attr.aria-label]="'approvals.detail.itemActions.select' | translate"
+                    data-testid="approval-spreadsheet-row-select"
+                  />
+                </td>
+              }
+              @for (column of displayColumns(); track column; let colIndex = $index) {
+                <td
+                  class="approval-spreadsheet__cell"
+                  [class.approval-spreadsheet__col--hidden]="editableColumns() && isColumnHidden(colIndex)"
+                >
+                  {{ cellValue(row, column) }}
+                </td>
+              }
+              <td class="approval-spreadsheet__comment approval-spreadsheet__comment-col" data-testid="approval-spreadsheet-comment">
+                <div class="approval-spreadsheet__comment-wrap">
+                  <span>{{ commentValue(row) }}</span>
+                </div>
+              </td>
+              <td class="approval-spreadsheet__actions">
+                <div class="approval-spreadsheet__actions-wrap">
+                  @if (reviewable()) {
+                    <app-approval-item-review
+                      [control]="decisionControl(row)"
+                      [reviewable]="true"
+                      [inlineToggle]="true"
+                      [busy]="reviewsLocked() || reviewingIds().has(row.id)"
+                      (decisionRequested)="reviewRow(row, $event)"
+                    />
+                  } @else if (informOnly()) {
+                    <ignt-tag sentiment="info" variant="outline" data-status="inform_only" data-testid="approval-spreadsheet-row-status">
+                      {{ 'approvals.detail.informOnly' | translate }}
+                    </ignt-tag>
+                  } @else {
+                    @let status = rowStatuses().get(row.id);
+                    @if (status) {
+                      <ignt-tag
+                        [sentiment]="status.sentiment"
+                        variant="outline"
+                        [attr.data-status]="status.key"
+                        data-testid="approval-spreadsheet-row-status"
+                      >
+                        {{ 'approvals.status.' + status.key | translate }}
+                      </ignt-tag>
+                    }
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

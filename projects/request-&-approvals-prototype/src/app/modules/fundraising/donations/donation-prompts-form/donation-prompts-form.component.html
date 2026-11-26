@@ -1,0 +1,394 @@
+<app-donation-form-layout
+  [ariaLabel]="'menu.fundraisingDonations' | translate"
+  [section]="'menu.fundraising' | translate"
+  [subsections]="[{ title: ('menu.fundraisingDonations' | translate), link: '/fundraising/donations' }]"
+  [title]="isEditMode() ? ('fundraising.donations.form.pageTitleEdit' | translate) : ('fundraising.donations.form.pageTitle' | translate)"
+  [alertDescription]="'fundraising.donations.form.activeAlertMessage' | translate"
+  [isSubmitting]="isSubmitting()"
+  [isDisabled]="isSubmitting()"
+  [isEditMode]="isEditMode()"
+  (cancelAction)="onCancel()"
+  (submitAction)="onSubmit()"
+>
+  <div formContent class="donation-prompts-form">
+    <div class="donation-prompts-form__form-container">
+      <div class="donation-prompts-form__section">
+        <div class="donation-prompts-form__section-header">
+          <h4 class="donation-prompts-form__section-label">
+            {{ 'fundraising.donations.form.configurationTitle' | translate }}
+          </h4>
+          <div class="donation-prompts-form__section-header__mobile-header">
+            <button
+              type="button"
+              igntButton
+              variant="default"
+              sentiment="secondary"
+              size="small"
+              class="donation-prompts-form__mobile-preview-trigger"
+              (click)="openMobilePreview()"
+              data-testid="donation-prompts-form-open-mobile-preview"
+            >
+              {{ 'fundraising.donations.form.mobile.previewButton' | translate }}
+            </button>
+          </div>
+        </div>
+        <ignt-tabs
+          class="donation-prompts-form__tabs"
+          [hasExtraLine]="false"
+          [selectedIndex]="activeTab()"
+          [attr.aria-label]="'fundraising.donations.form.tabs.ariaLabel' | translate"
+          (selectedIndexChange)="setActiveTabByIndex($event)"
+        >
+          <ignt-tabs-item
+            [label]="'fundraising.donations.form.tabs.settings' | translate"
+            data-testid="donation-prompts-form-tab-settings"
+          />
+          <ignt-tabs-item
+            [label]="'fundraising.donations.form.tabs.contentTranslations' | translate"
+            data-testid="donation-prompts-form-tab-content-translations"
+          />
+        </ignt-tabs>
+      </div>
+
+      @if (activeTab() === donationPromptsFormTabs.SETTINGS) {
+        <form [formGroup]="form.controls.settings" class="donation-prompts-form__form">
+          <div class="donation-prompts-form__section">
+            <ignt-wrapper-card [title]="'fundraising.donations.form.attributesSection.donationType' | translate">
+              <div class="donation-prompts-form__subsection">
+                <ignt-radio-group
+                  formControlName="amountType"
+                  class="donation-prompts-form__radio-group"
+                  data-testid="donation-prompts-form-amount-type"
+                >
+                  <div class="donation-prompts-form__field-wrapper">
+                    <ignt-radio
+                      data-testid="donation-prompts-form-amount-type-percentage"
+                      [label]="'fundraising.donations.form.attributesSection.fields.percentage' | translate"
+                      [value]="amountTypes.PERCENTAGE"
+                      [size]="'small'"
+                    ></ignt-radio>
+                  </div>
+                  <div class="donation-prompts-form__field-wrapper">
+                    <ignt-radio
+                      data-testid="donation-prompts-form-amount-type-fixed"
+                      [label]="'fundraising.donations.form.attributesSection.fields.fixedAmount' | translate"
+                      [value]="amountTypes.FIXED"
+                      [size]="'small'"
+                    ></ignt-radio>
+                  </div>
+                </ignt-radio-group>
+                @if (
+                  form.controls.settings.controls.amountType.touched && form.controls.settings.controls.amountType.hasError('required')
+                ) {
+                  <ignt-field-error
+                    class="donation-prompts-form__error"
+                    [formControlValue]="form.controls.settings.controls.amountType"
+                    errorName="required"
+                  >
+                    {{ 'fundraising.donations.form.validation.amountTypeRequired' | translate }}
+                  </ignt-field-error>
+                }
+              </div>
+            </ignt-wrapper-card>
+
+            <ignt-wrapper-card [title]="'fundraising.donations.form.attributesSection.presetValues' | translate">
+              <div class="donation-prompts-form__subsection">
+                <app-values-range-inputs
+                  [formGroup]="form.controls.settings"
+                  [hintLabel]="'fundraising.donations.form.attributesSection.fields.valuesHelper' | translate"
+                />
+                @if (hasPresetAmountsOutOfRangeError()) {
+                  <ignt-field-error
+                    class="donation-prompts-form__error"
+                    errorName="presetAmountsOutOfRange"
+                    id="donation-prompts-form-preset-amounts-error"
+                    role="alert"
+                    [showError]="true"
+                  >
+                    {{ 'fundraising.donations.form.attributesSection.fields.presetValuesOutOfRangeError' | translate }}
+                  </ignt-field-error>
+                }
+              </div>
+            </ignt-wrapper-card>
+
+            <ignt-wrapper-card [title]="'fundraising.donations.form.attributesSection.customValues' | translate">
+              <div class="donation-prompts-form__subsection">
+                <app-expandable-content
+                  variant="toggle"
+                  [label]="'fundraising.donations.form.attributesSection.fields.allowCustomValues' | translate"
+                  [description]="'fundraising.donations.form.attributesSection.fields.allowCustomValuesHelper' | translate"
+                  toggleId="donation-prompts-form-allow-custom-values"
+                  testId="donation-prompts-form-allow-custom-values"
+                  [isOptional]="true"
+                  [isChecked]="settingsValue().allowCustomDonations"
+                  (checkedChange)="patchSettingsBoolean('allowCustomDonations', $event)"
+                >
+                  <div class="donation-prompts-form__ranges-wrapper">
+                    <div class="donation-prompts-form__field-wrapper">
+                      <ignt-input-field
+                        appThousandsSeparator
+                        id="donation-prompts-form-min-amount"
+                        data-testid="donation-prompts-form-min-amount"
+                        formControlName="minAmount"
+                        [label]="'fundraising.donations.form.attributesSection.fields.minAmount' | translate"
+                        type="number"
+                        [helperText]="'fundraising.donations.form.attributesSection.fields.minAmountHelper' | translate"
+                        class="donation-prompts-form__input-field"
+                      />
+                    </div>
+                    <div class="donation-prompts-form__field-wrapper">
+                      <ignt-input-field
+                        appThousandsSeparator
+                        id="donation-prompts-form-max-amount"
+                        data-testid="donation-prompts-form-max-amount"
+                        formControlName="maxAmount"
+                        [label]="'fundraising.donations.form.attributesSection.fields.maxAmount' | translate"
+                        type="number"
+                        [helperText]="'fundraising.donations.form.attributesSection.fields.maxAmountHelper' | translate"
+                        class="donation-prompts-form__input-field"
+                      />
+                    </div>
+                  </div>
+                </app-expandable-content>
+              </div>
+            </ignt-wrapper-card>
+
+            <ignt-wrapper-card [title]="'fundraising.donations.form.generalInfoSection.fields.disclaimer.cardTitle' | translate">
+              <div class="donation-prompts-form__subsection">
+                <app-expandable-content
+                  variant="toggle"
+                  [label]="'fundraising.donations.form.generalInfoSection.fields.disclaimer.label' | translate"
+                  [description]="'fundraising.donations.form.generalInfoSection.fields.disclaimer.helper' | translate"
+                  toggleId="donation-prompts-form-allow-disclaimer"
+                  testId="donation-prompts-form-allow-disclaimer"
+                  [isChecked]="settingsValue().allowDisclaimer"
+                  [isOptional]="true"
+                  [hideDivider]="true"
+                  (checkedChange)="patchSettingsBoolean('allowDisclaimer', $event)"
+                />
+              </div>
+            </ignt-wrapper-card>
+
+            @if (showLegacyFields()) {
+              <ignt-wrapper-card [title]="'fundraising.donations.form.legacy.thankYou.cardTitle' | translate">
+                <div class="donation-prompts-form__subsection">
+                  <app-expandable-content
+                    variant="toggle"
+                    [label]="'fundraising.donations.form.legacy.thankYou.label' | translate"
+                    [description]="'fundraising.donations.form.legacy.thankYou.helper' | translate"
+                    toggleId="donation-prompts-form-show-thank-you"
+                    testId="donation-prompts-form-show-thank-you"
+                    [isChecked]="settingsValue().showThankYouMessage"
+                    [isOptional]="true"
+                    [hideDivider]="true"
+                    (checkedChange)="patchSettingsBoolean('showThankYouMessage', $event)"
+                  />
+                </div>
+              </ignt-wrapper-card>
+            }
+
+            <ignt-wrapper-card [title]="'fundraising.donations.form.assignmentsSection.title' | translate">
+              <div class="donation-prompts-form__subsection">
+                <div class="donation-prompts-form__field-wrapper">
+                  <div class="donation-prompts-form__events-wrapper">
+                    <app-multi-select
+                      [options]="cityOptions()"
+                      [selectedOptions]="citiesSelected()"
+                      [placeholder]="'fundraising.donations.form.assignmentsSection.fields.city' | translate"
+                      [searchPlaceholder]="'fundraising.donations.form.assignmentsSection.fields.cityPlaceholder' | translate"
+                      [displayInPlaceMaximum]="1"
+                      (selected)="onCitiesSelected($event)"
+                      (searchChange)="onCitySearchChange($event)"
+                      class="donation-prompts-form__events-wrapper__cities"
+                      data-testid="donation-prompts-form-cities"
+                    ></app-multi-select>
+                    <app-multi-select
+                      [options]="eventOptions()"
+                      [selectedOptions]="selectedEvent()"
+                      [placeholder]="'fundraising.donations.form.assignmentsSection.fields.event' | translate"
+                      [searchPlaceholder]="'fundraising.donations.form.assignmentsSection.fields.eventPlaceholder' | translate"
+                      [maxSelectedOptions]="1"
+                      [displayInPlaceMaximum]="1"
+                      (selected)="onEventSelected($event)"
+                      (searchChange)="onEventSearchChange($event)"
+                      class="donation-prompts-form__events-wrapper__events"
+                      data-testid="donation-prompts-form-events"
+                    ></app-multi-select>
+                    <app-multi-select
+                      [options]="channelOptions()"
+                      [selectedOptions]="selectedChannels()"
+                      [placeholder]="'fundraising.donations.form.assignmentsSection.fields.channels' | translate"
+                      [searchPlaceholder]="'fundraising.donations.form.assignmentsSection.fields.channelsPlaceholder' | translate"
+                      [displayInPlaceMaximum]="1"
+                      (selected)="onChannelsSelected($event)"
+                      class="donation-prompts-form__events-wrapper__channels"
+                      data-testid="donation-prompts-form-channels"
+                    ></app-multi-select>
+                    <button
+                      type="button"
+                      igntButton
+                      sentiment="tertiary"
+                      size="small"
+                      class="donation-prompts-form__events-wrapper__add"
+                      [disabled]="!canAdd()"
+                      (click)="onAddAssignment()"
+                      data-testid="donation-prompts-form-add-assignment"
+                    >
+                      {{ 'fundraising.donations.form.assignmentsSection.fields.add' | translate }}
+                    </button>
+                  </div>
+                  @if (
+                    form.controls.settings.controls.mainPlanIds.touched &&
+                    form.controls.settings.controls.mainPlanIds.hasError('mainPlanIdsRequired')
+                  ) {
+                    <ignt-field-error
+                      class="donation-prompts-form__error"
+                      [formControlValue]="form.controls.settings.controls.mainPlanIds"
+                      errorName="mainPlanIdsRequired"
+                    >
+                      {{ 'fundraising.donations.form.validation.eventsRequired' | translate }}
+                    </ignt-field-error>
+                  } @else {
+                    <label class="donation-prompts-form__hint">
+                      {{ 'fundraising.donations.form.assignmentsSection.fields.selectEventsAndChannelsHelper' | translate }}
+                    </label>
+                  }
+                  @if (hasNoSelectableChannels()) {
+                    <ignt-alert
+                      class="donation-prompts-form__no-selectable-channels-alert"
+                      sentiment="info"
+                      data-testid="donation-prompts-form-no-selectable-channels-alert"
+                      [description]="'fundraising.donations.form.assignmentsSection.noSelectableChannelsAlert' | translate"
+                    ></ignt-alert>
+                  }
+                  @if (hasStaleChannels()) {
+                    <ignt-alert
+                      class="donation-prompts-form__stale-channels-alert"
+                      sentiment="danger"
+                      data-testid="donation-prompts-form-stale-channels-alert"
+                      [description]="'fundraising.donations.form.assignmentsSection.staleChannelsAlert' | translate"
+                    >
+                      <ng-template #igntAlertActions>
+                        <button
+                          type="button"
+                          igntButton
+                          sentiment="secondary"
+                          size="small"
+                          (click)="onCleanStaleChannels()"
+                          data-testid="donation-prompts-form-clean-stale-channels"
+                        >
+                          {{ 'fundraising.donations.form.assignmentsSection.cleanStaleChannels' | translate }}
+                        </button>
+                      </ng-template>
+                    </ignt-alert>
+                  }
+                  @if (assignments().length > 0) {
+                    <div class="donation-prompts-form__assignments" data-testid="donation-prompts-form-assignments">
+                      @for (assignment of assignments(); track assignment.mainPlanId) {
+                        <ignt-list-item
+                          class="donation-prompts-form__assignment"
+                          [title]="assignmentTitle(assignment)"
+                          [description]="channelLabel(assignment.channels)"
+                          type="unwrapped"
+                          [attr.data-testid]="'donation-prompts-form-assignment-' + assignment.mainPlanId"
+                        >
+                          <ng-container trailing-modifier>
+                            <ignt-button-dropdown
+                              [options]="assignmentActionsOptions"
+                              size="small"
+                              sentiment="tertiary"
+                              align="right"
+                              [leadingIcon]="['fas', 'ellipsis-v']"
+                              [trailingIconClosed]="null"
+                              [trailingIconOpened]="null"
+                              (optionClick)="onAssignmentAction($event, assignment)"
+                              [attr.aria-label]="'fundraising.donations.form.assignmentsSection.actions.label' | translate"
+                              [attr.data-testid]="'donation-prompts-form-assignment-actions-' + assignment.mainPlanId"
+                            ></ignt-button-dropdown>
+                          </ng-container>
+                        </ignt-list-item>
+                        @if (!$last) {
+                          <ignt-divider [margin]="false" />
+                        }
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            </ignt-wrapper-card>
+          </div>
+        </form>
+      }
+
+      @if (activeTab() === donationPromptsFormTabs.CONTENT_TRANSLATIONS) {
+        <app-donation-prompts-form-content-translations
+          [activeLanguages]="activeLanguages()"
+          [allowCustomDonations]="settingsValue().allowCustomDonations"
+          [allowDisclaimer]="settingsValue().allowDisclaimer"
+          [contentForm]="form.controls.content"
+          [imageUrl]="contentValue().imageUrl"
+          [missingNeededLocales]="missingNeededLocales()"
+          [showLegacyFields]="showLegacyFields()"
+          [showThankYouMessage]="settingsValue().showThankYouMessage"
+          [uploadImageCallback]="uploadImage"
+          (addLanguageClick)="onAddLanguageClick()"
+          (imageChange)="onImagesChange($event)"
+        />
+      }
+    </div>
+
+    <div
+      class="donation-prompts-form__preview-container"
+      [class.donation-prompts-form__preview-container--mobile-open]="isMobilePreviewOpen()"
+    >
+      <div class="donation-prompts-form__preview-copy">
+        <h4 class="donation-prompts-form__preview-title">
+          {{ 'fundraising.donations.form.preview.title' | translate }}
+        </h4>
+        <p class="donation-prompts-form__preview-subtitle">
+          {{ 'fundraising.donations.form.preview.subtitle' | translate }}
+        </p>
+      </div>
+      <div class="donation-prompts-form__preview-mobile-header">
+        <span class="donation-prompts-form__preview-mobile-title">
+          {{ 'fundraising.donations.form.preview.title' | translate }}
+        </span>
+        <button
+          type="button"
+          igntButton
+          variant="default"
+          sentiment="secondary"
+          size="small"
+          (click)="closeMobilePreview()"
+          data-testid="donation-prompts-form-close-mobile-preview"
+        >
+          {{ 'common.close' | translate }}
+        </button>
+      </div>
+      <div class="donation-prompts-form__preview-sticky">
+        @if (activeLanguages().length > 1) {
+          <app-multi-select
+            class="donation-prompts-form__preview-language-selector"
+            [options]="previewLanguageOptions()"
+            [selectedOptions]="selectedPreviewLanguageOption()"
+            [placeholder]="'fundraising.donationPages.form.preview.languagePlaceholder' | translate"
+            [searchPlaceholder]="'fundraising.donationPages.form.preview.languageLabel' | translate"
+            [maxSelectedOptions]="1"
+            [displayInPlaceMaximum]="1"
+            (selected)="onPreviewLanguageSelected($event)"
+          />
+        }
+        <div class="donation-prompts-form__preview-frame">
+          <app-donation-prompts-form-preview
+            [contentValue]="contentValue()"
+            [settingsValue]="settingsValue()"
+            [selectedLanguage]="selectedPreviewLanguage()"
+          />
+        </div>
+      </div>
+    </div>
+    @if (isMobilePreviewOpen()) {
+      <div class="donation-prompts-form__preview-backdrop" (click)="closeMobilePreview()"></div>
+    }
+  </div>
+</app-donation-form-layout>

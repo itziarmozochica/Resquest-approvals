@@ -1,0 +1,79 @@
+<div class="calendar-order-search">
+  <div class="calendar-order-search__field" (mousedown)="onFieldMouseDown()">
+    <ignt-input-field
+      #searchField
+      class="calendar-order-search__input"
+      data-testid="asset-based-calendar-order-search"
+      [label]="'bookedSlots.orderSearch.placeholder' | translate"
+      [leadIcon]="searchIcon"
+      [ngModel]="searchTerm()"
+      (keydown)="onKeyDown($event)"
+      (ngModelChange)="onSearchTermInput($event)"
+    ></ignt-input-field>
+    @if (searchTerm()) {
+      <button
+        ignt-icon-button
+        type="button"
+        class="calendar-order-search__clear"
+        data-testid="asset-based-calendar-order-search-clear"
+        sentiment="tertiary"
+        size="small"
+        [attr.aria-label]="'bookedSlots.orderSearch.clear' | translate"
+        [icon]="clearIcon"
+        (click)="onClear()"
+      ></button>
+    }
+  </div>
+
+  @if (isOpen()) {
+    <div
+      role="listbox"
+      class="calendar-order-search__results"
+      data-testid="asset-based-calendar-order-search-results"
+      [attr.aria-label]="'bookedSlots.orderSearch.resultsLabel' | translate"
+      [attr.id]="listboxId"
+      (mousedown)="$event.preventDefault()"
+    >
+      @for (result of results(); track result.bookedSlotId; let index = $index) {
+        <div
+          role="option"
+          class="calendar-order-search__result"
+          data-testid="asset-based-calendar-order-search-result"
+          [class.calendar-order-search__result--active]="index === activeIndex()"
+          [attr.aria-selected]="index === activeIndex()"
+          [attr.id]="getOptionDomId(index)"
+          (click)="onResultClick(result)"
+        >
+          <span
+            aria-hidden="true"
+            class="calendar-order-search__dot"
+            [class.calendar-order-search__dot--pending]="isPendingToPay(result)"
+          ></span>
+          <span class="calendar-order-search__result-text">
+            <span class="calendar-order-search__result-name">{{ result.customerName }}</span>
+            <span class="calendar-order-search__result-meta">{{ result.assetName }} · {{ result.startTime }}</span>
+          </span>
+          <span class="visually-hidden">{{ getStatusLabelKey(result) | translate }}</span>
+          <ignt-icon
+            aria-hidden="true"
+            class="calendar-order-search__result-arrow"
+            name="arrow-right"
+            size="caption"
+            variant="light"
+          ></ignt-icon>
+        </div>
+      }
+      @if (!hasResults()) {
+        <div role="option" aria-disabled="true" class="calendar-order-search__empty" data-testid="asset-based-calendar-order-search-empty">
+          {{ 'bookedSlots.orderSearch.empty' | translate: { term: searchTerm() } }}
+        </div>
+      }
+    </div>
+  }
+
+  <span aria-live="polite" class="visually-hidden">
+    @if (isOpen()) {
+      {{ 'bookedSlots.orderSearch.resultCount' | translate: { count: results().length } }}
+    }
+  </span>
+</div>

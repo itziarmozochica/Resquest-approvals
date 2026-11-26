@@ -1,0 +1,379 @@
+<div class="payment-configuration-editor" data-testid="payment-configuration-editor">
+  @if (loading()) {
+    <div class="payment-configuration-editor__loading" data-testid="payment-configuration-editor-loading">
+      {{ 'common.loading' | translate }}
+    </div>
+  } @else if (loadError()) {
+    <div class="payment-configuration-editor__error" data-testid="payment-configuration-editor-error">
+      {{ 'paymentConfig.editor.loadError' | translate }}
+    </div>
+  } @else {
+    <ignt-breadcrumb
+      class="payment-configuration-editor__breadcrumbs"
+      data-testid="payment-configuration-editor-breadcrumbs"
+      [items]="breadcrumbItems()"
+      (itemActivate)="cancel()"
+    />
+
+    <section
+      class="payment-configuration-editor__card payment-configuration-editor__header"
+      [class.payment-configuration-editor__header--summary]="isEdit()"
+      [class.payment-configuration-editor__header--redesign]="usesV2()"
+    >
+      <div class="payment-configuration-editor__header-body">
+        <div class="payment-configuration-editor__header-main">
+          <ignt-input-field
+            class="payment-configuration-editor__name-input"
+            data-testid="payment-configuration-editor-name-input"
+            type="text"
+            [label]="'paymentConfig.editor.name.label' | translate"
+            [placeholder]="'paymentConfig.editor.name.placeholder' | translate"
+            [disabled]="saving()"
+            [ngModel]="name()"
+            (ngModelChange)="onNameChange($event)"
+          />
+
+          @if (isEdit() && createdAt()) {
+            <p class="payment-configuration-editor__created-date" data-testid="payment-configuration-editor-created">
+              <ignt-icon name="calendar" variant="light" />
+              {{ 'paymentConfig.editor.summary.created' | translate }}: {{ createdAt() | date: 'EEE d, MMM y' }}
+            </p>
+          }
+        </div>
+
+        @if (isEdit()) {
+          <div class="payment-configuration-editor__summary" data-testid="payment-configuration-editor-summary">
+            <div
+              id="payment-configuration-editor-summary-details"
+              class="payment-configuration-editor__summary-details"
+              [class.payment-configuration-editor__summary-details--expanded]="detailsExpanded()"
+            >
+              <div class="payment-configuration-editor__summary-item">
+                <span class="payment-configuration-editor__summary-label">
+                  {{ 'paymentConfig.editor.summary.gatewayProvider' | translate }}
+                </span>
+                <span class="payment-configuration-editor__summary-value" data-testid="payment-configuration-editor-summary-provider">
+                  {{ 'paymentConfig.editor.gateway.provider.' + (summaryProvider() ?? 'none') | translate }}
+                </span>
+              </div>
+              <div class="payment-configuration-editor__summary-item">
+                <span class="payment-configuration-editor__summary-label">
+                  {{ 'paymentConfig.editor.summary.paymentMethods' | translate }}
+                </span>
+                <span class="payment-configuration-editor__summary-value" data-testid="payment-configuration-editor-summary-methods">
+                  {{ summaryMethodCount() }}
+                </span>
+              </div>
+              <div class="payment-configuration-editor__summary-item">
+                <span class="payment-configuration-editor__summary-label">
+                  {{ 'paymentConfig.editor.summary.delegated' | translate }}
+                </span>
+                <span class="payment-configuration-editor__summary-value" data-testid="payment-configuration-editor-summary-delegated">
+                  {{ summaryDelegatedCount() }}
+                </span>
+              </div>
+              @if (usesV2() && allowSplitPayments()) {
+                <div class="payment-configuration-editor__summary-item">
+                  <span class="payment-configuration-editor__summary-label">
+                    {{ 'paymentConfig.editor.summary.splitPayments' | translate }}
+                  </span>
+                  <span class="payment-configuration-editor__summary-value" data-testid="payment-configuration-editor-summary-split">
+                    <ignt-tag sentiment="positive" variant="outline">{{ 'paymentConfig.editor.summary.activated' | translate }}</ignt-tag>
+                  </span>
+                </div>
+              }
+              @if (usesV2()) {
+                <div class="payment-configuration-editor__summary-item">
+                  <span class="payment-configuration-editor__summary-label">
+                    {{ 'paymentConfig.editor.summary.directButtons' | translate }}
+                  </span>
+                  <span
+                    class="payment-configuration-editor__summary-value"
+                    data-testid="payment-configuration-editor-summary-direct-buttons"
+                  >
+                    {{ summaryDirectButtonCount() }}
+                  </span>
+                </div>
+              }
+            </div>
+
+            <ignt-button
+              class="payment-configuration-editor__summary-toggle"
+              data-testid="payment-configuration-editor-summary-toggle"
+              variant="tertiary"
+              sentiment="neutral"
+              size="small"
+              label=""
+              [leadingIcon]="summaryToggleIcon()"
+              [ariaExpanded]="detailsExpanded()"
+              [ariaLabel]="
+                (detailsExpanded() ? 'paymentConfig.editor.summary.hideDetails' : 'paymentConfig.editor.summary.showDetails') | translate
+              "
+              (click)="toggleDetails()"
+            />
+
+            @if (detail() !== null) {
+              <button
+                class="payment-configuration-editor__menu-trigger"
+                data-testid="payment-configuration-editor-menu"
+                ignt-icon-button
+                size="small"
+                sentiment="tertiary"
+                [icon]="['fas', 'ellipsis-v']"
+                [attr.aria-label]="'paymentConfig.list.columns.actions' | translate"
+                [disabled]="saving()"
+                [igntMenuTriggerFor]="actionsMenu"
+              ></button>
+            }
+            <ng-template #actionsMenu>
+              <ignt-menu>
+                @if (isDuplicateAllowed()) {
+                  <ignt-menu-item
+                    data-testid="payment-configuration-editor-menu-duplicate"
+                    [label]="'paymentConfig.actions.menu.duplicate' | translate"
+                    value="duplicate"
+                    [disabled]="saving()"
+                    (triggered)="duplicate()"
+                  >
+                    <ignt-icon name="copy" variant="light" />
+                  </ignt-menu-item>
+                }
+                <ignt-menu-item
+                  data-testid="payment-configuration-editor-menu-remove"
+                  [label]="'paymentConfig.actions.menu.remove' | translate"
+                  value="remove"
+                  sentiment="danger"
+                  [disabled]="saving()"
+                  (triggered)="remove()"
+                >
+                  <ignt-icon name="trash" variant="light" />
+                </ignt-menu-item>
+              </ignt-menu>
+            </ng-template>
+          </div>
+        }
+      </div>
+    </section>
+
+    <div
+      class="payment-configuration-editor__tabs"
+      [class.payment-configuration-editor__tabs--redesign]="usesV2()"
+      data-testid="payment-configuration-editor-tabs"
+    >
+      <ignt-tabs [keepAlive]="true" [selectedIndex]="selectedTab()" (selectedIndexChange)="selectTab($event)">
+        @if (usesV2()) {
+          <ignt-tabs-item [label]="'paymentConfig.editor.tabs.directButtons' | translate">
+            <div class="payment-configuration-editor__tab-panel">
+              <div class="payment-configuration-editor__split-row payment-configuration-editor__split-row--with-preview">
+                <section
+                  class="payment-configuration-editor__card payment-configuration-editor__split"
+                  data-testid="payment-configuration-editor-direct-buttons"
+                >
+                  <div class="payment-configuration-editor__split-header">
+                    <div class="payment-configuration-editor__split-heading">
+                      <h3 class="payment-configuration-editor__split-title">
+                        {{ 'paymentConfig.editor.directButtons.title' | translate }}
+                      </h3>
+                      <ignt-button
+                        class="payment-configuration-editor__preview-action"
+                        size="small"
+                        variant="tertiary"
+                        data-testid="payment-configuration-editor-direct-buttons-preview-btn"
+                        [label]="'paymentConfig.editor.split.preview.action' | translate"
+                        (click)="openPreview({ directButtons: directButtonsPreview() })"
+                      />
+                    </div>
+                    <p class="payment-configuration-editor__split-description">
+                      {{ 'paymentConfig.editor.directButtons.helper' | translate }}
+                    </p>
+                  </div>
+                  <app-payment-configuration-direct-buttons
+                    [allowSplitPayments]="allowSplitPayments()"
+                    [disabled]="saving()"
+                    [slots]="directButtonSlots()"
+                    (slotChange)="onDirectButtonSlotChange($event)"
+                    (slotToggle)="onDirectButtonSlotToggle($event)"
+                    (splitToggle)="onSplitPaymentsChange()"
+                  />
+                </section>
+                <section
+                  class="payment-configuration-editor__card payment-configuration-editor__preview-card"
+                  data-testid="payment-configuration-editor-direct-buttons-preview"
+                >
+                  <app-payment-configuration-direct-buttons-preview [buttons]="directButtonsPreview()" />
+                </section>
+              </div>
+            </div>
+          </ignt-tabs-item>
+        } @else {
+          <ignt-tabs-item [label]="'paymentConfig.editor.tabs.splitPayments' | translate">
+            <div class="payment-configuration-editor__tab-panel">
+              <div class="payment-configuration-editor__split-row">
+                <section
+                  class="payment-configuration-editor__card payment-configuration-editor__split"
+                  data-testid="payment-configuration-editor-split"
+                >
+                  <h3 class="payment-configuration-editor__split-title">
+                    {{ 'paymentConfig.editor.split.title' | translate }}
+                  </h3>
+                  <div class="payment-configuration-editor__split-control">
+                    <ignt-toggle
+                      data-testid="payment-configuration-editor-split-toggle"
+                      [checked]="allowSplitPayments()"
+                      [disabled]="saving()"
+                      (change)="onSplitPaymentsChange()"
+                    ></ignt-toggle>
+                    <span class="payment-configuration-editor__split-state">
+                      {{ 'paymentConfig.editor.split.state' | translate }}
+                    </span>
+                  </div>
+                  <p class="payment-configuration-editor__split-helper">
+                    {{ 'paymentConfig.editor.split.helper' | translate }}
+                  </p>
+                </section>
+              </div>
+            </div>
+          </ignt-tabs-item>
+        }
+        <ignt-tabs-item [label]="'paymentConfig.editor.tabs.paymentMethods' | translate">
+          <div class="payment-configuration-editor__tab-panel">
+            @if (usesV2()) {
+              <div class="payment-configuration-editor__split-row payment-configuration-editor__split-row--with-preview">
+                <div class="payment-configuration-editor__methods-column">
+                  <app-payment-configuration-gateway-editor
+                    class="payment-configuration-editor__card"
+                    [catalog]="catalog()!"
+                    [initialState]="gatewayValue()"
+                    [assignedOnsiteSetups]="assignedOnsiteSetups()"
+                    [configurationId]="configurationId()"
+                    [placeId]="placeId()"
+                    [disabled]="saving()"
+                    [showErrors]="submitted()"
+                    [saveBeforeConnect]="saveForConnect"
+                    [redesign]="true"
+                    (gatewayChange)="onGatewayChange($event)"
+                  >
+                    <ignt-button
+                      sectionAction
+                      class="payment-configuration-editor__preview-action"
+                      size="small"
+                      variant="tertiary"
+                      data-testid="payment-configuration-editor-methods-preview-btn"
+                      [label]="'paymentConfig.editor.split.preview.action' | translate"
+                      (click)="openPreview({ methods: previewMethods() })"
+                    />
+                  </app-payment-configuration-gateway-editor>
+
+                  <app-payment-configuration-delegated-editor
+                    class="payment-configuration-editor__card"
+                    [delegatedMethods]="delegatedMethods()"
+                    [selectedMethodCodes]="delegatedSelection()"
+                    [requiredError]="delegatedRequiredError()"
+                    [redesign]="true"
+                    (selectionChange)="onDelegatedSelectionChange($event)"
+                  ></app-payment-configuration-delegated-editor>
+                </div>
+                <section
+                  class="payment-configuration-editor__card payment-configuration-editor__preview-card"
+                  data-testid="payment-configuration-editor-methods-preview"
+                >
+                  <app-payment-configuration-methods-preview [methods]="previewMethods()" />
+                </section>
+              </div>
+            } @else {
+              <app-payment-configuration-gateway-editor
+                class="payment-configuration-editor__card"
+                [catalog]="catalog()!"
+                [initialState]="gatewayValue()"
+                [assignedOnsiteSetups]="assignedOnsiteSetups()"
+                [configurationId]="configurationId()"
+                [placeId]="placeId()"
+                [disabled]="saving()"
+                [showErrors]="submitted()"
+                [saveBeforeConnect]="saveForConnect"
+                (gatewayChange)="onGatewayChange($event)"
+              ></app-payment-configuration-gateway-editor>
+
+              <app-payment-configuration-delegated-editor
+                class="payment-configuration-editor__card"
+                [delegatedMethods]="delegatedMethods()"
+                [selectedMethodCodes]="delegatedSelection()"
+                [requiredError]="delegatedRequiredError()"
+                (selectionChange)="onDelegatedSelectionChange($event)"
+              ></app-payment-configuration-delegated-editor>
+            }
+          </div>
+        </ignt-tabs-item>
+        @if (showCheckoutOptions()) {
+          <ignt-tabs-item [label]="'paymentConfig.editor.tabs.paymentFlows' | translate">
+            <div class="payment-configuration-editor__tab-panel">
+              <div class="payment-configuration-editor__split-row payment-configuration-editor__split-row--with-preview">
+                <section
+                  class="payment-configuration-editor__card payment-configuration-editor__split"
+                  data-testid="payment-configuration-editor-split"
+                >
+                  <div class="payment-configuration-editor__split-header">
+                    <div class="payment-configuration-editor__split-heading">
+                      <h3 class="payment-configuration-editor__split-title">
+                        {{ 'paymentConfig.editor.split.flowsTitle' | translate }}
+                      </h3>
+                      <ignt-button
+                        class="payment-configuration-editor__preview-action"
+                        size="small"
+                        variant="tertiary"
+                        data-testid="payment-configuration-editor-preview-btn"
+                        [label]="'paymentConfig.editor.split.preview.action' | translate"
+                        (click)="openPreview({ checkoutFlows: previewFlows() })"
+                      />
+                    </div>
+                    <p class="payment-configuration-editor__split-description">
+                      {{ 'paymentConfig.editor.split.checkoutFlows.helperDefault' | translate }}
+                    </p>
+                  </div>
+                  <app-payment-configuration-checkout-flows
+                    [disabled]="saving()"
+                    [flows]="checkoutFlows()"
+                    (flowsChange)="onCheckoutFlowsChange($event)"
+                  />
+                </section>
+                <section
+                  class="payment-configuration-editor__card payment-configuration-editor__preview-card"
+                  data-testid="payment-configuration-editor-preview"
+                >
+                  <app-payment-configuration-checkout-preview [flows]="previewFlows()" />
+                </section>
+              </div>
+            </div>
+          </ignt-tabs-item>
+        }
+      </ignt-tabs>
+    </div>
+
+    <div
+      class="payment-configuration-editor__actions"
+      data-testid="payment-configuration-editor-actions"
+      [class.payment-configuration-editor__actions--docked]="actionsDocked()"
+    >
+      <ignt-button
+        fill
+        variant="secondary"
+        sentiment="danger"
+        data-testid="payment-configuration-editor-cancel"
+        [disabled]="saving()"
+        [label]="'common.cancel' | translate"
+        (click)="cancel()"
+      />
+      <ignt-button
+        fill
+        variant="primary"
+        sentiment="neutral"
+        [loading]="saving()"
+        [disabled]="saving() || (isEdit() && !hasChanges())"
+        data-testid="payment-configuration-editor-save"
+        [label]="(isEdit() ? 'paymentConfig.editor.save.update' : 'paymentConfig.editor.save.createShort') | translate"
+        (click)="save()"
+      />
+    </div>
+    <div #actionsSentinel class="payment-configuration-editor__actions-sentinel" aria-hidden="true"></div>
+  }
+</div>

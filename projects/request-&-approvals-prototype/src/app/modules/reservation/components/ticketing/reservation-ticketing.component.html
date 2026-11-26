@@ -1,0 +1,650 @@
+<div class="box-office-content box-office-content--with-description reservation-ticketing">
+  <div class="box-office-content__container" [class.box-office-content__container--lead-mode]="leadContext()">
+    <ng-container *ngIf="!haveReservationCapability && currentStep.id == 1">
+      <ignt-alert
+        data-testid="information-banner"
+        description="{{ 'reservations.maxReservationsPerDayExceeded' | translate }}{{
+          ': ' + this.maxReservationsPerBusinessPerDayExceeded
+        }}"
+      ></ignt-alert>
+    </ng-container>
+    <ng-container *ngIf="!haveReservationCapabilityInAdvancePeriod && currentStep.id == 3">
+      <ignt-alert
+        data-testid="information-banner"
+        [description]="
+          'reservations.maxReservationsPeriodExceeded' | translate: { time: this.maxAdvanceReservationPeriodExceeded | hoursToDays }
+        "
+      ></ignt-alert>
+    </ng-container>
+    <ng-container *ngIf="(haveReservationCapability && currentStep.id == 1) || currentStep.id != 1">
+      <div class="box-office-content__row" [class.box-office-content__row--lead-mode]="leadContext()">
+        <div
+          class="box-office-content__no-filter-selected"
+          *ngIf="!filtersSelected || (!sessionAvailabilitySummary && !isLoadingSessions && !error)"
+        >
+          <ignt-icon class="box-office-content__no-filter-selected__icon" name="sensor-alert" variant="light" />
+          <p class="box-office-content__no-filter-selected__text" translate>boxOffice.noFilterSelected</p>
+        </div>
+        <ng-container *ngIf="filtersSelected">
+          <div class="box-office-content__spinner" *ngIf="isLoadingSessions">
+            <ignt-icon class="loader" name="spinner" variant="solid" size="h1" [spin]="true" />
+          </div>
+          <div class="box-office-content__alert-error" *ngIf="error">
+            <ignt-alert
+              sentiment="danger"
+              [description]="'boxOffice.genericErrorTitle' | translate"
+              showCloseButton
+              [closeButtonAriaLabel]="'common.close' | translate"
+              (closeAlert)="closeError()"
+            />
+          </div>
+          <ng-container *ngIf="!isLoadingSessions && !error && sessionAvailabilitySummary">
+            <div *ngTemplateOutlet="planDetails"></div>
+          </ng-container>
+          <ng-container
+            *ngIf="
+              !isLoadingSessions &&
+              !error &&
+              sessionAvailabilitySummary &&
+              sessionAvailabilitySummary?.regularSessionAvailabilitySummaryByDates.length === 0
+            "
+          >
+            <div class="box-office-content__content">
+              <div class="box-office-content__content-card" [class.blocked-content]="isLoadingCart">
+                <ng-container *ngTemplateOutlet="dateSelector"></ng-container>
+                <ng-container>
+                  <div class="box-office-content__no-results">
+                    <ignt-icon class="box-office-content__no-results__icon" name="sensor-alert" variant="light" />
+                    <p class="box-office-content__no-results__text" translate>boxOffice.noSessionsAvailable</p>
+                  </div>
+                </ng-container>
+              </div>
+            </div>
+          </ng-container>
+          <ng-container
+            *ngIf="
+              !isLoadingSessions &&
+              !error &&
+              sessionAvailabilitySummary &&
+              sessionAvailabilitySummary?.regularSessionAvailabilitySummaryByDates.length > 0
+            "
+          >
+            <div
+              class="box-office-content__content"
+              [class.box-office-content__content--contact-step]="currentStep?.id === lastSelectorStep.id"
+            >
+              <ng-container [ngSwitch]="currentStep?.id">
+                <ng-container *ngSwitchCase="ticketSelectorStep.id">
+                  <div class="box-office-content__content-card" [class.blocked-content]="isLoadingCart">
+                    <ng-container>
+                      <ng-container *ngTemplateOutlet="dateTicketFlow"></ng-container>
+                    </ng-container>
+                  </div>
+                </ng-container>
+
+                <ng-container *ngSwitchCase="seatingSelectorStep.id">
+                  <div class="box-office-content__content-card box-office-content__content-card--seating">
+                    <div class="content">
+                      <div class="content__title" data-testid="box-office-step-title">
+                        {{ 'boxOffice.seatingSelection' | translate }}
+                      </div>
+                      <seating-selector
+                        #seatingSelector
+                        [seatingMapUrl]="seatingMapUrl"
+                        [state]="seatingMapState"
+                        [locale]="locale"
+                        [manageAsFreeSeatingMap]="manageAsFreeSeatingMap"
+                        [shouldRestoreToBeginning]="shouldRestoreToBeginning"
+                        [shouldGoBack]="shouldGoBack"
+                        (selectSeats)="selectSeats($event)"
+                        (updateSeatsInCart)="updateSeatsInCart($event)"
+                        (confirmSeating)="confirmSeating($event)"
+                        (continueRestore)="continueRestore()"
+                      >
+                      </seating-selector>
+                    </div>
+                  </div>
+                </ng-container>
+
+                <ng-container *ngSwitchCase="lastSelectorStep.id">
+                  <div class="box-office-content__content-card">
+                    <app-contact-information
+                      [contactInformation]="guestContactInformation()"
+                      [allowEmptyName]="isGuestConversion"
+                      [mandatoryFields]="getMandatoryFields()"
+                      [emailHelperTextKey]="emailHelperTextKey"
+                      [allowEmptyEmail]="!isEmailMandatory"
+                      (updateCustomer)="updateCustomer($event)"
+                      (includeDeliveryNoteAttachmentEvent)="setIncludeDeliveryNoteAttachment($event)"
+                      [showDeliveryNoteCheck]="showDeliveryNoteCheck && !isQuoteIntent"
+                      [isPrivacyDisclaimerAllowed]="!isQuoteIntent"
+                      [titleKey]="
+                        isPartiesLayout() ? 'reservations.ticketing.ticketDelivery.recipientTitle' : 'boxOffice.contactInformation'
+                      "
+                    >
+                    </app-contact-information>
+                    @if (canNoteEndCustomer()) {
+                      <app-end-customer-form [form]="endCustomerForm" />
+                    }
+                  </div>
+                </ng-container>
+              </ng-container>
+              <ng-container *ngIf="isOverridePriceModuleVisible && hasNewAdjustmentPrice() && currentStep?.id === lastSelectorStep.id">
+                <ignt-alert
+                  class="box-office-content__alert-warning"
+                  sentiment="warning"
+                  [title]="'reservations.ticketing.overridePriceWarning' | translate"
+                  [description]="'reservations.ticketing.overridePriceWarningMessage' | translate: { price: adjustedTotal() }"
+                ></ignt-alert>
+              </ng-container>
+              @if (isQuoteExplainerVisible) {
+                <ignt-alert
+                  class="box-office-content__alert-quote"
+                  data-testid="quote-explainer-banner"
+                  [description]="'leads.quote.explainerSentSeparately' | translate"
+                ></ignt-alert>
+              }
+              @if (!(currentStep?.id === ticketSelectorStep.id && isStagedSelectionEnabled)) {
+                <div class="box-office-content__buttons only-in-desktop">
+                  <ng-container *ngTemplateOutlet="buttonsTicketingTemplate"></ng-container>
+                </div>
+              }
+            </div>
+          </ng-container>
+          <!-- Guest conversion only: the read-only lead request (GAME-1380), `null` in every other flow.
+               A single instance placed by `isLeadPanelViewport`: here as a dedicated right column from
+               90rem up, otherwise at the top of the sidebar in #planDetails. Gated on the same
+               availability conditions as #planDetails so no card floats beside the spinner, the error
+               alert or the no-filter empty state. -->
+          @if (!isLoadingSessions && !error && sessionAvailabilitySummary && isLeadPanelViewport() && leadContext(); as lead) {
+            <div
+              class="box-office-content__lead-panel"
+              [class.box-office-content__lead-panel--sticky]="isStickyPanelStep"
+              [attr.tabindex]="isStickyPanelStep ? 0 : null"
+              [attr.role]="isStickyPanelStep ? 'region' : null"
+              [attr.aria-label]="isStickyPanelStep ? ('leads.detail.leadDetails' | translate) : null"
+              data-testid="lead-context-panel"
+            >
+              <app-lead-context-card [lead]="lead" />
+            </div>
+          }
+        </ng-container>
+      </div>
+    </ng-container>
+  </div>
+  @if (
+    ((haveReservationCapability && currentStep.id === 1) || currentStep.id !== 1) &&
+    filtersSelected &&
+    !isLoadingSessions &&
+    !error &&
+    sessionAvailabilitySummary &&
+    sessionAvailabilitySummary.regularSessionAvailabilitySummaryByDates.length > 0 &&
+    currentStep?.id === ticketSelectorStep.id &&
+    isStagedSelectionEnabled
+  ) {
+    <div class="reservation-ticketing__floating-bar" data-testid="ticketing-floating-action-bar">
+      <div
+        class="reservation-ticketing__floating-bar-content"
+        [class.reservation-ticketing__floating-bar-content--lead-mode]="leadContext()"
+      >
+        <ng-container *ngTemplateOutlet="buttonsTicketingTemplate"></ng-container>
+      </div>
+    </div>
+  }
+</div>
+
+<div
+  class="only-in-mobile"
+  *ngIf="
+    !isLoadingSessions &&
+    !error &&
+    sessionAvailabilitySummary &&
+    sessionAvailabilitySummary?.regularSessionAvailabilitySummaryByDates.length > 0
+  "
+>
+  <bottom-slider
+    [(showDetails)]="showCartDetails"
+    [showDetailsLabel]="'boxOffice.cart.viewCart' | translate"
+    [hideDetailsLabel]="'boxOffice.cart.hideCart' | translate"
+    [detailsTemplate]="cartTemplate"
+    [buttonsTemplate]="buttonsTicketingTemplate"
+  >
+  </bottom-slider>
+</div>
+
+<ng-template #cartTemplate>
+  <div *ngIf="currentStep?.id === lastSelectorStep.id" class="reservation-ticketing__staff-note reservation-ticketing__staff-note--sidebar">
+    <app-notes
+      [customerNotesDraft]="true"
+      [note]="draftReservationNoteForDisplay"
+      [hideNoteDetails$]="reservationDraftNoteHideDetailsSubject"
+      [showErrorSubject]="reservationDraftNoteShowErrorSubject"
+      [requiredPermissions]="[permissions.CAN_MODIFY_RESERVATION, permissions.CAN_MODIFY_MY_RESERVATION]"
+      [permissionOverride]="notesPermissionOverride()"
+      (noteUpdated)="onReservationDraftNoteUpdated($event)"
+      (deleteNote)="onReservationDraftNoteDeleted()"
+    ></app-notes>
+  </div>
+  <cart-detail
+    *ngIf="currentStep?.id === lastSelectorStep.id"
+    [cart]="cart"
+    [isLoading]="isLoadingCart"
+    [showClearAll]="false"
+    [fullHeight]="true"
+    [checkCustomerInfo]="shouldCheckCustomerInfo"
+    [showOverridePriceModule]="isOverridePriceModuleVisible"
+    [canToggleAdjustmentPrice]="canToggleOrderAdjustment"
+    [expandableLines]="isManualPriceControlVisible"
+    [linePriceEditable]="isManualPriceControlVisible"
+    [linePriceDisabledHint]="manualPriceDisabledHint"
+    [linePriceRefusal]="linePriceRefusal()"
+    [linePriceSaveCount]="linePriceSaveCount()"
+    [linePriceUpdating]="isLinePriceUpdating()"
+    [lineUnitActions]="false"
+    (cartLinePriceApply)="applyCartLinePrice($event)"
+    (cartLinePriceClear)="clearCartLinePrice($event)"
+    [planNamesByPlanId]="planNamesByPlanId"
+    [showPlanNames]="showPlanNames"
+    [showEstimatedEndTime]="true"
+    [showServingTime]="servingTimeFlagEnabled"
+    [canEditServingTime]="canSetServingTime()"
+    [servingTimeActionDisabled]="servingTimeSaving()"
+    [servingTimesBySessionId]="servingTimesBySessionId()"
+    [servingTimeAnchorDate]="servingTimeAnchor"
+    (serviceTimeRequested)="onServiceTimeRequested()"
+    scope="reservation-ticketing"
+  ></cart-detail>
+</ng-template>
+
+<ng-template #buttonsTicketingTemplate>
+  <div class="reservation-ticketing__buttons">
+    <ng-container [ngSwitch]="currentStep?.id">
+      <ng-container *ngSwitchCase="ticketSelectorStep.id">
+        <ng-container *ngIf="manageAsFreeSeatingMap; else normalTicketMode">
+          <div class="reservation-ticketing__buttons--right">
+            <ignt-button
+              variant="secondary"
+              (click)="goBack()"
+              data-testid="ticket-step-back-button"
+              [label]="'boxOffice.goBack' | translate"
+            />
+            <ignt-button
+              fill
+              [disabled]="selectedSession === null"
+              (click)="generateFreeSeatingMap()"
+              data-testid="ticket-select-from-free-map"
+              [label]="'boxOffice.selectSeats' | translate"
+            />
+          </div>
+        </ng-container>
+        <ng-template #normalTicketMode>
+          <div class="reservation-ticketing__buttons--right" [class.reservation-ticketing__buttons--spread]="isStagedSelectionEnabled">
+            <ignt-button
+              variant="secondary"
+              (click)="goBack()"
+              data-testid="ticket-step-back-button"
+              [label]="'boxOffice.goBack' | translate"
+            />
+            @if (isStagedSelectionEnabled) {
+              <ignt-button
+                class="reservation-ticketing__add-to-cart"
+                fill
+                [variant]="isStagedSelectionPending() || hasReadyQuantityDraft() ? 'primary' : 'secondary'"
+                [disabled]="!canAddStagedSelectionToCart"
+                (click)="addStagedSelectionToCart()"
+                data-testid="ticket-step-add-staged-selection"
+                [label]="addToCartLabel()"
+              />
+            }
+            @if (isQuoteAvailable) {
+              <ignt-button
+                variant="secondary"
+                (click)="continueToContactStep(true)"
+                data-testid="ticket-step-create-quote"
+                [label]="quoteCtaLabelKey | translate"
+              />
+              <ignt-button
+                [variant]="isStagedSelectionEnabled && isSelectionPendingInAnyPipe() ? 'secondary' : 'primary'"
+                (click)="continueToContactStep(false)"
+                data-testid="ticket-step-add-cart"
+                [label]="'leads.quote.createReservation' | translate"
+              />
+            } @else {
+              <ignt-button
+                [variant]="isStagedSelectionEnabled && isSelectionPendingInAnyPipe() ? 'secondary' : 'primary'"
+                (click)="addSessionsToCart()"
+                data-testid="ticket-step-add-cart"
+                [label]="(allowMultiTimeSlotSelection ? 'reservation.continue' : 'boxOffice.addToCart') | translate"
+              />
+            }
+          </div>
+        </ng-template>
+      </ng-container>
+      <ng-container *ngSwitchCase="seatingSelectorStep.id">
+        <ignt-button
+          variant="secondary"
+          (click)="goBack()"
+          data-testid="seating-step-back-button"
+          [label]="'boxOffice.goBack' | translate"
+        />
+        <ignt-button
+          [disabled]="!hasSeatsSelected || isLoadingCart"
+          (click)="finishSeating()"
+          data-testid="seating-step-confirm-seat"
+          [label]="'boxOffice.selectSeats' | translate"
+        />
+      </ng-container>
+      <ng-container *ngSwitchCase="lastSelectorStep.id">
+        <div class="reservation-ticketing__buttons--right">
+          <ignt-button
+            variant="secondary"
+            class="reservation-ticketing__button--cancel"
+            (click)="goBack()"
+            data-testid="contact-information-step-back-button"
+            [label]="'boxOffice.goBack' | translate"
+          />
+
+          <ignt-button
+            [variant]="isQuoteIntent ? 'secondary' : 'primary'"
+            [loading]="isContinuingWithCart() && !isQuoteSendRequested()"
+            [disabled]="!isCheckoutEnabled() || isContinuingWithCart()"
+            (click)="continueWithCart()"
+            data-testid="contact-information-step-continue-with-cart-button"
+            [label]="(isQuoteIntent ? quoteCtaLabelKey : 'reservation.continue') | translate"
+          />
+          @if (isQuoteIntent) {
+            <ignt-button
+              [loading]="isContinuingWithCart() && isQuoteSendRequested()"
+              [disabled]="!isCheckoutEnabled() || isContinuingWithCart()"
+              (click)="continueWithCart(true)"
+              data-testid="contact-information-step-save-and-send-quote-button"
+              [label]="quoteSendCtaLabelKey() | translate"
+            />
+          }
+        </div>
+      </ng-container>
+    </ng-container>
+  </div>
+</ng-template>
+
+<ng-template #dateTicketFlow>
+  <app-reservation-tabs
+    [placeId]="selectedVenue ?? selectedVenueInPreviousStep()?.id ?? null"
+    [channel]="channel"
+    [selectedDate]="selectedAvailabilityFromDate"
+    [locale]="locale"
+  >
+    <ng-template #ticketsProjection>
+      <ng-container *ngTemplateOutlet="dateSelector"></ng-container>
+      <ng-container *ngIf="!isLoadingDateSessions">
+        <ng-container
+          [ngTemplateOutlet]="emptyAvailabilitySessionsTemplate"
+          [ngTemplateOutletContext]="{ noResultText: 'boxOffice.noSessionsForDate' }"
+          *ngIf="datesAvailability?.length > 0 && !(regularSessionAvailabilitySummaryByDateList?.length > 0)"
+        ></ng-container>
+      </ng-container>
+      <ng-container *ngIf="isLoadingDateSessions">
+        <div class="box-office-content__spinner">
+          <ignt-icon class="loader" name="spinner" variant="solid" size="h1" [spin]="true" />
+        </div>
+      </ng-container>
+      @if (ticketTypes?.length > 0 && !isLoadingDateSessions && !manageAsFreeSeatingMap) {
+        <ng-container *ngTemplateOutlet="ticketSelector"></ng-container>
+        @if (showCartEmptyAlert() && addSessionsToCartIsDisabled()) {
+          <ignt-alert sentiment="warning" [description]="'reservation.cartEmptyAlert' | translate" />
+        }
+      }
+    </ng-template>
+  </app-reservation-tabs>
+  @if (isStagedSelectionEnabled && !isLoadingDateSessions) {
+    <div class="reservation-ticketing__staged-selection" data-testid="staged-selection-actions">
+      <div class="reservation-ticketing__staged-adjustments" role="status" aria-live="polite" data-testid="staged-selection-adjustments">
+        @for (adjustment of stagedSelectionAdjustments; track adjustment.kind + adjustment.sessionKey) {
+          <div class="reservation-ticketing__staged-adjustment" data-testid="staged-selection-adjustment">
+            <p class="reservation-ticketing__staged-adjustment-text">
+              @if (adjustment.kind === 'reduced') {
+                {{
+                  'reservation.stagedSelection.reducedForSlot'
+                    | translate: { requested: adjustment.requestedUnits, session: adjustment.name, units: adjustment.units }
+                }}
+              } @else {
+                {{ 'reservation.stagedSelection.unavailableLine' | translate: { session: adjustment.name, units: adjustment.units } }}
+              }
+            </p>
+            @if (adjustment.kind === 'unavailable') {
+              <ignt-button
+                variant="secondary"
+                size="small"
+                (click)="removeUnavailableStagedLine(adjustment)"
+                data-testid="staged-selection-remove-unavailable"
+                [label]="'reservation.stagedSelection.removeLine' | translate"
+              />
+            }
+          </div>
+        }
+      </div>
+      <div class="reservation-ticketing__staged-selection-status" role="status" aria-live="polite" data-testid="staged-selection-status">
+        @for (reason of stagedSelectionBlockReasons; track reason) {
+          <p class="reservation-ticketing__staged-selection-hint" data-testid="staged-selection-block-reason">{{ reason }}</p>
+        }
+        @if (canAddStagedSelectionToCart) {
+          <p class="reservation-ticketing__staged-selection-hint" data-testid="staged-selection-pending-hint">
+            {{ 'reservation.stagedSelection.notInCartYet' | translate }}
+          </p>
+        }
+      </div>
+    </div>
+  }
+</ng-template>
+
+<ng-template #ticketSelector>
+  @if (quotePrefillRemovedLines.length > 0) {
+    <ignt-alert sentiment="warning" data-testid="quote-removed-lines-alert" [title]="'leads.quotePreload.removedLines.title' | translate">
+      <ng-template #igntAlertContent>
+        <ul class="quote-removed-lines" data-testid="quote-removed-lines-list">
+          @for (line of quotePrefillRemovedLines; track line.slotDatetime + line.sessionId) {
+            <li>
+              {{
+                'leads.quotePreload.removedLines.' + line.reason
+                  | translate
+                    : { available: line.unitsAvailable, name: line.sessionName, requested: line.unitsRequested, slot: line.slotLabel }
+              }}
+            </li>
+          }
+        </ul>
+      </ng-template>
+    </ignt-alert>
+  }
+  <app-ticket-selector-obo
+    [showAddonsInASeparateSection]="true"
+    [showHiddenInASeparateSection]="this.isHidden == false ? false : true"
+    [ticketTypes]="ticketTypes"
+    [ongoingMultiDayTicketGroups]="ongoingMultiDayTicketGroups"
+    [showTicketAvailabilityInfo]="true"
+    [sharedAvailabilityGroupLimitsBySessionId]="sharedAvailabilityGroupLimitsBySessionId"
+    [ticketTypeCounterBySessionId]="selectedTicketsBySessionId"
+    [ticketTypeCounterBySessionType]="selectedTicketsBySessionType"
+    [hasExplodePipe]="hasExplodePipe"
+    [showPrices]="true"
+    [locale]="locale"
+    (ticketTypeCounterChange)="selectTicketCounter($event)"
+    (visibleSessionIdsChange)="onVisibleSessionIdsChange($event)"
+    (quantityDraftChange)="onQuantityDraftChange($event)"
+    (hasErrors)="setTicketCounterHasErrors($event)"
+    [allowMultiSession]="allowMultiSessionPurchase"
+    [allowMultiTimeSlot]="allowMultiTimeSlotSelection"
+    [showReservationRestriction]="true"
+    [showNewTicketTypeSelector]="true"
+    [isStepQuantityEnabled]="true"
+    [commitQuantityOnBlur]="true"
+  ></app-ticket-selector-obo>
+</ng-template>
+
+<ng-template #dateSelector>
+  <app-date-selector-obo
+    [datesAvailability]="datesAvailability"
+    [selectedDateAvailability]="selectedDateAvailability"
+    [locale]="locale"
+    [loading]="isLoadingDates"
+    [timezone]="timezone"
+    [ticketTypes]="selectedTicketsBySessionType"
+    [ongoingMultiDayTicketTypeNames]="getOngoingMultiDaySelectedTicketTypeNames()"
+    [displayedSessionType]="displayedSessionType"
+    [regularSessionAvailabilitySummaryByDate]="regularSessionAvailabilitySummaryByDateList"
+    [selectedSession]="selectedSession"
+    [sessionSelectorType]="sessionSelectorTypeForDisplay"
+    (selectedSessionChange)="selectSession($event)"
+    (loadMore)="loadMoreDays()"
+    (displayedSessionTypeChange)="handleDisplayedSessionTypeChange($event)"
+    [selectedAvailabilityFromDate]="selectedAvailabilityFromDate"
+    (handleShowAvailabilityFromDateChange)="handleShowAvailabilityFromDateChange($event)"
+    (selectedDateChange)="selectDate($event)"
+    [showLoadMoreButton]="!!nextAvailableDate"
+    [isOneStepFlow]="false"
+    [shouldShowDateSelector]="sessionSelectorTypeForDisplay !== sessionSelectorTypeEnum.BY_TIMELESS_SESSION"
+    [allowMultiTimeSlot]="allowMultiTimeSlotSelection"
+    [enableTimelessExtendedSelectors]="true"
+  >
+    <div *ngIf="showIncludeOngoingCheckbox" dateSelectorTrailing class="reservation-ticketing__include-ongoing">
+      <div class="reservation-ticketing__include-ongoing-label-column">
+        <span class="reservation-ticketing__include-ongoing-text">{{ 'reservations.ticketing.showOngoingSessions' | translate }}</span>
+        <button
+          type="button"
+          class="reservation-ticketing__whats-that-link"
+          (click)="openOngoingSessionsExplicationModal()"
+          data-testid="ongoing-sessions-whats-that"
+        >
+          {{ 'reservations.ticketing.ongoingSessionsWhatsThat' | translate }}
+        </button>
+      </div>
+      <ignt-toggle
+        id="include-ongoing-toggle"
+        class="reservation-ticketing__include-ongoing-toggle"
+        [checked]="includeOngoing"
+        (change)="onIncludeOngoingChange($any($event.target).checked)"
+        data-testid="include-ongoing-checkbox"
+      ></ignt-toggle>
+    </div>
+  </app-date-selector-obo>
+</ng-template>
+<ng-template #planDetails>
+  <div
+    class="box-office-content__sidebar"
+    [class.box-office-content__sidebar--sticky-cart]="isStickyPanelStep"
+    data-testid="ticketing-sidebar"
+  >
+    <!-- Narrow-viewport placement of the lead request: below 90rem three columns do not fit, so the
+         single card instance renders here instead of in the right-hand panel (GAME-1380). -->
+    @if (!isLeadPanelViewport() && leadContext(); as lead) {
+      <app-lead-context-card class="reservation-ticketing__lead-context" [lead]="lead" />
+    }
+    <app-plan-detail-card
+      class="reservation-obo-plan-detail"
+      *ngIf="displayPlan"
+      [plan]="displayPlan"
+      [selectedVenue]="selectedVenue"
+      [showShadow]="false"
+    ></app-plan-detail-card>
+    @if (isStickyPanelStep) {
+      <div class="reservation-ticketing__sticky-panel" data-testid="ticketing-sticky-panel">
+        <ng-container *ngTemplateOutlet="ticketStepCart"></ng-container>
+        <ng-container *ngTemplateOutlet="planDescription"></ng-container>
+      </div>
+    }
+    <ng-container *ngIf="cart || isLoadingCart">
+      <div
+        *ngIf="currentStep?.id === lastSelectorStep.id"
+        class="reservation-ticketing__staff-note reservation-ticketing__staff-note--sidebar"
+      >
+        <app-notes
+          [customerNotesDraft]="true"
+          [note]="draftReservationNoteForDisplay"
+          [hideNoteDetails$]="reservationDraftNoteHideDetailsSubject"
+          [showErrorSubject]="reservationDraftNoteShowErrorSubject"
+          [requiredPermissions]="[permissions.CAN_MODIFY_RESERVATION, permissions.CAN_MODIFY_MY_RESERVATION]"
+          [permissionOverride]="notesPermissionOverride()"
+          (noteUpdated)="onReservationDraftNoteUpdated($event)"
+          (deleteNote)="onReservationDraftNoteDeleted()"
+        ></app-notes>
+      </div>
+      <cart-detail
+        *ngIf="currentStep?.id === lastSelectorStep.id"
+        class="reservation-plan-detail"
+        [cart]="cart"
+        [isLoading]="isLoadingCart"
+        [showSeatingInModal]="true"
+        [showClearAll]="currentStep?.id !== ticketSelectorStep.id"
+        [checkCustomerInfo]="shouldCheckCustomerInfo"
+        [showOverridePriceModule]="isOverridePriceModuleVisible"
+        [canToggleAdjustmentPrice]="canToggleOrderAdjustment"
+        [expandableLines]="isManualPriceControlVisible"
+        [linePriceEditable]="isManualPriceControlVisible"
+        [linePriceDisabledHint]="manualPriceDisabledHint"
+        [linePriceRefusal]="linePriceRefusal()"
+        [linePriceSaveCount]="linePriceSaveCount()"
+        [linePriceUpdating]="isLinePriceUpdating()"
+        [lineUnitActions]="false"
+        (cartLinePriceApply)="applyCartLinePrice($event)"
+        (cartLinePriceClear)="clearCartLinePrice($event)"
+        (clearAll)="clearAll()"
+        [fullHeight]="true"
+        [planNamesByPlanId]="planNamesByPlanId"
+        [showPlanNames]="showPlanNames"
+        [showEstimatedEndTime]="true"
+        [showServingTime]="servingTimeFlagEnabled"
+        [canEditServingTime]="canSetServingTime()"
+        [servingTimeActionDisabled]="servingTimeSaving()"
+        [servingTimesBySessionId]="servingTimesBySessionId()"
+        [servingTimeAnchorDate]="servingTimeAnchor"
+        (serviceTimeRequested)="onServiceTimeRequested()"
+        scope="reservation-ticketing"
+        [showShadow]="false"
+      ></cart-detail>
+    </ng-container>
+  </div>
+</ng-template>
+
+<ng-template #ticketStepCart>
+  <ng-container *ngIf="allowMultiTimeSlotSelection && currentStep?.id === ticketSelectorStep.id">
+    <cart-detail
+      class="reservation-plan-detail reservation-ticketing__sticky-cart"
+      [cart]="nonConfirmedCart"
+      [isLoading]="isLoadingCart"
+      [showSeatingInModal]="true"
+      [showClearAll]="true"
+      [collapsable]="true"
+      [stickyPanel]="true"
+      [showOverridePriceModule]="false"
+      (clearAll)="clearAll()"
+      [fullHeight]="true"
+      [planNamesByPlanId]="planNamesByPlanId"
+      [showPlanNames]="showPlanNames"
+      [showEstimatedEndTime]="true"
+      [expandableLines]="isCartLineActionsEnabled"
+      [lineLimitsBySessionId]="isCartLineActionsEnabled ? lineLimitsBySessionId() : null"
+      [highlightedLines]="highlightedCartLines()"
+      (removeCartSession)="removeCartLine($event)"
+      (cartSessionUnitsChange)="changeCartLineUnits($event)"
+      scope="reservation-ticketing"
+      [showShadow]="false"
+    ></cart-detail>
+  </ng-container>
+</ng-template>
+
+<ng-template #planDescription>
+  <app-plan-detail
+    *ngIf="selectedPlan?.id && currentStep.id === ticketSelectorStep.id"
+    class="reservation-plan-detail"
+    [planId]="selectedPlan?.id"
+    [channelId]="channel"
+    [collapsible]="true"
+  >
+  </app-plan-detail>
+</ng-template>
+
+<ng-template #emptyAvailabilitySessionsTemplate let-noResultText="noResultText">
+  <div class="box-office-content__no-results">
+    <ignt-icon class="box-office-content__no-results__icon" name="sensor-alert" variant="light" />
+    <p class="box-office-content__no-results__text" translate>{{ noResultText }}</p>
+  </div>
+</ng-template>

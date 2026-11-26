@@ -1,0 +1,167 @@
+<div class="plan-translations-edition" data-testid="plan-translations-edition">
+  @if (loading()) {
+    <div class="plan-translations-edition__loading" data-testid="plan-translations-edition-spinner">
+      <ignt-icon class="loader" name="spinner" variant="solid" size="display" [spin]="true" aria-hidden="true"></ignt-icon>
+    </div>
+  } @else {
+    @if (!isEditing()) {
+      <app-language-tabs-bar
+        [canEdit]="canEditPlan()"
+        [hasTranslations]="hasTranslations()"
+        [languages]="languageTabs()"
+        [selectedLanguageCode]="selectedLanguageCode()"
+        (addLanguageClick)="onEditLanguagesClick()"
+        (editClick)="onEditLanguagesClick()"
+        (languageSelected)="selectLanguage($event)"
+      ></app-language-tabs-bar>
+
+      <div
+        class="plan-translations-edition__layout"
+        [class.plan-translations-edition__layout--with-channels]="translationsByChannelEnabled() && showTranslationsByChannelToggle()"
+        data-testid="plan-translations-edition-layout"
+      >
+        @if (translationsByChannelEnabled() && showTranslationsByChannelToggle()) {
+          <app-translation-channels
+            class="plan-translations-edition__channels-panel"
+            data-testid="plan-translations-edition-channels-panel"
+            [activeChannels]="activeChannels()"
+            [availableChannels]="availableChannels()"
+            [availableLanguages]="availableLanguagesData()"
+            [canEditDefaultTranslations]="canEditDefaultTranslations()"
+            [canManageChannelTranslations]="canManageChannelTranslations()"
+            [descriptionComponentCountsByScope]="descriptionComponentCountsByScope()"
+            [hasComponentsDescription]="planDetail()?.hasComponentsDescription ?? false"
+            [planOriginalLabelFormat]="planOriginalLabelFormat()"
+            [planOriginalShortDescription]="planDetail()?.shortDescription ?? ''"
+            [planSessionTypes]="planSessionTypes()"
+            [selectedChannelIdExternal]="selectedChannelId()"
+            [selectedLanguageCode]="selectedLanguageCode()"
+            [selectedLanguageIsDefault]="selectedLanguageIsDefault()"
+            [sessionTypeTranslationsByEntityId]="sessionTypeTranslationsByEntityId()"
+            [translations]="planTranslations()"
+            (channelSelected)="onChannelSelected($event)"
+            (editChannelsClick)="onEditChannelsClick()"
+          ></app-translation-channels>
+        }
+
+        @if (isDescriptionSchemaLoading()) {
+          <div class="plan-translations-edition__content-loading" data-testid="plan-translations-edition-content-loading">
+            <ignt-icon class="loader" name="spinner" variant="solid" size="display" [spin]="true" aria-hidden="true"></ignt-icon>
+          </div>
+        } @else {
+          <app-plan-translations-content
+            class="plan-translations-edition__content"
+            [canEditDefaultTranslations]="canEditDefaultTranslations()"
+            [canManageChannelTranslations]="canManageChannelTranslations()"
+            [contentSchema]="effectiveDescriptionSchema()"
+            [defaultLanguage]="defaultLanguageData()"
+            [descriptionComponentTotalCount]="selectedScopeComponentCounts().total"
+            [descriptionComponentTranslatedCount]="selectedScopeComponentCounts().translated"
+            [descriptionInherited]="descriptionChannelHasNoSchema()"
+            [descriptionStatusByCode]="effectiveDescriptionStatusByCode()"
+            [hasComponentsDescription]="planDetail()?.hasComponentsDescription ?? false"
+            [hasLanguages]="languageTabs().length > 0"
+            [isDefault]="selectedLanguageIsDefault()"
+            [languageCode]="selectedLanguageCode()"
+            [languageName]="selectedLanguageName()"
+            [originalLabelFormat]="planOriginalLabelFormat()"
+            [originalShortDescription]="planDetail()?.shortDescription || ''"
+            [planSessionTypes]="planSessionTypes()"
+            [planTranslations]="planTranslations()"
+            [requiredPurchaseTermsSourceHtml]="requiredPurchaseTermsSourceHtml()"
+            [selectedChannelId]="selectedChannelId()"
+            [selectedChannelName]="selectedChannelName()"
+            [selectedLanguage]="selectedLanguageData()"
+            [sessionTypeTranslationsByEntityId]="sessionTypeTranslationsByEntityId()"
+            [showTermsAndConditionsSection]="showTermsAndConditionsSection()"
+            [termsAndConditionsTranslatedHtml]="termsAndConditionsTranslatedHtmlForActiveScope()"
+            [totalFieldCount]="selectedLanguageTotalFieldCount()"
+            [translatedFieldCount]="selectedLanguageTranslatedFieldCount()"
+            [showTranslationsByChannelToggle]="showTranslationsByChannelToggle()"
+            [translationsByChannelEnabled]="translationsByChannelEnabled()"
+            (editClick)="onEditClick()"
+            (goToContent)="goToContent()"
+            (removeOverrideClick)="onRemoveOverrideClick()"
+            (translationsByChannelToggled)="onTranslationsByChannelToggle($event)"
+          ></app-plan-translations-content>
+        }
+      </div>
+    } @else {
+      <app-plan-translations-editor
+        #translationsEditor
+        data-testid="plan-translations-edition-editor"
+        [availableChannels]="availableChannels()"
+        [availableLanguages]="availableLanguagesData()"
+        [canEditDefaultTranslations]="canEditDefaultTranslations()"
+        [canManageChannelTranslations]="canManageChannelTranslations()"
+        [contentSchema]="effectiveBaseSchema()"
+        [previewContentSchema]="effectiveDescriptionSchema()"
+        [descriptionInherited]="descriptionChannelHasNoSchema()"
+        [descriptionSchemaId]="descriptionSchemaId()"
+        [descriptionStatusByCode]="effectiveDescriptionStatusByCode()"
+        [isDescriptionSchemaLoading]="isDescriptionSchemaLoading()"
+        [defaultLanguage]="defaultLanguageData()"
+        [hasComponentsDescription]="planDetail()?.hasComponentsDescription ?? false"
+        [originalLabelFormat]="planOriginalLabelFormat()"
+        [originalShortDescription]="planDetail()?.shortDescription || ''"
+        [planSessionTypes]="planSessionTypes()"
+        [requiredPurchaseTermsSourceHtml]="requiredPurchaseTermsSourceHtml()"
+        [selectedChannelId]="selectedChannelId()"
+        [selectedChannelName]="selectedChannelName()"
+        [selectedLanguage]="selectedLanguageData()"
+        [sessionTypes]="sessionTypesForEditor()"
+        [sessionTypeTranslationsByEntityId]="sessionTypeTranslationsByEntityId()"
+        [translationLanguageCatalog]="translationLanguages()"
+        [planTranslationLocales]="planTranslationLocales()"
+        [showTermsAndConditionsSection]="showTermsAndConditionsSection()"
+        [termsAndConditionsDraftsByKey]="termsAndConditionsHtmlByKey()"
+        [termsAndConditionsTranslatedHtml]="termsAndConditionsTranslatedHtmlForActiveScope()"
+        [translations]="planTranslations()"
+        (backToTranslations)="onBackToTranslations()"
+        (goToContent)="goToContent()"
+        (termsAndConditionsChanged)="onTermsAndConditionsChanged($event)"
+        (translationChanged)="onTranslationChanged($event)"
+        (translationSaved)="onTranslationSaved()"
+        (saveFailed)="onEditorSaveFailed()"
+      ></app-plan-translations-editor>
+    }
+  }
+
+  <app-edit-entity-sidebar
+    #languagesSidebar
+    [items]="languagesSidebarItemsForComponent()"
+    [hasChanges]="hasLanguageChanges()"
+    [canEdit]="canManageLanguageRoster()"
+    [title]="'planEdition.translationsEdition.editLanguagesTitle' | translate"
+    [saveLabel]="'planEdition.translationsEdition.save' | translate"
+    [searchPlaceholder]="'planEdition.translationsEdition.searchLanguagesPlaceholder' | translate"
+    [searchAriaLabel]="'planEdition.translationsEdition.searchLanguagesAriaLabel' | translate"
+    [searchQuery]="searchQuery()"
+    [discardModalConfig]="sidebarDiscardConfig()"
+    [entityType]="'languages'"
+    [dialogTranslations]="sidebarDialogTranslations()"
+    (itemToggle)="toggleLanguageSelection($event)"
+    (searchQueryChange)="onSearchQueryChange($event)"
+    (save)="saveLanguagesInSidebar()"
+    (closed)="onLanguagesSidebarClosed()"
+  ></app-edit-entity-sidebar>
+
+  <app-edit-entity-sidebar
+    #channelsSidebar
+    [items]="channelsSidebarItemsForComponent()"
+    [hasChanges]="hasChannelsChanges()"
+    [canEdit]="canManageChannelTranslations()"
+    [title]="'planEdition.translationsEdition.editChannelsTitle' | translate"
+    [saveLabel]="'planEdition.translationsEdition.save' | translate"
+    [searchPlaceholder]="'planEdition.translationsEdition.filterChannels' | translate"
+    [searchAriaLabel]="'planEdition.translationsEdition.filterChannels' | translate"
+    [searchQuery]="channelsSearchQuery()"
+    [discardModalConfig]="sidebarDiscardConfig()"
+    [entityType]="'channels'"
+    [dialogTranslations]="sidebarDialogTranslations()"
+    (itemToggle)="toggleChannelInSidebar($event)"
+    (searchQueryChange)="onChannelsSearchQueryChange($event)"
+    (save)="saveChannelsInSidebar()"
+    (closed)="onChannelsSidebarClosed()"
+  ></app-edit-entity-sidebar>
+</div>

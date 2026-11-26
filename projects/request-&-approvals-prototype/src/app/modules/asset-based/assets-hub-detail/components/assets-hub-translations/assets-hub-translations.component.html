@@ -1,0 +1,204 @@
+@if (isLoading()) {
+  <div class="translations-tab__loading">
+    <ignt-icon name="spinner" variant="solid" [spin]="true"></ignt-icon>
+  </div>
+} @else if (targetLanguageCodes().length === 0) {
+  <div class="translations-tab__empty">
+    <div class="translations-tab__empty-content">
+      <h1 class="translations-tab__empty-title" translate>assetsHubs.detail.translations.noTranslations</h1>
+      @if (canManageHub()) {
+        <p class="translations-tab__empty-subtitle" translate>assetsHubs.detail.translations.addLanguageHint</p>
+      }
+    </div>
+    @if (canManageHub()) {
+      <ignt-button
+        variant="primary"
+        size="large"
+        data-testid="translations-add-language"
+        [label]="'assetsHubs.detail.translations.addLanguage' | translate"
+        (click)="openEditLanguagesSidebar()"
+      />
+    }
+  </div>
+} @else {
+  <div class="translations-tab__content">
+    <app-available-languages-frame
+      [availableLanguages]="availableLanguages()"
+      [hasMissingTranslations]="hasMissingTranslations()"
+      [editable]="canManageHub()"
+      (languageSelected)="selectLanguage($event)"
+      (editRequested)="openEditLanguagesSidebar()"
+    ></app-available-languages-frame>
+
+    @if (selectedLanguageData(); as selectedLang) {
+      <div class="translations-tab__language-content">
+        <div class="translations-tab__language-header">
+          <img
+            class="translations-tab__flag"
+            [src]="'assets/images/flags/' + selectedLang.code + '.png'"
+            [alt]="selectedLang.name + ' flag'"
+          />
+          <span class="translations-tab__language-name">{{ selectedLang.name }}</span>
+          @if (selectedLang.isDefault) {
+            <span class="translations-tab__default-tag" translate>shared.translations.defaultBadge</span>
+          }
+        </div>
+        <div class="translations-tab__search">
+          <ignt-input-field
+            id="asset-search"
+            [label]="'assetsHubs.detail.translations.searchLabel' | translate"
+            [leadIcon]="['fal', 'search']"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+          ></ignt-input-field>
+        </div>
+
+        <div class="translations-tab__table-header">
+          <span translate>assetsHubs.detail.translations.field</span>
+          @if (!isDefaultLanguageSelected()) {
+            <span translate>assetsHubs.detail.translations.state</span>
+          }
+        </div>
+
+        <div class="translations-tab__groups">
+          @for (group of filteredTranslationItems(); track group.assetTypeId) {
+            <ignt-expansion-panel variant="card" chevronPosition="start" [isCollapsed]="false">
+              <div expansion-panel-title class="translations-tab__group-title">
+                <span class="translations-tab__group-name">{{ group.assetTypeName }}</span>
+                @if (!isDefaultLanguageSelected()) {
+                  <div class="translations-tab__group-meta">
+                    <span class="translations-tab__group-status">
+                      {{ group.stats.translated }}/{{ group.stats.total }}
+                      {{ 'assetsHubs.detail.translations.translated' | translate }}
+                    </span>
+                    @if (group.stats.translated === group.stats.total) {
+                      <ignt-icon class="translations-tab__status-icon--complete" name="check-circle" variant="solid"></ignt-icon>
+                    } @else {
+                      <ignt-icon class="translations-tab__status-icon--warning" name="exclamation-triangle" variant="solid"></ignt-icon>
+                    }
+                  </div>
+                }
+              </div>
+
+              @if (group.assetTypeId) {
+                <div class="translations-tab__row">
+                  <ignt-input-field
+                    [id]="'asset-type-name-' + group.assetTypeId"
+                    [ngModel]="group.assetTypeName"
+                    [label]="'assetsHubs.detail.translations.assetTypeName' | translate"
+                    [readonly]="true"
+                  ></ignt-input-field>
+                  @if (!isDefaultLanguageSelected()) {
+                    <div class="translations-tab__translation-field">
+                      <ignt-input-field
+                        [id]="'asset-type-name-translation-' + group.assetTypeId"
+                        [ngModel]="group.assetTypeNameTranslation ?? ''"
+                        [label]="'assetsHubs.detail.translations.assetTypeName' | translate"
+                        [readonly]="!canManageHub()"
+                        (ngModelChange)="onTranslationChange(group, null, $event)"
+                      ></ignt-input-field>
+                      @if (group.assetTypeNameTranslation) {
+                        <ignt-icon class="translations-tab__status-icon--complete" name="check-circle" variant="solid"></ignt-icon>
+                      } @else {
+                        <ignt-icon class="translations-tab__status-icon--warning" name="exclamation-triangle" variant="solid"></ignt-icon>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+
+              @for (asset of group.assets; track asset.assetId) {
+                <div class="translations-tab__row">
+                  <ignt-input-field
+                    [id]="'asset-name-' + asset.assetId"
+                    [ngModel]="asset.assetName"
+                    [label]="'assetsHubs.detail.translations.assetName' | translate"
+                    [readonly]="true"
+                  ></ignt-input-field>
+                  @if (!isDefaultLanguageSelected()) {
+                    <div class="translations-tab__translation-field">
+                      <ignt-input-field
+                        [id]="'asset-name-translation-' + asset.assetId"
+                        [ngModel]="asset.assetNameTranslation ?? ''"
+                        [label]="'assetsHubs.detail.translations.assetName' | translate"
+                        [readonly]="!canManageHub()"
+                        (ngModelChange)="onTranslationChange(group, asset, $event)"
+                      ></ignt-input-field>
+                      @if (asset.assetNameTranslation) {
+                        <ignt-icon class="translations-tab__status-icon--complete" name="check-circle" variant="solid"></ignt-icon>
+                      } @else {
+                        <ignt-icon class="translations-tab__status-icon--warning" name="exclamation-triangle" variant="solid"></ignt-icon>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </ignt-expansion-panel>
+          }
+
+          @if (filteredActivityTranslationGroup(); as activitiesGroup) {
+            <ignt-expansion-panel variant="card" chevronPosition="start" [isCollapsed]="false">
+              <div expansion-panel-title class="translations-tab__group-title">
+                <span class="translations-tab__group-name" translate>assetsHubs.detail.translations.activities</span>
+                @if (!isDefaultLanguageSelected()) {
+                  <div class="translations-tab__group-meta">
+                    <span class="translations-tab__group-status">
+                      {{ activitiesGroup.stats.translated }}/{{ activitiesGroup.stats.total }}
+                      {{ 'assetsHubs.detail.translations.translated' | translate }}
+                    </span>
+                    @if (activitiesGroup.stats.translated === activitiesGroup.stats.total) {
+                      <ignt-icon class="translations-tab__status-icon--complete" name="check-circle" variant="solid"></ignt-icon>
+                    } @else {
+                      <ignt-icon class="translations-tab__status-icon--warning" name="exclamation-triangle" variant="solid"></ignt-icon>
+                    }
+                  </div>
+                }
+              </div>
+
+              @for (activity of activitiesGroup.activities; track activity.activityId) {
+                <div class="translations-tab__row">
+                  <ignt-input-field
+                    [id]="'activity-name-' + activity.activityId"
+                    [ngModel]="activity.activityName"
+                    [label]="'assetsHubs.detail.translations.activityName' | translate"
+                    [readonly]="true"
+                  ></ignt-input-field>
+                  @if (!isDefaultLanguageSelected()) {
+                    <div class="translations-tab__translation-field">
+                      <ignt-input-field
+                        [id]="'activity-name-translation-' + activity.activityId"
+                        [ngModel]="activity.activityNameTranslation ?? ''"
+                        [label]="'assetsHubs.detail.translations.activityName' | translate"
+                        [readonly]="!canManageHub()"
+                        (ngModelChange)="onActivityTranslationChange(activitiesGroup, activity, $event)"
+                      ></ignt-input-field>
+                      @if (activity.activityNameTranslation) {
+                        <ignt-icon class="translations-tab__status-icon--complete" name="check-circle" variant="solid"></ignt-icon>
+                      } @else {
+                        <ignt-icon class="translations-tab__status-icon--warning" name="exclamation-triangle" variant="solid"></ignt-icon>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </ignt-expansion-panel>
+          }
+        </div>
+
+        @if (canManageHub()) {
+          <div class="translations-tab__actions">
+            <ignt-button
+              data-testid="translations-submit"
+              variant="primary"
+              size="large"
+              [label]="'common.save' | translate"
+              [loading]="isSaving()"
+              [disabled]="hasMissingTranslations() || isSaving()"
+              (click)="saveTranslations()"
+            />
+          </div>
+        }
+      </div>
+    }
+  </div>
+}

@@ -1,0 +1,136 @@
+<div class="method-selection-step">
+  @if (store.isSplitFlow()) {
+    <app-split-summary-panel
+      class="method-selection-step__summary"
+      data-testid="checkout-split-summary-panel"
+      [toPay]="store.remainingAmount()"
+      [paid]="store.paidAmount()"
+      [locale]="store.context().locale"
+      [activeRow]="'toPay'"
+      [toPayLabelKey]="store.summaryToPayLabelKey()"
+      (paidClick)="onViewHistory()"
+    />
+  }
+
+  <div class="method-selection-step__methods">
+    <div class="method-selection-step__methods-header">
+      <div class="method-selection-step__methods-heading">
+        <h3 class="method-selection-step__methods-title">{{ 'checkout.method.title' | translate }}</h3>
+        <p class="method-selection-step__methods-subtitle">{{ 'checkout.method.subtitle' | translate }}</p>
+      </div>
+      <button
+        ignt-icon-button
+        type="button"
+        size="medium"
+        sentiment="secondary"
+        data-testid="checkout-open-calculator"
+        [icon]="['fal', 'calculator']"
+        [attr.aria-label]="'checkout.calculator.open' | translate"
+        (click)="onOpenCalculator()"
+      ></button>
+    </div>
+
+    <div
+      class="method-selection-step__tiles"
+      data-testid="checkout-payment-method-tiles"
+      [class.method-selection-step__tiles--full]="!store.isSplitFlow()"
+    >
+      @for (tile of paymentMethodTiles(); track tile.method.type + '-' + tile.method.delegated) {
+        <ignt-option-tile
+          [imageUrl]="tile.method.imageUrl ?? undefined"
+          [title]="tile.method.label + (tile.method.labelSuffixKey ? ' (' + (tile.method.labelSuffixKey | translate) + ')' : '')"
+          [hideTitle]="tile.hideTitle"
+          [selected]="isSelected(tile.method)"
+          [attr.data-testid]="'checkout-payment-method-tile-' + tile.method.type + (tile.method.delegated ? '-delegated' : '')"
+          (tileClick)="select(tile.method)"
+        />
+      }
+      @if (paymentLink()) {
+        <ignt-option-tile
+          iconName="paper-plane"
+          data-testid="checkout-payment-link-tile"
+          [title]="'checkout.paymentLink.title' | translate"
+          [selected]="isPaymentLinkSelected()"
+          (tileClick)="selectPaymentLink()"
+        />
+      }
+    </div>
+
+    @if (isPaymentLinkSelected()) {
+      <div class="method-selection-step__payment-link" data-testid="checkout-payment-link-duration">
+        <ignt-input-field
+          type="text"
+          placeholder="hh:mm"
+          id="checkout-payment-link-duration-input"
+          [label]="'checkout.paymentLink.durationLabel' | translate"
+          [maxlength]="5"
+          [ngModel]="store.context().paymentLinkDuration"
+          (ngModelChange)="onPaymentLinkDurationChange($event)"
+        />
+        @if (paymentLinkErrorKey(); as errorKey) {
+          <p class="method-selection-step__payment-link-error" data-testid="checkout-payment-link-error" role="alert">
+            {{ errorKey | translate }}
+          </p>
+        } @else if (paymentLinkExpiry(); as expiry) {
+          <p class="method-selection-step__payment-link-hint" data-testid="checkout-payment-link-expiry">
+            {{ 'checkout.paymentLink.expiryHint' | translate: expiry }}
+          </p>
+        }
+      </div>
+    } @else {
+      <div
+        class="method-selection-step__terminals"
+        data-testid="checkout-terminals"
+        [class.method-selection-step__terminals--hidden]="isTerminalHidden()"
+        [attr.aria-hidden]="isTerminalHidden() ? 'true' : null"
+      >
+        <h4 class="method-selection-step__terminals-heading" data-testid="checkout-devices-connected">
+          {{ 'checkout.method.devicesConnected' | translate }}
+        </h4>
+        <div
+          class="field method-selection-step__terminals-field"
+          [class.method-selection-step__terminals-field--disabled]="terminalDisabled()"
+        >
+          <ng-select
+            inputId="checkout-payment-terminal"
+            class="method-selection-step__terminals-select"
+            data-testid="checkout-payment-terminal-select"
+            bindLabel="label"
+            bindValue="id"
+            [appendTo]="terminalPanelAppendTo()"
+            [items]="terminalItems()"
+            [clearable]="false"
+            [searchable]="false"
+            [placeholder]="'checkout.method.terminal.placeholder' | translate"
+            [disabled]="terminalDisabled()"
+            [attr.aria-disabled]="terminalDisabled() ? 'true' : null"
+            [ngModel]="store.context().selectedTerminalId"
+            (ngModelChange)="selectTerminal($event)"
+          />
+          <label class="field__label method-selection-step__terminals-field-label" for="checkout-payment-terminal">
+            {{ 'checkout.method.terminal.label' | translate }}
+          </label>
+          <ignt-icon class="field__icon field__icon--trail" name="chevron-down" variant="light" [fixedWidth]="true" aria-hidden="true" />
+        </div>
+      </div>
+    }
+  </div>
+
+  @if (store.isSplitFlow()) {
+    <div class="method-selection-step__payment-summary">
+      <app-payment-summary-panel
+        data-testid="checkout-payment-summary-panel"
+        [amountToPay]="store.currentSplitAmount()"
+        [currentSplitNumber]="store.currentSplitNumber()"
+        [splitCount]="store.context().splitCount"
+        [total]="store.context().cartTotal ?? store.remainingAmount()"
+        [paymentMethodLabel]="paymentMethodLabel()"
+        [paymentMethodLabelSuffixKey]="paymentMethodLabelSuffixKey()"
+        [locale]="store.context().locale"
+        [showPayRemaining]="true"
+        [payRemaining]="store.context().payRemaining"
+        (payRemainingChange)="onPayRemainingChange($event)"
+      />
+    </div>
+  }
+</div>

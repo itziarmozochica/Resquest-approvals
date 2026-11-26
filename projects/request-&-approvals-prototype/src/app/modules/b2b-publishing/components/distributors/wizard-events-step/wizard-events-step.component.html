@@ -1,0 +1,97 @@
+<div class="wizard-events-step">
+  @if (isLoading() && visibleEvents().length === 0) {
+    <div class="wizard-events-step__loading" aria-busy="true" aria-live="polite" data-testid="group-wizard-events-loading">
+      <span class="wizard-events-step__message">{{ 'distributors.groups.wizard.events.loading' | translate }}</span>
+      <ignt-skeleton type="list" [animation]="true" [numElements]="4" />
+    </div>
+  } @else if (hasError()) {
+    <div class="wizard-events-step__failure" role="alert" data-testid="group-wizard-events-error">
+      <p class="wizard-events-step__message">{{ 'distributors.groups.wizard.events.error' | translate }}</p>
+      <ignt-button
+        data-testid="group-wizard-events-retry"
+        variant="secondary"
+        [label]="'distributors.groups.wizard.events.retry' | translate"
+        (click)="retried.emit()"
+      />
+    </div>
+  } @else if (visibleEvents().length === 0 && !isSearching() && !isLoading()) {
+    <p class="wizard-events-step__message" data-testid="group-wizard-events-empty">
+      {{ emptyMessageKey() | translate }}
+    </p>
+  } @else {
+    <div class="wizard-events-step__selection" data-testid="group-wizard-events-selection">
+      <span
+        class="wizard-events-step__selection-count"
+        aria-live="polite"
+        data-testid="group-wizard-events-selected-count"
+        [innerHTML]="selectedLabel()"
+      ></span>
+      @if (!areMatchesSelected()) {
+        <ignt-button
+          data-testid="group-wizard-events-select-every"
+          size="small"
+          variant="tertiary"
+          [label]="selectAllLabel()"
+          [loading]="isSelectingMatches()"
+          (click)="selectEvery()"
+        />
+      }
+      @if (selectedCount() > 0) {
+        <ignt-button
+          data-testid="group-wizard-events-clear-selection"
+          size="small"
+          variant="tertiary"
+          [label]="'distributors.groups.wizard.events.clearSelection' | translate"
+          (click)="allToggled.emit(false)"
+        />
+      }
+    </div>
+
+    <ignt-table
+      data-testid="group-wizard-events-list"
+      layout="table"
+      [data]="visibleEvents()"
+      [hasFullWidthSearch]="true"
+      [hasServerSidePagination]="true"
+      [isLoading]="isLoading()"
+      [pageIndex]="pageIndex()"
+      [pageSize]="pageSize"
+      [searchConfig]="searchConfig()"
+      [totalRowCount]="totalEvents()"
+      (paginationChange)="pageChanged.emit($event.pageIndex)"
+      (searchChanged)="searchChanged.emit($event)"
+    >
+      <ignt-table-column [header]="''" [width]="48">
+        <ng-template igntTableHeaderTemplate>
+          @if (visibleEvents().length) {
+            <ignt-checkbox
+              dataTestId="group-wizard-events-select-all"
+              [ariaLabel]="'distributors.groups.wizard.events.selectAll' | translate"
+              [checked]="areAllSelected()"
+              (change)="allToggled.emit(!areAllSelected())"
+            />
+          }
+        </ng-template>
+        <ng-template [igntTableColumnTemplateType]="eventSample" let-item="item">
+          <ignt-checkbox
+            [ariaLabel]="item.name"
+            [checked]="isSelected(item)"
+            [dataTestId]="'group-wizard-event-checkbox-' + item.id"
+            (change)="toggled.emit(item.id)"
+          />
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column key="name" columnType="primary" [header]="'distributors.groups.wizard.events.columns.event' | translate">
+        <ng-template [igntTableColumnTemplateType]="eventSample" let-item="item">
+          <span class="wizard-events-step__text" [attr.data-testid]="'group-wizard-event-' + item.id">
+            <span class="wizard-events-step__name">{{ item.name }}</span>
+            <span class="wizard-events-step__place">{{
+              item.cityName ?? ('distributors.groups.wizard.events.noLocation' | translate)
+            }}</span>
+          </span>
+        </ng-template>
+      </ignt-table-column>
+    </ignt-table>
+  }
+</div>

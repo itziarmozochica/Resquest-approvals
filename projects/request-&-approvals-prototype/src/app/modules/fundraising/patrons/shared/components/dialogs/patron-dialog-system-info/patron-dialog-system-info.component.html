@@ -1,0 +1,99 @@
+<ignt-dialog-header>
+  {{ 'fundraising.patronDetails.profile.dialogs.systemInfo.title' | translate }}
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="patron-dialog-system-info__sheet-content">
+    <form [formGroup]="systemInfoForm" class="patron-dialog-system-info__sheet-content__group" (ngSubmit)="submit()">
+      <app-multi-select
+        class="patron-dialog-system-info__sheet-content__selectors"
+        [options]="statusOptions()"
+        [selectedOptions]="selectedStatus()"
+        [placeholder]="'fundraising.patronDetails.profile.dialogs.systemInfo.fields.status' | translate"
+        [searchPlaceholder]="'fundraising.patronDetails.profile.dialogs.systemInfo.fields.statusPlaceholder' | translate"
+        [maxSelectedOptions]="1"
+        [displayInPlaceMaximum]="1"
+        (selected)="onStatusChange($event)"
+        data-testid="patron-dialog-system-info-status-select"
+      ></app-multi-select>
+
+      @if (isInactive()) {
+        <div class="patron-dialog-system-info__sheet-content__field">
+          <ignt-input-field
+            id="statusReason"
+            formControlName="statusReason"
+            [label]="'fundraising.patronDetails.profile.dialogs.systemInfo.fields.reasonOptional' | translate"
+            data-testid="patron-dialog-system-info-reason-input"
+          ></ignt-input-field>
+        </div>
+      }
+
+      @if (isArchived()) {
+        <app-multi-select
+          class="patron-dialog-system-info__sheet-content__selectors"
+          [options]="archiveReasonOptions()"
+          [selectedOptions]="selectedArchiveReason()"
+          [placeholder]="'fundraising.patronDetails.profile.dialogs.systemInfo.fields.reason' | translate"
+          [searchPlaceholder]="'fundraising.patronDetails.profile.dialogs.systemInfo.fields.reasonPlaceholder' | translate"
+          [maxSelectedOptions]="1"
+          [displayInPlaceMaximum]="1"
+          (selected)="onArchiveReasonChange($event)"
+          data-testid="patron-dialog-system-info-archive-reason-select"
+        ></app-multi-select>
+      }
+
+      @if (isDeceased()) {
+        <div class="patron-dialog-system-info__sheet-content__field">
+          <ignt-date-picker-input
+            id="dateOfDeath"
+            [label]="'fundraising.patronDetails.profile.dialogs.systemInfo.fields.dateOfDeath' | translate"
+            [timezone]="timezone"
+            [startDate]="systemInfoForm.get('dateOfDeath')?.value"
+            (changeDate)="onDateOfDeathChange($event)"
+            data-testid="patron-dialog-system-info-date-of-death-input"
+          ></ignt-date-picker-input>
+        </div>
+      }
+
+      <div class="patron-dialog-system-info__sheet-content__field">
+        <ignt-textarea-field
+          id="notes"
+          formControlName="notes"
+          [label]="'fundraising.patronDetails.profile.dialogs.systemInfo.fields.notesOptional' | translate"
+          [rows]="5"
+          data-testid="patron-dialog-system-info-notes-textarea"
+        ></ignt-textarea-field>
+      </div>
+
+      @if (hasAlert()) {
+        <ignt-alert sentiment="info" [showCloseButton]="true" [description]="alertMessage()" (closeAlert)="onAlertClose()"></ignt-alert>
+      }
+    </form>
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer hideCancelButton>
+  <button
+    igntButton
+    [sentiment]="'tertiary'"
+    [variant]="'default'"
+    [size]="'large'"
+    [fill]="false"
+    (click)="dismiss()"
+    data-testid="patron-dialog-system-info-cancel-button"
+  >
+    {{ 'common.cancel' | translate }}
+  </button>
+  <button
+    igntButton
+    [sentiment]="'primary'"
+    [variant]="'default'"
+    [size]="'large'"
+    [fill]="false"
+    [disabled]="!canSubmit()"
+    (click)="submit()"
+    data-testid="patron-dialog-system-info-save-button"
+  >
+    {{ 'common.save' | translate }}
+  </button>
+</ignt-dialog-footer>

@@ -1,0 +1,547 @@
+<section class="invitations-page" [attr.aria-label]="'menu.invitations' | translate">
+  <app-event-selection-band
+    data-testid="invitations-selectors"
+    [summary]="filters?.selectedPlan?.title || ('invitations.searchFilters' | translate)"
+  >
+    <app-search-bar
+      data-testid="invitations-search-bar"
+      [disabled]="currentStep === lastSelectorStep"
+      [screen]="screen.invitations"
+      [searchOnChange]="true"
+      [showVenue]="true"
+      (searchEmitter)="loadNewSearch($event)"
+    ></app-search-bar>
+  </app-event-selection-band>
+
+  <app-invitations-page-title>
+    @if (!createInvitationSelected) {
+      @if (filtersSelected) {
+        <ignt-button
+          variant="secondary"
+          data-testid="invitation-download-csv-button"
+          size="large"
+          [ariaLabel]="'invitations.downloadCsv' | translate"
+          [label]="(isMobile() ? 'common.download' : 'invitations.downloadCsv') | translate"
+          [loading]="isDownloadingInvitationsCsv"
+          [disabled]="isDownloadingInvitationsCsv"
+          (click)="downloadInvitationsCsv()"
+        />
+      }
+      @if (canManageInvitations()) {
+        <ignt-button
+          data-testid="create-invitations-button"
+          size="large"
+          [label]="'invitations.createInvitations' | translate"
+          [disabled]="!filtersSelected"
+          (click)="showCreateInvitations()"
+        />
+      }
+    }
+  </app-invitations-page-title>
+
+  @if (showSuccessBanner) {
+    <ignt-alert
+      [description]="'invitations.confirmation.title' | translate"
+      sentiment="positive"
+      showCloseButton
+      (closeAlert)="showSuccessBanner = false"
+    ></ignt-alert>
+  }
+
+  @if (!createInvitationSelected) {
+    <ng-container [ngTemplateOutlet]="tracker" />
+  } @else {
+    <div class="box-office-content invitations-page__flow">
+      <div class="box-office-content__container">
+        <div class="box-office-content__row">
+          @if (createInvitationSelected && !skipToLastStep) {
+            @if (isLoadingSessions && filtersSelected) {
+              <div class="box-office-content__spinner">
+                <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'4x'"></fa-icon>
+              </div>
+            }
+            @if (!filtersSelected || (!sessionAvailabilitySummary && !isLoadingSessions && !error)) {
+              <div class="box-office-content__no-filter-selected">
+                <fa-icon class="box-office-content__no-filter-selected__icon" [icon]="['fal', 'sensor-alert']"></fa-icon>
+                <p class="box-office-content__no-filter-selected__text" translate>boxOffice.noFilterSelected</p>
+              </div>
+            }
+            @if (error) {
+              <div class="box-office-content__alert-error">
+                <ignt-alert
+                  sentiment="danger"
+                  [description]="'boxOffice.genericErrorTitle' | translate"
+                  showCloseButton
+                  [closeButtonAriaLabel]="'common.close' | translate"
+                  (closeAlert)="closeError()"
+                />
+              </div>
+            }
+            @if (
+              !isLoadingSessions &&
+              !error &&
+              sessionAvailabilitySummary &&
+              sessionAvailabilitySummary?.regularSessionAvailabilitySummaryByDates.length === 0 &&
+              datesAvailability?.length === 0
+            ) {
+              <ng-container
+                [ngTemplateOutlet]="emptyAvailabilitySessionsTemplate"
+                [ngTemplateOutletContext]="{ noResultText: 'boxOffice.noSessionsAvailable' }"
+              ></ng-container>
+            }
+            @if (
+              !isLoadingSessions &&
+              !error &&
+              filtersSelected &&
+              ((sessionAvailabilitySummary && sessionAvailabilitySummary?.regularSessionAvailabilitySummaryByDates.length > 0) ||
+                datesAvailability?.length > 0)
+            ) {
+              <div class="box-office-content__sidebar">
+                @if (plan) {
+                  <app-plan-detail-card [plan]="plan"></app-plan-detail-card>
+                }
+                @if (cart || isLoadingCart || (isFreeSeatingEnabled && nonConfirmedCart)) {
+                  <cart-detail
+                    class="invitations-cart"
+                    [cart]="cartForDisplay"
+                    [isLoading]="isLoadingCart"
+                    [title]="'invitations.cart.title'"
+                    [showPrice]="false"
+                    [showClearAll]="false"
+                    [showSeatingInModal]="true"
+                    (clearAll)="clearAll()"
+                  >
+                  </cart-detail>
+                }
+              </div>
+              <div class="box-office-content__content">
+                <div class="only-in-mobile">
+                  @if (plan) {
+                    <app-plan-detail-card [plan]="plan"></app-plan-detail-card>
+                  }
+                </div>
+                @if (currentStep) {
+                  @switch (currentStep.id) {
+                    @case (ticketSelectorStep.id) {
+                      <div class="box-office-content__content-card">
+                        <app-date-selector-obo
+                          [datesAvailability]="datesAvailability"
+                          [selectedDateAvailability]="selectedDateAvailability"
+                          [locale]="locale"
+                          [loading]="isLoadingDates"
+                          [timezone]="timezone"
+                          [ticketTypes]="selectedTicketsBySessionType"
+                          [ongoingMultiDayTicketTypeNames]="getOngoingMultiDaySelectedTicketTypeNames()"
+                          [displayedSessionType]="displayedSessionType"
+                          [regularSessionAvailabilitySummaryByDate]="regularSessionAvailabilitySummaryByDateList"
+                          [selectedSession]="selectedSession"
+                          [sessionSelectorType]="sessionSelectorType"
+                          (selectedSessionChange)="selectSession($event)"
+                          (loadMore)="loadMoreDays()"
+                          (selectedDateChange)="selectDate($event)"
+                          (displayedSessionTypeChange)="handleDisplayedSessionTypeChange($event)"
+                          [showLoadMoreButton]="!!nextAvailableDate"
+                          [isOneStepFlow]="isOneStepFlow"
+                          [selectedAvailabilityFromDate]="selectedAvailabilityFromDate"
+                          (handleShowAvailabilityFromDateChange)="handleShowAvailabilityFromDateChange($event)"
+                          (updateFreeMapMode)="updateFreeMapMode()"
+                          [shouldShowDateSelector]="true"
+                        ></app-date-selector-obo>
+                        @if (isFreeSeatingEnabled) {
+                          <div class="invitation-seating-selector">
+                            <seating-selector
+                              #seatingSelector
+                              [class.invitation-seating-selector__map--hidden]="isFreeSeatingMapHiddenWhileReleasing"
+                              [seatingMapUrl]="seatingMapUrl"
+                              [state]="seatingMapState"
+                              [locale]="locale"
+                              [manageAsFreeSeatingMap]="manageAsFreeSeatingMap"
+                              [shouldRestoreToBeginning]="shouldRestoreToBeginning"
+                              (selectSeats)="selectSeats($event)"
+                              (updateSeatsInCart)="updateSeatsInCart($event)"
+                              (clearSelectionRequested)="onClearSelectionRequested()"
+                              (confirmSeating)="confirmSeating($event)"
+                              (releaseCompleted)="onReleaseCompleted()"
+                              (continueRestore)="continueRestore()"
+                            >
+                            </seating-selector>
+                          </div>
+                        }
+                        @if (!isLoadingDateSessions) {
+                          @if (datesAvailability?.length > 0 && !regularSessionAvailabilitySummaryByDateList?.length > 0) {
+                            <ng-container
+                              [ngTemplateOutlet]="emptyAvailabilitySessionsTemplate"
+                              [ngTemplateOutletContext]="{ noResultText: 'boxOffice.noSessionsForDate' }"
+                            ></ng-container>
+                          }
+                          @if (isFreeSeatingEnabled) {
+                            @if (ticketTypesForSelector.length > 0) {
+                              <app-ticket-selector-obo
+                                [showAddonsInASeparateSection]="true"
+                                [showHiddenInASeparateSection]="true"
+                                [ticketTypes]="ticketTypesForSelector"
+                                [ongoingMultiDayTicketGroups]="ongoingMultiDayTicketGroups"
+                                [showTicketAvailabilityInfo]="!this.useCacheEnabled"
+                                [ticketTypeCounterBySessionId]="selectedTicketsBySessionId"
+                                [ticketTypeCounterBySessionType]="selectedTicketsBySessionType"
+                                [hasSeatingEntryTicketsSelected]="selectedTicketsSeatsBySessionId.size > 0"
+                                [hasExplodePipe]="hasExplodePipe"
+                                [channel]="channel"
+                                (ticketTypeCounterChange)="onFreeSeatingTicketTypeCounterChange($event)"
+                                (hasErrors)="setTicketCounterHasErrors($event)"
+                                [allowMultiSession]="allowMultiSessionPurchase"
+                              ></app-ticket-selector-obo>
+                            }
+                          } @else {
+                            @if (ticketTypes?.length > 0) {
+                              <app-ticket-selector-obo
+                                [showAddonsInASeparateSection]="true"
+                                [showHiddenInASeparateSection]="true"
+                                [ticketTypes]="ticketTypes"
+                                [ongoingMultiDayTicketGroups]="ongoingMultiDayTicketGroups"
+                                [showTicketAvailabilityInfo]="!this.useCacheEnabled"
+                                [ticketTypeCounterBySessionId]="selectedTicketsBySessionId"
+                                [ticketTypeCounterBySessionType]="selectedTicketsBySessionType"
+                                [hasExplodePipe]="hasExplodePipe"
+                                [channel]="channel"
+                                (ticketTypeCounterChange)="selectTicketCounter($event)"
+                                (hasErrors)="setTicketCounterHasErrors($event)"
+                                [allowMultiSession]="allowMultiSessionPurchase"
+                              ></app-ticket-selector-obo>
+                            }
+                          }
+                        }
+                        @if (isLoadingDateSessions) {
+                          <div class="box-office-content__spinner">
+                            <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'4x'"></fa-icon>
+                          </div>
+                        }
+                        <div class="box-office-content__buttons ticketing-invitations-buttons">
+                          <ng-container *ngTemplateOutlet="buttonsTicketingTemplate"></ng-container>
+                        </div>
+                      </div>
+                    }
+                    @case (lastSelectorStep.id) {
+                      <ng-container *ngTemplateOutlet="guestDetailsTemplate"></ng-container>
+                    }
+                    @case (seatingSelectorStep.id) {
+                      <div class="box-office-content__content-card box-office-content__content-card--seating">
+                        <div class="content">
+                          <div class="content__title" data-testid="box-office-step-title">
+                            {{ 'boxOffice.seatingSelection' | translate }}
+                          </div>
+                          <seating-selector
+                            #seatingSelector
+                            [locale]="locale"
+                            [manageAsFreeSeatingMap]="manageAsFreeSeatingMap"
+                            [seatingMapUrl]="seatingMapUrl"
+                            [shouldGoBack]="shouldGoBack"
+                            [shouldRestoreToBeginning]="shouldRestoreToBeginning"
+                            [state]="seatingMapState"
+                            (confirmSeating)="confirmSeating($event)"
+                            (continueRestore)="continueRestore()"
+                            (selectSeats)="selectSeats($event)"
+                            (updateSeatsInCart)="updateSeatsInCart($event)"
+                          >
+                          </seating-selector>
+                        </div>
+                        <div class="box-office-content__buttons ticketing-invitations-buttons">
+                          <ng-container *ngTemplateOutlet="buttonsTicketingTemplate"></ng-container>
+                        </div>
+                      </div>
+                    }
+                  }
+                }
+              </div>
+            }
+          }
+          @if (createInvitationSelected && skipToLastStep) {
+            @if (!invitationToDuplicate || !cart) {
+              <div class="box-office-content__spinner">
+                <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'4x'"></fa-icon>
+              </div>
+            }
+            @if (invitationToDuplicate && cart) {
+              <div class="box-office-content__sidebar">
+                @if (plan) {
+                  <app-plan-detail-card [plan]="plan"></app-plan-detail-card>
+                }
+                @if (cart || isLoadingCart) {
+                  <cart-detail
+                    class="invitations-cart"
+                    [cart]="cart"
+                    [isLoading]="isLoadingCart"
+                    [title]="'invitations.cart.title'"
+                    [subtitle]="'invitations.cart.subtitle'"
+                    [showPrice]="false"
+                    [showClearAll]="false"
+                    [showSeatingInModal]="true"
+                    (clearAll)="clearAll()"
+                  >
+                  </cart-detail>
+                }
+              </div>
+              <div class="box-office-content__content">
+                <div class="only-in-mobile">
+                  @if (plan) {
+                    <app-plan-detail-card [plan]="plan"></app-plan-detail-card>
+                  }
+                </div>
+                @if (currentStep) {
+                  <ng-container [ngSwitch]="currentStep.id">
+                    <ng-container *ngSwitchCase="lastSelectorStep.id">
+                      <ng-container *ngTemplateOutlet="guestDetailsTemplate"></ng-container>
+                    </ng-container>
+                  </ng-container>
+                }
+              </div>
+            }
+          }
+        </div>
+      </div>
+    </div>
+  }
+</section>
+
+@if (createInvitationSelected && !isLoadingSessions && !error) {
+  <div class="only-in-mobile">
+    <bottom-slider
+      [(showDetails)]="showCartDetails"
+      [showTab]="currentStep?.id === lastSelectorStep.id"
+      [showDetailsLabel]="'boxOffice.cart.viewCart' | translate"
+      [hideDetailsLabel]="'boxOffice.cart.hideCart' | translate"
+      [detailsTemplate]="cartTemplate"
+      [buttonsTemplate]="buttonsTicketingTemplate"
+    >
+    </bottom-slider>
+  </div>
+}
+
+<ng-template #cartTemplate>
+  <cart-detail
+    [cart]="cart"
+    [isLoading]="isLoadingCart"
+    [title]="'invitations.cart.title'"
+    [subtitle]="'invitations.cart.subtitle'"
+    [showPrice]="false"
+    [showClearAll]="false"
+  >
+  </cart-detail>
+</ng-template>
+
+<ng-template #buttonsTicketingTemplate>
+  @if (canManageInvitations() && shouldShowBulkInvitationSeatingWarning) {
+    <div class="ticketing-buttons-info-slot">
+      <ignt-alert
+        data-testid="bulk-invitation-seating-warning"
+        [description]="'invitations.bulkInvitationNotAvailableForSeatings' | translate"
+      ></ignt-alert>
+    </div>
+  }
+  @if (currentStep?.id === ticketSelectorStep.id && createInvitationSelected) {
+    <div class="butttons-wrapper">
+      <ignt-button
+        [label]="'boxOffice.goBack' | translate"
+        [fill]="isMobile() || isTablet() || isSmallDesktop()"
+        variant="secondary"
+        (click)="showInvitationsTracker()"
+        data-testid="invitation-back-button"
+      />
+      @if (canManageInvitations()) {
+        <div class="butttons-wrapper add">
+          <ignt-button
+            [label]="'invitations.addBulkInvitation' | translate"
+            [fill]="isMobile() || isTablet() || isSmallDesktop()"
+            [disabled]="isBulkInvitationDisabled()"
+            (click)="addInvitation(true)"
+            data-testid="ticket-add-bulk-invitation"
+          />
+          <ignt-button
+            [label]="'invitations.addSingleInvitation' | translate"
+            [fill]="isMobile() || isTablet() || isSmallDesktop()"
+            [disabled]="isFreeSeatingEnabled ? addSessionsToCartIsDisabled() || ticketCounterHasErrors : addSessionsToCartIsDisabled()"
+            (click)="isFreeSeatingEnabled ? handleSingleInvitation() : addInvitation(false)"
+            data-testid="ticket-add-invitation"
+          />
+        </div>
+      }
+    </div>
+  }
+  @if (currentStep?.id === seatingSelectorStep.id) {
+    <div class="butttons-wrapper">
+      <ignt-button
+        [label]="'boxOffice.goBack' | translate"
+        [fill]="isMobile() || isTablet() || isSmallDesktop()"
+        variant="secondary"
+        (click)="goBack()"
+        data-testid="invitation-previous-step-button"
+      />
+      @if (canManageInvitations()) {
+        <button
+          class="box-office-content__button"
+          [disabled]="!hasSeatsSelected || isLoadingCart"
+          (click)="confirmSeating()"
+          data-testid="ticket-step-select-seats"
+        >
+          {{ 'invitations.selectSeats' | translate }}
+        </button>
+      }
+    </div>
+  }
+  @if (currentStep?.id === lastSelectorStep.id) {
+    <div class="butttons-wrapper">
+      <ignt-button
+        [label]="'boxOffice.goBack' | translate"
+        [fill]="isMobile() || isTablet() || isSmallDesktop()"
+        variant="secondary"
+        (click)="goToPreviousStep()"
+        data-testid="invitation-previous-step-button"
+      />
+      @if (canManageInvitations()) {
+        <ignt-button
+          [label]="'invitations.sendInvitations' | translate"
+          class="send-invitations-button"
+          [fill]="isMobile() || isTablet() || isSmallDesktop()"
+          [disabled]="!this.isSendInvitationsEnabled()"
+          (click)="clickOnInvitationsSend()"
+          data-testid="send-invitations-button"
+        />
+      }
+    </div>
+  }
+</ng-template>
+
+<ng-template #tracker>
+  @let emptyMessageKey =
+    !filtersSelected
+      ? trackerEmptyMessageKeys.noFilters
+      : errorInvitations
+        ? trackerEmptyMessageKeys.error
+        : trackerEmptyMessageKeys.noInvitations;
+  <div class="tracker" data-testid="invitation-tracker">
+    @if (filtersSelected) {
+      <div class="tracker__toolbar">
+        <div class="tracker__search">
+          <ignt-input-field
+            class="tracker__search-input"
+            data-testid="invitation-search-bar"
+            type="text"
+            [id]="'invitation-search'"
+            [label]="'filters.searchByNameOrEmail' | translate"
+            [placeholder]="'filters.searchByNameOrEmail' | translate"
+            [leadIcon]="['far', 'search']"
+            [formControl]="invitationsSearchControl"
+            (focusout)="focusOutSearchBar($event)"
+            (keyup.enter)="keyupEnterSearchBar($event)"
+          />
+          @if (invitationsSearchValue().length > 0) {
+            <button
+              type="button"
+              ignt-icon-button
+              variant="sharp"
+              sentiment="tertiary"
+              size="small"
+              data-testid="invitation-search-clear"
+              [icon]="['fas', 'times']"
+              [attr.aria-label]="'orders.search.clear' | translate"
+              (click)="clearInvitationsSearch()"
+            ></button>
+          }
+        </div>
+        <div class="tracker__pagination">
+          <button
+            type="button"
+            ignt-icon-button
+            class="flip-rtl"
+            variant="sharp"
+            sentiment="tertiary"
+            size="small"
+            data-testid="invitation-tracker-previous-page"
+            [icon]="['fas', 'chevron-left']"
+            [attr.aria-label]="'common.previous' | translate"
+            [disabled]="!hasPreviousInvitationsPage() || isLoadingInvitations"
+            (click)="showPreviousInvitationsPage()"
+          ></button>
+          <button
+            type="button"
+            ignt-icon-button
+            class="flip-rtl"
+            variant="sharp"
+            sentiment="tertiary"
+            size="small"
+            data-testid="invitation-tracker-next-page"
+            [icon]="['fas', 'chevron-right']"
+            [attr.aria-label]="'common.next' | translate"
+            [disabled]="!hasNextInvitationsPage() || isLoadingInvitations"
+            (click)="showNextInvitationsPage()"
+          ></button>
+        </div>
+      </div>
+    }
+    <app-invitations-tracker
+      class="tracker__table"
+      data-testid="invitation-tracker-table"
+      [emptyMessage]="emptyMessageKey | translate"
+      [invitations]="filtersSelected && !errorInvitations ? invitations : []"
+      [loading]="filtersSelected && isLoadingInvitations"
+      [timezone]="timezone"
+      (actionEmitter)="invitationAction($event)"
+    ></app-invitations-tracker>
+  </div>
+</ng-template>
+
+<ng-template #emptyAvailabilitySessionsTemplate let-noResultText="noResultText">
+  <div class="box-office-content__no-results">
+    <fa-icon class="box-office-content__no-results__icon" [icon]="['fal', 'sensor-alert']"></fa-icon>
+    <p class="box-office-content__no-results__text" translate>{{ noResultText }}</p>
+  </div>
+</ng-template>
+
+<ng-template #guestDetailsTemplate>
+  <div class="box-office-content__content-card box-office-content__content-card--guest-details">
+    @if (!isBulkInvitationFlow) {
+      <app-invitation-guest-details
+        #guestDetails
+        [notificationType]="notificationType"
+        [planId]="selectedPlan?.id"
+        [sessions]="cartSessions"
+        [shouldShowNotificationType]="shouldShowNotificationType()"
+        (updateGuests)="updateGuests($event)"
+      />
+    }
+    @if (isBulkInvitationFlow) {
+      <app-bulk-guest-details
+        #bulkGuestDetails
+        [notificationType]="notificationType"
+        [planId]="selectedPlan?.id"
+        [sessions]="cartSessions"
+        [shouldShowNotificationType]="shouldShowNotificationType()"
+        [hasCapacityExceededWarning]="hasBulkCapacityExceededBeenShown"
+        (csvCleared)="onBulkCsvCleared($event)"
+        (csvPasted)="onBulkCsvPasted($event)"
+        (updateGuests)="updateGuests($event)"
+      ></app-bulk-guest-details>
+    }
+
+    @if (canManageInvitations() && !isBulkInvitationFlow) {
+      <div class="form-group form-group--checkbox">
+        <label class="checkbox">
+          <input
+            class="checkbox__input"
+            type="checkbox"
+            [checked]="createAnotherInvitationSelected"
+            (change)="onToggleCheckboxChange()"
+            data-testid="create-another-invitation-checkbox"
+          />
+          <span class="checkbox__icon" [class.checkbox__icon--unchecked]="!createAnotherInvitationSelected">
+            <fa-icon [icon]="['fas', 'check']"></fa-icon>
+          </span>
+          <span class="checkbox__label">{{ 'invitations.createAnotherInvitation' | translate }}</span>
+        </label>
+      </div>
+    }
+    <div class="box-office-content__buttons ticketing-invitations-buttons">
+      <ng-container *ngTemplateOutlet="buttonsTicketingTemplate"></ng-container>
+    </div>
+  </div>
+</ng-template>

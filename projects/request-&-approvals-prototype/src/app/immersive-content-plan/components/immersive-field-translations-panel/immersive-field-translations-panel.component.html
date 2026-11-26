@@ -1,0 +1,118 @@
+<ignt-dialog-header>
+  <span class="immersive-translations-panel__crumb" data-testid="immersive-translations-panel-crumb">
+    {{ data.moduleLabel }}
+    @if (data.itemTitle) {
+      · {{ data.itemTitle }}
+    }
+  </span>
+  {{ 'planEdition.immersiveContentPlan.translationsPanelTitle' | translate: { field: (data.fieldLabelKey | translate) } }}
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="immersive-translations-panel__summary">
+    @if (missingCount() > 0) {
+      <ignt-tag data-testid="immersive-translations-panel-missing" sentiment="warning" variant="solid">
+        {{ 'planEdition.immersiveContentPlan.translationsPanelMissing' | translate: { missing: missingCount(), total: totalCount() } }}
+      </ignt-tag>
+    } @else {
+      <ignt-tag data-testid="immersive-translations-panel-complete" sentiment="positive" variant="solid">
+        {{ 'planEdition.immersiveContentPlan.translationsPanelComplete' | translate: { total: totalCount() } }}
+      </ignt-tag>
+    }
+    <div class="immersive-translations-panel__actions">
+      <ignt-button
+        data-testid="immersive-translations-panel-auto-translate"
+        sentiment="neutral"
+        size="small"
+        variant="secondary"
+        [disabled]="isAutoTranslateDisabled()"
+        [label]="'planEdition.immersiveContentPlan.autoTranslate' | translate"
+        [leadingIcon]="{ name: 'sparkles', variant: 'light' }"
+        [loading]="isTranslating()"
+        (click)="onAutoTranslate()"
+      />
+      <ignt-button
+        data-testid="immersive-translations-panel-only-missing"
+        sentiment="neutral"
+        size="small"
+        [attr.aria-pressed]="onlyMissing()"
+        [label]="'planEdition.immersiveContentPlan.translationsPanelOnlyMissing' | translate"
+        [variant]="onlyMissing() ? 'secondary' : 'tertiary'"
+        (click)="toggleOnlyMissing()"
+      />
+    </div>
+  </div>
+  @if (baseChanged()) {
+    <p class="immersive-translations-panel__hint" data-testid="immersive-translations-panel-base-changed">
+      {{ 'planEdition.immersiveContentPlan.translationsPanelBaseChanged' | translate }}
+    </p>
+  }
+
+  <!-- Stacked rows: the locale line above its control, so a long language name never squeezes the input. -->
+  @for (row of visibleRows(); track row.code) {
+    <div
+      class="immersive-translations-panel__row"
+      data-testid="immersive-translations-panel-row"
+      [attr.data-locale]="row.code"
+      [class.immersive-translations-panel__row--dirty]="row.dirty"
+      [class.immersive-translations-panel__row--missing]="row.missing"
+    >
+      <label
+        class="immersive-translations-panel__locale"
+        [attr.for]="data.richText ? null : row.inputId"
+        [attr.id]="data.richText ? row.inputId + '-label' : null"
+      >
+        @if (!row.isBase) {
+          <span
+            class="immersive-translations-panel__dot"
+            [class.immersive-translations-panel__dot--done]="!row.missing"
+            aria-hidden="true"
+          ></span>
+        }
+        <span>{{ row.label }}</span>
+        @if (row.isBase) {
+          <ignt-tag data-testid="immersive-translations-panel-base-tag" sentiment="neutral" variant="solid">
+            {{ 'planEdition.immersiveContentPlan.baseBadge' | translate }}
+          </ignt-tag>
+        }
+      </label>
+      @if (data.richText) {
+        <app-immersive-markdown-editor
+          [labelledBy]="row.inputId + '-label'"
+          [placeholder]="'planEdition.immersiveContentPlan.tokenPlaceholder' | translate"
+          [ngModel]="row.text"
+          (ngModelChange)="onTextChange(row.code, $event)"
+        />
+      } @else if (data.multiline) {
+        <ignt-textarea-field
+          [id]="row.inputId"
+          label=""
+          [placeholder]="'planEdition.immersiveContentPlan.tokenPlaceholder' | translate"
+          resize="vertical"
+          [rows]="2"
+          [ngModel]="row.text"
+          (ngModelChange)="onTextChange(row.code, $event)"
+        />
+      } @else {
+        <ignt-input-field
+          [id]="row.inputId"
+          label=""
+          [placeholder]="'planEdition.immersiveContentPlan.tokenPlaceholder' | translate"
+          [ngModel]="row.text"
+          (ngModelChange)="onTextChange(row.code, $event)"
+        />
+      }
+    </div>
+  }
+</ignt-dialog-content>
+
+<ignt-dialog-footer hideCancelButton>
+  <span class="immersive-translations-panel__hint">{{ 'planEdition.immersiveContentPlan.translationsPanelFooter' | translate }}</span>
+  <ignt-button
+    data-testid="immersive-translations-panel-done"
+    sentiment="brand"
+    variant="primary"
+    [igntDialogClose]="true"
+    [label]="'planEdition.immersiveContentPlan.translationsPanelDone' | translate"
+  />
+</ignt-dialog-footer>

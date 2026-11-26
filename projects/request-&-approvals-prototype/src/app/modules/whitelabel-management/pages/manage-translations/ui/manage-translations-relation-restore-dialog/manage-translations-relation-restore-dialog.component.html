@@ -1,0 +1,407 @@
+<div class="manage-translations-relation-restore-dialog" data-testid="manage-translations-relation-restore-dialog">
+  <!-- A control-flow block inside the header would be taken as its auxiliary content: the title is one binding. -->
+  <!-- No close button while the restore is written: it must not be abandoned halfway. -->
+  <ignt-dialog-header [hideCloseButton]="isApplying()">{{
+    titleKey() | translate: { name: projectName, date: restoreToLabel() }
+  }}</ignt-dialog-header>
+
+  <ignt-dialog-content>
+    <ignt-progress-stepper
+      [items]="stepItems()"
+      [currentIndex]="stepIndex()"
+      [showNavigation]="false"
+      [allowItemActivate]="false"
+      [ariaLabel]="'manageTranslations.history.restoreRelation.stepsLabel' | translate"
+      [stepCountLabel]="'manageTranslations.history.restoreRelation.stepCount' | translate"
+    >
+      <div class="manage-translations-relation-restore-dialog__body">
+        @switch (step()) {
+          @case (steps.Moment) {
+            <div class="manage-translations-relation-restore-dialog__field">
+              <label class="manage-translations-relation-restore-dialog__label" [for]="momentInputId">
+                {{ 'manageTranslations.history.restoreRelation.momentLabel' | translate }}
+              </label>
+              <ignt-native-date-input
+                type="datetime-local"
+                testId="manage-translations-relation-restore-moment"
+                [inputId]="momentInputId"
+                [value]="momentInputValue()"
+                [disabled]="isPreviewing()"
+                [hasError]="isInFuture()"
+                [errorMessage]="'manageTranslations.history.restoreRelation.momentInFuture' | translate"
+                (valueChange)="onMomentChange($event)"
+              ></ignt-native-date-input>
+            </div>
+
+            @if (keepsChange()) {
+              <p class="manage-translations-relation-restore-dialog__note" data-testid="manage-translations-relation-restore-keeps-change">
+                {{ 'manageTranslations.history.restoreRelation.keepsChange' | translate: { time: keptChangeTime } }}
+              </p>
+            }
+
+            <p data-testid="manage-translations-relation-restore-scope">
+              {{
+                (isBase
+                  ? 'manageTranslations.history.restoreRelation.scope.base'
+                  : 'manageTranslations.history.restoreRelation.scope.subproject'
+                ) | translate: { name: projectName }
+              }}
+            </p>
+
+            @if (isBase) {
+              <ignt-alert
+                sentiment="warning"
+                [description]="'manageTranslations.history.restoreRelation.baseWarning' | translate"
+                data-testid="manage-translations-relation-restore-base-warning"
+              ></ignt-alert>
+            }
+
+            @if (errorKey(); as messageKey) {
+              <ignt-alert
+                sentiment="danger"
+                role="alert"
+                [description]="messageKey | translate"
+                data-testid="manage-translations-relation-restore-error"
+              ></ignt-alert>
+            }
+          }
+
+          @case (steps.Review) {
+            @if (reviewNoticeKey(); as noticeKey) {
+              <ignt-alert
+                sentiment="warning"
+                role="status"
+                [description]="noticeKey | translate: { name: projectName }"
+                data-testid="manage-translations-relation-restore-review-notice"
+              ></ignt-alert>
+            }
+
+            @if (plan(); as view) {
+              @if (view.isEmpty) {
+                <p data-testid="manage-translations-relation-restore-empty">
+                  {{ 'manageTranslations.history.restoreRelation.empty' | translate: { name: projectName } }}
+                </p>
+              } @else {
+                <app-manage-translations-restore-plan-counts [counts]="view.counts" />
+
+                @if (showsKeyOperations()) {
+                  <app-manage-translations-restore-key-operations [operations]="view.keyOperations" [more]="view.moreKeyOperations" />
+                }
+
+                @if (view.defaultLanguageChanged) {
+                  <p data-testid="manage-translations-relation-restore-default-language">
+                    {{ 'manageTranslations.history.restoreRelation.defaultLanguageChanged' | translate }}
+                  </p>
+                }
+
+                @if (view.relationFieldChanges.length > 0) {
+                  <section
+                    class="manage-translations-relation-restore-dialog__section"
+                    data-testid="manage-translations-relation-restore-settings"
+                  >
+                    <h3 class="manage-translations-relation-restore-dialog__caption">
+                      {{ 'manageTranslations.history.restorePart.relationFields' | translate }}
+                    </h3>
+                    <!-- The lines of a relation_updated row: the value now struck through, then the restored one. -->
+                    <ul class="manage-translations-relation-restore-dialog__list">
+                      @for (change of view.relationFieldChanges; track $index) {
+                        <li data-testid="manage-translations-relation-restore-setting">
+                          @if (change.labelKey) {
+                            <span class="manage-translations-relation-restore-dialog__setting-label"
+                              >{{ change.labelKey | translate }}:</span
+                            >&ngsp;
+                          }
+                          @if (change.oldValue !== null) {
+                            <del data-testid="manage-translations-relation-restore-setting-old">{{ change.oldValue }}</del>
+                          }
+                          @if (change.oldValue !== null && change.newValue !== null) {
+                            &ngsp;<span aria-hidden="true">→</span>&ngsp;
+                          }
+                          @if (change.newValue !== null) {
+                            <ins data-testid="manage-translations-relation-restore-setting-new">{{ change.newValue }}</ins>
+                          }
+                        </li>
+                      }
+                    </ul>
+                  </section>
+                }
+              }
+
+              @if (view.sample.length > 0) {
+                <h3 class="manage-translations-relation-restore-dialog__caption">
+                  {{ 'manageTranslations.history.restoreRelation.sample.caption' | translate }}
+                </h3>
+                <ignt-table
+                  layout="table"
+                  [data]="view.sample"
+                  [getRowId]="sampleRowId"
+                  data-testid="manage-translations-relation-restore-sample"
+                >
+                  <ignt-table-column
+                    columnType="primary"
+                    key="keyPath"
+                    [header]="'manageTranslations.history.restoreRelation.sample.key' | translate"
+                  >
+                    <ng-template [igntTableColumnTemplateType]="view.sample[0]" let-item="item">
+                      <code>{{ item.keyPath }}</code>
+                    </ng-template>
+                  </ignt-table-column>
+                  <ignt-table-column key="locale" [header]="'manageTranslations.history.restoreRelation.sample.locale' | translate" />
+                  <ignt-table-column key="currentText" [header]="'manageTranslations.history.restoreRelation.sample.current' | translate">
+                    <ng-template [igntTableColumnTemplateType]="view.sample[0]" let-item="item">
+                      @if (item.currentText === null) {
+                        <em class="manage-translations-relation-restore-dialog__empty-text">{{
+                          'manageTranslations.history.restoreRelation.sample.empty' | translate
+                        }}</em>
+                      } @else {
+                        {{ item.currentText }}
+                      }
+                    </ng-template>
+                  </ignt-table-column>
+                  <ignt-table-column key="restoredText" [header]="'manageTranslations.history.restoreRelation.sample.restored' | translate">
+                    <ng-template [igntTableColumnTemplateType]="view.sample[0]" let-item="item">
+                      @if (item.restoredText === null) {
+                        <em class="manage-translations-relation-restore-dialog__empty-text">{{
+                          'manageTranslations.history.restoreRelation.sample.empty' | translate
+                        }}</em>
+                      } @else {
+                        {{ item.restoredText }}
+                      }
+                    </ng-template>
+                  </ignt-table-column>
+                </ignt-table>
+                @if (hiddenSampleCount() > 0) {
+                  <p
+                    class="manage-translations-relation-restore-dialog__note"
+                    data-testid="manage-translations-relation-restore-sample-more"
+                  >
+                    {{
+                      'manageTranslations.history.restoreRelation.sample.more'
+                        | translate: { shown: view.sample.length, total: view.cellChangeCount }
+                    }}
+                  </p>
+                }
+              }
+
+              @if (view.sharedRelations.length > 0) {
+                <section
+                  class="manage-translations-relation-restore-dialog__section"
+                  data-testid="manage-translations-relation-restore-shared"
+                >
+                  <ignt-alert
+                    sentiment="warning"
+                    [description]="'manageTranslations.history.restoreRelation.shared.title' | translate"
+                  ></ignt-alert>
+                  <ul class="manage-translations-relation-restore-dialog__list">
+                    @for (shared of view.sharedRelations; track shared.relationId) {
+                      <li data-testid="manage-translations-relation-restore-shared-project">
+                        {{
+                          'manageTranslations.history.restoreRelation.shared.project'
+                            | translate: { name: shared.projectName ?? shared.relationId, count: shared.cells }
+                        }}
+                      </li>
+                    }
+                  </ul>
+                </section>
+              }
+
+              @if (view.skippedCellCount > 0) {
+                <section
+                  class="manage-translations-relation-restore-dialog__section"
+                  data-testid="manage-translations-relation-restore-skipped-keys"
+                >
+                  <ignt-alert sentiment="info" [description]="skippedKeysKey() | translate: { count: view.skippedCellCount }"></ignt-alert>
+                  <ul class="manage-translations-relation-restore-dialog__list">
+                    @for (skipped of view.skippedKeys; track $index) {
+                      <li data-testid="manage-translations-relation-restore-skipped-key">
+                        <code>{{ skipped.keyPath ?? skipped.keyId }}</code> · {{ skipped.locale }} · {{ skipped.restoredText }}
+                      </li>
+                    }
+                  </ul>
+                  @if (hiddenSkippedKeyCount() > 0) {
+                    <p
+                      class="manage-translations-relation-restore-dialog__note"
+                      data-testid="manage-translations-relation-restore-skipped-keys-more"
+                    >
+                      {{
+                        'manageTranslations.history.restoreRelation.skippedKeys.more'
+                          | translate: { shown: view.skippedKeys.length, total: view.skippedCellCount }
+                      }}
+                    </p>
+                  }
+                </section>
+              }
+
+              @if (isBase && view.skippedRelationCellCount > 0) {
+                <ignt-alert
+                  sentiment="info"
+                  [description]="skippedRelationsKey() | translate: { count: view.skippedRelationCellCount }"
+                  data-testid="manage-translations-relation-restore-skipped-relations"
+                ></ignt-alert>
+              }
+
+              @if (isBase && view.affectedSubprojects.length > 0) {
+                <section
+                  class="manage-translations-relation-restore-dialog__section"
+                  data-testid="manage-translations-relation-restore-affected"
+                >
+                  <ignt-alert
+                    sentiment="warning"
+                    [description]="'manageTranslations.history.restoreRelation.affected.title' | translate"
+                  ></ignt-alert>
+                  <ignt-table
+                    layout="table"
+                    [data]="view.affectedSubprojects"
+                    [getRowId]="affectedRowId"
+                    data-testid="manage-translations-relation-restore-affected-table"
+                  >
+                    <ignt-table-column
+                      columnType="primary"
+                      key="projectName"
+                      [header]="'manageTranslations.history.restoreRelation.affected.subproject' | translate"
+                    >
+                      <ng-template [igntTableColumnTemplateType]="view.affectedSubprojects[0]" let-item="item">
+                        {{ item.projectName ?? item.relationId }}
+                      </ng-template>
+                    </ignt-table-column>
+                    <ignt-table-column
+                      key="inheritedCells"
+                      align="right"
+                      [header]="'manageTranslations.history.restoreRelation.affected.inherited' | translate"
+                    />
+                    <ignt-table-column
+                      key="removedTranslations"
+                      align="right"
+                      [header]="'manageTranslations.history.restoreRelation.affected.removed' | translate"
+                    />
+                    <ignt-table-column
+                      key="restoredTranslations"
+                      align="right"
+                      [header]="'manageTranslations.history.restoreRelation.affected.restored' | translate"
+                    />
+                  </ignt-table>
+                </section>
+              } @else if (isBase && !view.isEmpty) {
+                <p data-testid="manage-translations-relation-restore-affected-none">
+                  {{ 'manageTranslations.history.restoreRelation.affected.none' | translate }}
+                </p>
+              }
+            }
+          }
+
+          @case (steps.Confirm) {
+            @if (plan(); as view) {
+              <p data-testid="manage-translations-relation-restore-confirm-summary">
+                {{ 'manageTranslations.history.restoreRelation.confirm.summary' | translate: { name: projectName } }}
+              </p>
+              <app-manage-translations-restore-plan-counts [counts]="view.counts" />
+              @if (showsKeyOperations()) {
+                <app-manage-translations-restore-key-operations [operations]="view.keyOperations" [more]="view.moreKeyOperations" />
+              }
+            }
+            @if (sharedSummary(); as shared) {
+              <p data-testid="manage-translations-relation-restore-confirm-shared">
+                {{ shared.labelKey | translate: shared.params }}
+              </p>
+            }
+            @if (baseReach(); as reach) {
+              <p data-testid="manage-translations-relation-restore-confirm-base-reach">
+                {{ reach.labelKey | translate: reach.params }}
+              </p>
+            }
+            <p data-testid="manage-translations-relation-restore-confirm-recorded">
+              {{ 'manageTranslations.history.restoreRelation.confirm.recorded' | translate }}
+            </p>
+
+            @if (isBase) {
+              <!-- The field shows a wrong name itself, inside its label, once the user leaves it. -->
+              <div
+                class="manage-translations-relation-restore-dialog__field"
+                data-testid="manage-translations-relation-restore-confirm-name"
+              >
+                <ignt-input-field
+                  type="text"
+                  [id]="nameInputId"
+                  [formControl]="nameControl"
+                  [label]="'manageTranslations.history.restoreRelation.confirm.base.nameLabel' | translate: { name: projectName }"
+                  [helperText]="'manageTranslations.history.restoreRelation.confirm.base.nameHint' | translate"
+                  [customFormErrors]="nameErrors()"
+                  (blurred)="onNameBlur()"
+                />
+              </div>
+            }
+
+            @if (applyErrorKey(); as messageKey) {
+              <ignt-alert
+                sentiment="danger"
+                role="alert"
+                [description]="messageKey | translate"
+                data-testid="manage-translations-relation-restore-apply-error"
+              ></ignt-alert>
+            }
+          }
+        }
+      </div>
+    </ignt-progress-stepper>
+  </ignt-dialog-content>
+
+  <ignt-dialog-footer [hideCancelButton]="true">
+    @if (step() === steps.Moment) {
+      <ignt-button
+        variant="tertiary"
+        sentiment="neutral"
+        [label]="'manageTranslations.history.restoreRelation.cancel' | translate"
+        data-testid="manage-translations-relation-restore-cancel"
+        (click)="onClose()"
+      />
+      <ignt-button
+        [label]="'manageTranslations.history.restoreRelation.preview' | translate"
+        [loading]="isPreviewing()"
+        [disabled]="!canPreview()"
+        data-testid="manage-translations-relation-restore-preview"
+        (click)="onPreview()"
+      />
+    } @else if (step() === steps.Review) {
+      <ignt-button
+        variant="tertiary"
+        sentiment="neutral"
+        [label]="'manageTranslations.history.restoreRelation.back' | translate"
+        [disabled]="isPreviewing()"
+        data-testid="manage-translations-relation-restore-back"
+        (click)="onBack()"
+      />
+      @if (plan()?.isEmpty) {
+        <ignt-button
+          variant="secondary"
+          [label]="'manageTranslations.history.restoreRelation.close' | translate"
+          data-testid="manage-translations-relation-restore-close"
+          (click)="onClose()"
+        />
+      } @else {
+        <ignt-button
+          [label]="'manageTranslations.history.restoreRelation.continue' | translate"
+          [loading]="isPreviewing()"
+          [disabled]="!canContinue()"
+          data-testid="manage-translations-relation-restore-continue"
+          (click)="onContinue()"
+        />
+      }
+    } @else {
+      <ignt-button
+        variant="tertiary"
+        sentiment="neutral"
+        [label]="'manageTranslations.history.restoreRelation.back' | translate"
+        [disabled]="isApplying()"
+        data-testid="manage-translations-relation-restore-confirm-back"
+        (click)="onBack()"
+      />
+      <ignt-button
+        [label]="'manageTranslations.history.restoreRelation.restore' | translate"
+        [loading]="isApplying()"
+        [disabled]="!canRestore()"
+        data-testid="manage-translations-relation-restore-apply"
+        (click)="onRestore()"
+      />
+    }
+  </ignt-dialog-footer>
+</div>

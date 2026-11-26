@@ -1,0 +1,146 @@
+<section class="booking-list">
+  @if (groups().length) {
+    @for (group of groups(); track group.order_group_id) {
+      <div class="booking-list__group">
+        <app-kiosk-hero [title]="bundleTitle(group)">
+          <p class="booking-list__subtitle">
+            @if (orderLocator(group); as locator) {
+              <span class="booking-list__locator">{{ locator }} |</span>
+            }
+            <span class="booking-list__tickets">
+              <ignt-icon name="ticket-alt" variant="light"></ignt-icon>
+              <span>&times;{{ orderCount(group) }}</span>
+            </span>
+          </p>
+        </app-kiosk-hero>
+
+        @if (isGroupFullyCancelled(group)) {
+          <div class="booking-list__cancelled">
+            <h2 class="booking-list__cancelled-title">{{ 'kiosk.booking.list.orderCancelledTitle' | translate }}</h2>
+            <p class="booking-list__cancelled-body" [innerHTML]="'kiosk.booking.list.orderCancelledBody' | translate"></p>
+            <p class="booking-list__cancelled-help">{{ 'kiosk.booking.list.orderCancelledHelp' | translate }}</p>
+          </div>
+        } @else {
+          <ul class="booking-list__items">
+            @for (order of group.orders; track order.id) {
+              @let orderStatus = status(order);
+              <li
+                class="booking-card"
+                [class.booking-card--expired]="orderStatus === 'expired'"
+                [class.booking-card--cancelled]="orderStatus === 'cancelled'"
+              >
+                <div class="booking-card__main">
+                  @if (order.plan_cover_image) {
+                    <img class="booking-card__image" [appKioskImage]="order.plan_cover_image" alt="" />
+                  }
+
+                  <div class="booking-card__body">
+                    <h2 class="booking-card__plan">{{ order.plan_name }}</h2>
+
+                    <p class="booking-card__line">
+                      <ignt-icon name="map-marker-alt" variant="light"></ignt-icon>
+                      <span>{{ order.place_name }}</span>
+                    </p>
+
+                    @if (showScheduleDetails(order, orderStatus)) {
+                      <p class="booking-card__line">
+                        <ignt-icon name="calendar-alt" variant="light"></ignt-icon>
+                        <span>{{ scheduledAt(order) | momentDate: 'EEEE, d MMM - hh:mm a' : venueTimezone(order) }}</span>
+                      </p>
+                      @if (ticketTypes(order).length) {
+                        <p class="booking-card__line">
+                          <ignt-icon name="ticket-alt" variant="light"></ignt-icon>
+                          <span>{{ ticketTypesLabel(order) }}</span>
+                        </p>
+                      }
+                    }
+
+                    @if (orderStatus === 'needs_scheduling') {
+                      <span class="booking-card__chip booking-card__chip--warning">
+                        {{ 'kiosk.booking.list.needsScheduling' | translate }}
+                      </span>
+                      @if (daysToRedeem(order) !== null) {
+                        <span class="booking-card__redeem">
+                          {{ 'kiosk.booking.list.daysToRedeem' | translate: { days: daysToRedeem(order) } }}
+                        </span>
+                      }
+                    }
+
+                    @if (orderStatus === 'expired') {
+                      <span class="booking-card__chip booking-card__chip--muted">
+                        {{ 'kiosk.booking.list.expired' | translate }}
+                      </span>
+                    }
+
+                    @if (orderStatus === 'cancelled') {
+                      <span class="booking-card__chip booking-card__chip--danger">
+                        {{ 'kiosk.booking.list.cancelled' | translate }}
+                      </span>
+                    }
+                  </div>
+
+                  @if (canPrint(orderStatus) || (orderStatus === 'needs_scheduling' && hasReschedulesLeft(order))) {
+                    <div class="booking-card__aside">
+                      @if (canPrint(orderStatus)) {
+                        <kiosk-button
+                          iconSrc="assets/images/kiosk/fa-print.svg"
+                          [iconTrailing]="true"
+                          [slim]="true"
+                          [disabled]="printingOrderId() !== null"
+                          (click)="showTickets(order.id)"
+                          [label]="
+                            (printingOrderId() === order.id ? 'kiosk.booking.list.printing' : 'kiosk.booking.list.print') | translate
+                          "
+                        ></kiosk-button>
+                      }
+                      @if (orderStatus === 'scheduled' && hasReschedulesLeft(order)) {
+                        <kiosk-button
+                          icon="calendar-pen"
+                          [iconTrailing]="true"
+                          [slim]="true"
+                          [secondary]="true"
+                          [disabled]="printingOrderId() !== null"
+                          (click)="reschedule(order.id)"
+                          [label]="'kiosk.booking.list.reschedule' | translate"
+                        ></kiosk-button>
+                      }
+                      @if (orderStatus === 'needs_scheduling') {
+                        <kiosk-button
+                          icon="calendar-plus"
+                          [iconTrailing]="true"
+                          [slim]="true"
+                          [secondary]="true"
+                          [disabled]="printingOrderId() !== null"
+                          (click)="reschedule(order.id)"
+                          [label]="'kiosk.booking.list.schedule' | translate"
+                        ></kiosk-button>
+                      }
+                    </div>
+                  }
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    }
+
+    @if (printError()) {
+      <p class="booking-list__print-error">{{ 'kiosk.booking.list.printError' | translate }}</p>
+    }
+  } @else {
+    @if (isLoading()) {
+      <p>{{ 'kiosk.booking.list.loading' | translate }}</p>
+    }
+    @if (hasError()) {
+      <p>{{ 'kiosk.booking.list.error' | translate }}</p>
+    }
+    @if (!isLoading() && !hasError()) {
+      <p>{{ 'kiosk.booking.list.empty' | translate }}</p>
+    }
+  }
+
+  <div class="booking-list__actions">
+    <kiosk-button [fill]="true" (click)="done()" [label]="'kiosk.orderConfirmation.footer.finish' | translate"></kiosk-button>
+  </div>
+</section>

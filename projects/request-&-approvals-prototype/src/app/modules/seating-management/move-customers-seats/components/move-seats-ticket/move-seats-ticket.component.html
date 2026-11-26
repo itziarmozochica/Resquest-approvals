@@ -1,0 +1,72 @@
+<div class="move-seats-ticket">
+  <!-- Left side: Seats.io map -->
+  <div class="move-seats-ticket__map-panel">
+    <div class="move-seats-ticket__map-hint">
+      <ignt-icon name="info-circle" variant="solid" aria-hidden="true" />
+      <span>{{ 'seatingManagement.clickToSelectSeats' | translate }}</span>
+    </div>
+    <app-move-seats-map
+      [eventKey]="eventKey()"
+      [highlightedSeats]="currentSeatReferences()"
+      [mapId]="'ticket-' + ticket().ticketId"
+      [maxSelectableSeats]="ticket().seats.length"
+      [secretKey]="secretKey()"
+      (selectedSeatsChanged)="onSelectedSeatsChanged($event)"
+    />
+  </div>
+
+  <!-- Right side: Ticket details -->
+  <div class="move-seats-ticket__details-panel">
+    @if (hasAnySeatReference()) {
+      <div class="move-seats-ticket__selection-info">
+        <button igntButton sentiment="secondary" size="small" type="button" (click)="clearAllSelections()">
+          <ignt-icon name="times" variant="solid" aria-hidden="true" />
+          {{ 'seatingManagement.clearSelection' | translate }}
+        </button>
+      </div>
+    }
+    <div class="move-seats-ticket__content">
+      <div class="scrollable-table" data-testid="scrollable-table">
+        <app-table [type]="TableType.FZ_TABLE" [scrollable]="true" [headers]="tableHeaders" [hasActions]="false">
+          @for (seat of ticket().seats; track $index; let seatIndex = $index) {
+            <tr class="scrollable-table__row" data-testid="scrollable-table-row">
+              <td class="scrollable-table__row-cell" data-testid="seat-label">{{ seat.currentSeatLabel }}</td>
+
+              <td class="scrollable-table__row-cell scrollable-table__row-cell--action" data-testid="seat-action-cell">
+                @if (newSeatReferences()[seatIndex]; as newSeatRef) {
+                  <span class="move-seats-ticket__new-seat-label">
+                    <span>{{ newSeatRef }}</span>
+                    <button class="icon-button" type="button" (click)="clearSeatAtIndex(seatIndex)">
+                      <ignt-icon name="trash" variant="solid" aria-hidden="true" />
+                    </button>
+                  </span>
+                } @else {
+                  <span class="move-seats-ticket__empty-slot">{{ 'seatingManagement.seatNotSelected' | translate }}</span>
+                }
+              </td>
+            </tr>
+          }
+        </app-table>
+      </div>
+
+      <div class="move-seats-ticket__footer" data-testid="ticket-footer">
+        <ignt-checkbox
+          [checked]="!releaseSeats()"
+          (change)="setReleaseSeats(!$event)"
+          [label]="'seatingManagement.keepOriginalSeatsBlocked' | translate"
+          dataTestId="release-seats-checkbox"
+        />
+        <button
+          igntButton
+          sentiment="primary"
+          data-testid="move-seats-button"
+          [disabled]="!hasAnySeatReference() || isSubmitting()"
+          [loading]="isSubmitting()"
+          (click)="submitSeatReassignment()"
+        >
+          {{ 'seatingManagement.moveSeats' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

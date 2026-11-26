@@ -1,0 +1,420 @@
+<app-search-bar
+  [preselectFromOnsiteSetup]="false"
+  #searchBarComponent
+  style="display: none"
+  [searchButtonLabel]="'boxOffice.show'"
+  [showVenue]="true"
+  [screen]="screen.kiosk"
+  (searchEmitter)="loadNewSearch($event)"
+>
+</app-search-bar>
+
+@if (isKioskStepperFlowEnabled) {
+  <div class="kiosk-ticketing main-wrapper">
+    <app-kiosk-hero
+      class="kiosk-ticketing__header"
+      [title]="title"
+      [supportingText]="uiRefreshEnabled ? undefined : ('kiosk.ticketing.hero.supportingText' | translate)"
+      [isSticky]="true"
+      [isHomeDisabled]="isRealTimeExitBlocked()"
+    >
+    </app-kiosk-hero>
+
+    <div class="kiosk-ticketing__box-office-content">
+      <div class="kiosk-ticketing__box-office-content__container">
+        <ng-container class="box-office-content__row">
+          @if (filtersSelected || isLoadingSessions) {
+            @if (isLoadingSessions) {
+              <div class="box-office-content__spinner">
+                <ng-container [ngTemplateOutlet]="isLoadingSessionsSkeleton"> </ng-container>
+              </div>
+            }
+            @if (error) {
+              <div class="box-office-content__alert-error">
+                <ignt-alert
+                  sentiment="danger"
+                  [description]="'boxOffice.genericErrorTitle' | translate"
+                  showCloseButton
+                  [closeButtonAriaLabel]="'common.close' | translate"
+                  (closeAlert)="closeError()"
+                />
+              </div>
+            }
+            @if (
+              !isLoadingSessions &&
+              !error &&
+              sessionAvailabilitySummary &&
+              sessionAvailabilitySummary?.regularSessionAvailabilitySummaryByDates.length === 0 &&
+              datesAvailability?.length === 0
+            ) {
+              <ng-container
+                [ngTemplateOutlet]="emptyAvailabilitySessionsTemplate"
+                [ngTemplateOutletContext]="{ noResultText: 'boxOffice.noSessionsAvailable' }"
+              >
+              </ng-container>
+            }
+            @if (
+              !isLoadingSessions &&
+              !error &&
+              sessionAvailabilitySummary &&
+              (sessionAvailabilitySummary?.regularSessionAvailabilitySummaryByDates.length > 0 || datesAvailability?.length > 0)
+            ) {
+              <div class="box-office-content__content">
+                @switch (currentStep.id) {
+                  @case (KioskStepId.Datetime) {
+                    <div
+                      class="kiosk-ticketing__box-office-content__content-card"
+                      [class.blocked-content]="isLoadingCart"
+                      data-fzk="kiosk-step-datetime"
+                    >
+                      @if (!hideDatesAndHours) {
+                        <date-selector-kiosk
+                          [datesAvailability]="datesAvailability"
+                          [selectedDateAvailability]="selectedDateAvailability"
+                          [locale]="locale"
+                          [loading]="isLoadingDates"
+                          [timezone]="timezone"
+                          [ticketTypes]="selectedTicketsBySessionType"
+                          [displayedSessionType]="displayedSessionType"
+                          [hideSessionDuration]="true"
+                          [regularSessionAvailabilitySummaryByDate]="regularSessionAvailabilitySummaryByDateList"
+                          [selectedSession]="selectedSession"
+                          [sessionSelectorType]="sessionSelectorType"
+                          [hideDates]="true"
+                          [showLoadMoreButton]="!!nextAvailableDate && daysWithActiveSession > 1"
+                          (selectedSessionChange)="selectSession($event)"
+                          (loadMore)="loadMoreDays()"
+                          (selectedDateChange)="selectDate($event)"
+                          (displayedSessionTypeChange)="handleDisplayedSessionTypeChange($event)"
+                        ></date-selector-kiosk>
+                      }
+                    </div>
+                  }
+                  @case (KioskStepId.FreeSeatingMap) {
+                    <div class="kiosk-ticketing__box-office-content__content-card--seating" data-fzk="kiosk-step-free-seating-map">
+                      <div class="content__title" data-testid="box-office-step-title">
+                        {{ 'boxOffice.seatingSelection' | translate }}
+                      </div>
+                      <div class="kiosk-seating-selector">
+                        @if (isReleasingRealTimeBasket()) {
+                          <div class="kiosk-seating-selector__releasing" data-testid="kiosk-real-time-release-loading">
+                            <ignt-icon name="spinner" variant="solid" size="display" [spin]="true"></ignt-icon>
+                          </div>
+                        }
+                        <seating-selector
+                          #seatingSelector
+                          [showTopBar]="false"
+                          [manageAsFreeSeatingMap]="manageAsFreeSeatingMap"
+                          [seatingMapUrl]="seatingMapUrl"
+                          [state]="seatingMapState"
+                          [locale]="locale"
+                          [shouldRestoreToBeginning]="shouldRestoreToBeginning"
+                          [shouldGoBack]="shouldGoBack"
+                          (selectSeats)="selectSeats($event)"
+                          (updateSeatsInCart)="updateSeatsInCart($event)"
+                          (confirmSeating)="confirmSeating($event)"
+                          (continueRestore)="continueRestore()"
+                          (iframeInteraction)="onIframeInteraction()"
+                          (realTimeSelectionChange)="onRealTimeSelectionChange($event)"
+                          (sessionStarted)="onRealTimeSessionStarted()"
+                        ></seating-selector>
+                      </div>
+                    </div>
+                  }
+                  @case (KioskStepId.RegularNonSeated) {
+                    <div
+                      class="kiosk-ticketing__box-office-content__content-card"
+                      [class.blocked-content]="isLoadingCart"
+                      data-fzk="kiosk-step-regular-non-seated"
+                    >
+                      <app-kiosk-ticket-selector
+                        [ticketTypes]="regularNonSeatedTicketTypes"
+                        [showTicketAvailabilityInfo]="false"
+                        [ticketTypeCounterBySessionId]="selectedTicketsBySessionId"
+                        [ticketTypeCounterBySessionType]="selectedTicketsBySessionType"
+                        [hasExplodePipe]="hasExplodePipe"
+                        [hideSingleItemExplodePipeLevels]="isHideSingleItemExplodePipeLevelsEnabled()"
+                        [showPrices]="true"
+                        (ticketTypeCounterChange)="selectTicketCounter($event)"
+                        (hasErrors)="setTicketCounterHasErrors($event)"
+                        [allowMultiSession]="allowMultiSessionPurchase"
+                      ></app-kiosk-ticket-selector>
+                    </div>
+                  }
+                  @case (KioskStepId.AddOns) {
+                    <div
+                      class="kiosk-ticketing__box-office-content__content-card"
+                      [class.blocked-content]="isLoadingCart"
+                      data-fzk="kiosk-step-addons"
+                    >
+                      <app-kiosk-ticket-selector
+                        [titleKey]="'kiosk.steps.addOns'"
+                        [isAddonWithoutEntryWarningHidden]="true"
+                        [ticketTypes]="addonNonSeatedTicketTypes"
+                        [showTicketAvailabilityInfo]="false"
+                        [ticketTypeCounterBySessionId]="selectedTicketsBySessionId"
+                        [ticketTypeCounterBySessionType]="selectedTicketsBySessionType"
+                        [hasExplodePipe]="hasExplodePipe"
+                        [hideSingleItemExplodePipeLevels]="isHideSingleItemExplodePipeLevelsEnabled()"
+                        [showPrices]="true"
+                        (ticketTypeCounterChange)="selectTicketCounter($event)"
+                        (hasErrors)="setTicketCounterHasErrors($event)"
+                        [allowMultiSession]="allowMultiSessionPurchase"
+                      ></app-kiosk-ticket-selector>
+                    </div>
+                  }
+                }
+              </div>
+            }
+          }
+        </ng-container>
+      </div>
+    </div>
+
+    @if (
+      !isLoadingSessions &&
+      !error &&
+      sessionAvailabilitySummary &&
+      (sessionAvailabilitySummary?.regularSessionAvailabilitySummaryByDates.length > 0 || datesAvailability?.length > 0)
+    ) {
+      <app-action-footer
+        class="kiosk-ticketing__footer"
+        primaryButtonText="{{ 'kiosk.ticketing.footer.button.primary' | translate }}"
+        secondaryButtonText="{{ 'common.back' | translate }}"
+        [primaryFill]="true"
+        [disablePrimary]="addSessionsToCartIsDisabled()"
+        [disableSecondary]="isRealTimeExitBlocked()"
+        (primaryButtonClick)="addSessionsToCart()"
+        (secondaryButtonClick)="clickOnBack()"
+      ></app-action-footer>
+    }
+  </div>
+} @else {
+  <ng-container [ngTemplateOutlet]="legacyFlow"></ng-container>
+}
+
+<ng-template #legacyFlow>
+  <div class="kiosk-ticketing main-wrapper">
+    <app-kiosk-hero
+      class="kiosk-ticketing__header"
+      [title]="title"
+      [supportingText]="uiRefreshEnabled ? undefined : ('kiosk.ticketing.hero.supportingText' | translate)"
+      [isSticky]="true"
+    >
+    </app-kiosk-hero>
+
+    <div class="kiosk-ticketing__box-office-content">
+      <div class="kiosk-ticketing__box-office-content__container">
+        <ng-container class="box-office-content__row">
+          <!-- <div
+          class="box-office-content__no-filter-selected"
+          *ngIf="!filtersSelected || (!sessionAvailabilitySummary && !isLoadingSessions && !error)"
+        >
+          <fa-icon class="box-office-content__no-filter-selected__icon" [icon]="['fal', 'sensor-alert']"></fa-icon>
+          <p class="box-office-content__no-filter-selected__text" translate>boxOffice.noFilterSelected</p>
+        </div> -->
+          <ng-container *ngIf="filtersSelected || isLoadingSessions">
+            <div class="box-office-content__spinner" *ngIf="isLoadingSessions">
+              <ng-container [ngTemplateOutlet]="isLoadingSessionsSkeleton"> </ng-container>
+            </div>
+            <div class="box-office-content__alert-error" *ngIf="error">
+              <ignt-alert
+                sentiment="danger"
+                [description]="'boxOffice.genericErrorTitle' | translate"
+                showCloseButton
+                [closeButtonAriaLabel]="'common.close' | translate"
+                (closeAlert)="closeError()"
+              />
+            </div>
+            <ng-container
+              [ngTemplateOutlet]="emptyAvailabilitySessionsTemplate"
+              [ngTemplateOutletContext]="{ noResultText: 'boxOffice.noSessionsAvailable' }"
+              *ngIf="
+                !isLoadingSessions &&
+                !error &&
+                sessionAvailabilitySummary &&
+                sessionAvailabilitySummary?.regularSessionAvailabilitySummaryByDates.length === 0 &&
+                datesAvailability?.length === 0
+              "
+            >
+            </ng-container>
+            <ng-container
+              *ngIf="
+                !isLoadingSessions &&
+                !error &&
+                sessionAvailabilitySummary &&
+                (sessionAvailabilitySummary?.regularSessionAvailabilitySummaryByDates.length > 0 || datesAvailability?.length > 0)
+              "
+            >
+              <div class="box-office-content__content">
+                <ng-container [ngSwitch]="currentStep.id">
+                  <ng-container *ngSwitchCase="ticketSelectorStep.id">
+                    <div class="kiosk-ticketing__box-office-content__content-card" [class.blocked-content]="isLoadingCart">
+                      <date-selector-kiosk
+                        *ngIf="!hideDatesAndHours"
+                        [datesAvailability]="datesAvailability"
+                        [selectedDateAvailability]="selectedDateAvailability"
+                        [locale]="locale"
+                        [loading]="isLoadingDates"
+                        [timezone]="timezone"
+                        [ticketTypes]="selectedTicketsBySessionType"
+                        [displayedSessionType]="displayedSessionType"
+                        [hideSessionDuration]="true"
+                        [regularSessionAvailabilitySummaryByDate]="regularSessionAvailabilitySummaryByDateList"
+                        [selectedSession]="selectedSession"
+                        [sessionSelectorType]="sessionSelectorType"
+                        [hideDates]="true"
+                        [showLoadMoreButton]="!!nextAvailableDate && daysWithActiveSession > 1"
+                        (selectedSessionChange)="selectSession($event)"
+                        (loadMore)="loadMoreDays()"
+                        (selectedDateChange)="selectDate($event)"
+                        (displayedSessionTypeChange)="handleDisplayedSessionTypeChange($event)"
+                      ></date-selector-kiosk>
+                      <div [class.pt-4]="hideDatesAndHours">
+                        <ng-container *ngIf="!isLoadingDateSessions">
+                          <ng-container
+                            [ngTemplateOutlet]="emptyAvailabilitySessionsTemplate"
+                            [ngTemplateOutletContext]="{ noResultText: 'boxOffice.noSessionsForDate' }"
+                            *ngIf="datesAvailability?.length > 0 && !regularSessionAvailabilitySummaryByDateList?.length > 0"
+                          ></ng-container>
+                          <ng-container *ngIf="ticketTypes?.length > 0">
+                            <app-kiosk-ticket-selector
+                              [ticketTypes]="ticketTypes"
+                              [showTicketAvailabilityInfo]="false"
+                              [ticketTypeCounterBySessionId]="selectedTicketsBySessionId"
+                              [ticketTypeCounterBySessionType]="selectedTicketsBySessionType"
+                              [hasExplodePipe]="hasExplodePipe"
+                              [hideSingleItemExplodePipeLevels]="isHideSingleItemExplodePipeLevelsEnabled()"
+                              [showPrices]="true"
+                              (ticketTypeCounterChange)="selectTicketCounter($event)"
+                              (hasErrors)="setTicketCounterHasErrors($event)"
+                              [allowMultiSession]="allowMultiSessionPurchase"
+                            ></app-kiosk-ticket-selector>
+                          </ng-container>
+                        </ng-container>
+                        <ng-container *ngIf="isLoadingDateSessions">
+                          <div class="box-office-content__spinner">
+                            <ng-container [ngTemplateOutlet]="isLoadingDateSessionsSkeleton"> </ng-container>
+                          </div>
+                        </ng-container>
+                      </div>
+                    </div>
+                  </ng-container>
+
+                  <ng-container *ngSwitchCase="seatingSelectorStep.id">
+                    <div class="kiosk-ticketing__box-office-content__content-card--seating">
+                      <div class="content__title" data-testid="box-office-step-title">
+                        {{ 'boxOffice.seatingSelection' | translate }}
+                      </div>
+                      <div class="kiosk-seating-selector">
+                        <seating-selector
+                          #seatingSelector
+                          [seatingMapUrl]="seatingMapUrl"
+                          [state]="seatingMapState"
+                          [locale]="locale"
+                          [shouldRestoreToBeginning]="shouldRestoreToBeginning"
+                          [shouldGoBack]="shouldGoBack"
+                          (selectSeats)="selectSeats($event)"
+                          (updateSeatsInCart)="updateSeatsInCart($event)"
+                          (confirmSeating)="confirmSeating($event)"
+                          (continueRestore)="continueRestore()"
+                          (iframeInteraction)="onIframeInteraction()"
+                        ></seating-selector>
+                      </div>
+                    </div>
+                  </ng-container>
+                </ng-container>
+              </div>
+            </ng-container>
+          </ng-container>
+        </ng-container>
+      </div>
+    </div>
+
+    <app-action-footer
+      class="kiosk-ticketing__footer"
+      *ngIf="
+        !isLoadingSessions &&
+        !error &&
+        sessionAvailabilitySummary &&
+        (sessionAvailabilitySummary?.regularSessionAvailabilitySummaryByDates.length > 0 || datesAvailability?.length > 0)
+      "
+      primaryButtonText="{{ 'kiosk.ticketing.footer.button.primary' | translate }}"
+      secondaryButtonText="{{ 'kiosk.checkout.footer.secondaryButton' | translate }}"
+      [primaryFill]="true"
+      [disablePrimary]="addSessionsToCartIsDisabled()"
+      (primaryButtonClick)="addSessionsToCart()"
+      (secondaryButtonClick)="clickOnCancel()"
+    ></app-action-footer>
+  </div>
+</ng-template>
+
+<ng-template #emptyAvailabilitySessionsTemplate let-noResultText="noResultText">
+  <div class="box-office-content__no-results">
+    <ignt-icon class="box-office-content__no-results__icon" name="sensor-alert" variant="light"></ignt-icon>
+    <p class="box-office-content__no-results__text" translate>{{ noResultText }}</p>
+  </div>
+</ng-template>
+
+<ng-template #isLoadingSessionsSkeleton>
+  <div class="loading-skeleton">
+    <ng-container *ngIf="!isPlanTimeless">
+      <div class="loading-skeleton__date">
+        <ignt-skeleton
+          *ngFor="let _ of [].constructor(6)"
+          [type]="'item'"
+          [animation]="true"
+          [numElements]="2"
+          [height]="75"
+          [isBordered]="true"
+        >
+        </ignt-skeleton>
+      </div>
+      <div class="loading-skeleton__time">
+        <ignt-skeleton
+          *ngFor="let _ of [].constructor(6)"
+          [type]="'item'"
+          [animation]="true"
+          [numElements]="1"
+          [height]="32"
+          [isBordered]="true"
+        >
+        </ignt-skeleton>
+      </div>
+    </ng-container>
+
+    @if (!isKioskStepperFlowEnabled) {
+      <div class="loading-skeleton__header">
+        <h3 class="title">
+          {{ 'boxOffice.chooseTickets' | translate }}
+        </h3>
+      </div>
+      <ignt-skeleton [type]="'kiosk-ticket'" [animation]="true" [numElements]="2" [height]="117" [isBordered]="true"> </ignt-skeleton>
+    }
+  </div>
+</ng-template>
+
+<ng-template #isLoadingDateSessionsSkeleton>
+  <div class="loading-skeleton">
+    <div class="loading-skeleton__time">
+      <ignt-skeleton
+        *ngFor="let _ of [].constructor(6)"
+        [type]="'item'"
+        [animation]="true"
+        [numElements]="1"
+        [height]="32"
+        [isBordered]="true"
+      >
+      </ignt-skeleton>
+    </div>
+
+    @if (!isKioskStepperFlowEnabled) {
+      <div class="loading-skeleton__header">
+        <h3 class="title">
+          {{ 'boxOffice.chooseTickets' | translate }}
+        </h3>
+      </div>
+      <ignt-skeleton [type]="'kiosk-ticket'" [animation]="true" [numElements]="2" [height]="112" [isBordered]="true"> </ignt-skeleton>
+    }
+  </div>
+</ng-template>

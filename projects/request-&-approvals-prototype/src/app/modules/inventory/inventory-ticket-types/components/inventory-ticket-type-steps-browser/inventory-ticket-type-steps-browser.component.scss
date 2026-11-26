@@ -1,0 +1,336 @@
+@use 'foundations' as foundations;
+
+:host {
+  display: block;
+}
+
+.steps-browser {
+  background-color: foundations.$color-background-main;
+  border: foundations.$dimension-px solid foundations.$color-border-main;
+  border-radius: foundations.$radii-2;
+  display: grid;
+  // One column per visible step (set by the component), the ticket types column wider.
+  // One share per list column, 1.4 for the ticket types: the same in both views, so switching does not move the line.
+  grid-template-columns: var(--steps-browser-columns, minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr));
+  // The box keeps one height whatever each column holds: a capacity group strip takes room from its own list, never grows the box.
+  grid-template-rows: minmax(0, 1fr);
+  height: foundations.$dimension-125;
+  overflow: hidden;
+
+  // More steps than columns: the breadcrumb row takes its own height, the columns the rest.
+  &:has(> .steps-browser__crumbs) {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  &--groups {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  }
+
+  &__col {
+    border-inline-end: foundations.$dimension-px solid foundations.$color-border-main;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    &:last-child {
+      border-inline-end: 0;
+    }
+  }
+
+  &__head {
+    align-items: center;
+    border-bottom: foundations.$dimension-px solid foundations.$color-border-main;
+    display: flex;
+    gap: foundations.$space-2;
+    min-height: foundations.$size-12;
+    padding: 0 foundations.$space-2 0 foundations.$space-4;
+  }
+
+  &__back {
+    display: none;
+  }
+
+  &__title {
+    font: foundations.$font-small-bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // Column headers: a plain-text count after the title, as Fever Zone tab labels show counts.
+  &__count {
+    color: foundations.$color-text-subtle;
+    flex: none;
+    font: foundations.$font-small-regular;
+
+    &::before {
+      content: '· ';
+    }
+  }
+
+  &__edit-group {
+    flex: none;
+  }
+
+  &__meta--asset {
+    align-items: center;
+    display: inline-flex;
+    gap: foundations.$space-1;
+  }
+
+  &__scroll {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  &__item {
+    align-items: center;
+    background-color: foundations.$color-background-main;
+    border-bottom: foundations.$dimension-px solid foundations.$palette-neutral-100;
+    display: flex;
+    gap: foundations.$space-1;
+    padding-inline-end: foundations.$space-2;
+
+    &:hover {
+      background-color: foundations.$color-background-subtle-weak;
+    }
+
+    &--selected,
+    &--selected:hover {
+      background-color: foundations.$color-background-primary-weak;
+      box-shadow: inset foundations.$space-1 0 0 foundations.$color-action-border-primary;
+    }
+
+    &--ticket {
+      min-height: foundations.$size-14;
+      padding-block: foundations.$space-2;
+      padding-inline-start: foundations.$space-4;
+
+      &:hover {
+        background-color: foundations.$color-background-main;
+      }
+    }
+
+    // A ticket type row opens its edit form, as in the table.
+    &--editable {
+      cursor: pointer;
+
+      &:hover {
+        background-color: foundations.$color-background-subtle-weak;
+      }
+    }
+  }
+
+  // Ignite icon button: only how it sits in the row and how it drags.
+  &__handle {
+    cursor: grab;
+    flex: none;
+    margin-inline-start: foundations.$space-1;
+    touch-action: none;
+  }
+
+  &__item--ticket &__handle {
+    margin-inline-start: calc(foundations.$space-3 * -1);
+  }
+
+  &__pick {
+    align-items: center;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    display: flex;
+    flex: 1;
+    gap: foundations.$space-2;
+    min-height: foundations.$size-14;
+    min-width: 0;
+    padding: foundations.$space-2 foundations.$space-1 foundations.$space-2 foundations.$space-4;
+    text-align: start;
+  }
+
+  &__item:has(.steps-browser__handle) &__pick {
+    padding-inline-start: foundations.$space-1;
+  }
+
+  &__text {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  &__name {
+    color: foundations.$color-text-main;
+    font: foundations.$font-small-bold;
+
+    // Inline, as in the table: a long name wraps under its icon instead of moving to a line of its own.
+    &--ticket {
+      font: foundations.$font-small-regular;
+
+      > * {
+        vertical-align: middle;
+      }
+
+      > * + * {
+        margin-inline-start: foundations.$space-1-5;
+      }
+    }
+
+    &--danger {
+      align-items: center;
+      color: foundations.$color-text-danger;
+      display: inline-flex;
+      gap: foundations.$space-1-5;
+    }
+  }
+
+  &__category {
+    color: foundations.$color-text-subtle;
+  }
+
+  &__missing-fields {
+    color: foundations.$color-text-warning;
+  }
+
+  // Same warning as in the table: an icon and words, never a tag, so it does not read as one of the partner's tags.
+  &__no-sessions {
+    color: foundations.$color-text-warning;
+    font: foundations.$font-caption-regular;
+    white-space: nowrap;
+
+    ignt-icon {
+      margin-inline-end: foundations.$space-1;
+    }
+  }
+
+  &__tags {
+    flex: none;
+    max-width: 40%;
+  }
+
+  &__meta {
+    color: foundations.$color-text-subtle;
+    font: foundations.$font-caption-regular;
+  }
+
+  &__chevron {
+    color: foundations.$color-text-subtle;
+    flex: none;
+
+    // Outside the pick (it follows the pencil): keep the row's pointer and give it the pick's right padding.
+    &--trailing {
+      cursor: pointer;
+      margin-inline-end: foundations.$space-1;
+    }
+  }
+
+  &__crumbs {
+    align-items: center;
+    border-bottom: foundations.$dimension-px solid foundations.$color-border-main;
+    display: flex;
+    flex-wrap: wrap;
+    gap: foundations.$space-1;
+    grid-column: 1 / -1;
+    padding: foundations.$space-1 foundations.$space-2;
+  }
+
+  &__crumb {
+    align-items: center;
+    background: none;
+    border: 0;
+    border-radius: foundations.$radii-2;
+    color: foundations.$color-action-text-primary;
+    cursor: pointer;
+    display: inline-flex;
+    font: foundations.$font-small-regular;
+    gap: foundations.$space-1;
+    min-height: foundations.$size-toucharea;
+    padding: 0 foundations.$space-2;
+
+    &:hover {
+      background-color: foundations.$color-background-subtle-weak;
+    }
+
+    b {
+      font: foundations.$font-small-bold;
+    }
+
+    // The back arrow is part of the link: same colour as its text.
+    .steps-browser__chevron {
+      color: inherit;
+    }
+  }
+
+  &__add {
+    padding: foundations.$space-2;
+  }
+
+  // Fever Zone's empty state (Guest lists, Shop products): centred title, description, then the action.
+  &__empty-all {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-6;
+    grid-column: 1 / -1;
+    padding: foundations.$space-10 foundations.$space-4;
+    text-align: center;
+  }
+
+  &__empty-content {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-2;
+  }
+
+  &__empty-title {
+    color: foundations.$color-text-main;
+    font: foundations.$font-h4;
+    margin: 0;
+  }
+
+  &__empty-text {
+    color: foundations.$color-text-subtle;
+    font: foundations.$font-base-regular;
+    margin: 0;
+  }
+
+  // Phones: one column at a time, with a back button (Box Office walks the same levels one by one).
+  @media (max-width: 899px) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    height: auto;
+
+    &__col {
+      border: 0;
+      display: none;
+
+      &--current {
+        display: flex;
+      }
+    }
+
+    &__back {
+      display: inline-flex;
+    }
+
+    &__scroll {
+      flex: none;
+    }
+  }
+}
+
+// CDK drag: the row being dragged and the gap it leaves (same feel as today's sorting table).
+.cdk-drag-preview.steps-browser__item {
+  border-radius: foundations.$radii-2;
+  box-shadow: foundations.$shadow-300;
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.4;
+}
+
+.cdk-drop-list-dragging .steps-browser__item:not(.cdk-drag-placeholder) {
+  transition: transform 200ms ease-out;
+}

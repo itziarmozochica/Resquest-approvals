@@ -1,0 +1,142 @@
+<div class="approval-add-items">
+  <header class="approval-add-items__header">
+    <h2 class="approval-add-items__title">{{ 'approvals.detail.addItems.title' | translate }}</h2>
+    @if (!open()) {
+      <ignt-button
+        variant="primary"
+        [leadingIcon]="{ name: 'plus', variant: 'solid' }"
+        [label]="'approvals.detail.addItems.button' | translate"
+        [disabled]="disabled()"
+        (click)="toggle()"
+        data-testid="approval-add-items-open"
+      />
+    }
+  </header>
+
+  @if (open()) {
+    <div class="approval-add-items__panel" data-testid="approval-add-items-panel">
+      <p class="approval-add-items__hint">{{ 'approvals.detail.addItems.hint' | translate }}</p>
+
+      @if (kind() === 'url') {
+        <div class="approval-add-items__field">
+          <span class="approval-add-items__label">{{ 'approvals.detail.addItems.urlsLabel' | translate }}</span>
+          <div class="approval-add-items__url-entry">
+            <input
+              type="url"
+              class="approval-add-items__url-input"
+              [formControl]="urlInput"
+              (keydown.enter)="$event.preventDefault(); addUrl()"
+              [attr.placeholder]="'approvals.detail.addItems.urlPlaceholder' | translate"
+              data-testid="approval-add-items-url-input"
+            />
+            <ignt-button
+              variant="secondary"
+              [label]="'approvals.detail.addItems.addUrl' | translate"
+              [disabled]="!urlInput.value.trim()"
+              (click)="addUrl()"
+              data-testid="approval-add-items-add-url"
+            />
+          </div>
+          @if (addedUrls().length) {
+            <ul class="approval-add-items__url-list" data-testid="approval-add-items-url-list">
+              @for (url of addedUrls(); track url; let i = $index) {
+                <li class="approval-add-items__url-item">
+                  <span class="approval-add-items__url-text">{{ url }}</span>
+                  <button
+                    type="button"
+                    class="approval-add-items__url-remove"
+                    (click)="removeUrl(i)"
+                    [attr.aria-label]="'common.delete' | translate"
+                    data-testid="approval-add-items-remove-url"
+                  >
+                    ×
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      } @else {
+        <app-fz-upload
+          [enableComputer]="true"
+          [enableDrive]="true"
+          [enablePaste]="true"
+          [enableDriveFolders]="true"
+          [expandDirectories]="true"
+          [formatsLabel]="mediaFormatsLabel"
+          [mutuallyExclusive]="true"
+          [accept]="mediaAccept"
+          [acceptedMimeTypes]="mediaMimeTypes"
+          [fileCommit]="assetCommit"
+          [driveCommit]="validateDrive"
+          [downloadDriveSelections]="true"
+          [previewResolver]="previewAsset"
+          [urlParser]="parseDriveUrl"
+          (itemsChange)="onUploadItemsChange($event)"
+          data-testid="approval-add-items-upload"
+        />
+        @if (drivePreflightSummaries().length) {
+          <div class="approval-add-items__drive-preflight-list" data-testid="approval-add-items-drive-preflight">
+            @for (summary of drivePreflightSummaries(); track summary.driveFileId) {
+              <article class="approval-add-items__drive-preflight-card" data-testid="approval-add-items-drive-preflight-card">
+                <p class="approval-add-items__drive-preflight-title">{{ summary.name }}</p>
+                <p class="approval-add-items__drive-preflight-text">
+                  @if (summary.mimeType === driveFolderMimeType) {
+                    {{
+                      'approvals.new.upload.drivePreflightReadyFolder'
+                        | translate: { acceptedCount: summary.acceptedCount, discoveredCount: summary.discoveredCount }
+                    }}
+                  } @else {
+                    {{ 'approvals.new.upload.drivePreflightReadyFile' | translate }}
+                  }
+                </p>
+                @if (summary.skippedCount) {
+                  <p class="approval-add-items__drive-preflight-warning">
+                    {{
+                      'approvals.new.upload.drivePreflightSkipped'
+                        | translate
+                          : {
+                              skippedCount: summary.skippedCount,
+                              files: summary.skippedFiles.join(', '),
+                              formats: summary.acceptedExtensions.join(', '),
+                            }
+                    }}
+                  </p>
+                }
+                @if (summary.acceptedFiles.length) {
+                  <app-approval-drive-file-tree
+                    [files]="summary.acceptedFiles"
+                    [rootUrl]="summary.rootUrl ?? null"
+                    [selectedDriveFileIds]="summary.selectedChildDriveFileIds"
+                    (selectionChange)="onDriveFileSelectionChange(summary.driveFileId, $event)"
+                  />
+                }
+              </article>
+            }
+          </div>
+        }
+      }
+
+      @if (error()) {
+        <p class="approval-add-items__error" data-testid="approval-add-items-error">{{ 'approvals.detail.actions.error' | translate }}</p>
+      }
+
+      <footer class="approval-add-items__actions">
+        <ignt-button
+          variant="secondary"
+          [label]="'common.cancel' | translate"
+          [disabled]="submitting()"
+          (click)="close()"
+          data-testid="approval-add-items-cancel"
+        />
+        <ignt-button
+          variant="primary"
+          [label]="'approvals.detail.addItems.submit' | translate"
+          [disabled]="!canSubmit()"
+          (click)="submit()"
+          data-testid="approval-add-items-submit"
+        />
+      </footer>
+    </div>
+  }
+</div>

@@ -1,0 +1,209 @@
+<div class="date-time-selector">
+  <article class="date-time-selector__dates">
+    <h3 class="date-time-selector__title" [ngClass]="{ 'mb-0': hideDateSelector }">
+      {{ titleText | translate }}
+    </h3>
+    <div class="date-selector--wrapper" [hidden]="hideDateSelector">
+      <div
+        #scrollContainer
+        class="tile-wrapper tile-wrapper--row"
+        *ngIf="displayedSessionType === sessionAvailabilitySummaryByDateType.Regular"
+      >
+        <ng-container
+          *ngFor="
+            let sessionAvailabilityByDate of datesAvailability?.length > 0 ? datesAvailability : regularSessionAvailabilitySummaryByDate
+          "
+        >
+          <ng-container
+            *ngTemplateOutlet="
+              datesAvailability?.length > 0 ? dateAvailability : date;
+              context: {
+                sessionAvailabilityByDate: sessionAvailabilityByDate,
+                label1: (sessionAvailabilityByDate.date | date: 'EEE' : timezone : locale),
+                label2: formatLocalDate(sessionAvailabilityByDate.date),
+              }
+            "
+          ></ng-container>
+        </ng-container>
+      </div>
+      <div *ngIf="showLoadMoreButton" class="tile-wrapper__item tile tile--icon-action revamp" (click)="clickOnLoadMore()">
+        <ignt-icon name="calendar-plus" variant="light" [fixedWidth]="true" *ngIf="!loading"></ignt-icon>
+        <div class="ignt-loader" *ngIf="loading"></div>
+      </div>
+    </div>
+  </article>
+  <article *ngIf="hoursSession && !hideSingleSessionStartTime" class="date-time-selector__hours">
+    <div *ngIf="!isSessionsShortList" class="date-time-selector__tab-selector">
+      <div
+        *ngIf="$any(hoursSession).morningSessions?.length > 0"
+        (click)="toggleTimeRangeSection('morning')"
+        [class.active]="isTabSelected('morning')"
+      >
+        {{ 'boxOffice.morning' | translate }}
+      </div>
+      <div
+        *ngIf="$any(hoursSession).afternoonSessions?.length > 0"
+        (click)="toggleTimeRangeSection('afternoon')"
+        [class.active]="isTabSelected('afternoon')"
+      >
+        {{ 'boxOffice.afternoon' | translate }}
+      </div>
+      <div
+        *ngIf="$any(hoursSession).eveningSessions?.length > 0"
+        (click)="toggleTimeRangeSection('evening')"
+        [class.active]="isTabSelected('evening')"
+      >
+        {{ 'boxOffice.evening' | translate }}
+      </div>
+      <div
+        *ngIf="$any(hoursSession).nightSessions?.length > 0"
+        (click)="toggleTimeRangeSection('night')"
+        [class.active]="isTabSelected('night')"
+      >
+        {{ 'boxOffice.night' | translate }}
+      </div>
+      <div class="date-time-selector__tab-selector--fill"></div>
+    </div>
+
+    <ng-container *ngIf="isSessionsShortList">
+      <div class="time-selector">
+        <div class="tile-wrapper tile-wrapper--row" data-testid="all-session">
+          <ng-container *ngFor="let session of $any(hoursSession).sessionAvailabilityByDatetimeList">
+            <ng-container
+              *ngTemplateOutlet="
+                hour;
+                context: {
+                  session: session,
+                  ticketTypes: ticketTypes,
+                  label: session.datetime | momentDate: 'H:mm' : timezone,
+                }
+              "
+            ></ng-container>
+          </ng-container>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- Continuous hour strip (B2BO-7587), gated on the operating-day grouping flag (B2BO-7586). -->
+    <ng-container *ngIf="!isSessionsShortList && isOperatingDayGrouping">
+      <div class="time-selector">
+        <div #hoursStrip class="tile-wrapper tile-wrapper--row" data-testid="hours-strip">
+          <ng-container *ngFor="let section of visibleSections; trackBy: trackBySection">
+            <span
+              #sectionAnchor
+              class="section-anchor"
+              aria-hidden="true"
+              [attr.data-section]="section"
+              [attr.data-testid]="'section-anchor-' + section"
+            ></span>
+            <ng-container *ngFor="let sessionAvailabilityByDatetime of sessionsForSection(section)">
+              <ng-container
+                *ngTemplateOutlet="
+                  hour;
+                  context: {
+                    session: sessionAvailabilityByDatetime,
+                    ticketTypes: ticketTypes,
+                    label: sessionAvailabilityByDatetime.datetime | momentDate: 'H:mm' : timezone,
+                  }
+                "
+              ></ng-container>
+            </ng-container>
+          </ng-container>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- Legacy grouping (flag off): one section strip at a time, switched by the tab bar. -->
+    <ng-container *ngIf="!isSessionsShortList && !isOperatingDayGrouping">
+      <ng-container *ngFor="let section of ['morning', 'afternoon', 'evening', 'night']">
+        <div *ngIf="isTabSelected($any(section))" class="time-selector">
+          <div class="tile-wrapper tile-wrapper--row" [attr.data-testid]="section + '-session'">
+            <ng-container *ngFor="let sessionAvailabilityByDatetime of sessionsForSection($any(section))">
+              <ng-container
+                *ngTemplateOutlet="
+                  hour;
+                  context: {
+                    session: sessionAvailabilityByDatetime,
+                    ticketTypes: ticketTypes,
+                    label: sessionAvailabilityByDatetime.datetime | momentDate: 'H:mm' : timezone,
+                  }
+                "
+              ></ng-container>
+            </ng-container>
+          </div>
+        </div>
+      </ng-container>
+    </ng-container>
+  </article>
+</div>
+
+<ng-template #dateAvailability let-sessionAvailabilityByDate="sessionAvailabilityByDate" let-label1="label1" let-label2="label2">
+  <button
+    class="revamp"
+    [ngClass]="{
+      'revamp--selected': isDateAvailabilitySelected(sessionAvailabilityByDate),
+      'revamp--disabled': isDateAvailabilityDisabled(sessionAvailabilityByDate),
+    }"
+    data-testid="date-item"
+    (click)="selectDateAvailability(sessionAvailabilityByDate)"
+  >
+    <span class="tile__label">{{ label1 }} </span>
+    <span class="tile__label">{{ label2 }}</span>
+    <span class="item-check" *ngIf="isDateAvailabilitySelected(sessionAvailabilityByDate)"></span>
+  </button>
+</ng-template>
+
+<ng-template #date let-sessionAvailabilityByDate="sessionAvailabilityByDate" let-label1="label1" let-label2="label2">
+  <button
+    class="tile-wrapper__item tile"
+    data-testid="date-item"
+    [class.tile--selected]="isDateSelected(sessionAvailabilityByDate)"
+    [class.tile--disabled]="isDateDisabled(sessionAvailabilityByDate)"
+    (click)="selectDate(sessionAvailabilityByDate)"
+  >
+    <span class="tile__label">{{ label1 }} </span>
+    <span class="tile__label">{{ label2 }}</span>
+  </button>
+</ng-template>
+
+<ng-template
+  #hourBlockDescription
+  let-title="title"
+  let-description="description"
+  let-timeRangeSection="timeRangeSection"
+  let-timeRangeSessions="timeRangeSessions"
+  let-isSessionsRangeVisible="isSessionsRangeVisible"
+>
+  <div
+    class="time-selector__hour-block"
+    data-testid="toggle-sessions-range-button"
+    [ngClass]="{ 'time-selector__hour__block--disabled': timeRangeSessions && isSelectedSessionInHoursRange(timeRangeSessions) }"
+    (click)="toggleTimeRangeSection(timeRangeSection)"
+  >
+    <span>
+      <strong>{{ title | translate }}</strong
+      ><ng-container *ngIf="description"> - {{ description | translate }}</ng-container>
+    </span>
+  </div>
+</ng-template>
+
+<ng-template #hour let-session="session" let-ticketTypes="ticketTypes" let-label="label">
+  <button
+    class="tile-wrapper__item revamp"
+    data-testid="hour-item"
+    [attr.data-hour]="session.datetime"
+    [disabled]="disabled || !session.isAvailable(ticketTypes, maxLimitField, this.excludeNextHours)"
+    [ngClass]="{
+      'revamp--selected': session.isAvailable(ticketTypes, maxLimitField) && session === selectedSession?.selectedDatetime,
+      'revamp--disabled': disabled || !session.isAvailable(ticketTypes, maxLimitField, this.excludeNextHours),
+      'tile--with-caption': showCapacity && session.capacity !== null,
+    }"
+    (click)="selectHour(session)"
+  >
+    {{ label }}
+    <div *ngIf="showCapacity && session.capacity !== null" class="tile-caption" data-testid="hour-capacity">
+      {{ session.capacity }}
+      <ignt-icon name="ticket-alt" variant="light"></ignt-icon>
+    </div>
+  </button>
+</ng-template>

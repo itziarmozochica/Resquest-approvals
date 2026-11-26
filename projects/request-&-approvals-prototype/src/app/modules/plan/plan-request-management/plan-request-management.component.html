@@ -1,0 +1,170 @@
+<app-page-title [title]="'planRequestManagement.title' | translate" class="new-design"></app-page-title>
+
+<ng-container [ngSwitch]="createRequest">
+  <ng-container *ngSwitchCase="true">
+    <app-plan-request [planRequestId]="planRequestId ?? null" (goBack)="loadRequests()"> </app-plan-request>
+  </ng-container>
+
+  <ng-container *ngSwitchCase="false">
+    <div class="plan-request-management">
+      <div class="plan-request-management__container" data-testid="plan-request-container">
+        <div class="table-search__header" data-testid="plan-request-header">
+          <a class="table-search__header-link" [routerLink]="'/plans'" translate>planRequestManagement.seeMyEvents</a>
+          <ng-container *ngTemplateOutlet="buttonsTemplate; context: { desktopClass: 'only-in-desktop' }"></ng-container>
+        </div>
+        <div class="plan-request-management__table">
+          <ng-container *ngTemplateOutlet="table"> </ng-container>
+        </div>
+      </div>
+    </div>
+    <div class="only-in-mobile">
+      <bottom-slider [buttonsTemplate]="buttonsTemplate"> </bottom-slider>
+    </div>
+  </ng-container>
+</ng-container>
+
+<ng-template #table>
+  <app-table [headers]="headers">
+    <ng-container *ngFor="let planRequest of planRequests">
+      <ng-container *ngTemplateOutlet="card; context: { planRequest: planRequest }"></ng-container>
+    </ng-container>
+    <div *ngIf="isLoadingPlanRequests" class="table-screen-content__spinner">
+      <fa-icon [icon]="['fas', 'spinner']" [size]="'4x'" class="loader"></fa-icon>
+    </div>
+  </app-table>
+</ng-template>
+
+<ng-template #actions let-planRequest="planRequest">
+  <div class="card__actions table__row-actions item__actions-column">
+    <div class="table__row-actions-dropdown" *ngIf="planRequest.status === planRequestStatus.TO_BE_SUBMITTED">
+      <button
+        class="table__row-actions-button"
+        data-testid="plan-request-management-actions-dropdown-button"
+        [igntMenuTriggerFor]="planRequestActionsMenu"
+      >
+        <fa-icon [fixedWidth]="true" [icon]="['far', 'ellipsis-h']"></fa-icon>
+      </button>
+      <ng-template #planRequestActionsMenu>
+        <ignt-menu>
+          <ignt-menu-item
+            value="edit"
+            data-testid="plan-request-management-actions-edit-option"
+            [label]="'planRequestManagement.editRequest' | translate"
+            (triggered)="setPlanRequestForm(planRequest.id)"
+          >
+            <ignt-icon name="pen" variant="solid" />
+          </ignt-menu-item>
+        </ignt-menu>
+      </ng-template>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #buttonsTemplate let-desktopClass="desktopClass">
+  <div
+    *ngIf="canShowCreateRequestDropdown"
+    class="table-search__header-buttons-container {{ desktopClass }}"
+    [class.table-search__header-buttons-container--mobile]="!desktopClass"
+  >
+    <button
+      class="table-search__header-buttons-toggle"
+      data-testid="create-event-dropdown"
+      [class.table-search__header-buttons-toggle--mobile]="!desktopClass"
+      [igntMenuTriggerFor]="createRequestMenu"
+    >
+      {{ 'planRequest.createRequest' | translate }}
+    </button>
+    <ng-template #createRequestMenu>
+      <ignt-menu>
+        <ignt-menu-item
+          *permissionBased="Permissions.CAN_VIEW_CREATE_EVENT"
+          value="from-scratch"
+          data-testid="create-event-from-scratch"
+          [label]="'planRequest.fromScratch' | translate"
+          (triggered)="setPlanRequestForm()"
+        >
+          <ignt-icon name="calendar-minus" variant="regular" />
+        </ignt-menu-item>
+        <ng-container *permissionBased="Permissions.CAN_DUPLICATE_EVENT" ngProjectAs="ignt-menu-item">
+          <ignt-menu-item
+            *optimizelyFeature="FeatureFlags.DUPLICATE_EVENT_MODAL; enabled: true"
+            value="duplicate"
+            data-testid="create-event-duplicate"
+            [label]="'planRequest.duplicate' | translate"
+            (triggered)="setDuplicatePlanForm()"
+          >
+            <ignt-icon name="copy" variant="light" />
+          </ignt-menu-item>
+        </ng-container>
+      </ignt-menu>
+    </ng-template>
+  </div>
+</ng-template>
+
+<ng-template #card let-planRequest="planRequest">
+  <div class="card">
+    <div class="card__info" data-testid="plan-request-management-table-name">
+      <img
+        class="card__info-image"
+        alt="plan image"
+        data-testid="plan-card-image"
+        src="{{ planRequest.images.length > 0 ? planRequest.images[0]['imageUrl'] : emptyImage }}"
+      />
+      <div>
+        <div class="card__status" data-testid="plan-request-management-table-status">
+          <app-plan-status-tag
+            [status]="planRequest.status"
+            [style]="planRequest.status === 'off_sale' ? 'solid' : 'outline'"
+          ></app-plan-status-tag>
+        </div>
+        <strong *ngIf="planRequest.planName !== null">
+          {{ planRequest.planName }}
+        </strong>
+        <em *ngIf="planRequest.planName == null">
+          {{ 'planRequestManagement.untitled' | translate }}
+        </em>
+        <div class="card__place" *ngIf="planRequest.address">
+          <fa-icon [fixedWidth]="true" [icon]="['far', 'map-marker-alt']"></fa-icon>
+          {{ planRequest.city | cityTranslate }}
+          - {{ planRequest.address }}
+        </div>
+      </div>
+      <ng-container *ngIf="screenSize === mobileScreenSize">
+        <ng-container *ngTemplateOutlet="actions; context: { planRequest }"></ng-container>
+      </ng-container>
+    </div>
+    <div class="card-mobile-row" *ngIf="screenSize === mobileScreenSize">
+      <div class="card-mobile-column card-mobile-column--fixed">
+        <div class="card-mobile-title">
+          {{ 'planRequestManagement.createdAt' | translate }}
+        </div>
+        <div class="card__date" data-testid="plan-request-management-table-created">
+          <div>{{ planRequest.createdAt ? (planRequest.createdAt | momentDate: 'd MMM yyyy' : 'utc') : '-' }}</div>
+        </div>
+      </div>
+      <div class="card-mobile-column">
+        <div class="card-mobile-title">
+          {{ 'common.requester' | translate }}
+        </div>
+        <div class="card__requester" data-testid="plan-request-management-table-requester">
+          {{ planRequest.b2bUser?.username }}
+        </div>
+      </div>
+    </div>
+    <div *ngIf="screenSize !== mobileScreenSize" class="card__requester" data-testid="plan-request-management-table-requester">
+      {{ planRequest.b2bUser?.username }}
+    </div>
+    <div *ngIf="screenSize !== mobileScreenSize" class="card__status" data-testid="plan-request-management-table-status">
+      <app-plan-status-tag
+        [status]="planRequest.status"
+        [style]="planRequest.status === 'off_sale' ? 'solid' : 'outline'"
+      ></app-plan-status-tag>
+    </div>
+    <div *ngIf="screenSize !== mobileScreenSize" class="card__date" data-testid="plan-request-management-table-created">
+      <div>{{ planRequest.createdAt ? (planRequest.createdAt | momentDate: 'd MMM yyyy' : 'utc') : '-' }}</div>
+    </div>
+    <ng-container *ngIf="screenSize !== mobileScreenSize">
+      <ng-container *ngTemplateOutlet="actions; context: { planRequest }"></ng-container>
+    </ng-container>
+  </div>
+</ng-template>

@@ -1,0 +1,54 @@
+<ng-container #cardHost />
+
+<ng-template #cardTemplate>
+  <ignt-wrapper-card
+    *ngIf="isOpen() && currentStep()"
+    [class]="'tour__modal tour__modal--arrow-' + arrowPosition()"
+    [class.visible]="!isLoading()"
+    [elevation]="4"
+    type="default"
+  >
+    <div class="tour__content">
+      <h3 class="tour__content--title">{{ currentStep()?.title }}</h3>
+      <ng-container *ngIf="currentStep()?.contentTemplate; else textContent">
+        <ng-container *ngTemplateOutlet="currentStep()!.contentTemplate!" />
+      </ng-container>
+      <ng-template #textContent>
+        <p class="tour__content--description">{{ currentStep()?.content }}</p>
+      </ng-template>
+    </div>
+
+    <div class="tour__navigation" [class.tour__navigation--no-previous]="!showPreviousStepButton">
+      <button
+        *ngIf="showPreviousStepButton"
+        igntButton
+        data-testid="tour-previous-button"
+        sentiment="tertiary"
+        size="small"
+        [leadingIcon]="canNavigatePrev ? ['fas', 'chevron-left'] : null"
+        [disabled]="!canNavigatePrev"
+        (click)="goTo('prev', $event)"
+      >
+        {{ currentStep()?.prevText || 'uiTour.buttons.prevText' | translate }}
+      </button>
+
+      <div *ngIf="config?.showProgress !== false" class="tour__progress">
+        <span> {{ currentStepIndex() + 1 }}/{{ config.steps.length }} </span>
+      </div>
+
+      <button
+        igntButton
+        sentiment="tertiary"
+        size="small"
+        [trailingIcon]="isLastStep ? null : ['fas', 'chevron-right']"
+        (click)="goTo('next', $event)"
+      >
+        {{
+          isLastStep
+            ? (currentStep()?.finishText || 'uiTour.buttons.finishText' | translate)
+            : (currentStep()?.nextText || 'uiTour.buttons.nextText' | translate)
+        }}
+      </button>
+    </div>
+  </ignt-wrapper-card>
+</ng-template>

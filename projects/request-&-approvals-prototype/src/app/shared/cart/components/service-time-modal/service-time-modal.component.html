@@ -1,0 +1,134 @@
+<ignt-dialog-header data-testid="service-time-modal-title">
+  {{ 'cart.serviceTime.modal.title' | translate }}
+</ignt-dialog-header>
+
+<ignt-dialog-content class="service-time-modal">
+  <p class="service-time-modal__description">{{ 'cart.serviceTime.modal.description' | translate }}</p>
+
+  <div class="service-time-modal__section">
+    <p class="service-time-modal__section-title">{{ 'cart.serviceTime.modal.dayTitle' | translate }}</p>
+    <p class="service-time-modal__section-hint">{{ 'cart.serviceTime.modal.dayHint' | translate }}</p>
+    <ignt-native-date-input testId="service-time-modal-day" [value]="day()" (valueChange)="setDay($event)" />
+    @if (orderDate) {
+      <p class="service-time-modal__section-hint" data-testid="service-time-modal-order-date">
+        {{ 'cart.serviceTime.modal.orderDate' | translate: { date: orderDate } }}
+      </p>
+    }
+  </div>
+
+  <div class="service-time-modal__section">
+    <p class="service-time-modal__section-title" data-testid="service-time-modal-products-title">
+      {{ 'cart.serviceTime.modal.products' | translate: { count: rows().length } }}
+    </p>
+
+    <div class="service-time-modal__select-all">
+      <ignt-checkbox
+        dataTestId="service-time-modal-select-all"
+        [label]="'common.selectAll' | translate"
+        [checked]="allSelected()"
+        (change)="toggleSelectAll($event)"
+      />
+    </div>
+
+    <ul class="service-time-modal__list">
+      @for (row of rows(); track row.sessionId) {
+        <li
+          class="service-time-modal__row"
+          data-testid="service-time-modal-row"
+          [class.service-time-modal__row--selected]="isSelected(row)"
+        >
+          <div class="service-time-modal__row-main">
+            <ignt-checkbox
+              class="service-time-modal__row-checkbox"
+              [dataTestId]="'service-time-modal-select-' + row.sessionId"
+              [label]="row.units + 'x ' + row.name"
+              [checked]="isSelected(row)"
+              (change)="toggleSelection(row, $event)"
+            />
+            @if (row.time) {
+              <span class="service-time-modal__row-time" data-testid="service-time-modal-row-time">
+                {{ row.time }}{{ dayOffsetLabel(row) }}
+              </span>
+            } @else {
+              <ignt-tag sentiment="disable" data-testid="service-time-modal-row-empty">
+                {{ 'cart.serviceTime.modal.noTimeSet' | translate }}
+              </ignt-tag>
+            }
+            <button
+              ignt-icon-button
+              size="small"
+              sentiment="tertiary"
+              variant="sharp"
+              [icon]="['far', 'edit']"
+              [attr.data-testid]="'service-time-modal-edit-' + row.sessionId"
+              [attr.title]="'common.edit' | translate"
+              [attr.aria-label]="'cart.serviceTime.modal.editProduct' | translate: { name: row.name }"
+              (click)="startEditing(row)"
+            ></button>
+          </div>
+
+          @if (isEditing(row)) {
+            <div class="service-time-modal__row-editor" [attr.data-testid]="'service-time-modal-editor-' + row.sessionId">
+              <ignt-input-field
+                type="time"
+                class="service-time-modal__time-field"
+                [attr.data-testid]="'service-time-modal-time-' + row.sessionId"
+                [label]="'cart.serviceTime.modal.timeLabel' | translate"
+                [ngModel]="row.time"
+                (ngModelChange)="setRowTime(row, $event)"
+              />
+              <ignt-checkbox
+                class="service-time-modal__row-next-day"
+                [dataTestId]="'service-time-modal-next-day-' + row.sessionId"
+                [label]="'cart.serviceTime.modal.nextDay' | translate"
+                [checked]="isNextDay(row)"
+                (change)="setRowNextDay(row, $event)"
+              />
+              @if (row.time) {
+                <ignt-button
+                  size="small"
+                  variant="tertiary"
+                  class="service-time-modal__row-clear"
+                  [attr.data-testid]="'service-time-modal-clear-' + row.sessionId"
+                  [label]="'cart.serviceTime.modal.clear' | translate"
+                  (click)="clearRowTime(row)"
+                />
+              }
+            </div>
+          }
+        </li>
+      }
+    </ul>
+
+    @if (hasSelection()) {
+      <div class="service-time-modal__bulk" data-testid="service-time-modal-bulk">
+        <p class="service-time-modal__bulk-summary" data-testid="service-time-modal-bulk-summary">
+          @if (selectedSessionIds().size === 1) {
+            {{ 'cart.serviceTime.modal.selectedCountOne' | translate: { count: selectedSessionIds().size } }}
+          } @else {
+            {{ 'cart.serviceTime.modal.selectedCount' | translate: { count: selectedSessionIds().size } }}
+          }
+        </p>
+        <ignt-input-field
+          type="time"
+          class="service-time-modal__time-field"
+          data-testid="service-time-modal-bulk-time"
+          [label]="'cart.serviceTime.modal.timeLabel' | translate"
+          [ngModel]="bulkTime()"
+          (ngModelChange)="setBulkTime($event)"
+        />
+        <ignt-button
+          variant="tertiary"
+          data-testid="service-time-modal-bulk-apply"
+          [label]="'cart.serviceTime.modal.apply' | translate"
+          (click)="applyBulkTime()"
+        />
+      </div>
+    }
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer hideCancelButton>
+  <ignt-button variant="tertiary" data-testid="service-time-modal-cancel" [label]="'common.cancel' | translate" (click)="cancel()" />
+  <ignt-button data-testid="service-time-modal-save" [label]="'common.save' | translate" (click)="save()" />
+</ignt-dialog-footer>

@@ -1,0 +1,207 @@
+<div class="ticket-list">
+  @for (ticket of filteredTickets(); track ticket.id) {
+    @let isTransferredTicket = ticket.status === validationStatusEnum.TRANSFERRED;
+    @let isCancelledTicket = ticket.status === validationStatusEnum.CANCELLED;
+    @let isCancelledWithinActiveSession = isCancelledTicket && session().status !== validationStatusEnum.CANCELLED;
+    <div
+      class="session-ticket__wrapper"
+      [class.session-ticket__wrapper--disabled]="isTransferredTicket || ticket.isValidated"
+      [class.session-ticket__wrapper--cancelled]="isCancelledWithinActiveSession"
+    >
+      <div #codes class="session-ticket" [attr.data-qrcode]="ticket.code" data-testid="order-ticket-code">
+        <div class="session-ticket__card" [attr.data-testid]="'order-ticket-card-' + ticket.id">
+          <div class="session-ticket__ticket-info">
+            @if (ticket.code) {
+              <div class="session-ticket__code" data-testid="order-ticket-code-value">
+                @if (ticket.holderName) {
+                  <div class="session-ticket__code-holder-name" data-testid="order-ticket-holder-name">{{ ticket.holderName }}</div>
+                }
+                <div class="session-ticket__code-info-wrapper">
+                  @let codeTypeIcon = codeType.BARCODE === ticket.codeType ? 'barcode' : 'qrcode';
+                  @let codeTypeTranslationKey = 'validateTicketsNew.tickets.' + (codeType.BARCODE === ticket.codeType ? 'barcode' : 'QR');
+                  <div class="session-ticket__code-info">
+                    <button
+                      type="button"
+                      ignt-icon-button
+                      class="session-ticket__code-qr-button"
+                      variant="sharp"
+                      sentiment="tertiary"
+                      size="small"
+                      [icon]="['far', codeTypeIcon]"
+                      [attr.aria-label]="'validateTicketsNew.tickets.showQr' | translate"
+                      [title]="'validateTicketsNew.tickets.showQr' | translate"
+                      [attr.data-testid]="'order-ticket-code-qr-button-' + ticket.id"
+                      (click)="onCodeQrOpen(ticket); $event.stopPropagation()"
+                    ></button>
+                    <span class="session-ticket__code-type">{{ codeTypeTranslationKey | translate }}</span>
+                    <span class="session-ticket__code-value">{{ ticket.code }}</span>
+                  </div>
+                  <div class="session-ticket__transfer-actions">
+                    @let ticketCodeTransferIntent = ticket.transferInfo.transferIntent;
+                    @if (ticketCodeTransferIntent && ticketCodeTransferIntent.status !== 'revoked') {
+                      @if (ticket.transferInfo.isResale) {
+                        <ignt-tag
+                          class="session-ticket__code-status"
+                          sentiment="accent"
+                          variant="outline"
+                          [attr.data-testid]="'order-ticket-code-resale-' + ticket.code"
+                          ><span class="session-ticket__code-status-text">{{
+                            'validateTicketsNew.labels.resale' | translate
+                          }}</span></ignt-tag
+                        >
+                      }
+                      <ignt-tag
+                        class="session-ticket__code-status"
+                        [sentiment]="sentimentByTransferIntentStatus[ticketCodeTransferIntent.status]"
+                        variant="outline"
+                        [attr.data-testid]="'order-ticket-code-status-' + ticket.code"
+                        ><span class="session-ticket__code-status-text">{{
+                          translationKeysByTransferIntentStatus[ticketCodeTransferIntent.status] ?? ticketCodeTransferIntent.status
+                            | translate
+                        }}</span></ignt-tag
+                      >
+                    }
+                    <ignt-button
+                      class="session-ticket__more-details-button"
+                      size="small"
+                      variant="tertiary"
+                      [attr.data-testid]="'order-ticket-more-details-button-' + ticket.id"
+                      [label]="'common.seeMore' | translate"
+                      (click)="onTicketDetailOpen(ticket); $event.stopPropagation()"
+                    ></ignt-button>
+                  </div>
+                </div>
+                <div class="session-ticket__code__info">
+                  @if (session().sessionType?.isEntryPass && ticket.activationDate === undefined) {
+                    {{ 'validateTicketsNew.tickets.notActivated' | translate }}
+                  }
+                  @if (session().sessionType?.isEntryPass && ticket.activationDate === undefined && ticket.expiryDate !== undefined) {
+                    <span class="session-ticket__code__info__separator"></span>
+                  }
+                  @if (ticket.activationDate !== undefined) {
+                    <span>
+                      {{ 'validateTicketsNew.tickets.activationDate' | translate }}:
+                      {{ ticket.activationDate | formatDate: 'medium' : 'short' }}
+                    </span>
+                  }
+                  @if (ticket.activationDate !== undefined && ticket.expiryDate !== undefined) {
+                    <span class="session-ticket__code__info__separator"></span>
+                  }
+                  @if (ticket.expiryDate !== undefined) {
+                    <span>
+                      {{ 'validateTicketsNew.tickets.expirationDate' | translate }}:
+                      {{ ticket.expiryDate | formatDate: 'medium' : 'short' }}
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+
+            <ng-container [ngTemplateOutlet]="seatAndSpotLabel" [ngTemplateOutletContext]="{ ticket }" />
+
+            @if (ticket?.sessionLabel) {
+              <div class="session-ticket__session-label">({{ ticket.sessionLabel }})</div>
+            }
+          </div>
+        </div>
+
+        <div class="session-ticket__action-row">
+          @if (ticket.redeemedAt || ticket.isValidated) {
+            <ng-container *permissionBased="'can_view_validation'">
+              <div class="session-ticket__validation-wrapper">
+                @if (ticket.redeemedAt) {
+                  <div
+                    class="session-ticket__validation-date"
+                    [title]="'validateTicketsNew.tickets.viewValidationHistory' | translate"
+                    (click)="clickOnValidationDate(ticket.code)"
+                    [attr.data-testid]="'order-ticket-validation-date-' + ticket.id"
+                  >
+                    <span class="session-ticket__validation-date-text">
+                      {{ 'validateTicketsNew.tickets.validation' | translate }}
+                      {{ ticket.redeemedAt | momentDate: 'd MMM yyyy HH:mm' : session().sessionTimezone }}
+                    </span>
+                    <ignt-icon class="session-ticket__validation-date-icon" name="history" size="caption" variant="regular" />
+                  </div>
+                }
+                @if (ticket.isValidated) {
+                  <ignt-tag
+                    class="session-ticket__validated-tag"
+                    sentiment="positive"
+                    variant="solid"
+                    [attr.data-testid]="'order-ticket-validated-tag-' + ticket.id"
+                    >{{ 'validateTicketsNew.tickets.validated' | translate }}</ignt-tag
+                  >
+                }
+              </div>
+            </ng-container>
+          }
+          @if (!hiddenValidation() && !isTransferredTicket && !isCancelledWithinActiveSession) {
+            <ng-container *permissionBased="'can_view_validation'">
+              <input
+                class="session-ticket__input"
+                type="checkbox"
+                (change)="ticketSelection().toggle(ticket.id)"
+                [checked]="(lockTicketOnValidated() && ticket.isValidated) || ticketSelection().isSelected(ticket.id)"
+                [disabled]="
+                  (lockTicketOnValidated() && ticket.isValidated) ||
+                  session().status === validationStatusEnum.CANCELLED ||
+                  ticket.status === validationStatusEnum.CANCELLED ||
+                  forceDisabled()
+                "
+                [attr.data-testid]="'order-ticket-code-checkbox-' + ticket.id"
+              />
+            </ng-container>
+          }
+          @if (isTransferredTicket) {
+            <ignt-button
+              class="session-ticket__code-transfer-button"
+              data-testid="see-transfer-button"
+              size="small"
+              variant="tertiary"
+              [label]="('validateTicketsNew.transfers.seeTransfer' | translate) + ' →'"
+              (click)="seeTicket.emit(ticket.ticketId)"
+            ></ignt-button>
+          }
+          @if (isCancelledWithinActiveSession) {
+            <ignt-tag
+              class="session-ticket__cancelled-tag"
+              sentiment="danger"
+              variant="outline"
+              [attr.data-testid]="'order-ticket-code-status-cancelled-' + ticket.code"
+            >
+              {{ 'validateTicketsNew.validationStatus.cancelled' | translate }}
+            </ignt-tag>
+          }
+          @let ticketTransfer = transfer();
+          @if (!!ticketTransfer) {
+            <span class="session-ticket__flex-break"></span>
+            <ignt-button
+              class="session-ticket__code-transfer-button"
+              data-testid="see-original-ticket-button"
+              size="small"
+              variant="tertiary"
+              [label]="('validateTicketsNew.transfers.seeOriginalTicket' | translate) + ' →'"
+              (click)="seeTicket.emit(ticketTransfer.ticketToTransferId)"
+            ></ignt-button>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>
+
+<ng-template #seatAndSpotLabel let-ticket="ticket">
+  @if (ticket?.seat || ticket?.spot) {
+    <div class="session-ticket__seats" data-testid="order-ticket-seat">
+      <ignt-icon name="chair" size="caption" variant="light" />
+      @if (ticket?.seat) {
+        {{ ticket?.seat }}
+      }
+      @if (ticket?.spot) {
+        <span class="session-ticket__spot" [class.session-ticket__spot--warning]="!ticket?.spot?.label">
+          {{ ticket?.spot?.categoryLabel }}: {{ ticket?.spot?.label || ('validateTicketsNew.tickets.spot.notAssigned' | translate) }}
+        </span>
+      }
+    </div>
+  }
+</ng-template>

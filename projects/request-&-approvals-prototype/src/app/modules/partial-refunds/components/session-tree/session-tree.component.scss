@@ -1,0 +1,180 @@
+@use 'foundations' as foundations;
+@use 'abstracts/all' as *;
+
+.session-tree {
+  /** The 4px default sits the ticket type right against its box; the component exposes the gap. */
+  --ignt-checkbox-gap: #{foundations.$space-2};
+  --ignt-checkbox-margin-top: 0;
+
+  /**
+   * The gutter a slot row spends before its title: row padding, arrow, gap. Child
+   * rows are padded by the same amount, so a ticket type sits under the date it belongs to rather
+   * than to the left of it.
+   */
+  --session-tree-indent: calc(#{foundations.$space-4} + #{foundations.$space-11} + #{foundations.$space-3});
+
+  display: flex;
+  flex-direction: column;
+
+  &__checkbox {
+    align-items: center;
+    display: flex;
+    flex-shrink: 0;
+  }
+
+  &__master {
+    align-items: center;
+    background: foundations.$palette-neutral-50;
+    border-block-end: foundations.$dimension-px solid foundations.$color-border-main;
+    box-sizing: border-box;
+    display: flex;
+    gap: foundations.$space-3;
+    min-block-size: foundations.$space-11;
+    padding-block: 0;
+    padding-inline: foundations.$space-4;
+  }
+
+  &__select-all {
+    margin-inline-start: auto;
+  }
+
+  &__master-label {
+    color: foundations.$color-text-main;
+    font: foundations.$font-small-bold;
+    margin: 0;
+  }
+
+  &__slots,
+  &__sessions {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  &__slot {
+    border-block-end: foundations.$dimension-px solid foundations.$color-border-main;
+
+    &:last-child {
+      border-block-end: none;
+    }
+  }
+
+  &__slot-row {
+    align-items: center;
+    display: flex;
+    gap: foundations.$space-3;
+    padding: foundations.$space-2 foundations.$space-4;
+
+    @include media-breakpoint-down(md) {
+      flex-wrap: wrap;
+      row-gap: foundations.$space-1;
+    }
+  }
+
+  &__slot-select-all {
+    @include media-breakpoint-down(md) {
+      flex-basis: 100%;
+      justify-content: flex-end;
+    }
+  }
+
+  /**
+   * `ignt-button` grows to fill its flex parent and pads itself for a label this one does not
+   * have, so it is pinned to a square the size of its own icon.
+   */
+  &__disclosure {
+    flex: 0 0 auto;
+  }
+
+  /**
+   * The slot's date and its counts, as one block after the checkbox and the disclosure. The title
+   * cannot shrink and the counts do not wrap their own text, so side by side on a phone they run
+   * off the end of the row; wrapping drops the counts under the date instead, on the same terms as
+   * the master row above.
+   */
+  &__slot-text {
+    align-items: center;
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    gap: foundations.$space-1 foundations.$space-3;
+    min-inline-size: 0;
+  }
+
+  &__slot-title {
+    color: foundations.$color-text-main;
+    flex: 0 0 auto;
+    font: foundations.$font-small-bold;
+  }
+
+  /** Absorbs the slack so the row's counts stay at the end and the title stays at the start. */
+  &__slot-meta {
+    flex: 1;
+  }
+
+  &__slot-meta,
+  &__slot-count,
+  &__session-count {
+    color: foundations.$color-text-subtle;
+    font: foundations.$font-small-regular;
+    white-space: nowrap;
+  }
+
+  &__slot-count {
+    margin-inline-start: auto;
+  }
+
+  &__sessions {
+    padding-block-end: foundations.$space-2;
+  }
+
+  /**
+   * The ticket type's name is the checkbox's own label rather than a sibling, so there is nothing
+   * here to wrap it and its count in the way the rows above do. The row itself wraps instead, and
+   * `space-between` places the count: at the end while the two share a line, at the start of its
+   * own once the name no longer leaves room for it.
+   */
+  &__session {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: foundations.$space-1 foundations.$space-3;
+    justify-content: space-between;
+    padding-block: foundations.$space-1;
+    padding-inline: var(--session-tree-indent) foundations.$space-4;
+
+    /** Shrinks so a long ticket type name wraps instead of overflowing the row. */
+    > .session-tree__checkbox {
+      flex-shrink: 1;
+      min-inline-size: 0;
+    }
+
+    &:hover {
+      background: foundations.$palette-neutral-50;
+    }
+  }
+
+  /**
+   * Cleared of the checkbox's own box and gap, so a count on its own line begins under the name it
+   * counts rather than under the box. On a shared line the free space sits after it either way.
+   */
+  &__session-count {
+    margin-inline-start: calc(#{foundations.$space-4} + #{foundations.$space-2});
+
+    /**
+     * Every count takes its own line on a phone, rather than only the ones whose name leaves no
+     * room beside it. Letting each row decide for itself sets the counts down a ragged edge, some
+     * level with their name and some beneath it, which reads as a mistake in a list whose rows are
+     * meant to be scanned against each other.
+     */
+    @include media-breakpoint-down(md) {
+      flex-basis: 100%;
+    }
+  }
+}
+
+/* A refresh over data already on screen: the previous answer stays readable but is marked stale. */
+.session-tree--updating {
+  opacity: 0.5;
+  pointer-events: none;
+}

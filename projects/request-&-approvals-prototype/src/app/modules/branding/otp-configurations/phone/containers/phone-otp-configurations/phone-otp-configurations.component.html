@@ -1,0 +1,95 @@
+<div class="phone-otp-configurations__title-bar" data-testid="otp-configurations-phone-header">
+  <app-page-title class="new-design" [title]="'otpConfigurations.pageTitle' | translate"></app-page-title>
+
+  @if (isApplicationSelectVisible()) {
+    <div class="phone-otp-configurations__application">
+      <!-- `ignt-typeahead` renders its input with this fixed id and has no input for an accessible name. -->
+      <label class="visually-hidden" for="typeahead-input" data-testid="phone-otp-application-label">
+        {{ 'branding.phoneOtpConfiguration.selectApplicationLabel' | translate }}
+      </label>
+      <ignt-typeahead
+        data-testid="phone-otp-application-typeahead"
+        [detachedPopup]="true"
+        [emptyLabel]="'branding.phoneOtpConfiguration.selectApplicationPlaceholder' | translate"
+        [options]="applicationOptions()"
+        [selectedOption]="selectedApplicationOption()"
+        (selected)="onApplicationSelected($event)"
+      ></ignt-typeahead>
+    </div>
+  }
+</div>
+
+<p class="visually-hidden" role="status" data-testid="phone-otp-status">
+  @if (statusMessageKey(); as statusKey) {
+    {{ statusKey | translate }}
+  }
+</p>
+
+<div class="phone-otp-configurations__body" data-testid="phone-otp-configurations">
+  @if (hasApplicationsError()) {
+    <app-otp-state-message
+      role="alert"
+      data-testid="phone-otp-applications-error"
+      icon="triangle-exclamation"
+      [subtitle]="'branding.phoneOtpConfiguration.loadApplicationsErrorSubtitle' | translate"
+      [title]="'branding.phoneOtpConfiguration.loadApplicationsErrorTitle' | translate"
+    />
+  } @else if (hasNoApplications()) {
+    <app-otp-state-message
+      data-testid="phone-otp-no-applications"
+      icon="store-slash"
+      [subtitle]="'branding.phoneOtpConfiguration.noApplicationsSubtitle' | translate"
+      [title]="'branding.phoneOtpConfiguration.noApplicationsTitle' | translate"
+    />
+  } @else if (selectedApplicationId() === null) {
+    @if (!isLoadingApplications()) {
+      <app-otp-state-message
+        data-testid="phone-otp-select-application-prompt"
+        icon="layer-group"
+        [subtitle]="'branding.phoneOtpConfiguration.selectApplicationPromptSubtitle' | translate"
+        [title]="'branding.phoneOtpConfiguration.selectApplicationPrompt' | translate"
+      />
+    }
+  } @else {
+    <section
+      class="phone-otp-configurations__card"
+      data-testid="phone-otp-configuration-card"
+      aria-labelledby="phone-otp-configurations-title"
+    >
+      <div class="phone-otp-configurations__heading">
+        <h3 id="phone-otp-configurations-title" class="phone-otp-configurations__title">
+          {{ 'branding.phoneOtpConfiguration.title' | translate }}
+        </h3>
+        <p class="phone-otp-configurations__description">{{ 'branding.phoneOtpConfiguration.description' | translate }}</p>
+      </div>
+
+      @if (isTableVisible()) {
+        <app-phone-otp-configurations-table [configs]="configs()" [isLoading]="isLoadingConfig()" />
+      } @else if (hasConfigError()) {
+        <app-otp-state-message
+          role="alert"
+          data-testid="phone-otp-configuration-error"
+          icon="triangle-exclamation"
+          [subtitle]="'branding.phoneOtpConfiguration.loadErrorSubtitle' | translate"
+          [title]="'branding.phoneOtpConfiguration.loadErrorTitle' | translate"
+        >
+          <ignt-button
+            class="phone-otp-configurations__retry"
+            data-testid="phone-otp-configuration-retry"
+            size="small"
+            variant="secondary"
+            [label]="'branding.phoneOtpConfiguration.retry' | translate"
+            (click)="onRetry()"
+          />
+        </app-otp-state-message>
+      } @else {
+        <app-otp-state-message
+          data-testid="phone-otp-configurations-empty"
+          icon="exclamation-circle"
+          [subtitle]="'branding.phoneOtpConfiguration.emptySubtitle' | translate"
+          [title]="'branding.phoneOtpConfiguration.emptyTitle' | translate"
+        />
+      }
+    </section>
+  }
+</div>

@@ -1,0 +1,221 @@
+<ignt-dialog-header [hideCloseButton]="true">
+  {{ 'boxOffice.contactInformation' | translate }}
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="contact-information" data-testid="contact-information-modal">
+    <form [formGroup]="contactInformationForm" class="form">
+      @if (contactHistory.length > 0) {
+        <div class="contact-information__history-wrapper">
+          <ignt-button
+            variant="tertiary"
+            size="small"
+            data-testid="contact-information-history-button"
+            [igntMenuTriggerFor]="historyMenu"
+            [label]="'boxOffice.contactInformationModal.history' | translate"
+            (keydown.enter)="$event.preventDefault(); $event.stopPropagation()"
+            (keydown.space)="$event.preventDefault()"
+          />
+
+          <ng-template #historyMenu>
+            <ignt-menu class="contact-information-history-menu" data-testid="contact-information-history-dropdown">
+              @for (item of contactHistory; track item.dateTime + item.email) {
+                <ignt-menu-item
+                  data-testid="contact-information-history-item"
+                  [label]="item.firstName + ' ' + item.lastName"
+                  [value]="$index.toString()"
+                  (triggered)="applyHistoryItem(item)"
+                />
+              }
+
+              <ng-template igntMenuItemCustomTemplate let-menuItem>
+                @let item = contactHistory[+menuItem.value];
+                <div class="contact-information-history-menu__item">
+                  <div class="contact-information-history-menu__item-contact">
+                    <span class="contact-information-history-menu__item-name">{{ menuItem.label }}</span>
+                    <span class="contact-information-history-menu__item-email">{{ item.email }}</span>
+                    @if (item.phoneNumber) {
+                      <span class="contact-information-history-menu__item-phone" data-testid="contact-information-history-item-phone">{{
+                        item.phoneNumber
+                      }}</span>
+                    }
+                  </div>
+                  <span class="contact-information-history-menu__item-date">{{ formatHistoryDateTime(item.dateTime) }}</span>
+                </div>
+              </ng-template>
+            </ignt-menu>
+          </ng-template>
+        </div>
+      }
+
+      @if (showPhoneNumber() && showEmail()) {
+        <p class="contact-information__delivery-notice" data-testid="contact-information-delivery-notice">
+          {{ 'boxOffice.contactInformationModal.emailOrPhoneNotice' | translate }}
+        </p>
+      }
+
+      @for (field of orderedVisibleFields(); track field) {
+        @switch (field) {
+          @case (ContactInformationOrderableFieldEnum.FIRST_NAME) {
+            <div class="form-group" [class.has-edit-control]="isDualScreenSynchronizationActive()">
+              <ignt-input-field
+                #firstNameInput
+                appInputMobileBehavior
+                id="firstName"
+                data-testid="contact-information-first-name"
+                class="cell cell--fill-md"
+                [type]="'text'"
+                formControlName="firstName"
+                autocomplete="off"
+                [maxlength]="NAME_FIELD_MAX_LENGTH"
+                [label]="'form.field.firstName' | translate"
+                [customFormErrors]="[
+                  {
+                    type: 'maxlength',
+                    message: ('form.error.maxLength' | translate: { value: NAME_FIELD_MAX_LENGTH }),
+                  },
+                ]"
+              />
+              <ng-container
+                *ngTemplateOutlet="
+                  editControlButton;
+                  context: { field: 'firstName', testId: 'contact-information-edit-control-first-name' }
+                "
+              />
+            </div>
+          }
+          @case (ContactInformationOrderableFieldEnum.LAST_NAME) {
+            <div class="form-group" [class.has-edit-control]="isDualScreenSynchronizationActive()">
+              <ignt-input-field
+                #lastNameInput
+                appInputMobileBehavior
+                id="lastName"
+                data-testid="contact-information-last-name"
+                class="cell cell--fill-md"
+                [type]="'text'"
+                formControlName="lastName"
+                autocomplete="off"
+                [maxlength]="NAME_FIELD_MAX_LENGTH"
+                [label]="'form.field.lastName' | translate"
+                [customFormErrors]="[
+                  {
+                    type: 'maxlength',
+                    message: ('form.error.maxLength' | translate: { value: NAME_FIELD_MAX_LENGTH }),
+                  },
+                ]"
+              />
+              <ng-container
+                *ngTemplateOutlet="editControlButton; context: { field: 'lastName', testId: 'contact-information-edit-control-last-name' }"
+              />
+            </div>
+          }
+          @case (ContactInformationOrderableFieldEnum.EMAIL) {
+            <div class="form-group" [class.has-edit-control]="isDualScreenSynchronizationActive()">
+              <ignt-input-field
+                #emailInput
+                appInputMobileBehavior
+                id="email"
+                data-testid="contact-information-email"
+                class="cell cell--fill-md"
+                [type]="'text'"
+                formControlName="email"
+                autocomplete="off"
+                [label]="('form.field.email' | translate) + (mandatoryFields().includes('email') ? ' *' : '')"
+                [customFormErrors]="[
+                  {
+                    type: 'emailValidator',
+                    message: ('form.error.invalidEmail' | translate),
+                  },
+                  {
+                    type: 'required',
+                    message: ('boxOffice.contactInformationModal.validations.required' | translate),
+                  },
+                ]"
+              />
+              <ng-container
+                *ngTemplateOutlet="editControlButton; context: { field: 'email', testId: 'contact-information-edit-control-email' }"
+              />
+            </div>
+          }
+          @case (ContactInformationOrderableFieldEnum.PHONE) {
+            <div class="form-group">
+              <app-contact-phone-field
+                id="phoneNumber"
+                data-testid="contact-information-phone-number"
+                formControlName="phoneNumber"
+                [defaultCountry]="defaultCountry()"
+                [isMandatory]="mandatoryFields().includes('phoneNumber')"
+                [error]="getPhoneControlError(contactInformationForm.get('phoneNumber'))"
+              >
+                @if (isDualScreenSynchronizationActive()) {
+                  <span edit-control>
+                    <ng-container
+                      *ngTemplateOutlet="
+                        editControlButton;
+                        context: { field: 'phoneNumber', testId: 'contact-information-edit-control-phone' }
+                      "
+                    />
+                  </span>
+                }
+              </app-contact-phone-field>
+            </div>
+          }
+        }
+      }
+
+      @if (showPrivacyDisclaimer()) {
+        <div class="form-group form-group--checkbox" [class.form-group--collapsed]="!isPrivacyDisclaimerExpanded()">
+          <ignt-checkbox
+            formControlName="termsAndConditions"
+            id="termsAndConditions"
+            dataTestId="contact-information-terms"
+            [label]="'boxOffice.termsAndConditionsDescription' | translate"
+          />
+          <ignt-button
+            class="contact-information__disclaimer-toggle"
+            data-testid="contact-information-terms-toggle"
+            variant="tertiary"
+            size="small"
+            [ariaExpanded]="isPrivacyDisclaimerExpanded()"
+            [label]="privacyDisclaimerToggleLabel() | translate"
+            (click)="togglePrivacyDisclaimer()"
+            (keydown.enter)="$event.stopPropagation()"
+          />
+        </div>
+      }
+
+      <div aria-live="polite">
+        @if (!cartReady()) {
+          <app-loading-notice
+            data-testid="contact-information-cart-pending"
+            [label]="'boxOffice.contactInformationModal.reservingTickets' | translate"
+          />
+        }
+      </div>
+    </form>
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer>
+  <ignt-button
+    fill
+    data-testid="contact-information-accept-button"
+    [disabled]="!canSubmitContactInformationForm"
+    [label]="(showGoToCheckoutLabelButton ? 'boxOffice.goToCheckout' : 'common.skip') | translate"
+    (click)="accept()"
+  />
+</ignt-dialog-footer>
+
+<ng-template #editControlButton let-field="field" let-testId="testId">
+  @if (isDualScreenSynchronizationActive()) {
+    <button
+      [attr.data-testid]="testId"
+      tabindex="-1"
+      type="button"
+      ignt-icon-button
+      sentiment="secondary"
+      [icon]="contactInfoActiveEditField() === field ? ['far', 'xmark'] : ['far', 'arrow-right-from-bracket']"
+      (click)="toggleEditControl(field)"
+    ></button>
+  }
+</ng-template>

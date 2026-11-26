@@ -1,0 +1,82 @@
+<div class="quota-detail__template-block" data-testid="quota-detail-template-block">
+  <div class="quota-detail__template-header" [class.quota-detail__template-header--editing]="isEditing()">
+    <div class="quota-detail__template-header-info">
+      <div class="quota-detail__template-title-row">
+        <span class="quota-detail__template-name" data-testid="quota-detail-template-name">{{ template().name }}</span>
+        @if (isEditing()) {
+          <p class="quota-detail__editing-status" data-testid="quota-detail-editing-status">
+            <ignt-icon class="quota-detail__editing-status-icon" name="edit" variant="light"></ignt-icon>
+            <span>{{ 'inventory.capacity.templates.actions.editingTemplate' | translate }}</span>
+          </p>
+          <div class="quota-detail__edit-actions">
+            <ignt-button
+              data-testid="quota-detail-discard-edit-btn"
+              sentiment="danger"
+              size="small"
+              variant="tertiary"
+              [disabled]="isEditingDisabled() || isSaving()"
+              [label]="'common.cancel' | translate"
+              (click)="onDiscardEdit()"
+            ></ignt-button>
+            <ignt-button
+              data-testid="quota-detail-save-edit-btn"
+              sentiment="brand"
+              size="small"
+              variant="secondary"
+              [disabled]="isSaveDisabled()"
+              [label]="'common.save' | translate"
+              (click)="onSaveEdit()"
+            ></ignt-button>
+          </div>
+        } @else {
+          <ignt-button
+            data-testid="quota-detail-start-edit-btn"
+            sentiment="brand"
+            size="small"
+            variant="tertiary"
+            [disabled]="isEditingDisabled() || isSaving()"
+            [label]="'inventory.capacity.templates.actions.editTemplate' | translate"
+            [leadingIcon]="{ name: 'edit', variant: 'solid' }"
+            (click)="onStartEdit()"
+          ></ignt-button>
+        }
+      </div>
+      @if (!isEditing()) {
+        <ignt-button
+          data-testid="quota-detail-add-quota-btn"
+          sentiment="brand"
+          size="small"
+          variant="tertiary"
+          [disabled]="isEditingDisabled() || isSaving()"
+          [label]="'inventory.capacity.quotaDetail.addQuota' | translate"
+          [leadingIcon]="{ name: 'plus', variant: 'light' }"
+          (click)="onAddQuota()"
+        ></ignt-button>
+      }
+    </div>
+    <app-quota-detail-capacity-cell [controlName]="templateCapacityControlName" [displayValue]="template().timeslotCapacity" />
+  </div>
+
+  @if (template().capacityQuotas.length > 0 && template().timeslotCapacity !== null) {
+    <app-quota-detail-free-capacity-row
+      [poolCapacity]="template().timeslotCapacity"
+      [poolControlName]="templateCapacityControlName"
+      [quotaControlNames]="quotaControlNames()"
+      [quotas]="template().capacityQuotas"
+    />
+  }
+
+  @for (quota of template().capacityQuotas; track $index; let quotaIndex = $index) {
+    <app-quota-detail-quota-row
+      level="template"
+      [controlName]="quotaControlNames()[quotaIndex]"
+      [menuId]="getQuotaMenuId(quotaIndex)"
+      [openMenuId]="openMenuId()"
+      [quota]="quota"
+      [quotaIndex]="quotaIndex"
+      [template]="template()"
+      (menuToggle)="menuToggle.emit($event)"
+      (quotaAction)="quotaAction.emit($event)"
+    />
+  }
+</div>

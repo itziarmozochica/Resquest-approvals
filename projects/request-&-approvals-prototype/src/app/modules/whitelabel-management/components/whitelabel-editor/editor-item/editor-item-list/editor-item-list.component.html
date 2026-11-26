@@ -1,0 +1,272 @@
+@let fieldErrors =
+  [
+    { type: 'required', message: 'whitelabelEditor.listItem.errors.required' | translate },
+    { type: 'numeric', message: 'whitelabelEditor.listItem.errors.numeric' | translate },
+    { type: 'notAllowed', message: 'whitelabelEditor.listItem.errors.notAllowed' | translate },
+    { type: 'blankKey', message: 'whitelabelEditor.listItem.errors.blankKey' | translate },
+    { type: 'unsafeKey', message: 'whitelabelEditor.listItem.errors.unsafeKey' | translate },
+  ];
+<div class="editor-item editor-item--list">
+  <div class="editor-item__content">
+    <span class="editor-item__label" [id]="labelId()">{{ 'whitelabelEditor.items.' + item().key | translate }}</span>
+    @if (item().key | editorItemHint; as hint) {
+      <p class="editor-item__hint">{{ hint }}</p>
+    }
+  </div>
+
+  @if (fields().length === 0) {
+    <p class="editor-item__hint" data-testid="editor-item-list-no-fields">{{ 'whitelabelEditor.listItem.noFields' | translate }}</p>
+  } @else if (!isConfigLoaded()) {
+    <p class="editor-item__hint" data-testid="editor-item-list-not-loaded">{{ 'whitelabelEditor.listItem.notLoaded' | translate }}</p>
+  } @else {
+    <div
+      class="editor-item-list__rows"
+      role="list"
+      cdkDropList
+      [cdkDropListDisabled]="!canReorder()"
+      [attr.aria-labelledby]="labelId()"
+      (cdkDropListDropped)="onDrop($event)"
+    >
+      @for (group of rowGroups(); track group; let index = $index) {
+        <ignt-wrapper-card
+          class="editor-item-list__row"
+          role="listitem"
+          cdkDrag
+          [cdkDragDisabled]="!canReorder()"
+          data-testid="editor-item-list-row"
+        >
+          <div class="editor-item-list__row-placeholder" *cdkDragPlaceholder></div>
+          <div class="editor-item-list__row-body" [formGroup]="group">
+            <div class="editor-item-list__row-summary">
+              @if (canReorder()) {
+                <button
+                  type="button"
+                  ignt-icon-button
+                  cdkDragHandle
+                  class="editor-item-list__drag-handle"
+                  size="small"
+                  sentiment="tertiary"
+                  data-testid="editor-item-list-drag-handle"
+                  [icon]="['fas', 'grip-vertical']"
+                  [attr.aria-label]="'whitelabelEditor.listItem.dragHandle' | translate: { index: index + 1 }"
+                  (keydown.arrowup)="onMoveRow(index, -1, $event)"
+                  (keydown.arrowdown)="onMoveRow(index, 1, $event)"
+                ></button>
+              }
+              <div
+                class="editor-item-list__row-main"
+                role="button"
+                tabindex="0"
+                data-testid="editor-item-list-row-toggle"
+                [attr.aria-expanded]="isRowExpanded(group)"
+                [attr.aria-label]="
+                  (isRowExpanded(group) ? 'whitelabelEditor.listItem.collapseRow' : 'whitelabelEditor.listItem.expandRow')
+                    | translate: { index: index + 1 }
+                "
+                (click)="onToggleRow(group)"
+                (keydown.enter)="onToggleRow(group, $event)"
+                (keydown.space)="onToggleRow(group, $event)"
+              >
+                <span class="editor-item-list__row-text">
+                  <span class="editor-item-list__row-title" data-testid="editor-item-list-row-title">
+                    {{ rowTitle(group) || ('whitelabelEditor.listItem.untitledRow' | translate: { index: index + 1 }) }}
+                  </span>
+                  @if (rowSubtitle(group); as subtitle) {
+                    <span class="editor-item-list__row-subtitle" data-testid="editor-item-list-row-subtitle">{{ subtitle }}</span>
+                  }
+                </span>
+                @if (!isRowExpanded(group) && rowBadge(group); as badge) {
+                  <span class="editor-item-list__row-badge" data-testid="editor-item-list-row-badge">{{ badge }}</span>
+                }
+                @if (rowHasErrors(group, index)) {
+                  <ignt-icon
+                    class="editor-item-list__row-error"
+                    name="exclamation-circle"
+                    variant="solid"
+                    size="sm"
+                    data-testid="editor-item-list-row-error"
+                    [attr.aria-label]="'whitelabelEditor.listItem.rowInvalid' | translate"
+                  />
+                }
+                <ignt-icon
+                  class="editor-item-list__row-chevron"
+                  [name]="isRowExpanded(group) ? 'chevron-up' : 'chevron-down'"
+                  variant="light"
+                  size="sm"
+                />
+              </div>
+              <button
+                type="button"
+                ignt-icon-button
+                size="small"
+                sentiment="tertiary"
+                class="editor-item-list__row-remove"
+                data-testid="editor-item-list-remove"
+                [icon]="['fal', 'xmark']"
+                [attr.aria-label]="'whitelabelEditor.listItem.removeAriaLabel' | translate: { index: index + 1 }"
+                (click)="onRemoveRow(index)"
+              ></button>
+            </div>
+
+            @if (isRowExpanded(group)) {
+              <div class="editor-item-list__fields">
+                @for (field of fields(); track field.controlName) {
+                  <div class="editor-item-list__field" [class.editor-item-list__field--setting]="field.type === 'boolean'">
+                    @if (field.isRowKey && isDuplicateKeyRow(index)) {
+                      <span class="editor-item-list__field-error" data-testid="editor-item-list-duplicate-key">
+                        {{ 'whitelabelEditor.listItem.duplicateKey' | translate }}
+                      </span>
+                    }
+                    @switch (field.type) {
+                      @case ('boolean') {
+                        <div class="editor-item-list__setting">
+                          <!-- The switch sits outside the label, so both halves stay clickable. -->
+                          <label class="editor-item-list__setting-text" [attr.for]="fieldId(index, field)">
+                            <span class="editor-item-list__setting-label">{{ fieldLabel(field) }}</span>
+                            @if (fieldHint(field); as hint) {
+                              <span class="editor-item-list__setting-hint">{{ hint }}</span>
+                            }
+                          </label>
+                          <ignt-toggle
+                            [id]="fieldId(index, field)"
+                            [checked]="isFieldOn(group, field)"
+                            (change)="onFieldToggled(group, field, $event)"
+                          />
+                        </div>
+                      }
+                      @case ('keyvalue') {
+                        <label class="editor-item-list__field-label">{{ fieldLabel(field) }}</label>
+                        <div class="editor-item-list__pairs" data-testid="editor-item-list-pairs">
+                          @for (pair of keyValueOf(group, field); track $index) {
+                            <div class="editor-item-list__pair">
+                              <ignt-input-field
+                                class="editor-item-list__pair-key"
+                                label=""
+                                data-testid="editor-item-list-pair-key"
+                                [placeholder]="'whitelabelEditor.listItem.pairKey' | translate"
+                                [ngModel]="pair.key"
+                                [ngModelOptions]="{ standalone: true }"
+                                (ngModelChange)="onKeyValueChanged(group, field, pair.key, $event, pair.value)"
+                              />
+                              <ignt-input-field
+                                class="editor-item-list__pair-value"
+                                label=""
+                                data-testid="editor-item-list-pair-value"
+                                [placeholder]="'whitelabelEditor.listItem.pairValue' | translate"
+                                [ngModel]="pair.value"
+                                [ngModelOptions]="{ standalone: true }"
+                                (ngModelChange)="onKeyValueChanged(group, field, pair.key, pair.key, $event)"
+                              />
+                              <button
+                                type="button"
+                                ignt-icon-button
+                                size="small"
+                                sentiment="tertiary"
+                                data-testid="editor-item-list-pair-remove"
+                                [icon]="['fal', 'xmark']"
+                                [attr.aria-label]="'whitelabelEditor.listItem.removeValue' | translate: { value: pair.key }"
+                                (click)="onKeyValueRemoved(group, field, pair.key)"
+                              ></button>
+                            </div>
+                          }
+                          <ignt-button
+                            variant="tertiary"
+                            sentiment="neutral"
+                            size="small"
+                            data-testid="editor-item-list-pair-add"
+                            [label]="'whitelabelEditor.listItem.addPair' | translate"
+                            (click)="onKeyValueAdded(group, field)"
+                          />
+                        </div>
+                      }
+                      @case ('localized_string') {
+                        <ignt-input-field
+                          data-testid="editor-item-list-localized"
+                          [customFormErrors]="fieldErrors"
+                          [id]="fieldId(index, field)"
+                          [label]="fieldLabel(field)"
+                          [ngModel]="localizedText(group, field)"
+                          [ngModelOptions]="{ standalone: true }"
+                          (ngModelChange)="onLocalizedChanged(group, field, $event)"
+                        />
+                        @if (localizedLocales(group, field); as locales) {
+                          @if (locales.length > 0) {
+                            <span class="editor-item-list__field-hint" data-testid="editor-item-list-localized-locales">
+                              {{ 'whitelabelEditor.listItem.keptTranslations' | translate: { locales: locales.join(', ') } }}
+                            </span>
+                          }
+                        }
+                      }
+                      @case ('string_list') {
+                        <span class="editor-item-list__field-label">{{ fieldLabel(field) }}</span>
+                        <app-chips-input
+                          [attr.data-field-id]="fieldId(index, field)"
+                          [defaultChips]="listChips(group, field)"
+                          [pattern]="field.scalar_type === 'number' ? numberChipPattern : ''"
+                          [placeholder]="'whitelabelEditor.listItem.tokenPlaceholder' | translate"
+                          (chipsChange)="onListValuesChanged(group, field, $event)"
+                        />
+                      }
+                      @default {
+                        @if (hasFieldOptions(field)) {
+                          <app-editor-select
+                            [inputId]="fieldId(index, field)"
+                            [label]="fieldLabel(field)"
+                            [options]="fieldOptions(field)"
+                            [searchable]="false"
+                            [selected]="fieldValue(group, field)"
+                            (picked)="onFieldPicked(group, field, $event)"
+                          />
+                          @if (fieldError(group, field); as message) {
+                            <span class="editor-item-list__field-error" data-testid="editor-item-list-field-error">{{ message }}</span>
+                          }
+                        } @else {
+                          <ignt-input-field
+                            [customFormErrors]="fieldErrors"
+                            [formControlName]="field.controlName"
+                            [id]="fieldId(index, field)"
+                            [label]="fieldLabel(field)"
+                            [type]="field.type === 'number' ? 'number' : 'text'"
+                          />
+                        }
+                      }
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </ignt-wrapper-card>
+      } @empty {
+        <p class="editor-item__hint" data-testid="editor-item-list-empty">{{ 'whitelabelEditor.listItem.empty' | translate }}</p>
+      }
+    </div>
+
+    <ignt-button
+      class="editor-item-list__add"
+      variant="secondary"
+      size="small"
+      data-testid="editor-item-list-add"
+      [label]="addLabel()"
+      [leadingIcon]="addIcon"
+      [disabled]="!canAddRow()"
+      (click)="onAddRow()"
+    />
+  }
+
+  @if (hasEdits()) {
+    <div class="editor-item__footer">
+      <span class="editor-item__status editor-item__status--pending" data-testid="editor-item-list-unsaved">
+        {{ 'whitelabelEditor.unsavedChanges' | translate }}
+      </span>
+      <ignt-button
+        variant="tertiary"
+        sentiment="neutral"
+        size="small"
+        data-testid="editor-item-list-discard"
+        [label]="'common.undo' | translate"
+        (click)="discardEdits()"
+      />
+    </div>
+  }
+</div>

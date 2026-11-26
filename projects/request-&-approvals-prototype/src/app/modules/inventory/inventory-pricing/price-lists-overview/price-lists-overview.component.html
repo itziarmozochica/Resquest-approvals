@@ -1,0 +1,207 @@
+<ignt-alert
+  class="message-banner"
+  sentiment="danger"
+  *ngIf="basePriceListHasPricesNotSetted()"
+  data-testid="message-banner-warning-set-base-price-list"
+>
+  <ng-template #igntAlertContent>
+    <span [innerHTML]="'sessions.pricing.warningMustSetBasePriceList' | translate"></span>
+  </ng-template>
+</ignt-alert>
+
+@if (hasAdaptivePricing()) {
+  <ignt-alert
+    class="message-banner"
+    sentiment="danger"
+    data-testid="price-lists-adaptive-pricing-banner"
+    [title]="'sessions.dynamicPricing.disabledPriceEditingWarningTitle' | translate"
+    [description]="'sessions.dynamicPricing.disabledPriceEditingWarningDescription' | translate"
+  ></ignt-alert>
+}
+
+<div class="header">
+  <div class="header__context-row">
+    <div class="header__context">
+      <span data-testid="only-text-header" class="header__title">{{ 'sessions.pricing.priceListsOverview.title' | translate }}</span>
+      <p class="header__description">{{ 'sessions.pricing.priceListsOverview.explanation' | translate }}</p>
+    </div>
+
+    @if (canModifyPriceLists() && !isRedeemNow() && !isShowingArchived()) {
+      <ignt-button
+        class="header__primary-cta"
+        variant="primary"
+        size="large"
+        data-testid="new-price-list-button"
+        [label]="'sessions.pricing.newListButton' | translate"
+        [disabled]="isReSortPriorityActive() || basePriceListHasPricesNotSetted() || !hasPriceLists()"
+        igntTooltip
+        [tooltipLabel]="basePriceListHasPricesNotSetted() ? ('sessions.pricing.warningFillBasePriceListTooltip' | translate) : null"
+        (click)="isNewListSliderOpen.set(true)"
+      />
+    }
+  </div>
+
+  <div class="header__toolbar-row">
+    @if (!isShowingArchived()) {
+      <fieldset class="price-list-view-selection">
+        <label class="price-list-view-selection__option">
+          <input
+            data-testid="price-list-view-selection-matrix-input"
+            name="view-selection"
+            type="radio"
+            [formControl]="selectedViewControl"
+            [value]="viewEnum.matrix"
+          />
+          {{ 'sessions.pricing.priceListsOverview.matrixView' | translate }}
+        </label>
+        <span aria-hidden="true" class="price-list-view-selection__separator">|</span>
+        <label class="price-list-view-selection__option">
+          <input
+            data-testid="price-list-view-selection-list-input"
+            name="view-selection"
+            type="radio"
+            [formControl]="selectedViewControl"
+            [value]="viewEnum.list"
+          />
+          {{ 'sessions.pricing.priceListsOverview.listView' | translate }}
+        </label>
+      </fieldset>
+    }
+
+    <div class="header__secondary-actions">
+      @if (isArchivedPriceListsActionAllowed()) {
+        <ignt-button
+          class="header__secondary-actions__button"
+          variant="tertiary"
+          size="small"
+          data-testid="archived-price-lists-button"
+          [label]="
+            (isShowingArchived() ? 'sessions.pricing.priceListsOverview.unarchived' : 'sessions.pricing.priceListsOverview.archived')
+              | translate
+          "
+          [disabled]="isReSortPriorityActive()"
+          (click)="onToggleArchivedView()"
+        />
+      }
+      @if (canModifyPriceLists() && !isRedeemNow()) {
+        <ignt-button
+          class="header__secondary-actions__button"
+          variant="secondary"
+          size="small"
+          data-testid="manage-tiers-button"
+          [label]="'sessions.pricing.manageTiers.button' | translate"
+          [disabled]="isReSortPriorityActive()"
+          (click)="isManageTiersOpen.set(true)"
+        />
+        @if (selectedView() === viewEnum.list && !isShowingArchived()) {
+          <ignt-button
+            class="header__secondary-actions__button"
+            variant="secondary"
+            size="small"
+            data-testid="order-price-lists-button"
+            [label]="'sessions.pricing.orderListsButton' | translate"
+            [loading]="isReSortPrioritySaving()"
+            [disabled]="isReSortPriorityActive() || basePriceListHasPricesNotSetted() || !hasPriceLists()"
+            igntTooltip
+            [tooltipLabel]="basePriceListHasPricesNotSetted() ? ('sessions.pricing.warningFillBasePriceListTooltip' | translate) : null"
+            (click)="onClickOrderPriceLists()"
+          />
+        }
+      }
+    </div>
+  </div>
+
+  <div class="header__filters-row">
+    <div class="header__filters" [attr.data-testid]="activeFilterSelectionCount() > 0 ? 'price-lists-overview-active-filters' : null">
+      @if (selectedView() === viewEnum.matrix) {
+        <app-price-lists-overview-ticket-type-search
+          class="header__ticket-type-search"
+          [ticketTypeSearch]="ticketTypeSearch()"
+          [disabled]="isReSortPriorityActive() || !hasPriceLists()"
+          (ticketTypeSearchChange)="onTicketTypeSearchChange($event)"
+        />
+      }
+      <ignt-button
+        size="small"
+        data-testid="price-lists-overview-filters-button"
+        [variant]="activeFilterSelectionCount() > 0 ? 'primary' : 'tertiary'"
+        [leadingIcon]="{ name: 'sliders-h', variant: 'solid' }"
+        [disabled]="isReSortPriorityActive() || !hasPriceLists()"
+        [label]="
+          activeFilterSelectionCount() > 0
+            ? ('common.filter.activeButtonLabel' | translate: { count: activeFilterSelectionCount() })
+            : ('common.filter.label' | translate)
+        "
+        (click)="onOpenFilters()"
+      />
+      @if (activeFilterSelectionCount() > 0) {
+        @for (pill of appliedFilters(); track pill.id) {
+          <ignt-pill type="secondary" [label]="pill.label" (clicked)="onRemoveFilter(pill.id)" />
+        }
+        <ignt-button
+          variant="tertiary"
+          size="small"
+          data-testid="price-lists-overview-clear-filters"
+          [label]="'common.filter.clearAll' | translate"
+          (click)="onClearAllFilters()"
+        />
+      }
+    </div>
+
+    @if (selectedView() === viewEnum.matrix) {
+      <div class="header__matrix-toggles">
+        <ignt-checkbox
+          class="header__surcharge-toggle"
+          dataTestId="price-list-see-surcharge-checkbox"
+          [formControl]="displaySurchargeControl"
+          [label]="'sessions.pricing.priceListsOverview.seeSurcharge' | translate"
+          size="small"
+        ></ignt-checkbox>
+        <ignt-checkbox
+          class="header__strikethrough-toggle"
+          dataTestId="price-list-see-strikethrough-checkbox"
+          [formControl]="displayStrikethroughControl"
+          [label]="'sessions.pricing.priceListsOverview.seeStrikethrough' | translate"
+          size="small"
+        ></ignt-checkbox>
+      </div>
+    }
+  </div>
+</div>
+
+<router-outlet></router-outlet>
+
+<ng-container *ngIf="canModifyPriceLists()">
+  <app-lateral-slider
+    [showDetails]="isNewListSliderOpen()"
+    [title]="'sessions.pricing.newListForm.title' | translate"
+    [contentTemplate]="newListForm"
+    (closeSlider)="isNewListSliderOpen.set(false)"
+  ></app-lateral-slider>
+</ng-container>
+
+<ng-template #newListForm>
+  <app-new-price-list-form
+    *ngIf="isNewListSliderOpen()"
+    [priceLists]="priceLists()"
+    [timezone]="timezone()"
+    [channelOptions]="channelOptions()"
+    [timeSlotTiers]="timeSlotTiers()"
+    (createClicked)="createPriceList($event)"
+    (discardClicked)="isNewListSliderOpen.set(false)"
+  ></app-new-price-list-form>
+</ng-template>
+
+<app-lateral-slider
+  [showDetails]="isManageTiersOpen()"
+  [title]="'sessions.pricing.manageTiers.title' | translate"
+  [contentTemplate]="manageTimeSlotTiers"
+  (closeSlider)="isManageTiersOpen.set(false)"
+  data-testid="manage-time-slot-tiers"
+></app-lateral-slider>
+
+<ng-template #manageTimeSlotTiers>
+  @if (isManageTiersOpen()) {
+    <app-manage-time-slot-tiers (closed)="isManageTiersOpen.set(false)"></app-manage-time-slot-tiers>
+  }
+</ng-template>

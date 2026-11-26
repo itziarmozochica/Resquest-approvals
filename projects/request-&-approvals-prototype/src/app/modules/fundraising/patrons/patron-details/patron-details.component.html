@@ -1,0 +1,119 @@
+<section class="main-wrapper" [attr.aria-label]="'menu.fundraisingPatrons' | translateTerminology">
+  <app-fundraising-page-title
+    [section]="'menu.guestProfiles' | translateTerminology"
+    [subsections]="[{ title: ('menu.fundraisingPatrons' | translateTerminology), link: '/guest-profiles/profiles' }]"
+    [title]="patronDetails()?.name ?? ''"
+  >
+    @if (dropdownActionsOptions().length > 0) {
+      <ignt-button-dropdown
+        [options]="dropdownActionsOptions()"
+        [sentiment]="'secondary'"
+        [variant]="'default'"
+        [trailingIconClosed]="['fas', 'chevron-down']"
+        [trailingIconOpened]="['fas', 'chevron-up']"
+        [attr.aria-label]="('fundraising.patronDetails.header.actions' | translate) + ' ' + patronDetails()?.name"
+        (optionClick)="onActionsDropdownOptionClick($event)"
+        data-testid="patron-details-header-actions-dropdown"
+        class="patron-details__actions-dropdown"
+      >
+        {{ 'fundraising.patronDetails.header.actions.title' | translate }}
+      </ignt-button-dropdown>
+    }
+  </app-fundraising-page-title>
+
+  <div class="patron-details" [attr.aria-busy]="isLoading()">
+    @if (isLoading()) {
+      <ng-container *ngTemplateOutlet="loading"></ng-container>
+    } @else {
+      <app-patron-details-header [patronDetails]="patronDetails()" [hasRelationships]="hasRelationships()"></app-patron-details-header>
+
+      <div class="patron-details__content-wrapper">
+        <div class="patron-details__content-header">
+          <ignt-tabs
+            [variant]="'default'"
+            [hasExtraLine]="false"
+            [selectedIndex]="activeTabIndex()"
+            (selectedIndexChange)="onTabChange($event)"
+          >
+            @for (tab of tabs(); track tab.id) {
+              <ignt-tabs-item [label]="tab.label | translate" [id]="tab.id">
+                @if (activeTabId() === tab.id && tab.id === 'summary') {
+                  @defer {
+                    <app-patron-details-tab-summary
+                      [canEdit]="canEditThisPatron()"
+                      [canImportHistory]="canImportHistory()"
+                      [groupContext]="groupContext()"
+                      [patronDetails]="patronDetails()"
+                      (openDialogActivity)="toggleModalActivity('overview_recent_activity_widget')"
+                      (openImportHistoryDialog)="onDropdownOptionClick('import-history')"
+                    ></app-patron-details-tab-summary>
+                  }
+                } @else if (activeTabId() === tab.id && tab.id === 'memberships') {
+                  @defer {
+                    <app-patron-details-tab-memberships [patronDetails]="patronDetails()"></app-patron-details-tab-memberships>
+                  }
+                } @else if (activeTabId() === tab.id && tab.id === 'profile') {
+                  @defer {
+                    <app-patron-details-tab-profile
+                      [canEdit]="canEditThisPatron()"
+                      [groupContext]="groupContext()"
+                      [patronDetails]="patronDetails()"
+                      (editSystemInfo)="onEditSystemInfo()"
+                      (editPersonalInfo)="onEditPersonalInfo()"
+                      (editContactInfo)="onEditContactInfo()"
+                    ></app-patron-details-tab-profile>
+                  }
+                } @else if (activeTabId() === tab.id && tab.id === 'timeline') {
+                  @defer {
+                    <app-patron-details-tab-timeline
+                      [canEdit]="canEditThisPatron()"
+                      [giftOfficerName]="patronDetails()?.managedBy?.name ?? ''"
+                      [patronEmail]="patronDetails()?.contactInfo?.email ?? ''"
+                      (openDialogActivity)="toggleModalActivity('timeline_tab')"
+                    ></app-patron-details-tab-timeline>
+                  }
+                } @else if (activeTabId() === tab.id && tab.id === 'relationships') {
+                  @defer {
+                    <app-patron-details-tab-relationships
+                      (addHouseholdMemberRequested)="onAddHouseholdMemberRequested()"
+                      (addRelationshipRequested)="onAddRelationshipRequested($event)"
+                      [canManage]="canManageRelationships()"
+                      [groupContext]="groupContext()"
+                      [householdPermissions]="householdPermissions()"
+                      [patronDetails]="patronDetails()"
+                    ></app-patron-details-tab-relationships>
+                  }
+                } @else if (activeTabId() === tab.id && tab.id === 'documents') {
+                  @defer {
+                    <app-patron-details-tab-documents [patronDetails]="patronDetails()"></app-patron-details-tab-documents>
+                  }
+                }
+              </ignt-tabs-item>
+            }
+          </ignt-tabs>
+        </div>
+      </div>
+    }
+  </div>
+</section>
+
+<app-patron-activity-dialog
+  [patron]="patronDetails()"
+  [isVisible]="isOpenDialogActivity()"
+  (activityCreated)="onActivityCreated($event)"
+  (closed)="toggleModalActivity()"
+></app-patron-activity-dialog>
+
+<app-patron-update-managedby-dialog
+  [patron]="managedByDialogPatron()"
+  [isVisible]="isOpenDialogManagedBy()"
+  (closed)="toggleModalManagedBy()"
+  (managedByUpdated)="onManagedByUpdated($event)"
+></app-patron-update-managedby-dialog>
+<ng-template #loading>
+  <div class="patron-details__loading">
+    <ignt-icon name="spinner" variant="solid" [spin]="true" size="display" aria-hidden="true" />
+  </div>
+</ng-template>
+
+<app-confirmation-dialog />

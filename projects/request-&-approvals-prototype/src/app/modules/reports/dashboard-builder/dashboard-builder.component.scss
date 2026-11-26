@@ -1,0 +1,251 @@
+@use 'foundations' as foundations;
+@use 'foundations/font/font-properties' as font-properties;
+@use 'foundations/font/font-sizes' as font-sizes;
+@use 'foundations/font/font-leadings' as font-leadings;
+@use 'components/navigation/aside-menu/tokens' as aside-menu;
+@use 'components/navigation/headerbar/tokens' as headerbar;
+@import 'abstracts/all';
+
+:host {
+  display: block;
+  min-height: calc(100dvh - #{headerbar.$dimensions-height});
+  background: foundations.$color-background-main;
+
+  @include media-breakpoint-up(aside-menu.$breakpoint-menu) {
+    min-height: calc(100dvh - #{headerbar.$dimensions-height-large});
+  }
+}
+
+// Puts the action button back into the panel it is declared in: under the tabs, above the first
+// row of content.
+@mixin tabs-action-in-flow {
+  height: auto;
+  justify-content: flex-start;
+  margin-bottom: foundations.$space-4;
+  position: static;
+}
+
+.wrapper {
+  width: 100%;
+}
+
+.dashboard-builder-container {
+  background: foundations.$color-background-main;
+  border-radius: foundations.$radii-2;
+  display: flex;
+  flex-direction: column;
+  // Fills the row instead of shrinking to the selected panel: a narrow one (an empty state) would
+  // otherwise shrink the card until the action button sits on top of the tab strip.
+  flex-grow: 1;
+  margin: foundations.$space-6;
+  // A flex item of `.wrapper`, so its automatic minimum is its content: without this the
+  // exports table's own horizontal scroller never engages and the whole page scrolls instead.
+  min-width: 0;
+  padding: 0;
+  // `width: 100%` resolves against the parent's content box and the margins are added on top
+  // of it, which pushed the container past the viewport. `auto` lets the margins come out of
+  // the available width instead.
+  width: auto;
+
+  @include media-breakpoint-down(md) {
+    margin: foundations.$space-4;
+  }
+}
+
+.dashboard-builder {
+  &__title {
+    display: flex;
+    flex-direction: column;
+    padding: foundations.$space-6 foundations.$space-6 0;
+
+    @include media-breakpoint-down(md) {
+      padding: foundations.$space-4 foundations.$space-4 0;
+    }
+  }
+
+  &__section {
+    color: foundations.$color-text-main;
+    font-size: font-sizes.$size-small;
+    font-weight: font-properties.$weight-regular;
+    line-height: font-leadings.$leading-small;
+  }
+
+  &__heading {
+    margin: 0;
+    color: foundations.$color-text-main;
+    font-size: font-sizes.$size-h3;
+    font-weight: font-properties.$weight-bold;
+    line-height: font-leadings.$leading-h3;
+  }
+}
+
+.dashboard-builder__loading {
+  align-items: center;
+  color: foundations.$color-text-subtle;
+  display: flex;
+  flex-direction: column;
+  font: foundations.$font-base-regular;
+  gap: foundations.$space-3;
+  justify-content: center;
+  min-height: 50dvh;
+  padding: foundations.$space-10;
+}
+
+.dashboard-builder__loading-icon {
+  color: foundations.$color-action-background-primary;
+  font-size: 2rem;
+}
+
+.dashboard-builder__service-unavailable {
+  color: foundations.$color-text-subtle;
+  font: foundations.$font-base-regular;
+  padding: foundations.$space-8;
+  text-align: center;
+}
+
+.dashboard-builder__guided-steps {
+  display: block;
+  margin-bottom: foundations.$space-5;
+}
+
+// Stays the containing block for the action button, which lives inside the tab panel but is
+// lifted out of flow on desktop to sit level with the tab strip. Nothing between the two is
+// positioned, so `top`/`right` below still resolve against this element.
+.dashboard-builder__tabs-wrapper {
+  position: relative;
+}
+
+.dashboard-builder__tabs-action {
+  align-items: flex-end;
+  display: flex;
+  height: calc(#{foundations.$space-2} * 2 + #{font-leadings.$leading-base});
+  position: absolute;
+  right: 0;
+  top: 0;
+
+  // Below `md` the tab strip is too narrow to share a line with the button.
+  @include media-breakpoint-down(md) {
+    @include tabs-action-in-flow;
+  }
+}
+
+// The Delivery methods tab widens the strip so much that it and the widest button need about
+// 56rem, so the button also drops whenever the card is narrower than that, whatever the viewport.
+.dashboard-builder__tabs-wrapper--with-delivery-methods {
+  container: dashboard-builder-tabs / inline-size;
+
+  // Below `md` the four tabs share a phone's width: each icon sits above its label, which may take two
+  // lines. Only a strip still wider than the screen (320px, a long translation) scrolls sideways.
+  @include media-breakpoint-down(md) {
+    > ignt-tabs ::ng-deep > .tabs__header {
+      overflow-x: auto;
+    }
+
+    // Ignite aligns the tabs to the bottom; from the top, the icons line up whatever the label's lines.
+    > ignt-tabs ::ng-deep > .tabs__header > .tabs__label {
+      align-self: stretch;
+      flex: 1 1 auto;
+      flex-direction: column;
+      font-size: font-sizes.$size-caption;
+      gap: foundations.$space-1;
+      justify-content: flex-start;
+      line-height: font-leadings.$leading-caption;
+      min-width: min-content;
+      padding-inline: calc(#{foundations.$space-1} / 2);
+      text-align: center;
+      white-space: normal;
+    }
+  }
+}
+
+@container dashboard-builder-tabs (width < 56rem) {
+  .dashboard-builder__tabs-action {
+    @include tabs-action-in-flow;
+  }
+}
+
+.dashboard-builder__tab-content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.dashboard-builder__tab-intro {
+  color: foundations.$color-text-subtle;
+  font: foundations.$font-base-regular;
+  margin: foundations.$space-5 0 0;
+}
+
+.dashboard-builder__charts-toolbar {
+  align-items: center;
+  display: flex;
+  gap: foundations.$space-3;
+  justify-content: flex-start;
+}
+
+.dashboard-builder__grid-container {
+  min-height: 12rem;
+}
+
+.dashboard-builder__filtered-load {
+  align-items: center;
+  color: foundations.$color-text-subtle;
+  display: flex;
+  flex-direction: column;
+  font: foundations.$font-base-regular;
+  gap: foundations.$space-3;
+  justify-content: center;
+  min-height: 12rem;
+  padding: foundations.$space-5 0;
+}
+
+.dashboard-builder__owned-by-me-filter {
+  --ignt-checkbox-margin-top: 0;
+  margin: 0;
+}
+
+.dashboard-builder__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: foundations.$space-5;
+  padding: foundations.$space-5 0;
+  align-items: stretch;
+
+  @include media-breakpoint-down(xl) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @include media-breakpoint-down(lg) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include media-breakpoint-down(sm) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard-builder__empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: foundations.$space-3;
+  color: foundations.$color-text-subtle;
+  font: foundations.$font-base-regular;
+  padding: foundations.$space-10;
+  text-align: center;
+  background: foundations.$color-background-subtle-weak;
+  border-radius: foundations.$radii-2;
+  border: 1px dashed rgba(16, 33, 46, 0.16);
+}
+
+.dashboard-builder__empty-icon {
+  font-size: 2.5rem;
+  color: foundations.$color-action-text-disable;
+}
+
+.dashboard-builder__export-panel {
+  padding: foundations.$space-4;
+}

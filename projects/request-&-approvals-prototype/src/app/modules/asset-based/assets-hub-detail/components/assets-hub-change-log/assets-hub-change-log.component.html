@@ -1,0 +1,207 @@
+<p class="hub-tab__description" translate>assetsHubs.detail.changeLog.description</p>
+
+<div class="change-log__filters">
+  <app-time-slots-calendar-filters
+    data-testid="change-log-day-filter"
+    [dateSelected]="selectedDate()"
+    [isDisabled]="!timezone()"
+    [selectionMode]="dayMode"
+    [timezone]="timezone() ?? 'UTC'"
+    (dateSelectedChange)="onDateChange($event)"
+  ></app-time-slots-calendar-filters>
+
+  <div class="change-log__date-mode" role="group" [attr.aria-label]="'assetsHubs.detail.changeLog.dateMode.label' | translate">
+    @for (mode of dateModes; track mode) {
+      <ignt-pill-button
+        [attr.data-testid]="'change-log-date-mode-' + mode"
+        [checked]="mode === dateMode()"
+        [label]="'assetsHubs.detail.changeLog.dateMode.' + mode | translate"
+        [value]="mode"
+        (checkedChange)="onDateModeChange(mode)"
+      ></ignt-pill-button>
+    }
+  </div>
+
+  <app-multi-select
+    class="field change-log__assets"
+    data-testid="change-log-assets-filter"
+    [displayInPlaceMaximum]="2"
+    [isSelectAllVisible]="true"
+    [options]="assetOptions()"
+    [placeholder]="'assetsHubs.detail.changeLog.assetsPlaceholder' | translate"
+    [selectedOptions]="selectedAssets()"
+    (selected)="onAssetsChange($event)"
+  ></app-multi-select>
+</div>
+
+@if (isTimezoneFallback()) {
+  <ignt-alert
+    class="change-log__timezone-fallback"
+    data-testid="change-log-timezone-fallback"
+    sentiment="warning"
+    [description]="'assetsHubs.detail.changeLog.timezoneFallback' | translate"
+  ></ignt-alert>
+}
+
+@if (isLoading()) {
+  <div class="change-log__skeleton" data-testid="change-log-skeleton">
+    @for (line of skeletonLines; track $index) {
+      <ignt-skeleton-base [animation]="true" [height]="48" width="100%"></ignt-skeleton-base>
+    }
+  </div>
+} @else if (errorKey()) {
+  <div class="change-log__notice" data-testid="change-log-error">
+    <h2 class="change-log__notice-title">{{ errorKey() + '.title' | translate }}</h2>
+    <p class="change-log__notice-text">{{ errorKey() + '.description' | translate }}</p>
+
+    @if (errorKey() === genericErrorKey) {
+      <ignt-button
+        data-testid="change-log-retry"
+        sentiment="brand"
+        size="large"
+        variant="primary"
+        [label]="'assetsHubs.detail.changeLog.errors.generic.action' | translate"
+        (click)="onRetry()"
+      ></ignt-button>
+    }
+  </div>
+} @else if (isEmpty()) {
+  <div class="change-log__notice" data-testid="change-log-empty">
+    @if (hasAssetFilter()) {
+      <h2 class="change-log__notice-title" translate>assetsHubs.detail.changeLog.empty.filtered.title</h2>
+      <p class="change-log__notice-text" translate>assetsHubs.detail.changeLog.empty.filtered.description</p>
+      <ignt-button
+        data-testid="change-log-clear-assets"
+        sentiment="brand"
+        size="large"
+        variant="secondary"
+        [label]="'assetsHubs.detail.changeLog.empty.filtered.action' | translate"
+        (click)="onClearAssetFilter()"
+      ></ignt-button>
+    } @else {
+      <h2 class="change-log__notice-title" translate>assetsHubs.detail.changeLog.empty.day.title</h2>
+      <p class="change-log__notice-text" translate>assetsHubs.detail.changeLog.empty.day.message</p>
+      @if (!isViewingToday()) {
+        <ignt-button
+          data-testid="change-log-go-to-today"
+          sentiment="brand"
+          size="large"
+          variant="secondary"
+          [label]="'assetsHubs.detail.changeLog.empty.day.action' | translate"
+          (click)="onGoToToday()"
+        ></ignt-button>
+      }
+    }
+  </div>
+} @else {
+  @if (isTruncated()) {
+    <ignt-alert
+      class="change-log__truncated"
+      data-testid="change-log-truncated"
+      sentiment="warning"
+      [description]="'assetsHubs.detail.changeLog.truncated' | translate: { cap: page()?.cap }"
+    ></ignt-alert>
+  }
+
+  <ignt-table data-testid="change-log-table" [data]="rows()" [subRows]="'affectedSlots'">
+    <ignt-table-parent-row>
+      <ng-template
+        [igntTableParentRowTemplateType]="rows()[0]"
+        let-isExpanded="isExpanded"
+        let-item="item"
+        let-label="label"
+        let-subRowCount="subRowCount"
+      >
+        <span class="change-log__entry">
+          @if (subRowCount) {
+            <ignt-table-parent-row-label [isExpanded]="isExpanded" [label]="label" [subRowCount]="subRowCount" />
+          } @else {
+            <span class="change-log__entry-title">{{ label }}</span>
+          }
+          @if (item.isRolledBack) {
+            <ignt-tag sentiment="warning" variant="outline">{{ 'assetsHubs.detail.changeLog.reverted' | translate }}</ignt-tag>
+          }
+        </span>
+      </ng-template>
+
+      <ignt-table-parent-cell key="asset">
+        <ng-template let-item="item">
+          <span [attr.title]="item.asset">{{ item.asset }}</span>
+        </ng-template>
+      </ignt-table-parent-cell>
+
+      <ignt-table-parent-cell key="changes">
+        <ng-template let-item="item">
+          <ng-container *ngTemplateOutlet="changeLines; context: { $implicit: item.changes }"></ng-container>
+        </ng-template>
+      </ignt-table-parent-cell>
+
+      <ignt-table-parent-cell key="actorName">
+        <ng-template let-item="item">
+          <ng-container *ngTemplateOutlet="actorCell; context: { $implicit: item }"></ng-container>
+        </ng-template>
+      </ignt-table-parent-cell>
+
+      <ignt-table-parent-cell key="when">
+        <ng-template let-item="item">{{ item.when }}</ng-template>
+      </ignt-table-parent-cell>
+    </ignt-table-parent-row>
+
+    <ignt-table-column
+      key="title"
+      columnType="primary"
+      [header]="'assetsHubs.detail.changeLog.columns.whatHappened' | translate"
+    ></ignt-table-column>
+
+    <ignt-table-column key="asset" columnType="secondary" [header]="'assetsHubs.detail.changeLog.columns.asset' | translate">
+      <ng-template [igntTableColumnTemplateType]="rows()[0]" let-item="item">
+        <span [attr.title]="item.asset">{{ item.asset }}</span>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column key="changes" columnType="secondary" [header]="'assetsHubs.detail.changeLog.columns.whatChanged' | translate">
+      <ng-template [igntTableColumnTemplateType]="rows()[0]" let-item="item">
+        <ng-container *ngTemplateOutlet="changeLines; context: { $implicit: item.changes }"></ng-container>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column key="actorName" [width]="240" [header]="'assetsHubs.detail.changeLog.columns.who' | translate">
+      <ng-template [igntTableColumnTemplateType]="rows()[0]" let-item="item">
+        <ng-container *ngTemplateOutlet="actorCell; context: { $implicit: item }"></ng-container>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column key="when" [width]="140" [header]="'assetsHubs.detail.changeLog.columns.when' | translate"></ignt-table-column>
+  </ignt-table>
+}
+
+<ng-template #changeLines let-lines>
+  @if (lines?.length) {
+    <ul class="change-log__changes">
+      @for (line of lines; track $index) {
+        <li class="change-log__change">
+          <span class="change-log__change-field">{{ line.labelKey | translate }}</span>
+          @if (line.from) {
+            <span class="change-log__change-before">{{ line.from }}</span>
+            <span class="change-log__change-arrow" aria-hidden="true">→</span>
+          }
+          <span class="change-log__change-after">{{ line.to ?? ('assetsHubs.detail.changeLog.removedValue' | translate) }}</span>
+        </li>
+      }
+    </ul>
+  }
+</ng-template>
+
+<ng-template #actorCell let-item>
+  @if (item.actorName) {
+    <span class="change-log__actor">
+      <span class="change-log__actor-name">{{ item.actorName }}</span>
+      @if (item.actorTypeKey) {
+        <ignt-tag sentiment="neutral" variant="outline">{{ item.actorTypeKey | translate }}</ignt-tag>
+      }
+      @if (item.actorEmail) {
+        <span class="change-log__actor-email">{{ item.actorEmail }}</span>
+      }
+    </span>
+  }
+</ng-template>

@@ -1,0 +1,175 @@
+@use 'foundations' as foundations;
+
+/**
+ * A column that fills the panel it is given, rather than one that stops where its content stops.
+ *
+ * `flex: 1 1 auto` still earns its place now that nothing caps the panel, because the panel's height
+ * is not this component's own: it is a grid item, and the workspace holding it has a viewport-derived
+ * `min-height` floor, so a page shorter than a screen leaves the grid stretching this panel's row
+ * well past the render. A flex item with no grow factor is sized to its content along the main axis,
+ * and the main axis here is the vertical one, so the panel's `align-items: stretch` does nothing for
+ * it. Without the grow factor the host came out exactly as tall as the render, the frame's own
+ * `flex: 1 1 auto` divided up a container already sized to the render, and the footer landed part way
+ * up the panel with dead space under it. The editor beside it is no longer what does the outgrowing —
+ * it is `contain: size` above the three-column breakpoint and contributes nothing to the row — but
+ * the floor under the workspace does exactly the same thing, so the grow factor is as load-bearing as
+ * it ever was.
+ *
+ * The `min-height: 0` beside it is gone. It existed to let the shrink half of `1 1 auto` travel down
+ * to the frame, so a page taller than a capped panel scrolled inside the frame rather than pushing
+ * the footer through the panel's bottom border. There is no cap left to overflow: the panel is never
+ * shorter than the render now, so the only thing that pair could still do is hide part of a page.
+ */
+:host {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.static-html-preview {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+
+  &__header {
+    align-items: center;
+    border-bottom: foundations.$size-px solid foundations.$color-border-main;
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: foundations.$space-2;
+    padding: foundations.$space-2 foundations.$space-3;
+  }
+
+  &__title {
+    font: foundations.$font-caption-bold;
+    letter-spacing: 0.04em;
+    margin: 0;
+    margin-inline-end: auto;
+    text-transform: uppercase;
+  }
+
+  &__view-toggle {
+    display: flex;
+    gap: foundations.$space-1;
+  }
+
+  &__full-screen {
+    flex: 0 0 auto;
+  }
+
+  &__notice {
+    flex: 0 0 auto;
+    padding: foundations.$space-2 foundations.$space-3 0;
+  }
+
+  /**
+   * The canvas the page sits on, so the document's own edges are visible against something.
+   *
+   * It grows to the render and the render is exactly the stage box, so the vertical half of
+   * `overflow: auto` never fires; what it is still for is the width. The stage is scaled to `floor(available) / size`
+   * and so can never be wider than this box once a measurement has landed, but the first frame before
+   * one lands is laid out at 1:1 — a 1280px desktop render inside a panel half that wide. `auto`
+   * makes that frame reachable rather than clipped by the panel's radius.
+   *
+   * The frame's own 1280px layout box is *not* left over as overflow behind the shrink, which is the
+   * reading that keeps suggesting a clip on `__stage`. A scroll container's scrollable overflow
+   * region is the union of its descendants' border boxes taken *after* their transforms (CSS
+   * Overflow 3 §3.2), so a `scale(0.34375)` frame contributes 440px and not 1280px — the same rule
+   * that makes `scale(2)` produce scrollbars in the other direction. Since `__stage` is sized to
+   * exactly that transformed box, there is nothing for a clip to remove and a clip would only turn a
+   * future sizing bug from a visible scrollbar into a silently cropped page.
+   *
+   * `scrollbar-gutter: stable` used to sit here, to keep the box the scale is measured from still
+   * when a scrollbar came and went. It reserved the strip on the inline-end edge only, and
+   * `clientWidth` — what `toAvailableSize` reads — excludes it, so the render was already scaled to
+   * fit inside it and the strip was left as dead space against the right edge: 12px of padding on the
+   * left against 27px on the right at 1440, and a render that `justify-content: center` had nothing
+   * left to centre. It bought nothing in exchange, because the scrollbar it reserved for cannot
+   * arrive: this frame's height is its content's height in every state — the panel is uncapped, and
+   * above the three-column breakpoint it is the only thing sizing its grid row, its two siblings
+   * being `contain: size`. Measured across a 200px page under the workspace's viewport floor, a
+   * 12000px one, a fractional one and a 3400px viewport, `scrollHeight` equals `clientHeight` every
+   * time, so there is no vertical overflow for a scrollbar to appear over.
+   *
+   * That is the whole condition. Cap this panel's height again — a `max-height`, a `min-height: 0`
+   * chain reaching the frame — and the render can outgrow it, the scrollbar returns, and the measured
+   * width moves with it: the render re-scales, the overflow it was caused by goes away, and the two
+   * chase each other. Reserve the gutter again if that day comes, on both edges so it stays centred.
+   */
+  &__frame {
+    background: foundations.$color-background-subtle-weak;
+    display: flex;
+    flex: 1 1 auto;
+    justify-content: center;
+    overflow: auto;
+    padding: foundations.$space-3;
+  }
+
+  /**
+   * Carries the size the render occupies on screen, which both modes set in pixels.
+   *
+   * Block, not flex: a flex item would be shrunk back to the stage's own width, and the page laying
+   * itself out at a real viewport width — 1280px or 390px — is the entire point of both modes. No
+   * percentage sizing either, for the same reason the stage exists: a document that stretched to fill
+   * the stage would be measured taller than the page it is showing, which is the number being scaled.
+   */
+  &__stage {
+    align-self: flex-start;
+    display: block;
+  }
+
+  /**
+   * The frame the page is rendered in. It only carries the viewport size and the shrink.
+   *
+   * The frame's own document scopes the author's styles, so nothing here has to defend against them,
+   * and nothing here can reach in to restyle their page either. `display: block` because a frame is
+   * an inline replaced element by default, and the baseline strip under an inline one is whitespace
+   * inside the stage box the stage exists to keep exact. The transform paints the frame shrunk from
+   * its top-left corner, so the painted result is exactly the stage box.
+   *
+   * Mobile needs no rule of its own either: the frame is pinned to one phone viewport and its own
+   * document scrolls inside it, both ways, which is what a phone does — a page wider than 390px
+   * scrolls sideways there too, and clipping it would hide the very defect worth catching. Desktop is
+   * as tall as its page and withholds the scrollbar in the template instead.
+   */
+  &__document {
+    background: foundations.$color-background-main;
+    border: 0;
+    display: block;
+    transform-origin: top left;
+  }
+
+  &__footer {
+    align-items: center;
+    border-top: foundations.$size-px solid foundations.$color-border-main;
+    color: foundations.$color-text-subtle;
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    font: foundations.$font-caption-regular;
+    gap: foundations.$space-2;
+    justify-content: space-between;
+    padding: foundations.$space-2 foundations.$space-3;
+  }
+
+  &__state {
+    align-items: center;
+    display: inline-flex;
+    gap: foundations.$space-2;
+  }
+
+  &__state-dot {
+    background: foundations.$color-border-positive-base;
+    block-size: foundations.$space-1-5;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    inline-size: foundations.$space-1-5;
+  }
+
+  &__note {
+    text-align: end;
+  }
+}

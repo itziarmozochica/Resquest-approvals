@@ -1,0 +1,105 @@
+<ignt-dialog-header [hideCloseButton]="isSubmitting()">{{ isEdit ? 'Edit policy' : 'Configure policy' }}</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <form class="policy-panel__form" [formGroup]="form">
+    <p class="policy-panel__lead">Rules the service applies when validating an acceptance against a check.</p>
+
+    <span class="policy-panel__label">Validity &amp; reuse</span>
+    <div class="policy-panel__switches">
+      <div class="policy-panel__switch">
+        <span class="policy-panel__switch-txt">
+          <b>Never expires</b>
+          <small>Acceptances stay valid indefinitely.</small>
+        </span>
+        <ignt-toggle [checked]="neverExpires()" data-testid="policy-toggle-never-expires" (change)="toggleNeverExpires()"></ignt-toggle>
+      </div>
+    </div>
+
+    @if (!neverExpires()) {
+      <div class="policy-panel__field">
+        <ignt-input-field
+          label="Expires after (days)"
+          [type]="'number'"
+          [customFormErrors]="expiryErrors"
+          [formControl]="form.controls.expiresAfterDays"
+          data-testid="policy-expires-after-days"
+        ></ignt-input-field>
+      </div>
+    }
+
+    <div class="policy-panel__row">
+      <div class="policy-panel__field">
+        <ignt-input-field
+          label="Effective from"
+          [type]="'date'"
+          [customFormErrors]="effectiveFromErrors"
+          [formControl]="form.controls.effectiveFrom"
+          data-testid="policy-effective-from"
+        ></ignt-input-field>
+      </div>
+      <div class="policy-panel__field">
+        <ignt-input-field
+          label="Effective until"
+          [type]="'date'"
+          [formControl]="form.controls.effectiveUntil"
+          data-testid="policy-effective-until"
+        ></ignt-input-field>
+        @if (form.hasError('effectiveRange') && form.touched) {
+          <p class="policy-panel__hint policy-panel__hint--error">"Effective until" must be on or after "Effective from".</p>
+        } @else {
+          <p class="policy-panel__hint">Leave empty to keep the policy open-ended.</p>
+        }
+      </div>
+    </div>
+
+    <span class="policy-panel__label">Acceptance rules</span>
+    <div class="policy-panel__switches">
+      <div class="policy-panel__switch">
+        <span class="policy-panel__switch-txt">
+          <b>Group acceptance</b>
+          <small>One acceptance covers multiple participants.</small>
+        </span>
+        <ignt-toggle [checked]="groupAcceptanceAllowed()" data-testid="policy-toggle-group" (change)="toggleGroup()"></ignt-toggle>
+      </div>
+      <div class="policy-panel__switch">
+        <span class="policy-panel__switch-txt">
+          <b>Guardian acceptance</b>
+          <small>Adult accepts on behalf of a minor.</small>
+        </span>
+        <ignt-toggle [checked]="guardianAcceptanceAllowed()" data-testid="policy-toggle-guardian" (change)="toggleGuardian()"></ignt-toggle>
+      </div>
+    </div>
+
+    @if (isEdit) {
+      <span class="policy-panel__label">Status</span>
+      <div class="policy-panel__switches">
+        <div class="policy-panel__switch">
+          <span class="policy-panel__switch-txt">
+            <b>Active</b>
+            <small>Inactive policies are ignored by the agreement check.</small>
+          </span>
+          <ignt-toggle [checked]="active()" data-testid="policy-toggle-active" (change)="toggleActive()"></ignt-toggle>
+        </div>
+      </div>
+    }
+  </form>
+</ignt-dialog-content>
+
+<ignt-dialog-footer class="policy-panel__footer" hideCancelButton>
+  <ignt-button
+    variant="tertiary"
+    sentiment="neutral"
+    label="Cancel"
+    [disabled]="isSubmitting()"
+    data-testid="policy-cancel"
+    (click)="cancel()"
+  />
+  <ignt-button
+    class="policy-panel__save"
+    [label]="isEdit ? 'Save policy' : 'Create policy'"
+    [loading]="isSubmitting()"
+    [disabled]="isSubmitting()"
+    data-testid="policy-save"
+    (click)="save()"
+  />
+</ignt-dialog-footer>

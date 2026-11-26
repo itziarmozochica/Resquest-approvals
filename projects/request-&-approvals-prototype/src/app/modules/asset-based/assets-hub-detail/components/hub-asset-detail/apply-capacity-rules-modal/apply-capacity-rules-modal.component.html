@@ -1,0 +1,100 @@
+<ignt-dialog-header data-testid="apply-capacity-rules-modal-title" [hideCloseButton]="isApplying()">
+  {{ 'assetsManagement.capacityRules.applyToAssets.title' | translate: { name: data.sourceAssetName } }}
+</ignt-dialog-header>
+
+<ignt-dialog-content class="apply-capacity-rules-modal__body">
+  @switch (targetsState()) {
+    @case (targetsStates.Loading) {
+      <p class="apply-capacity-rules-modal__status" data-testid="apply-capacity-rules-loading" role="status">
+        {{ 'common.loading' | translate }}
+      </p>
+    }
+    @case (targetsStates.Error) {
+      <ignt-alert
+        data-testid="apply-capacity-rules-load-error"
+        sentiment="danger"
+        [description]="'assetsManagement.capacityRules.applyToAssets.loadError' | translate"
+      />
+      <ignt-button
+        data-testid="apply-capacity-rules-retry"
+        variant="secondary"
+        size="small"
+        [label]="'common.retry' | translate"
+        (click)="onRetryLoad()"
+      />
+    }
+    @default {
+      @if (targetRows().length === 0) {
+        <p class="apply-capacity-rules-modal__status" data-testid="apply-capacity-rules-no-targets">
+          {{ 'assetsManagement.capacityRules.applyToAssets.noTargets' | translate }}
+        </p>
+      } @else {
+        <p class="apply-capacity-rules-modal__intro">
+          {{ 'assetsManagement.capacityRules.applyToAssets.description' | translate }}
+        </p>
+        <ignt-alert sentiment="warning" [description]="'assetsManagement.capacityRules.applyToAssets.replaceWarning' | translate" />
+
+        <ignt-checkbox
+          dataTestId="apply-capacity-rules-select-all"
+          [checked]="areAllSelected()"
+          [disabled]="isApplying()"
+          [label]="'assetsManagement.capacityRules.applyToAssets.selectAll' | translate: { count: targetRows().length }"
+          (change)="onToggleAll($event)"
+        />
+        <ul
+          class="apply-capacity-rules-modal__targets"
+          [attr.aria-label]="'assetsManagement.capacityRules.applyToAssets.targetsLabel' | translate"
+        >
+          @for (row of targetRows(); track row.id) {
+            <li class="apply-capacity-rules-modal__target">
+              <ignt-checkbox
+                [checked]="row.isSelected"
+                [dataTestId]="'apply-capacity-rules-target-' + row.id"
+                [description]="row.hasRules ? ('assetsManagement.capacityRules.applyToAssets.hasRules' | translate) : null"
+                [disabled]="isApplying()"
+                [label]="row.name"
+                (change)="onToggleTarget(row.id, $event)"
+              />
+            </li>
+          }
+        </ul>
+
+        @if (isApplying()) {
+          <p class="apply-capacity-rules-modal__status" data-testid="apply-capacity-rules-progress" role="status">
+            {{ 'assetsManagement.capacityRules.applyToAssets.progress' | translate: progress() }}
+          </p>
+        }
+        @if (failedNames() !== '' && !isApplying()) {
+          <ignt-alert
+            data-testid="apply-capacity-rules-failed"
+            sentiment="danger"
+            [description]="'assetsManagement.capacityRules.applyToAssets.failedDescription' | translate: { names: failedNames() }"
+            [title]="'assetsManagement.capacityRules.applyToAssets.failedTitle' | translate"
+          />
+        }
+      }
+    }
+  }
+</ignt-dialog-content>
+
+<ignt-dialog-footer [hideCancelButton]="true">
+  <div class="apply-capacity-rules-modal__footer">
+    <ignt-button
+      data-testid="cancel-apply-capacity-rules"
+      variant="tertiary"
+      sentiment="neutral"
+      [disabled]="isApplying()"
+      [label]="'common.cancel' | translate"
+      (click)="onCancel()"
+    />
+    <ignt-button
+      data-testid="confirm-apply-capacity-rules"
+      variant="primary"
+      sentiment="brand"
+      [disabled]="selectedCount() === 0"
+      [loading]="isApplying()"
+      [label]="'assetsManagement.capacityRules.applyToAssets.confirm' | translate: { count: selectedCount() }"
+      (click)="onConfirm()"
+    />
+  </div>
+</ignt-dialog-footer>

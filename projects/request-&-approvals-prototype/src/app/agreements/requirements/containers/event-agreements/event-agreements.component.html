@@ -1,0 +1,54 @@
+<div class="event-agreements">
+  @if (isLoading()) {
+    <div class="event-agreements__loading" data-testid="event-agreements-loading">
+      <ignt-skeleton [animation]="true" [height]="40" />
+      <ignt-skeleton [animation]="true" [height]="140" />
+    </div>
+  } @else {
+    <p class="event-agreements__intro">{{ 'eventSettings.agreements.chooseLabel' | translate }}</p>
+
+    <app-multi-select
+      class="event-agreements__dropdown"
+      [displayInPlaceMaximum]="2"
+      [disabled]="!canEdit() || agreementsFailed() || store.listState() !== 'loaded'"
+      [options]="agreementOptions()"
+      [placeholder]="'eventSettings.agreements.dropdownPlaceholder' | translate"
+      [selectedOptions]="agreementSelection"
+      [showItemsDescriptions]="true"
+      (selected)="onAgreementsSelected($event)"
+      data-testid="event-agreements-dropdown"
+    />
+
+    @if (cards().length === 0 && store.listState() === 'loaded') {
+      <div class="event-agreements__empty" data-testid="event-agreements-empty">
+        <span class="event-agreements__empty-title">{{ 'eventSettings.agreements.emptyTitle' | translate }}</span>
+        <span class="event-agreements__empty-description">{{ 'eventSettings.agreements.emptyDescription' | translate }}</span>
+      </div>
+    } @else {
+      <div class="event-agreements__cards">
+        @for (card of cards(); track card.agreementId) {
+          <app-agreement-requirement-card
+            [card]="card"
+            [canEdit]="canEdit()"
+            [initiallyExpanded]="expandedAgreementId() === card.agreementId"
+            [ticketTypes]="store.ticketTypes()"
+            [ticketTypesState]="ticketTypesState()"
+            (activeChange)="onCardActiveChange(card.agreementId, $event)"
+            (scopeKindChange)="onCardScopeKindChange(card.agreementId, $event)"
+            (sessionTypeIdsChange)="onCardSessionTypeIdsChange(card.agreementId, $event)"
+            (signerRoleChange)="onCardSignerRoleChange(card.agreementId, $event)"
+          />
+        }
+      </div>
+    }
+  }
+</div>
+
+<app-actions-bar
+  [showSaveDraftButton]="false"
+  continueButtonTranslationKey="common.saveSettings"
+  [continueButtonDisabled]="!canEdit() || isSaving() || !hasChanges() || store.listState() !== 'loaded'"
+  [continueButtonLoading]="isSaving()"
+  (continue)="onSave()"
+  continueButtonTestId="event-agreements-save"
+/>

@@ -1,0 +1,92 @@
+<ignt-dialog-header data-testid="link-booking-modal-title">
+  {{ 'bookedSlots.linkBookingModal.title' | translate }}
+</ignt-dialog-header>
+
+<ignt-dialog-content class="link-booking-modal__body">
+  <p class="link-booking-modal__text">{{ 'bookedSlots.linkBookingModal.message' | translate }}</p>
+
+  <div class="link-booking-modal__kinds" role="radiogroup" [attr.aria-label]="'bookedSlots.linkBookingModal.kindLabel' | translate">
+    <ignt-option-tile
+      role="radio"
+      iconName="calendar"
+      data-testid="link-booking-kind-reservation"
+      [attr.aria-checked]="kind() === 'reservation'"
+      [selected]="kind() === 'reservation'"
+      [title]="'bookedSlots.linkBookingModal.kindReservation' | translate"
+      (tileClick)="onKindSelect('reservation')"
+    ></ignt-option-tile>
+    <ignt-option-tile
+      role="radio"
+      iconName="receipt"
+      data-testid="link-booking-kind-order"
+      [attr.aria-checked]="kind() === 'order'"
+      [selected]="kind() === 'order'"
+      [title]="'bookedSlots.linkBookingModal.kindOrder' | translate"
+      (tileClick)="onKindSelect('order')"
+    ></ignt-option-tile>
+  </div>
+
+  <form class="link-booking-modal__search" (ngSubmit)="search()">
+    <ignt-input-field
+      type="search"
+      name="bookingTerm"
+      class="link-booking-modal__search-field"
+      [label]="(kind() === 'order' ? 'bookedSlots.linkBookingModal.orderLabel' : 'bookedSlots.linkBookingModal.locatorLabel') | translate"
+      [helperText]="
+        kind() === 'order'
+          ? ('bookedSlots.linkBookingModal.orderHelper' | translate)
+          : ('bookedSlots.linkBookingModal.locatorHelper' | translate: { count: minLocatorLength })
+      "
+      [ngModel]="term()"
+      (ngModelChange)="onTermChange($event)"
+      data-testid="link-booking-term"
+    ></ignt-input-field>
+    <ignt-button
+      htmlType="submit"
+      variant="secondary"
+      data-testid="link-booking-search"
+      [disabled]="!canSearch()"
+      [loading]="searchState() === 'loading'"
+      [label]="'bookedSlots.linkBookingModal.search' | translate"
+    />
+  </form>
+
+  @switch (searchState()) {
+    @case ('error') {
+      <p class="link-booking-modal__feedback" data-testid="link-booking-error">
+        {{ 'bookedSlots.linkBookingModal.searchError' | translate }}
+      </p>
+    }
+    @case ('loaded') {
+      @if (options().length === 0) {
+        <p class="link-booking-modal__feedback" data-testid="link-booking-empty">
+          {{ 'bookedSlots.linkBookingModal.noResults' | translate }}
+        </p>
+      } @else {
+        <div class="link-booking-modal__options" role="list" data-testid="link-booking-options">
+          @for (option of options(); track option.key) {
+            <ignt-option-tile
+              role="listitem"
+              data-testid="link-booking-option"
+              [iconName]="kind() === 'order' ? 'receipt' : 'calendar'"
+              [selected]="selectedOption()?.key === option.key"
+              [title]="option.title"
+              [description]="option.description"
+              (tileClick)="onOptionSelect(option)"
+            ></ignt-option-tile>
+          }
+        </div>
+      }
+    }
+  }
+</ignt-dialog-content>
+
+<ignt-dialog-footer>
+  <ignt-button
+    variant="primary"
+    data-testid="confirm-link-booking"
+    [disabled]="selectedOption() === null"
+    [label]="'bookedSlots.linkBookingModal.confirm' | translate"
+    (click)="onConfirm()"
+  />
+</ignt-dialog-footer>

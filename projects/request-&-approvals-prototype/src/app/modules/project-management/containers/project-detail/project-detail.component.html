@@ -1,0 +1,130 @@
+<div class="launch-detail" data-testid="launch-detail">
+  @if (loading()) {
+    <p class="launch-detail__loading" data-testid="launch-detail-loading">{{ 'projectManagement.detail.loading' | translate }}</p>
+  } @else if (error()) {
+    <p class="launch-detail__error" [attr.data-testid]="'launch-detail-' + error()">
+      {{ 'projectManagement.errors.' + error() | translate }}
+    </p>
+  } @else if (launch()) {
+    @let launchValue = launch()!;
+    <header class="launch-detail__header" data-testid="launch-detail-header">
+      <h1 class="launch-detail__title">{{ launchValue.name }}</h1>
+      <div class="launch-detail__header-actions">
+        @if (canViewAdminFields) {
+          <span class="launch-detail__status" [attr.data-status]="launchValue.lifecycleStatus" data-testid="launch-detail-status">
+            {{ 'projectManagement.admin.status.' + (launchValue.lifecycleStatus | lowercase) | translate }}
+          </span>
+        }
+        @if (canCreateAny) {
+          <ignt-button
+            variant="primary"
+            [label]="'+ ' + ('projectManagement.detail.new' | translate)"
+            (click)="openCreateModal()"
+            data-testid="launch-detail-new-button"
+          ></ignt-button>
+        }
+      </div>
+    </header>
+
+    <section class="launch-detail__records" data-testid="launch-detail-records">
+      <ignt-tabs class="launch-detail__tabs" [selectedIndex]="activeTabIndex()" (selectedIndexChange)="onTabChange($event)">
+        <ignt-tabs-item
+          *permissionBased="Permissions.CAN_VIEW_INFORMATION_REQUESTS; featureFlag: FeatureFlags.PROJECT_MANAGEMENT_FZ"
+          [label]="'projectManagement.detail.tabs.requests' | translate"
+          data-testid="launch-detail-requests-tab"
+        >
+          <div class="launch-detail__tab-body" data-testid="launch-detail-requests-tab-body">
+            <ng-container *ngTemplateOutlet="statusFilter"></ng-container>
+            @if (requestsError()) {
+              <p class="launch-detail__error" data-testid="launch-detail-requests-error">
+                {{ 'projectManagement.detail.recordsError' | translate }}
+              </p>
+            } @else if (requestRows().length === 0) {
+              <p class="launch-detail__empty" data-testid="launch-detail-requests-empty">
+                {{ 'projectManagement.detail.noRecords' | translate }}
+              </p>
+            } @else {
+              <div class="launch-detail__rows">
+                @for (row of requestRows(); track row.id) {
+                  <app-launch-record-row
+                    [name]="row.name"
+                    [subtitleKey]="row.subtitleKey"
+                    [statusLabelKey]="row.statusLabelKey"
+                    [statusKey]="row.statusKey"
+                    [statusSentiment]="row.statusSentiment"
+                    [createdAt]="row.createdAt"
+                    [metric]="row.metric"
+                    [routerLink]="row.routerLink"
+                  />
+                }
+              </div>
+            }
+          </div>
+        </ignt-tabs-item>
+
+        <ignt-tabs-item
+          *permissionBased="Permissions.CAN_VIEW_APPROVALS; featureFlag: FeatureFlags.PROJECT_MANAGEMENT_FZ"
+          [label]="'projectManagement.detail.tabs.approvals' | translate"
+          data-testid="launch-detail-approvals-tab"
+        >
+          <div class="launch-detail__tab-body" data-testid="launch-detail-approvals-tab-body">
+            <ng-container *ngTemplateOutlet="statusFilter"></ng-container>
+            @if (approvalsError()) {
+              <p class="launch-detail__error" data-testid="launch-detail-approvals-error">
+                {{ 'projectManagement.detail.recordsError' | translate }}
+              </p>
+            } @else if (approvalRows().length === 0) {
+              <p class="launch-detail__empty" data-testid="launch-detail-approvals-empty">
+                {{ 'projectManagement.detail.noRecords' | translate }}
+              </p>
+            } @else {
+              <div class="launch-detail__rows">
+                @for (row of approvalRows(); track row.id) {
+                  <app-launch-record-row
+                    [name]="row.name"
+                    [subtitleKey]="row.subtitleKey"
+                    [statusLabelKey]="row.statusLabelKey"
+                    [statusKey]="row.statusKey"
+                    [statusSentiment]="row.statusSentiment"
+                    [createdAt]="row.createdAt"
+                    [metric]="row.metric"
+                    [routerLink]="row.routerLink"
+                  />
+                }
+              </div>
+            }
+          </div>
+        </ignt-tabs-item>
+
+        <ignt-tabs-item [label]="'projectManagement.detail.tabs.content' | translate" data-testid="launch-detail-content-tab">
+          <div class="launch-detail__tab-body launch-detail__coming-soon" data-testid="launch-detail-content-tab-body">
+            {{ 'projectManagement.detail.contentComingSoon' | translate }}
+          </div>
+        </ignt-tabs-item>
+      </ignt-tabs>
+    </section>
+  }
+</div>
+
+<ng-template #statusFilter>
+  <div class="launch-detail__filters" data-testid="launch-detail-filters">
+    <ignt-button
+      [variant]="filterMode() === 'pending' ? 'primary' : 'secondary'"
+      [label]="'projectManagement.detail.filterPending' | translate"
+      (click)="setFilter('pending')"
+      data-testid="launch-detail-filter-pending"
+    ></ignt-button>
+    <ignt-button
+      [variant]="filterMode() === 'completed' ? 'primary' : 'secondary'"
+      [label]="'projectManagement.detail.filterCompleted' | translate"
+      (click)="setFilter('completed')"
+      data-testid="launch-detail-filter-completed"
+    ></ignt-button>
+    <ignt-button
+      [variant]="filterMode() === 'all' ? 'primary' : 'secondary'"
+      [label]="'projectManagement.detail.filterAll' | translate"
+      (click)="setFilter('all')"
+      data-testid="launch-detail-filter-all"
+    ></ignt-button>
+  </div>
+</ng-template>

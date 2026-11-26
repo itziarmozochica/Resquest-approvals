@@ -1,0 +1,90 @@
+<div>
+  <div class="section header" [class.header--stacked]="isMobile()">
+    <span>{{ 'inventory.capacity.templates.descriptions.header' | translate }}</span>
+    @if (canModifySchedule() && selectedPlanId()) {
+      <ng-container *ngTemplateOutlet="newCapacityTemplateButton"></ng-container>
+    }
+  </div>
+
+  @if (!selectedPlanId()) {
+    <div class="section empty" data-testid="capacity-no-plan-selected">
+      <fa-icon class="state-icon" [icon]="['far', 'sort-alt']"></fa-icon>
+      <div>{{ 'inventory.capacity.templates.noFilterSelected' | translate }}</div>
+    </div>
+  } @else if (listView.isLoading()) {
+    <div class="spinner" data-testid="capacity-loading">
+      <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'4x'"></fa-icon>
+    </div>
+  } @else if (listView.loadFailed()) {
+    <div class="section empty" data-testid="capacity-load-failed">
+      <div>{{ 'inventory.capacity.templates.messages.loadUnexpectedError' | translate }}</div>
+    </div>
+  } @else if (hasTemplates()) {
+    <div class="section warning">
+      <ignt-alert sentiment="accent" [description]="'inventory.capacity.templates.descriptions.warning' | translate"></ignt-alert>
+    </div>
+
+    @if (isMobile()) {
+      <div class="section capacity-templates-cards">
+        @for (template of listView.layout().templates; track template.id) {
+          @if (template.id !== null) {
+            <app-capacity-templates-table
+              [canViewQuotas]="canViewQuotas()"
+              [disabled]="isEditingDisabled()"
+              [narrow]="true"
+              [showAssetSection]="false"
+              [templateId]="template.id"
+              (viewCapacityTemplateQuotas)="viewCapacityTemplateQuotas($event)"
+            >
+            </app-capacity-templates-table>
+          }
+        }
+        @if (hasAssetBasedGroups()) {
+          <app-capacity-templates-table
+            [canViewQuotas]="canViewQuotas()"
+            [disabled]="isEditingDisabled()"
+            [narrow]="true"
+            [showAssetSection]="true"
+            [showTable]="false"
+            (viewCapacityTemplateQuotas)="viewCapacityTemplateQuotas($event)"
+          >
+          </app-capacity-templates-table>
+        }
+      </div>
+    } @else {
+      <div class="section capacity-templates-table-scroll">
+        <app-capacity-templates-table
+          [canViewQuotas]="canViewQuotas()"
+          [disabled]="isEditingDisabled()"
+          (viewCapacityTemplateQuotas)="viewCapacityTemplateQuotas($event)"
+        >
+        </app-capacity-templates-table>
+      </div>
+    }
+  }
+
+  <ng-template #newCapacityTemplateButton>
+    <ignt-button
+      class="header__cta"
+      size="large"
+      [fill]="isMobile()"
+      [disabled]="isEditingDisabled()"
+      [label]="'inventory.capacity.templates.actions.newCapacityTemplate' | translate"
+      (click)="addNewCapacityTemplate()"
+    />
+  </ng-template>
+</div>
+
+<app-lateral-slider
+  [showDetails]="displayCapacityTemplateForm()"
+  [title]="'inventory.capacity.templates.titles.new' | translate"
+  [contentTemplate]="capacityTemplateFormTemplate"
+  (closeSlider)="closeCapacityTemplateForm()"
+>
+</app-lateral-slider>
+
+<ng-template #capacityTemplateFormTemplate>
+  @if (displayCapacityTemplateForm()) {
+    <app-capacity-template-form (formChanges)="onCapacityTemplateFormChanges($event)"> </app-capacity-template-form>
+  }
+</ng-template>

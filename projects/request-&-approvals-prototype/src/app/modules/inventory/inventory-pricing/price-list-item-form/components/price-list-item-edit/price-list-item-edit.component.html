@@ -1,0 +1,450 @@
+<form [formGroup]="editionService.editFormGroup" class="session-type-price-edit-form">
+  <!-- Tax notice: whether entered prices include or exclude taxes (IGNT warning alert) -->
+  <div class="price-edit-tax-notice">
+    <ignt-alert
+      [description]="
+        (editionService.mustUseTaxBase()
+          ? 'sessions.pricing.priceList.priceEditForm.pricesTaxNoticeExclude'
+          : 'sessions.pricing.priceList.priceEditForm.pricesTaxNoticeInclude'
+        ) | translate
+      "
+      sentiment="warning"
+      data-testid="tax-notice"
+    ></ignt-alert>
+  </div>
+
+  <!-- Price Details Section -->
+  <div
+    class="section-title section-title--with-tooltip"
+    [appTemplatedTooltip]="setValueTooltipContent"
+    [position]="{ originX: 'end', originY: 'top', overlayX: 'start', overlayY: 'top', offsetX: 8 }"
+    panelClass="app-tooltip-panel"
+  >
+    <span class="section-title__text section-title__text--underline">
+      {{ 'sessions.pricing.priceList.priceEditForm.priceDetails' | translate }}
+    </span>
+  </div>
+
+  <div class="bordered-form-container">
+    @if (editionService.isIdpEditorEnabled) {
+      <ignt-typeahead
+        data-testid="price-source-selector"
+        class="app-typeahead-input app-typeahead-input--full-width"
+        [emptyLabel]="'sessions.pricing.priceList.priceEditForm.selectOption' | translate"
+        [fieldLabel]="'sessions.pricing.priceList.priceEditForm.priceSource.label' | translate"
+        [options]="editionService.priceSourceOptions()"
+        [selectedOption]="editionService.selectedPriceSourceOption()"
+        [disabled]="isPriceSourceLocked()"
+        [editable]="false"
+        (selected)="editionService.updatePriceSource($event)"
+      >
+      </ignt-typeahead>
+      @if (editionService.formSnapshot().priceSource === priceSources.AnotherTicket) {
+        <ignt-typeahead
+          data-testid="base-item-selector"
+          class="app-typeahead-input app-typeahead-input--full-width"
+          [emptyLabel]="'sessions.pricing.priceList.priceEditForm.selectOption' | translate"
+          [fieldLabel]="'sessions.pricing.priceList.priceEditForm.baseItem.label' | translate"
+          [options]="baseItemSelectOptions()"
+          [selectedOption]="selectedBaseItemOption()"
+          [disabled]="isPriceSourceLocked()"
+          [editable]="false"
+          (selected)="editionService.updateBaseItem($event)"
+        >
+        </ignt-typeahead>
+      } @else if (editionService.formSnapshot().priceSource === priceSources.ParentList) {
+        <ignt-typeahead
+          data-testid="parent-price-list-field"
+          class="app-typeahead-input app-typeahead-input--full-width"
+          [fieldLabel]="'sessions.pricing.priceList.priceEditForm.parentPriceList.label' | translate"
+          [options]="parentPriceListOptions()"
+          [selectedOption]="parentPriceListOptions()[0]"
+          [disabled]="true"
+          [editable]="false"
+        >
+        </ignt-typeahead>
+      }
+    }
+    <div class="rule-and-value">
+      <ignt-typeahead
+        data-testid="price-form-rule-type-selector"
+        class="app-typeahead-input"
+        [emptyLabel]="'sessions.pricing.priceList.priceEditForm.selectOption' | translate"
+        [fieldLabel]="'sessions.pricing.priceList.priceEditForm.priceRule.label' | translate"
+        [options]="editionService.ruleTypeOptions()"
+        [selectedOption]="editionService.selectedRuleTypeOption()"
+        [disabled]="editionService.editFormGroup.controls.ruleType.disabled"
+        [editable]="false"
+        (selected)="editionService.updateSelectedRuleOption($event)"
+      >
+      </ignt-typeahead>
+      <ng-container
+        [ngTemplateOutlet]="numberInputFormGroup"
+        [ngTemplateOutletContext]="{
+          $implicit: {
+            formControl: editionService.editFormGroup.controls.value,
+            labelTranslationKey: 'sessions.pricing.priceList.priceEditForm.setValue.label',
+            placeHolderTranslationKey: 'sessions.pricing.priceList.priceEditForm.setValue.label',
+            inputTestId: 'set-value-input',
+            decimalPlaces: 2,
+            suffixText: [priceRuleType.PercentageAdjustmentDecrease, priceRuleType.PercentageAdjustmentIncrease].includes(
+              editionService.selectedRuleTypeOption()?.id
+            )
+              ? ' %'
+              : '',
+            currency: [priceRuleType.FixedOverride, priceRuleType.DecreaseAmount, priceRuleType.IncreaseAmount].includes(
+              editionService.selectedRuleTypeOption()?.id
+            )
+              ? currency()
+              : null,
+            readOnly: isPriceValueReadOnly(),
+          },
+        }"
+      >
+      </ng-container>
+    </div>
+
+    <!-- Content projection for additional fields (pack breakdown, messages) -->
+    <ng-content select="[priceDetailsAdditionalFields]"></ng-content>
+
+    <!-- Content projection for extra content (e.g. pack split details) -->
+    <ng-content select="[extraContentUnderPriceDetails]"></ng-content>
+  </div>
+
+  <!-- Surcharge Section -->
+  <div class="section-title">
+    <span class="section-title__text">{{ 'sessions.pricing.priceList.priceEditForm.surchargeApplied' | translate }}</span>
+  </div>
+
+  <div class="bordered-form-container">
+    <div class="surcharge-fields">
+      @if (!editionService.canEditSurcharge) {
+        <label class="field">
+          <input
+            data-testid="fixed-surcharge-field"
+            readonly
+            class="field__input"
+            [value]="editionService.editFormGroup.value.fixedSurcharge ?? 0 | currency: currency()"
+          />
+          <span class="field__label">{{
+            (allowVariableSurcharge()
+              ? 'sessions.pricing.priceList.priceEditForm.fixedSurcharge.label'
+              : 'sessions.pricing.priceList.priceEditForm.totalSurcharge.label'
+            ) | translate
+          }}</span>
+        </label>
+        @if (allowVariableSurcharge()) {
+          <label class="field">
+            <input
+              data-testid="variable-surcharge-field"
+              readonly
+              class="field__input"
+              [value]="(editionService.editFormGroup.value.percentageSurcharge ?? 0 | number: '1.0-2') + '%'"
+            />
+            <span class="field__label">{{ 'sessions.pricing.priceList.priceEditForm.variableSurcharge.label' | translate }}</span>
+          </label>
+        }
+      } @else {
+        <ng-container
+          [ngTemplateOutlet]="numberInputFormGroup"
+          [ngTemplateOutletContext]="{
+            $implicit: {
+              setZeroOnBlur: true,
+              formControl: editionService.editFormGroup.controls.fixedSurcharge,
+              labelTranslationKey: allowVariableSurcharge()
+                ? 'sessions.pricing.priceList.priceEditForm.fixedSurcharge.label'
+                : 'sessions.pricing.priceList.priceEditForm.totalSurcharge.label',
+              placeHolderTranslationKey: 'sessions.pricing.priceList.priceEditForm.fixedSurcharge.label',
+              inputTestId: 'fixed-surcharge-input',
+              decimalPlaces: 2,
+              enforceFullWidth: !allowVariableSurcharge(),
+              currency: currency(),
+            },
+          }"
+        ></ng-container>
+        @if (allowVariableSurcharge()) {
+          <ng-container
+            [ngTemplateOutlet]="numberInputFormGroup"
+            [ngTemplateOutletContext]="{
+              $implicit: {
+                setZeroOnBlur: true,
+                formControl: editionService.editFormGroup.controls.percentageSurcharge,
+                labelTranslationKey: 'sessions.pricing.priceList.priceEditForm.variableSurcharge.label',
+                placeHolderTranslationKey: 'sessions.pricing.priceList.priceEditForm.variableSurcharge.label',
+                inputTestId: 'variable-surcharge-input',
+                decimalPlaces: 2,
+                suffixText: ' %',
+              },
+            }"
+          ></ng-container>
+        }
+      }
+    </div>
+  </div>
+
+  <!-- B2B Marketplace Discount Section -->
+  @if (canEditB2bDiscount()) {
+    <div class="section-title">
+      <span class="section-title__text">{{ 'sessions.pricing.priceList.priceEditForm.b2bDiscount.sectionTitle' | translate }}</span>
+    </div>
+
+    <div class="bordered-form-container">
+      <ng-container
+        [ngTemplateOutlet]="numberInputFormGroup"
+        [ngTemplateOutletContext]="{
+          $implicit: {
+            formControl: editionService.editFormGroup.controls.b2bDiscount,
+            errors: {
+              name: 'outOfRange',
+              message: 'sessions.pricing.priceList.priceEditForm.b2bDiscount.outOfRange',
+            },
+            labelTranslationKey: 'sessions.pricing.priceList.priceEditForm.b2bDiscount.label',
+            placeHolderTranslationKey: 'sessions.pricing.priceList.priceEditForm.b2bDiscount.label',
+            inputTestId: 'b2b-discount-input',
+            decimalPlaces: 2,
+            suffixText: ' %',
+          },
+        }"
+      ></ng-container>
+    </div>
+  }
+
+  <!-- Intelligent Dynamic Pricing Section (price_list_item_idp_editor) -->
+  @if (editionService.isIdpEditorEnabled) {
+    @if (editionService.isMlScaledEnabled()) {
+      <div class="section-title" data-testid="ml-scaled-title">
+        <span class="section-title__text">{{ 'sessions.pricing.priceList.priceEditForm.mlScaled.title' | translate }}</span>
+      </div>
+      <p class="field-hint">{{ 'sessions.pricing.priceList.priceEditForm.mlScaled.description' | translate }}</p>
+      <div class="bordered-form-container bordered-form-container--toggle-section" data-testid="ml-scaled-fields">
+        @if (editionService.isMlScaledLocked()) {
+          <p class="field-hint" data-testid="ml-scaled-unavailable">
+            {{ 'sessions.pricing.priceList.priceEditForm.mlScaled.unavailableFamily' | translate }}
+          </p>
+        }
+        <div class="surcharge-fields">
+          <ng-container
+            [ngTemplateOutlet]="numberInputFormGroup"
+            [ngTemplateOutletContext]="{
+              $implicit: {
+                formControl: editionService.editFormGroup.controls.mlScaledMinPrice,
+                readOnly: isPriceValueReadOnly(),
+                labelTranslationKey: 'sessions.pricing.priceList.priceEditForm.mlScaled.minLabel',
+                placeHolderTranslationKey: 'sessions.pricing.priceList.priceEditForm.mlScaled.minLabel',
+                inputTestId: 'ml-scaled-min-price-input',
+                decimalPlaces: 2,
+                currency: currency(),
+              },
+            }"
+          ></ng-container>
+          <ng-container
+            [ngTemplateOutlet]="numberInputFormGroup"
+            [ngTemplateOutletContext]="{
+              $implicit: {
+                formControl: editionService.editFormGroup.controls.mlScaledMaxPrice,
+                readOnly: isPriceValueReadOnly(),
+                labelTranslationKey: 'sessions.pricing.priceList.priceEditForm.mlScaled.maxLabel',
+                placeHolderTranslationKey: 'sessions.pricing.priceList.priceEditForm.mlScaled.maxLabel',
+                inputTestId: 'ml-scaled-max-price-input',
+                decimalPlaces: 2,
+                currency: currency(),
+              },
+            }"
+          ></ng-container>
+        </div>
+        @if (editionService.mlScaledRangeError(); as rangeError) {
+          @let breakpointRange = editionService.mlScaledBreakpointRange();
+          <p class="field-error" data-testid="ml-scaled-range-error" role="alert">
+            {{
+              'sessions.pricing.priceList.priceEditForm.mlScaled.errors.' + rangeError
+                | translate
+                  : {
+                      highest: breakpointRange?.highest | currency: currency(),
+                      lowest: breakpointRange?.lowest | currency: currency(),
+                    }
+            }}
+          </p>
+        }
+        <p class="field-hint">
+          {{
+            (editionService.mustUseTaxBase()
+              ? 'sessions.pricing.priceList.priceEditForm.mlScaled.limitsHelperExclTaxes'
+              : 'sessions.pricing.priceList.priceEditForm.mlScaled.limitsHelperInclTaxes'
+            ) | translate
+          }}
+        </p>
+      </div>
+    }
+  }
+
+  <!-- Strikethrough Price Section -->
+  <ignt-toggle-card
+    class="strikethrough-toggle"
+    data-testid="strikethrough-price-toggle"
+    [title]="'sessions.pricing.priceList.priceEditForm.strikethroughPrice.title' | translate"
+    [description]="'sessions.pricing.priceList.priceEditForm.strikethroughPrice.tooltip' | translate"
+    [checked]="editionService.isStrikethroughPriceVisible()"
+    [disabled]="isArchived()"
+    [wrapperType]="'unwrapped'"
+    (change)="editionService.toggleStrikethroughPriceVisibility()"
+  ></ignt-toggle-card>
+
+  @if (editionService.isStrikethroughPriceVisible()) {
+    @if (editionService.isIdpEditorEnabled) {
+      <div class="bordered-form-container bordered-form-container--toggle-section" data-testid="strikethrough-definition-fields">
+        <div class="rule-and-value">
+          <ignt-typeahead
+            data-testid="strikethrough-type-selector"
+            class="app-typeahead-input"
+            [emptyLabel]="'sessions.pricing.priceList.priceEditForm.selectOption' | translate"
+            [fieldLabel]="'sessions.pricing.priceList.priceEditForm.strikethroughDefinition.shownAs' | translate"
+            [options]="editionService.strikethroughTypeOptions()"
+            [selectedOption]="editionService.selectedStrikethroughTypeOption()"
+            [disabled]="isArchived()"
+            [editable]="false"
+            (selected)="editionService.updateStrikethroughType($event)"
+          >
+          </ignt-typeahead>
+          @switch (editionService.formSnapshot().strikethroughType) {
+            @case (strikethroughTypes.PercentageAdjustment) {
+              <ng-container
+                [ngTemplateOutlet]="numberInputFormGroup"
+                [ngTemplateOutletContext]="{
+                  $implicit: {
+                    formControl: editionService.editFormGroup.controls.strikethroughPercentage,
+                    errors: {
+                      name: 'percentageRange',
+                      message: 'sessions.pricing.priceList.priceEditForm.strikethroughDefinition.percentageRange',
+                    },
+                    labelTranslationKey: 'sessions.pricing.priceList.priceEditForm.setValue.label',
+                    placeHolderTranslationKey: 'sessions.pricing.priceList.priceEditForm.setValue.label',
+                    inputTestId: 'strikethrough-percentage-input',
+                    decimalPlaces: 2,
+                    suffixText: ' %',
+                  },
+                }"
+              ></ng-container>
+            }
+            @case (strikethroughTypes.ParentTicketPrice) {}
+            @default {
+              <ng-container
+                [ngTemplateOutlet]="numberInputFormGroup"
+                [ngTemplateOutletContext]="{
+                  $implicit: {
+                    formControl: editionService.editFormGroup.controls.strikethroughAmount,
+                    errors: {
+                      name: 'amountMin',
+                      message: 'sessions.pricing.priceList.priceEditForm.strikethroughDefinition.amountMin',
+                    },
+                    labelTranslationKey: 'sessions.pricing.priceList.priceEditForm.setValue.label',
+                    placeHolderTranslationKey: 'sessions.pricing.priceList.priceEditForm.setValue.label',
+                    inputTestId: 'strikethrough-amount-input',
+                    decimalPlaces: 2,
+                    currency: currency(),
+                  },
+                }"
+              ></ng-container>
+            }
+          }
+        </div>
+        <p class="field-hint" data-testid="strikethrough-type-helper">{{ strikethroughHelperKey() | translate }}</p>
+        @if (editionService.hasLegacyStrikethrough()) {
+          <p class="field-hint" data-testid="strikethrough-legacy-notice">
+            {{ 'sessions.pricing.priceList.priceEditForm.strikethroughDefinition.legacyNotice' | translate }}
+          </p>
+        }
+        <ng-container [ngTemplateOutlet]="discountTagCheckbox"></ng-container>
+      </div>
+    } @else {
+      <div class="strikethrough-price-field">
+        <ng-container
+          [ngTemplateOutlet]="numberInputFormGroup"
+          [ngTemplateOutletContext]="{
+            $implicit: {
+              formControl: editionService.editFormGroup.controls.strikethroughPrice,
+              dataTestId: 'strikethrough-price-input',
+              errors: {
+                name: 'lessThanOrEqual',
+                message: 'sessions.pricing.priceList.priceEditForm.strikethroughPrice.lowerPrice',
+              },
+              labelTranslationKey: 'sessions.pricing.priceList.priceEditForm.strikethroughPrice.label',
+              placeHolderTranslationKey: 'sessions.pricing.priceList.priceEditForm.strikethroughPrice.label',
+              inputTestId: 'strikethrough-price-input',
+              decimalPlaces: 2,
+              currency: currency(),
+            },
+          }"
+        ></ng-container>
+      </div>
+    }
+    @if (hasPromotions()) {
+      <ignt-alert
+        [description]="'sessions.pricing.priceList.priceEditForm.strikethroughPrice.hasPromotions' | translate"
+        sentiment="danger"
+        data-testid="strikethrough-price-promotions-alert"
+      ></ignt-alert>
+    }
+    @if (!editionService.isIdpEditorEnabled) {
+      <ng-container [ngTemplateOutlet]="discountTagCheckbox"></ng-container>
+    }
+  }
+</form>
+
+<ng-template #discountTagCheckbox>
+  <label class="checkbox-input">
+    <input
+      data-testid="strikethrough-price-toggle-percentage"
+      type="checkbox"
+      [checked]="!editionService.editFormGroup.value.strikethroughPriceHintHidden"
+      [disabled]="isArchived()"
+      (change)="editionService.toggleStrikethroughPriceHintHidden($event)"
+    />
+    <span class="checkbox-input__text">
+      {{ 'sessions.pricing.priceList.priceEditForm.strikethroughPrice.togglePercentage.label' | translate }}&nbsp;
+    </span>
+  </label>
+</ng-template>
+
+<!-- Templates -->
+
+<ng-template #setValueTooltipContent>
+  <div class="price-edit-tooltip">
+    <p
+      class="tooltip-inner__text--line-jump tooltip-inner__text--align-left"
+      [innerHTML]="'sessions.pricing.priceList.priceEditForm.setValue.tooltip' | translate"
+    ></p>
+  </div>
+</ng-template>
+
+<ng-template #numberInputFormGroup let-props>
+  <label class="field" [class.field--flex]="props.enforceFullWidth" [class.field--disabled]="props.readOnly">
+    <input
+      (blur)="props.setZeroOnBlur ? editionService.setZeroIfEmpty(props.formControl) : null"
+      appAutoformatNumericInput
+      [attr.data-testid]="props.inputTestId"
+      [formControl]="props.formControl"
+      [currency]="props.currency"
+      [suffixText]="props.suffixText"
+      [decimalPlaces]="props?.decimalPlaces"
+      [placeHolderValue]="props.placeHolderTranslationKey | translate"
+      [readonly]="props.readOnly"
+      autocomplete="off"
+      min="0"
+      class="field__input"
+    />
+    <span class="field__label">
+      {{ props.labelTranslationKey | translate }}
+    </span>
+    @if (props.formControl.touched && props.formControl.invalid) {
+      @let errorValue = props.formControl.errors?.[props.errors?.name];
+      @let ticketPriceFormatted = errorValue?.ticketPrice | currency: props.currency : 'symbol';
+      <ignt-field-error
+        [formControlValue]="props.formControl"
+        [errorName]="props.errors?.name"
+        [attr.data-testid]="props.inputTestId + '-error'"
+      >
+        {{ props.errors?.message | translate: { ticketPrice: ticketPriceFormatted } }}
+      </ignt-field-error>
+    }
+  </label>
+</ng-template>

@@ -1,0 +1,368 @@
+@use 'abstracts' as abstracts;
+@use 'foundations' as foundations;
+@use '../../styles/create-event-flow-dialog-mobile' as create-event-flow-dialog-mobile;
+
+@include create-event-flow-dialog-mobile.shell(app-create-event-quick-setup-wizard, lg);
+@include create-event-flow-dialog-mobile.host-layout;
+@include create-event-flow-dialog-mobile.edge-aligned-scroll(app-create-event-quick-setup-wizard, lg);
+@include create-event-flow-dialog-mobile.typeahead-dropdown-mobile;
+
+// HACK: temporary. Widen the lg shell on schedule and preview. Preview reuses the schedule width.
+// `::ng-deep` is required because the shell is outside this component.
+::ng-deep .ignt-dialog-modal-shell--lg:has(app-create-event-quick-setup-wizard) {
+  @include abstracts.ignt-media-breakpoint-up(tablet) {
+    transition:
+      width 0.2s ease-out,
+      max-width 0.2s ease-out;
+  }
+}
+
+::ng-deep .ignt-dialog-modal-shell--lg:has(app-create-event-quick-setup-wizard.create-event-quick-setup-wizard--schedule-step) {
+  @include abstracts.ignt-media-breakpoint-up(tablet) {
+    --ignt-dialog-modal-shell-width: 100vw;
+
+    width: 100vw;
+    max-width: calc(100vw - #{foundations.$space-8});
+  }
+}
+
+// HACK: temporary. Hide the content only while the shell width changes, entering or leaving the schedule and preview pair.
+// Two animation names restart it on expand and shrink. Duration must match the transition above.
+@include abstracts.ignt-media-breakpoint-up(tablet) {
+  :host(.create-event-quick-setup-wizard--resize-masked) ignt-dialog-content {
+    animation: create-event-quick-setup-wizard-resize-mask-narrow 0.2s linear both;
+  }
+
+  :host(.create-event-quick-setup-wizard--resize-masked.create-event-quick-setup-wizard--schedule-step) ignt-dialog-content {
+    animation-name: create-event-quick-setup-wizard-resize-mask-wide;
+  }
+}
+
+@keyframes create-event-quick-setup-wizard-resize-mask-narrow {
+  0%,
+  99% {
+    visibility: hidden;
+  }
+
+  100% {
+    visibility: visible;
+  }
+}
+
+@keyframes create-event-quick-setup-wizard-resize-mask-wide {
+  0%,
+  99% {
+    visibility: hidden;
+  }
+
+  100% {
+    visibility: visible;
+  }
+}
+
+:host ignt-dialog-content {
+  overflow-x: hidden;
+}
+
+:host:has(app-quick-setup-schedule-step.create-event-quick-setup-wizard__hidden-step--visible) {
+  ignt-dialog-content {
+    display: flex;
+    flex-direction: column;
+    min-block-size: 0;
+
+    @include abstracts.ignt-media-breakpoint-up(tablet) {
+      overflow-y: hidden;
+    }
+  }
+
+  .create-event-quick-setup-wizard__content {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-block-size: 0;
+
+    @include abstracts.ignt-media-breakpoint-up(tablet) {
+      overflow: hidden;
+    }
+  }
+
+  .create-event-quick-setup-wizard {
+    flex: 1 1 auto;
+    min-block-size: 0;
+  }
+
+  .create-event-quick-setup-wizard__stepper {
+    flex: 1 1 auto;
+    min-block-size: 0;
+  }
+}
+
+:host ignt-dialog-footer {
+  margin-top: foundations.$space-4;
+}
+
+.create-event-quick-setup-wizard__content {
+  position: relative;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  padding-inline: foundations.$space-6;
+
+  .create-event-quick-setup-wizard__inline-toast {
+    display: flex;
+    justify-content: flex-end;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    block-size: 0;
+
+    // The width `.toast__container` used to give the alert, now that the wrapper renders one directly.
+    ignt-alert {
+      inline-size: 343px;
+    }
+  }
+}
+
+.create-event-quick-setup-wizard {
+  display: flex;
+  flex-direction: column;
+  gap: foundations.$space-6;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+
+  &__stepper {
+    display: flex;
+    flex-direction: column;
+    min-inline-size: 0;
+    padding-block-start: foundations.$space-1;
+    overflow: visible;
+
+    ignt-progress-stepper {
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      min-block-size: 0;
+    }
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-8;
+    min-inline-size: 0;
+    max-inline-size: 100%;
+  }
+
+  &__name-input {
+    display: block;
+    width: 100%;
+    --ignt-input-no-label-height: #{foundations.$size-14};
+    --ignt-placeholder-color-empty: #{foundations.$color-action-text-disable};
+  }
+
+  &__resume-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-block: foundations.$space-8;
+    color: foundations.$color-text-subtle;
+  }
+
+  &__content-info-banner {
+    display: block;
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-4;
+
+    &--venue {
+      ::ng-deep .venue-select__select-wrapper .ignt-typeahead .field__input,
+      ::ng-deep .venue-select__select-wrapper .ignt-typeahead .field__select {
+        min-height: foundations.$size-10;
+      }
+    }
+  }
+
+  &__gallery-best-practices {
+    display: flex;
+    align-items: center;
+    gap: foundations.$space-2;
+    box-sizing: border-box;
+    width: 100%;
+    max-inline-size: 100%;
+    padding: foundations.$space-4;
+    border-radius: foundations.$radii-2;
+    background: foundations.$palette-neutral-75;
+  }
+
+  &__gallery-best-practices-icon {
+    flex-shrink: 0;
+    width: 1.875rem;
+    height: 1.875rem;
+    --ignt-icon-size: 1.875rem;
+    color: foundations.$color-text-main;
+  }
+
+  &__gallery-best-practices-content {
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-2;
+  }
+
+  &__gallery-best-practices-title {
+    margin: 0;
+    font: foundations.$font-small-bold;
+    color: foundations.$color-action-text-main;
+  }
+
+  &__gallery-best-practices-list {
+    margin: 0;
+    padding-inline-start: foundations.$space-5;
+    font: foundations.$font-small-regular;
+    color: foundations.$color-action-text-main;
+
+    li + li {
+      margin-top: foundations.$space-1;
+    }
+  }
+
+  &__gallery-template-link {
+    color: inherit;
+    font: inherit;
+    text-decoration: underline;
+  }
+
+  &__gallery-list {
+    display: block;
+  }
+
+  &__venue-support {
+    margin: 0;
+    padding-block-start: foundations.$space-6;
+    font: foundations.$font-small-regular;
+    color: foundations.$color-text-main;
+    overflow-wrap: anywhere;
+  }
+
+  &__venue-layout {
+    display: grid;
+    gap: foundations.$space-4;
+    grid-template-columns: minmax(0, 1fr);
+    min-inline-size: 0;
+    max-inline-size: 100%;
+
+    @include abstracts.ignt-media-breakpoint-up(tablet) {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+      align-items: start;
+    }
+  }
+
+  &__venue-fields {
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-4;
+    min-inline-size: 0;
+  }
+
+  &__venue-name {
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-2;
+    min-inline-size: 0;
+  }
+
+  &__venue-select {
+    display: block;
+    width: 100%;
+    min-inline-size: 0;
+  }
+
+  &__venue-address-block {
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-2;
+    min-inline-size: 0;
+  }
+
+  &__field-label {
+    margin: 0;
+    font: foundations.$font-small-bold;
+    color: foundations.$color-text-main;
+  }
+
+  &__venue-address {
+    margin: 0;
+    font: foundations.$font-small-regular;
+    color: foundations.$color-text-subtle;
+    overflow-wrap: anywhere;
+  }
+
+  &__venue-support-link {
+    color: foundations.$color-action-text-primary;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  &__venue-map {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    width: 100%;
+    border: 1px solid foundations.$color-border-main;
+    border-radius: foundations.$radii-4;
+    overflow: hidden;
+  }
+
+  &__venue-map-image {
+    display: block;
+    width: 100%;
+    max-inline-size: 100%;
+    height: foundations.$space-56;
+    object-fit: cover;
+  }
+
+  &__section-heading {
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-2;
+  }
+
+  &__section-title {
+    margin: 0;
+    font: foundations.$font-base-bold;
+    color: foundations.$color-text-main;
+  }
+
+  &__section-helper {
+    margin: 0;
+    font: foundations.$font-caption-regular;
+    color: foundations.$color-text-subtle;
+  }
+
+  &__content-questions-empty-state {
+    margin: 0;
+    font: foundations.$font-caption-regular;
+    color: foundations.$color-text-subtle;
+  }
+
+  &__select-wrapper {
+    width: min(100%, 21.3125rem);
+  }
+
+  &__description-editor {
+    display: block;
+    width: 100%;
+    max-inline-size: 100%;
+    min-inline-size: 0;
+  }
+
+  &__hidden-step {
+    &:not(&--visible) {
+      display: none;
+    }
+
+    &--visible:not(:is(app-quick-setup-schedule-step)) {
+      display: block;
+    }
+  }
+}

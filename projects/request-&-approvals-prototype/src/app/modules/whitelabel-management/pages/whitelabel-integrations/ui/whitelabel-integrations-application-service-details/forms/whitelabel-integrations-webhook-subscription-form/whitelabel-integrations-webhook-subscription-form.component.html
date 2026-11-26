@@ -1,0 +1,184 @@
+<div class="whitelabel-integrations-webhook-subscription-form">
+  <p class="whitelabel-integrations-webhook-subscription-form__intro text-muted">
+    {{ introKey() | translate }}
+  </p>
+  @if (submitError(); as err) {
+    <div class="alert alert-danger mb-3" role="alert">
+      @if (err.source === 'i18n') {
+        {{ err.key | translate }}
+      } @else {
+        {{ err.message }}
+      }
+    </div>
+  }
+  <form class="whitelabel-integrations-webhook-subscription-form__form" [formGroup]="form" (ngSubmit)="onSubmit()">
+    @if (mode() === 'edit') {
+      <div class="mb-3">
+        <span class="form-label d-block mb-1">
+          {{ 'whitelabelManagement.integrations.webhookSubscriptions.editModal.topic' | translate }}
+        </span>
+        <p class="whitelabel-integrations-webhook-subscription-form__readonly text-body">
+          {{ subscriptionRow()?.topic }}
+        </p>
+      </div>
+    } @else {
+      <div class="mb-3">
+        <label class="form-label mb-0" for="webhook-topic">
+          {{ 'whitelabelManagement.integrations.webhookSubscriptions.createModal.topic' | translate
+          }}<span class="text-danger" aria-hidden="true">*</span>
+        </label>
+        <ng-select
+          inputId="webhook-topic"
+          class="whitelabel-integrations-webhook-subscription-form__ng-select"
+          formControlName="topic"
+          [addTag]="true"
+          [addTagText]="'whitelabelManagement.integrations.webhookSubscriptions.createModal.addCustomTopic' | translate"
+          [clearable]="false"
+          [editableSearchTerm]="true"
+          [items]="topicOptions()"
+          [notFoundText]="'whitelabelManagement.integrations.webhookSubscriptions.createModal.topicNoMatch' | translate"
+          [placeholder]="'whitelabelManagement.integrations.webhookSubscriptions.createModal.topicPlaceholder' | translate"
+          [readonly]="topicSelectReadonly()"
+          [searchable]="true"
+          [class.is-invalid]="form.get('topic')?.touched === true && form.get('topic')?.invalid === true"
+        />
+        @if (form.get('topic')?.touched === true && form.get('topic')?.hasError('required') === true) {
+          <div class="invalid-feedback d-block" role="alert">
+            {{ 'whitelabelManagement.integrations.createModal.fieldRequired' | translate }}
+          </div>
+        }
+      </div>
+    }
+    <div class="mb-3">
+      <label class="form-label mb-0" for="webhook-endpoint">
+        {{
+          (mode() === 'create'
+            ? 'whitelabelManagement.integrations.webhookSubscriptions.createModal.endpointUrl'
+            : 'whitelabelManagement.integrations.webhookSubscriptions.editModal.endpointUrl'
+          ) | translate
+        }}<span class="text-danger" aria-hidden="true">*</span>
+      </label>
+      <input
+        id="webhook-endpoint"
+        class="form-control"
+        type="url"
+        formControlName="endpoint_url"
+        autocomplete="off"
+        maxlength="2048"
+        [class.is-invalid]="form.get('endpoint_url')?.touched === true && form.get('endpoint_url')?.invalid === true"
+      />
+      @if (form.get('endpoint_url')?.touched === true && form.get('endpoint_url')?.hasError('required') === true) {
+        <div class="invalid-feedback d-block" role="alert">
+          {{ 'whitelabelManagement.integrations.createModal.fieldRequired' | translate }}
+        </div>
+      }
+      @if (form.get('endpoint_url')?.touched === true && form.get('endpoint_url')?.hasError('pattern') === true) {
+        <div class="invalid-feedback d-block" role="alert">
+          {{
+            (mode() === 'create'
+              ? 'whitelabelManagement.integrations.webhookSubscriptions.createModal.endpointUrlInvalid'
+              : 'whitelabelManagement.integrations.webhookSubscriptions.editModal.endpointUrlInvalid'
+            ) | translate
+          }}
+        </div>
+      }
+    </div>
+    <div class="mb-3">
+      <label class="form-label mb-0" for="webhook-version">
+        {{
+          (mode() === 'create'
+            ? 'whitelabelManagement.integrations.webhookSubscriptions.createModal.version'
+            : 'whitelabelManagement.integrations.webhookSubscriptions.editModal.version'
+          ) | translate
+        }}<span class="text-danger" aria-hidden="true">*</span>
+      </label>
+      @if (mode() === 'create') {
+        @for (versionNgSelectInstance of [versionSelectRemountKey()]; track versionNgSelectInstance) {
+          <ng-select
+            inputId="webhook-version"
+            class="whitelabel-integrations-webhook-subscription-form__ng-select"
+            formControlName="version"
+            [addTag]="true"
+            [addTagText]="'whitelabelManagement.integrations.webhookSubscriptions.createModal.addCustomVersion' | translate"
+            [clearable]="false"
+            [editableSearchTerm]="true"
+            [items]="versionItems()"
+            [placeholder]="'whitelabelManagement.integrations.webhookSubscriptions.createModal.versionPlaceholder' | translate"
+            [readonly]="versionSelectReadonly()"
+            [searchable]="true"
+            [class.is-invalid]="form.get('version')?.touched === true && form.get('version')?.invalid === true"
+          />
+        }
+      } @else {
+        <ng-select
+          inputId="webhook-version"
+          class="whitelabel-integrations-webhook-subscription-form__ng-select"
+          formControlName="version"
+          [addTag]="true"
+          [addTagText]="'whitelabelManagement.integrations.webhookSubscriptions.createModal.addCustomVersion' | translate"
+          [clearable]="false"
+          [editableSearchTerm]="true"
+          [items]="versionOptions()"
+          [readonly]="versionSelectReadonly()"
+          [searchable]="true"
+          [class.is-invalid]="form.get('version')?.touched === true && form.get('version')?.invalid === true"
+        />
+      }
+      @if (form.get('version')?.touched === true && form.get('version')?.hasError('required') === true) {
+        <div class="invalid-feedback d-block" role="alert">
+          {{ 'whitelabelManagement.integrations.createModal.fieldRequired' | translate }}
+        </div>
+      }
+    </div>
+    <fieldset class="mb-3">
+      <legend class="col-form-label mb-2 p-0 fs-6 fw-normal">
+        {{
+          (mode() === 'create'
+            ? 'whitelabelManagement.integrations.webhookSubscriptions.createModal.authStrategy'
+            : 'whitelabelManagement.integrations.webhookSubscriptions.editModal.authStrategy'
+          ) | translate
+        }}<span class="text-danger" aria-hidden="true">*</span>
+      </legend>
+      <div class="whitelabel-integrations-webhook-subscription-form__auth-stack">
+        <div class="form-check">
+          <input id="webhook-auth-oauth" class="form-check-input" type="radio" formControlName="auth_strategy" value="oauth" />
+          <label class="form-check-label" for="webhook-auth-oauth">
+            {{
+              (mode() === 'create'
+                ? 'whitelabelManagement.integrations.webhookSubscriptions.createModal.authOauth'
+                : 'whitelabelManagement.integrations.webhookSubscriptions.editModal.authOauth'
+              ) | translate
+            }}
+          </label>
+        </div>
+        <div class="form-check">
+          <input id="webhook-auth-api-key" class="form-check-input" type="radio" formControlName="auth_strategy" value="api-key" />
+          <label class="form-check-label" for="webhook-auth-api-key">
+            {{
+              (mode() === 'create'
+                ? 'whitelabelManagement.integrations.webhookSubscriptions.createModal.authApiKey'
+                : 'whitelabelManagement.integrations.webhookSubscriptions.editModal.authApiKey'
+              ) | translate
+            }}
+          </label>
+          <p class="whitelabel-integrations-webhook-subscription-form__auth-hint text-muted mb-0">
+            {{ 'whitelabelManagement.integrations.webhookSubscriptions.authApiKeyHelp' | translate }}
+          </p>
+        </div>
+      </div>
+    </fieldset>
+    <div class="mb-0">
+      <div class="form-label fs-6 mb-2">
+        {{ 'whitelabelManagement.integrations.webhookSubscriptions.activeSectionTitle' | translate }}
+      </div>
+      <div class="whitelabel-integrations-webhook-subscription-form__active-row">
+        <div class="form-check form-switch m-0">
+          <input id="webhook-active" class="form-check-input" type="checkbox" role="switch" formControlName="is_active" />
+        </div>
+        <label class="mb-0" for="webhook-active">
+          {{ 'whitelabelManagement.integrations.webhookSubscriptions.activeSwitchDescription' | translate }}
+        </label>
+      </div>
+    </div>
+  </form>
+</div>

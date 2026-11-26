@@ -1,0 +1,39 @@
+<div class="select-tickets-step" data-testid="select-tickets-step">
+  @if (!hasScope()) {
+    <div class="select-tickets-step__placeholder wrapper-card" data-testid="select-tickets-empty-scope">
+      <ignt-icon class="select-tickets-step__placeholder-icon" name="calendar-day" variant="light" />
+      <p class="select-tickets-step__placeholder-text">{{ 'orders.bulkPartialRefunds.selectTickets.chooseScope' | translate }}</p>
+    </div>
+  } @else if (store.sessions().error !== null) {
+    <ignt-alert
+      data-testid="select-tickets-error"
+      sentiment="danger"
+      [description]="'orders.bulkPartialRefunds.selectTickets.error.description' | translate"
+      [title]="'orders.bulkPartialRefunds.selectTickets.error.title' | translate"
+    />
+  } @else if (isFirstLoad()) {
+    <div class="select-tickets-step__placeholder wrapper-card" data-testid="select-tickets-loading" role="status">
+      <ignt-icon class="select-tickets-step__placeholder-icon" name="spinner" variant="solid" [spin]="true" />
+      <p class="select-tickets-step__placeholder-text">{{ 'common.loading' | translate }}</p>
+    </div>
+  } @else if (isEmpty()) {
+    <div class="select-tickets-step__placeholder wrapper-card" data-testid="select-tickets-empty">
+      <ignt-icon class="select-tickets-step__placeholder-icon" name="ticket" variant="light" />
+      <p class="select-tickets-step__placeholder-text">{{ 'orders.bulkPartialRefunds.selectTickets.noTimeSlots' | translate }}</p>
+    </div>
+  } @else {
+    <div class="select-tickets-step__time-slots wrapper-card">
+      <app-session-tree
+        [groups]="store.sessions().data?.groups ?? []"
+        [isEverySessionSelected]="store.isEverySessionSelected()"
+        [isLoading]="store.sessions().isLoading"
+        [selectedSessionIds]="store.selectedSessionIds()"
+        [timezone]="timezone()"
+        [totalTickets]="store.sessions().data?.totalTickets ?? 0"
+        (allToggled)="store.toggleAllSessions()"
+        (groupToggled)="store.toggleGroup($event)"
+        (sessionToggled)="store.toggleSession($event)"
+      />
+    </div>
+  }
+</div>

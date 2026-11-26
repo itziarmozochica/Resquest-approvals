@@ -1,0 +1,56 @@
+@if (error() && productTabs().length === 0) {
+  <div class="reservation-tabs__error" data-testid="reservation-tabs-error-banner">
+    {{ 'boxOffice.genericErrorTitle' | translate }}
+  </div>
+}
+@if (reservationsShopProductsEnabled()) {
+  <ignt-tabs class="reservation-tabs" [keepAlive]="true" (selectedIndexChange)="onSelectedTabChange($event)" data-testid="reservation-tabs">
+    <ignt-tabs-item [label]="'reservation.shopProducts.ticketsTab' | translate" data-testid="reservation-tickets-tab">
+      <ng-container [ngTemplateOutlet]="ticketsContent() ?? null"></ng-container>
+    </ignt-tabs-item>
+    @for (tab of productTabs(); track tab.id; let index = $index) {
+      <ignt-tabs-item [label]="tab.name" [icon]="tab.icon" data-testid="reservation-product-tab">
+        @if (loading()) {
+          <div class="reservation-tabs__spinner" data-testid="reservation-tab-spinner">
+            <ignt-icon class="loader" name="spinner" variant="solid" size="h1" [spin]="true" />
+          </div>
+        } @else if (error()) {
+          <div class="reservation-tabs__error" data-testid="reservation-tab-error">
+            {{ 'boxOffice.genericErrorTitle' | translate }}
+          </div>
+        } @else {
+          @let isOpenTab = selectedProductTabIndex() === index;
+          @let sections = isOpenTab && isSearching() ? searchSections() : tab.sections;
+          @if (isOpenTab) {
+            <div class="reservation-tabs__search">
+              <ignt-input-field
+                [label]="'reservation.shopProducts.searchLabel' | translate"
+                [type]="searchFieldType"
+                [leadIcon]="searchLeadIcon"
+                [trailIcon]="isSearching() ? searchClearIcon : null"
+                [trailIconAriaLabel]="'reservation.shopProducts.searchClear' | translate"
+                [formControl]="searchControl"
+                (trailIconClicked)="clearSearch()"
+                data-testid="reservation-product-search"
+              ></ignt-input-field>
+            </div>
+          }
+          @if (isOpenTab && isSearching() && sections.length === 0) {
+            <div class="reservation-tabs__no-results" role="status" data-testid="reservation-product-search-empty">
+              {{ 'reservation.shopProducts.searchNoResults' | translate: { term: searchTerm() } }}
+            </div>
+          } @else {
+            <app-shop-products-catalog
+              [sections]="sections"
+              [locale]="locale()"
+              [stagedUnitsBySessionId]="stagedUnitsBySessionId()"
+              (unitsChange)="onUnitsChange($event)"
+            ></app-shop-products-catalog>
+          }
+        }
+      </ignt-tabs-item>
+    }
+  </ignt-tabs>
+} @else {
+  <ng-container [ngTemplateOutlet]="ticketsContent() ?? null"></ng-container>
+}

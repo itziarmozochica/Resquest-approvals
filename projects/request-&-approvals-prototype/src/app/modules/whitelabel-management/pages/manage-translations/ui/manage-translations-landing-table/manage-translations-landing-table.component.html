@@ -1,0 +1,39 @@
+@if (rows().length === 0 && !isLoading()) {
+  <div class="landing-table__empty" data-testid="manage-translations-landing-empty">
+    @if (hasSearch()) {
+      <p>{{ 'manageTranslations.landing.empty.noMatches' | translate }}</p>
+      <ignt-button
+        variant="secondary"
+        size="small"
+        [label]="'manageTranslations.landing.search.clear' | translate"
+        data-testid="manage-translations-landing-empty-clear"
+        (click)="clearSearch.emit()"
+      />
+    } @else {
+      <p>{{ 'manageTranslations.noSubprojects' | translate }}</p>
+    }
+  </div>
+} @else {
+  <app-table
+    class="landing-table"
+    data-testid="manage-translations-landing-table"
+    [headers]="headers"
+    [type]="TableType.FZ_TABLE"
+    [orderBy]="orderBy()"
+    [scrollable]="true"
+    [hasActions]="false"
+    [class.landing-table--loading]="isLoading()"
+    [attr.aria-busy]="isLoading()"
+    (updateOrderByEmit)="sortToggle.emit()"
+  >
+    @for (row of rows(); track row.relationId) {
+      <app-manage-translations-landing-row
+        [row]="row"
+        [canManageTranslations]="canManageTranslations()"
+        [isContextsDialogAvailable]="isContextsDialogAvailable()"
+        [isDeleting]="deletingRelationIds().has(row.relationId)"
+        (action)="onRowAction(row, $event)"
+      />
+    }
+  </app-table>
+}

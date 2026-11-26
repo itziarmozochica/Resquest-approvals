@@ -1,0 +1,327 @@
+@if (pendingToSchedule()) {
+  <div class="order-session" data-testid="order-ticket-pending-schedule">
+    <div class="order-session__header">
+      <div class="order-session__title">
+        <span>{{ session().units }} x {{ 'validation.pendingToSchedule.tickets' | translate }}</span>
+      </div>
+    </div>
+  </div>
+} @else {
+  <div
+    class="order-session"
+    [class.order-session--collapsed]="isCollapsed()"
+    [class.order-session--cancelled]="session().status === validationStatusEnum.CANCELLED"
+    [class.order-session--inactive]="isInactive()"
+    [class.order-session--completed]="!canBeValidated()"
+    data-testid="order-ticket"
+  >
+    <div class="order-session__header">
+      <div class="order-session__title">
+        @if (session().sessionType?.isEntryPass) {
+          <span>{{ 'validateTicketsNew.tickets.entryPass' | translate }}</span>
+          <span class="order-session__title__separator"></span>
+        }
+        <span> {{ session().units }} x {{ session().sessionName }} </span>
+        @if (!isPackConstituent()) {
+          <div data-testid="order-ticket-id" class="order-session__ticket-id">
+            ({{ 'validateTicketsNew.tickets.ticketId' | translate }} {{ session().ticketId }})
+          </div>
+        }
+      </div>
+      <div class="order-session__details-tags">
+        @if (isInactive()) {
+          <ignt-tag class="order-session__status" [sentiment]="'sharp'" [variant]="'outline'" data-testid="order-ticket-status">
+            {{ 'common.inactive' | translate }}
+          </ignt-tag>
+        } @else {
+          <ignt-tag
+            class="order-session__status"
+            [class]="'order-session__status--' + session().status"
+            [sentiment]="sentimentTag[session().status]"
+            [variant]="'outline'"
+            data-testid="order-ticket-status"
+          >
+            {{ 'validateTicketsNew.validationStatus.' + session().status | translate }}
+          </ignt-tag>
+        }
+
+        @if (checkInDetails()) {
+          <ignt-tag
+            class="order-session__check-in-status"
+            [class]="'order-session__check-in-status--' + checkInStatus()"
+            [sentiment]="sentimentTag[checkInStatus()]"
+            [variant]="'outline'"
+            data-testid="order-ticket-check-in-status"
+          >
+            {{
+              checkInDetails()?.completedAt
+                ? ('validateTicketsNew.checkInStatus.completed' | translate)
+                : ('validateTicketsNew.checkInStatus.pending' | translate)
+            }}
+          </ignt-tag>
+        }
+        @if (!isPackConstituent()) {
+          <fa-icon
+            class="order-session__collapse"
+            [icon]="['fas', 'chevron-down']"
+            (click)="toggleIsCollapse()"
+            data-testid="order-ticket-chevron"
+          />
+        }
+      </div>
+    </div>
+    <div class="order-session__body">
+      @if (!isPackConstituent()) {
+        <div class="order-session__actions">
+          <div class="order-session__secondary-actions">
+            @if (shouldShowSecondaryActions()) {
+              @if (!isTicketProtection()) {
+                <ng-container *permissionBased="Permissions.CAN_RESEND_PURCHASE_CONFIRMATION_EMAIL">
+                  <button
+                    igntButton
+                    [sentiment]="'tertiary'"
+                    [leadingIcon]="['fas', 'paper-plane']"
+                    size="small"
+                    [disabled]="
+                      session().hasCodes &&
+                      (session().accessTicketIds?.length ?? 0) > 0 &&
+                      ticketSelection().subsetSelectedCount(session().accessTicketIds ?? []) === 0
+                    "
+                    (click)="openResendModal()"
+                    data-testid="order-ticket-resend-button"
+                  >
+                    {{ 'validateTicketsNew.tickets.resend_tickets' | translate }}
+                    @if (!orderDetailLayout() && session().hasCodes && session().accessTicketIds?.length) {
+                      ({{ ticketSelection().subsetSelectedCount(session().accessTicketIds ?? []) }}/{{ nonCancelledTicketsCount() }})
+                    }
+                  </button>
+                </ng-container>
+              }
+              @if (!hasPrintTicketDisabled()) {
+                <button
+                  igntButton
+                  [sentiment]="'tertiary'"
+                  [leadingIcon]="[isPrinting() ? 'fad' : 'fas', isPrinting() ? 'spinner-third' : 'print']"
+                  size="small"
+                  [disabled]="
+                    isPrinting() ||
+                    (isAdyenPrinter
+                      ? ticketSelection().isNoneSelected()
+                      : ticketSelection().subsetSelectedCount(session().accessTicketIds ?? []) === 0)
+                  "
+                  (click)="printTicket()"
+                  data-testid="order-ticket-print-button"
+                >
+                  {{ 'validateTicketsNew.tickets.print' | translate }}
+                  @if (!orderDetailLayout() && session().hasCodes && session().accessTicketIds?.length) {
+                    ({{ ticketSelection().subsetSelectedCount(session().accessTicketIds ?? []) }}/{{
+                      ticketSelection().subsetSelectableCount(session().accessTicketIds ?? [])
+                    }})
+                  }
+                </button>
+              }
+              @if (!hasUnvalidateDisabled() && session().hasCodes) {
+                <button
+                  igntButton
+                  [sentiment]="'tertiary'"
+                  [leadingIcon]="['fas', 'undo']"
+                  size="small"
+                  [disabled]="!isUnvalidateSelectionEnabled()"
+                  (click)="unvalidateCodes()"
+                  data-testid="order-ticket-unvalidate-button"
+                >
+                  {{ 'validateTicketsNew.tickets.unvalidate' | translate }}
+                  @if (!orderDetailLayout() && session().accessTicketIds?.length) {
+                    ({{ ticketSelection().subsetSelectedCount(session().accessTicketIds ?? []) }}/{{ nonCancelledTicketsCount() }})
+                  }
+                </button>
+              }
+              @if (
+                session().isPack && allowSplitPack() && session().status !== validationStatusEnum.CANCELLED && splittablePackUnits() > 0
+              ) {
+                <button
+                  igntButton
+                  [sentiment]="'tertiary'"
+                  [leadingIcon]="['fas', 'split']"
+                  size="small"
+                  (click)="splitPack()"
+                  data-testid="order-ticket-split-pack-button"
+                >
+                  {{ 'cancellation.splitPack.button' | translate }}
+                </button>
+              }
+              <ng-container *permissionBased="'can_view_seating_management'">
+                @if (hasReassignEnabled()) {
+                  <button
+                    igntButton
+                    [sentiment]="'tertiary'"
+                    [leadingIcon]="['fas', 'loveseat']"
+                    size="small"
+                    (click)="reassignSeats()"
+                    data-testid="order-ticket-reassign-button"
+                  >
+                    {{ 'seatingManagement.moveSeats' | translate }}
+                  </button>
+                }
+              </ng-container>
+            }
+          </div>
+          <div class="order-session__validation-details">
+            <ng-container *permissionBased="Permissions.CAN_VIEW_VALIDATE">
+              @if (!isValidationHidden()) {
+                <div class="order-session__validation-status" data-testid="order-ticket-validation-status">
+                  <div>
+                    {{ 'validateTicketsNew.orderHeader.validated' | translate }}
+                    <b>{{ session().validatedCount }}/{{ nonCancelledTicketsCount() }}</b>
+                  </div>
+                </div>
+              }
+            </ng-container>
+            <ng-container *permissionBased="Permissions.CAN_VIEW_VALIDATE">
+              @if (session().hasCodes && canBeValidated() && !isTicketProtection()) {
+                <div class="order-session__select-all">
+                  <div>{{ 'validateTicketsNew.orderHeader.selectAll' | translate }}</div>
+                  <input
+                    type="checkbox"
+                    [checked]="ticketSelection().isSubsetAllSelected(session().accessTicketIds ?? [])"
+                    [indeterminate]="ticketSelection().isSubsetIndeterminate(session().accessTicketIds ?? [])"
+                    (click)="selectAllForSession($event.target.checked)"
+                    data-testid="session-select-all-checkbox"
+                  />
+                </div>
+              }
+            </ng-container>
+          </div>
+        </div>
+      }
+
+      @if (isATransferredTicket()) {
+        <div class="order-session__transferred-info" data-testid="order-ticket-transferred-to">
+          @if (isAResoldTicket()) {
+            <ignt-tag sentiment="accent" variant="outline" data-testid="order-ticket-resale-tag">{{
+              'validateTicketsNew.labels.resale' | translate
+            }}</ignt-tag>
+          }
+          <ignt-tag sentiment="positive" variant="outline" data-testid="order-ticket-received-tag">{{
+            'validateTicketsNew.tickets.received' | translate
+          }}</ignt-tag>
+          <span
+            ><span class="order-session__transferred-to">{{ 'eventSettings.selector.by' | translate }}</span>
+            {{ session().ownerFullName }}</span
+          >
+          <span>{{ session().ownerEmail }}</span>
+          <span>{{ session().createdAt | momentDate: 'd MMM yyyy hh:mm a' : session().sessionTimezone }}</span>
+        </div>
+      }
+
+      <div class="order-session__selector">
+        @if (session().hasCodes || hasTransferIntentCodes()) {
+          <app-order-tickets-with-codes-content
+            [session]="session()"
+            [orderId]="orderId()"
+            [orderBookingAnswers]="orderBookingAnswers()"
+            [tickets]="ticketsAndProducts()"
+            [ticketSelection]="ticketSelection()"
+            [searchedQRCode]="searchedQRCode()"
+            [hiddenValidation]="isValidationHidden()"
+            [lockTicketOnValidated]="!canBeValidated()"
+            (showValidationHistory)="showValidationHistory($event)"
+            (seeTicket)="goToTicket($event)"
+            (ticketUpdated)="onTicketUpdated()"
+          />
+        } @else if (hasBeenFullyTransferred()) {
+          <div class="order-session__fully-transferred">
+            {{ 'validateTicketsNew.tickets.ticketFullyTransferred' | translate }}
+          </div>
+        } @else {
+          <app-order-tickets-with-no-codes-content
+            [session]="session()"
+            [partnerSharePrice]="cancellationInsurancePartnerShare()?.price ?? null"
+            [hiddenValidation]="isValidationHidden() || isPackConstituent()"
+            (selectedCount)="selectCount($event)"
+          />
+        }
+      </div>
+
+      <ng-container *permissionBased="Permissions.CAN_VIEW_VALIDATE">
+        @if (!isPackConstituent()) {
+          <div class="order-session__validate-row">
+            <div class="order-session__validate-price" data-testid="order-ticket-price">
+              Price:
+              @if (shouldShowSessionReferencePrice()) {
+                <s class="order-session__reference-price" data-testid="order-ticket-reference-price">
+                  <span class="visually-hidden">{{ 'orders.referencePrice' | translate }}</span>
+                  {{ session().referencePrice?.total }}
+                </s>
+              }
+              <b>
+                @if (hasLoyaltyPrice()) {
+                  <span data-testid="order-ticket-loyalty-total">{{
+                    'orders.loyaltyPoints' | translate: { points: sessionLoyaltyTotal() | number }
+                  }}</span>
+                } @else if (cancellationInsurancePartnerShare(); as partnerShare) {
+                  {{ partnerShare.price }}
+                } @else {
+                  {{ session().total }}
+                }
+              </b>
+              @if (isMobile()) {
+                <br />
+              }
+              ({{ session().units }} x
+              @if (hasLoyaltyPrice()) {
+                <span data-testid="order-ticket-loyalty-unit-price">{{
+                  'orders.loyaltyPoints' | translate: { points: sessionLoyaltyUnitPrice() | number }
+                }}</span>
+              } @else if (cancellationInsurancePartnerShare(); as partnerShare) {
+                {{ partnerShare.unitPrice.amount | currency: partnerShare.unitPrice.currency : 'symbol-narrow' : null : locale }}
+              } @else {
+                {{ session().unitPrice.amount | currency: session().unitPrice.currency : 'symbol-narrow' : null : locale }}
+              }
+              )
+            </div>
+
+            <div class="order-session__validate-actions">
+              @if (!isValidationHidden()) {
+                <button
+                  igntButton
+                  [disabled]="session().status === validationStatusEnum.CANCELLED || !canBeValidated() || !selectedCount()"
+                  (click)="validateSelection()"
+                  data-testid="order-ticket-validate-button"
+                >
+                  @if (!canBeValidated()) {
+                    {{ 'validateTicketsNew.tickets.validated' | translate }}
+                  } @else {
+                    {{ 'validateTicketsNew.tickets.validate' | translate }}
+                    {{ getPendingValidationStatusString() }}
+                  }
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </ng-container>
+    </div>
+  </div>
+}
+
+<app-lateral-slider
+  [showDetails]="isValidationHistoryVisible()"
+  [contentTemplate]="validationHistoryDetail"
+  [title]="('validateTicketsNew.tickets.validationHistory' | translate) + ' ' + selectedCode()"
+  (closeSlider)="hideValidationHistory()"
+/>
+
+<ng-template #validationHistoryDetail>
+  <div class="validation-history-slider">
+    <div class="validation-history-slider__content">
+      <app-validation-history [code]="selectedCode()" [mainPlanId]="session().mainPlanId" [sessionTimezone]="session().sessionTimezone" />
+    </div>
+
+    <div class="validation-history-slider__footer">
+      <button igntButton [sentiment]="'secondary'" size="large" (click)="hideValidationHistory()">
+        {{ 'common.close' | translate }}
+      </button>
+    </div>
+  </div>
+</ng-template>

@@ -1,0 +1,224 @@
+<div class="plan-setup-content__title" translate>
+  <fa-icon [fixedWidth]="true" [icon]="['far', 'sparkles']"></fa-icon>
+  planRequest.eventSetUp.title
+</div>
+<div class="content-card">
+  <div class="content">
+    <form [formGroup]="planSetUpForm">
+      <div class="form-group">
+        <label for="planName" class="form-label" translate
+          >{{ 'planRequest.eventSetUp.planNameTitle' }}
+          <ng-container *ngTemplateOutlet="isMandatoryTemplate; context: { isMandatory: mandatoryFields.includes('planName') }">
+          </ng-container>
+        </label>
+        <input
+          id="planName"
+          class="form-input"
+          type="text"
+          formControlName="planName"
+          autocomplete="off"
+          data-testid="plan-setup-input-plan-name"
+          [ngClass]="getControlClass(planSetUpForm.get('planName'), true)"
+          [maxlength]="PLAN_NAME_MAX_LENGTH"
+        />
+        <ng-container *ngTemplateOutlet="validationErrors; context: { error: getControlError(planSetUpForm.get('planName')) }">
+        </ng-container>
+        <label class="shared__tip" translate>{{ 'planRequest.eventSetUp.planNameTip' }}</label>
+      </div>
+
+      <div class="form-group">
+        <label for="planDescription" class="form-label" translate
+          >{{ 'planRequest.eventSetUp.planDescriptionTitle' }}
+          <ng-container *ngTemplateOutlet="isMandatoryTemplate; context: { isMandatory: mandatoryFields.includes('planDescription') }">
+          </ng-container>
+        </label>
+        <ng-container *ngTemplateOutlet="warningDescription"></ng-container>
+        <textarea
+          id="planDescription"
+          class="plan-setup-content__text-area"
+          type="text"
+          formControlName="planDescription"
+          autocomplete="off"
+          data-testid="plan-setup-text-area-plan-description"
+          [ngClass]="getControlClass(planSetUpForm.get('planDescription'), true)"
+        ></textarea>
+        <ng-container *ngTemplateOutlet="validationErrors; context: { error: getControlError(planSetUpForm.get('planDescription')) }">
+        </ng-container>
+        <label class="shared__tip" translate>
+          {{ 'planRequest.eventSetUp.planDescriptionTip' }}
+          <i
+            ><a [href]="loadGuideLinesUrl()" target="_blank" translate>{{ 'planRequest.eventSetUp.planDescriptionGuideLine' }}</a></i
+          >
+        </label>
+      </div>
+
+      <div class="form-group">
+        <label for="city" class="form-label" translate
+          >{{ 'planRequest.eventSetUp.cityTitle' }}
+          <ng-container *ngTemplateOutlet="isMandatoryTemplate; context: { isMandatory: mandatoryFields.includes('city') }"> </ng-container>
+        </label>
+        <input
+          id="city"
+          class="form-input"
+          type="text"
+          formControlName="city"
+          autocomplete="off"
+          data-testid="plan-setup-input-city"
+          [ngClass]="getControlClass(planSetUpForm.get('city'), true)"
+        />
+        <ng-container *ngTemplateOutlet="validationErrors; context: { error: getControlError(planSetUpForm.get('city')) }"> </ng-container>
+      </div>
+
+      <div class="form-group">
+        <label for="address" class="form-label" translate
+          >{{ 'planRequest.eventSetUp.addressTitle' }}
+          <ng-container *ngTemplateOutlet="isMandatoryTemplate; context: { isMandatory: mandatoryFields.includes('address') }">
+          </ng-container>
+        </label>
+        <input
+          id="address"
+          class="form-input"
+          type="text"
+          formControlName="address"
+          autocomplete="off"
+          data-testid="plan-setup-input-address"
+          [ngClass]="getControlClass(planSetUpForm.get('address'), true)"
+        />
+        <ng-container *ngTemplateOutlet="validationErrors; context: { error: getControlError(planSetUpForm.get('address')) }">
+        </ng-container>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" translate
+          >{{ 'planRequest.eventSetUp.accessibilityTitle' }}
+          <ng-container *ngTemplateOutlet="isMandatoryTemplate; context: { isMandatory: mandatoryFields.includes('accessibility') }">
+          </ng-container>
+        </label>
+
+        <label for="accessibility-true" class="radio">
+          <input id="accessibility-true" class="radio__input" type="radio" formControlName="accessibility" [value]="true" />
+          <span
+            class="radio__icon"
+            [class.radio__icon--unchecked]="
+              planSetUpForm.controls['accessibility'].value == false || planSetUpForm.controls['accessibility'].value == undefined
+            "
+            data-testid="plan-setup-input-accessibility-true"
+          >
+            <fa-icon [icon]="['fas', 'circle']"></fa-icon>
+          </span>
+          <span class="radio__label">{{ 'Yes' | translate }}</span>
+        </label>
+
+        <label for="accessibility-false" class="radio" data-testid="plan-setup-input-accessibility-false">
+          <input id="accessibility-false" class="radio__input" type="radio" formControlName="accessibility" [value]="false" />
+          <span
+            class="radio__icon"
+            [class.radio__icon--unchecked]="
+              planSetUpForm.controls['accessibility'].value == true || planSetUpForm.controls['accessibility'].value == undefined
+            "
+          >
+            <fa-icon [icon]="['fas', 'circle']"></fa-icon>
+          </span>
+          <span class="radio__label">{{ 'No' | translate }}</span>
+        </label>
+
+        <label class="shared__tip" translate>{{ 'planRequest.eventSetUp.accessibilityTip' }}</label>
+      </div>
+
+      <div class="form-group">
+        <table formArrayName="dates" class="shared__table plan-setup-content__table-responsive">
+          <tr>
+            <th colspan="2" translate>
+              {{ 'planRequest.eventSetUp.datesTitle' }}
+              <ng-container *ngTemplateOutlet="isMandatoryTemplate; context: { isMandatory: mandatoryFields.includes('dates') }">
+              </ng-container>
+            </th>
+          </tr>
+          <tr>
+            <th colspan="4"><ng-container *ngTemplateOutlet="warningDates"></ng-container></th>
+          </tr>
+          <tr *ngFor="let date of dates().controls; let i = index" [formGroupName]="i">
+            <td>
+              <div class="date-range">
+                <app-date-range
+                  (selected)="updateDate($event, i)"
+                  [initialDateShown]="false"
+                  [queryDateRange]="dateRanges.get(i) ?? null"
+                  data-testId="plan-request-date-range-picker"
+                ></app-date-range>
+              </div>
+            </td>
+            <td>
+              <label class="plan-setup-content__mobile-date-label" translate>
+                {{ 'planRequest.eventSetUp.removeDate' }}
+              </label>
+              <fa-icon
+                class="shared__icon"
+                [fixedWidth]="true"
+                [icon]="['fal', 'trash-alt']"
+                (click)="removeDate(i)"
+                data-testid="plan-setup-button-remove-date"
+              >
+              </fa-icon>
+            </td>
+            <td>
+              <label class="plan-setup-content__mobile-date-label" translate>
+                {{ 'planRequest.eventSetUp.addDate' }}
+              </label>
+              <fa-icon
+                class="shared__icon add-button"
+                [fixedWidth]="true"
+                [icon]="['fal', 'plus-circle']"
+                (click)="addDate()"
+                data-testid="plan-setup-button-add-date"
+              >
+              </fa-icon>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </form>
+  </div>
+</div>
+
+<ng-template #isMandatoryTemplate let-isMandatory="isMandatory">
+  <span class="form-label--small" [ngClass]="{ 'form-label--mandatory': isMandatory }">
+    {{ isMandatory ? '*' : ('common.optional' | translate) }}
+  </span>
+</ng-template>
+
+<ng-template #validationErrors let-error="error">
+  <ng-container *ngIf="error">
+    <div class="form-error" [ngSwitch]="error">
+      <fa-icon class="form-error--icon" [icon]="['fas', 'exclamation-circle']"></fa-icon>
+      <span class="form-error--message" *ngSwitchCase="'required'" data-testid="contact-information-error-mandatory-field">
+        {{ 'form.error.mandatoryField' | translate }}
+      </span>
+      <span class="form-error--message" *ngSwitchCase="'emailValidator'" data-testid="contact-information-error-invalid-email">
+        {{ 'form.error.invalidEmail' | translate }}
+      </span>
+    </div>
+  </ng-container>
+</ng-template>
+
+<ng-template #warningDescription>
+  <div class="placeholder">
+    <div class="placeholder__more">
+      <fa-icon [icon]="['far', 'info-circle']" class="placeholder__more-icon"></fa-icon>
+      <div class="placeholder__more-text">
+        <span>{{ 'planRequest.eventSetUp.planDescriptionWarning' | translate }} </span>
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #warningDates>
+  <div class="placeholder">
+    <div class="placeholder__more">
+      <fa-icon [icon]="['far', 'info-circle']" class="placeholder__more-icon"></fa-icon>
+      <div class="placeholder__more-text">
+        <span>{{ 'planRequest.eventSetUp.datesWarning' | translate }} </span>
+      </div>
+    </div>
+  </div>
+</ng-template>

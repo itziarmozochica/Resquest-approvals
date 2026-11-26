@@ -1,0 +1,88 @@
+<app-go-back [goBackTitle]="'whitelabelManagement.stripePaymentDomains.goBack' | translate" [urlGoBack]="goBackUrl"></app-go-back>
+
+<app-page-title
+  class="new-design"
+  [description]="hasWhitelabelName() ? ('whitelabelManagement.stripePaymentDomains.header.subtitle' | translate: subtitleParams()) : ''"
+  [title]="'whitelabelManagement.stripePaymentDomains.pageTitle' | translate"
+/>
+
+<div class="whitelabel-stripe-payment-domains">
+  @if (store.loadErrorMessage(); as loadErrorMessage) {
+    <ignt-alert
+      sentiment="danger"
+      data-testid="stripe-payment-domains-feedback"
+      [showCloseButton]="false"
+      [title]="'whitelabelManagement.stripePaymentDomains.loadError.title' | translate"
+    >
+      <p class="whitelabel-stripe-payment-domains__load-error">{{ loadErrorMessage }}</p>
+      <div class="whitelabel-stripe-payment-domains__load-error-actions">
+        <ignt-button
+          size="small"
+          data-testid="stripe-payment-domains-retry"
+          [label]="'whitelabelManagement.stripePaymentDomains.loadError.retry' | translate"
+          (click)="store.retryLoad()"
+        />
+        @if (store.loadErrorDetail()) {
+          <ignt-button
+            size="small"
+            variant="secondary"
+            data-testid="stripe-payment-domains-copy-error"
+            [label]="
+              (isErrorDetailCopied()
+                ? 'whitelabelManagement.stripePaymentDomains.loadError.copied'
+                : 'whitelabelManagement.stripePaymentDomains.loadError.copy'
+              ) | translate
+            "
+            (click)="onCopyErrorDetails()"
+          />
+        }
+      </div>
+    </ignt-alert>
+  } @else if (!store.isLoading() && !store.hasHosts()) {
+    <div class="whitelabel-stripe-payment-domains__empty" data-testid="stripe-payment-domains-no-hosts">
+      <strong>{{ 'whitelabelManagement.stripePaymentDomains.empty.noHosts.title' | translate }}</strong>
+      <p>{{ 'whitelabelManagement.stripePaymentDomains.empty.noHosts.message' | translate }}</p>
+      <a class="whitelabel-stripe-payment-domains__empty-link" [routerLink]="whitelabelSettingsUrl()">
+        {{ 'whitelabelManagement.stripePaymentDomains.empty.noHosts.action' | translate }}
+      </a>
+    </div>
+  } @else {
+    <app-stripe-payment-domains-header
+      [attentionCityCount]="store.attentionCityCount()"
+      [attentionCount]="store.attentionCount()"
+      [hosts]="store.hosts()"
+      [isInitialLoading]="store.isInitialLoading()"
+      [isReadOnly]="isReadOnly"
+      [isVerifying]="store.isVerifyingAll()"
+      [lastVerifiedAt]="store.lastVerifiedAt()"
+      [listedAccountCount]="store.listedAccountCount()"
+      [selectedHost]="store.selectedHost()"
+      (hostSelected)="onHostSelected($event)"
+      (verifyAllRequested)="store.verifyAll()"
+    />
+
+    @if (!store.isInitialLoading() && !store.hasConfigs()) {
+      <div class="whitelabel-stripe-payment-domains__empty" data-testid="stripe-payment-domains-no-configs">
+        <strong>{{ 'whitelabelManagement.stripePaymentDomains.empty.noConfigs.title' | translate }}</strong>
+        <p>
+          {{
+            'whitelabelManagement.stripePaymentDomains.empty.noConfigs.message' | translate: { hostname: store.normalizedHost().hostname }
+          }}
+        </p>
+      </div>
+    } @else {
+      <app-stripe-payment-domains-table
+        [accountCount]="store.supportedAccounts().length"
+        [groups]="store.tableGroups()"
+        [isLoading]="store.isInitialLoading()"
+        [isVerifying]="store.isVerifyingAll()"
+        (configDetailsRequested)="onConfigDetailsRequested($event)"
+        (disableRequested)="onDisableRequested($event)"
+        (enableRequested)="onEnableRequested($event)"
+        (registerRequested)="onRegisterRequested($event)"
+        (verifyRequested)="onVerifyRequested($event)"
+        (walletDetailsRequested)="onWalletDetailsRequested($event)"
+      />
+    }
+  }
+</div>

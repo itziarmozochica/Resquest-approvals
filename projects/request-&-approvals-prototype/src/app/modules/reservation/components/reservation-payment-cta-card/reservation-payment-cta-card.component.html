@@ -1,0 +1,662 @@
+<ng-template
+  #sectionHeader
+  let-titleKey="titleKey"
+  let-descriptionKey="descriptionKey"
+  let-titleFallbackKey="titleFallbackKey"
+  let-descriptionFallbackKey="descriptionFallbackKey"
+>
+  @if (
+    (titleKey | translationKeyExists) ||
+    (titleFallbackKey | translationKeyExists) ||
+    (descriptionKey | translationKeyExists) ||
+    (descriptionFallbackKey | translationKeyExists)
+  ) {
+    <div class="reservation-payment-cta__section-header">
+      @if (titleKey | translationKeyExists) {
+        <h2 class="reservation-payment-cta__section-title">{{ titleKey | translate }}</h2>
+      } @else if (titleFallbackKey | translationKeyExists) {
+        <h2 class="reservation-payment-cta__section-title">{{ titleFallbackKey | translate }}</h2>
+      }
+      @if (descriptionKey | translationKeyExists) {
+        <p class="reservation-payment-cta__section-description">{{ descriptionKey | translate }}</p>
+      } @else if (descriptionFallbackKey | translationKeyExists) {
+        <p class="reservation-payment-cta__section-description">{{ descriptionFallbackKey | translate }}</p>
+      }
+    </div>
+  }
+</ng-template>
+
+<ng-template
+  #paymentActionCard
+  let-titleKey="titleKey"
+  let-buttonKey="buttonKey"
+  let-descriptionKey="descriptionKey"
+  let-testId="testId"
+  let-action="action"
+  let-priceAmount="priceAmount"
+  let-priceCurrency="priceCurrency"
+  let-buttonSentiment="buttonSentiment"
+  let-hidePriceFallback="hidePriceFallback"
+>
+  <div class="reservation-payment-cta__payment-action-card" [attr.data-testid]="testId">
+    <h3 class="reservation-payment-cta__payment-action-card-title">
+      {{ titleKey | translate }}
+    </h3>
+    @if (priceAmount !== null && priceAmount !== undefined && priceCurrency) {
+      <div class="reservation-payment-cta__payment-action-card-price">
+        {{ priceAmount | currency: priceCurrency : 'symbol-narrow' }}
+      </div>
+    } @else if (cart?.total && !hidePriceFallback) {
+      <div class="reservation-payment-cta__payment-action-card-price">
+        {{ cart!.total!.amount | currency: cart!.total!.currency : 'symbol-narrow' }}
+      </div>
+    }
+    @if (canPayReservation) {
+      <button
+        igntButton
+        class="reservation-payment-cta__payment-action-card-button"
+        [sentiment]="buttonSentiment || 'primary'"
+        [fill]="true"
+        [attr.data-testid]="testId + '-button'"
+        (click)="handlePaymentAction(action)"
+      >
+        {{ buttonKey | translate }}
+      </button>
+    }
+    <p class="reservation-payment-cta__payment-action-card-description">
+      {{ descriptionKey | translate }}
+    </p>
+  </div>
+</ng-template>
+
+<div class="reservation-payment-cta" [class.reservation-payment-cta--with-deposit]="cart?.deposit">
+  @if (reservationStatus === ReservationStatus.CANCELLED) {
+    <ng-container
+      *ngTemplateOutlet="
+        sectionHeader;
+        context: {
+          titleKey: 'reservations.reservationDetails.cancelledBanner.title',
+          descriptionKey: hasDepositPaidOrRefunded
+            ? 'reservations.reservationDetails.cancelledBanner.descriptionWithDeposit'
+            : 'reservations.reservationDetails.cancelledBanner.description',
+        }
+      "
+    ></ng-container>
+
+    @if (hasDepositPaidOrRefunded) {
+      @if (displayDeposit?.status === 'paid' && !isBusiness) {
+        @if (
+          isDepositPaidWithCard &&
+          ('reservations.reservationDetails.cancelledBanner.warningTitle' | translationKeyExists) &&
+          ('reservations.reservationDetails.cancelledBanner.warningDescription' | translationKeyExists)
+        ) {
+          <ignt-alert
+            class="reservation-payment-cta__secured-countdown-alert"
+            data-testid="cancelled-deposit-warning"
+            sentiment="warning"
+            [title]="'reservations.reservationDetails.cancelledBanner.warningTitle' | translate"
+            [description]="'reservations.reservationDetails.cancelledBanner.warningDescription' | translate"
+          />
+          @if (
+            ('reservations.reservationDetails.cancelledBanner.createNewReservationHint' | translationKeyExists) &&
+            !(
+              remainingAmountForCancelled !== null &&
+              remainingAmountForCancelled > 0 &&
+              ('reservation.checkout.remainingAmountCancelled' | translationKeyExists)
+            )
+          ) {
+            <p class="reservation-payment-cta__cancelled-hint">
+              {{ 'reservations.reservationDetails.cancelledBanner.createNewReservationHint' | translate }}
+            </p>
+          }
+        } @else if (
+          hasNonCardPaymentMethod &&
+          ('reservations.reservationDetails.cancelledBanner.warningTitleCannotRefund' | translationKeyExists) &&
+          ('reservations.reservationDetails.cancelledBanner.warningDescriptionCannotRefund' | translationKeyExists)
+        ) {
+          <ignt-alert
+            class="reservation-payment-cta__secured-countdown-alert"
+            data-testid="cancelled-deposit-warning"
+            sentiment="warning"
+            [title]="'reservations.reservationDetails.cancelledBanner.warningTitleCannotRefund' | translate"
+            [description]="'reservations.reservationDetails.cancelledBanner.warningDescriptionCannotRefund' | translate"
+          />
+          @if (
+            ('reservations.reservationDetails.cancelledBanner.createNewReservationHint' | translationKeyExists) &&
+            !(
+              remainingAmountForCancelled !== null &&
+              remainingAmountForCancelled > 0 &&
+              ('reservation.checkout.remainingAmountCancelled' | translationKeyExists)
+            )
+          ) {
+            <p class="reservation-payment-cta__cancelled-hint">
+              {{ 'reservations.reservationDetails.cancelledBanner.createNewReservationHint' | translate }}
+            </p>
+          }
+        } @else {
+          <div class="reservation-payment-cta__message-banner" data-testid="cancelled-deposit-info">
+            <div class="reservation-payment-cta__message-banner-title">
+              <ignt-icon
+                class="reservation-payment-cta__message-banner-icon"
+                name="info-circle"
+                variant="regular"
+                aria-hidden="true"
+              ></ignt-icon>
+              <span>{{ 'reservations.reservationDetails.cancelledBanner.title' | translate }}</span>
+            </div>
+            <div
+              class="reservation-payment-cta__message-banner-content"
+              [innerHTML]="
+                'reservations.reservationDetails.cancelledBanner.content'
+                  | translate: { newReservationLink: createReservationUrl }
+                  | sanitize
+              "
+            ></div>
+          </div>
+        }
+      }
+
+      @if (cartSignal()?.deposit; as deposit) {
+        <app-deposit-status-badge
+          [deposit]="deposit"
+          [currency]="cart?.total?.currency ?? null"
+          [isInReservationDetails]="true"
+          [showRefundButton]="!isBusiness && canRefundDeposits"
+          [reservationStatus]="reservationStatus"
+          [reservationId]="reservationId"
+          [onRefund]="refundDeposit"
+        />
+      }
+
+      @if (
+        remainingAmountForCancelled !== null &&
+        remainingAmountForCancelled > 0 &&
+        ('reservation.checkout.remainingAmountCancelled' | translationKeyExists)
+      ) {
+        <app-remaining-payment-cancelled-card
+          [remainingAmount]="remainingAmountForCancelled"
+          [currency]="cart?.total?.currency ?? null"
+          [reservationStatus]="reservationStatus"
+          [showInfoText]="'reservation.checkout.remainingAmountCancelledInfo' | translationKeyExists"
+        />
+      }
+    } @else {
+      @if ('reservations.reservationDetails.cancelledBanner.noDepositWarning' | translationKeyExists) {
+        <ignt-alert
+          class="reservation-payment-cta__secured-countdown-alert"
+          data-testid="cancelled-no-deposit-warning"
+          sentiment="warning"
+          [description]="'reservations.reservationDetails.cancelledBanner.noDepositWarning' | translate"
+        />
+        @if ('reservations.reservationDetails.cancelledBanner.createNewReservationHint' | translationKeyExists) {
+          <p class="reservation-payment-cta__cancelled-hint">
+            {{ 'reservations.reservationDetails.cancelledBanner.createNewReservationHint' | translate }}
+          </p>
+        }
+      } @else {
+        <div class="reservation-payment-cta__message-banner" data-testid="cancelled-no-deposit-info">
+          <div class="reservation-payment-cta__message-banner-title">
+            <ignt-icon
+              class="reservation-payment-cta__message-banner-icon"
+              name="info-circle"
+              variant="regular"
+              aria-hidden="true"
+            ></ignt-icon>
+            <span>{{ 'reservations.reservationDetails.cancelledBanner.title' | translate }}</span>
+          </div>
+          <div
+            class="reservation-payment-cta__message-banner-content"
+            [innerHTML]="
+              'reservations.reservationDetails.cancelledBanner.content' | translate: { newReservationLink: createReservationUrl } | sanitize
+            "
+          ></div>
+        </div>
+      }
+    }
+
+    <div class="reservation-payment-cta__cancelled-actions">
+      <button igntButton data-testid="create-new-reservation-button" (click)="goToCreateReservation()">
+        {{ 'reservations.expiredReservation.modal.accept' | translate }}
+      </button>
+      <button igntButton sentiment="secondary" data-testid="back-to-list-button" (click)="goToReservationList()">
+        @if ('reservations.reservationDetails.backToOverview' | translationKeyExists) {
+          {{ 'reservations.reservationDetails.backToOverview' | translate }}
+        } @else {
+          {{ 'reservations.create.goBack' | translate }}
+        }
+      </button>
+    </div>
+  }
+
+  @if (reservationStatus === ReservationStatus.EXPIRED) {
+    <ng-container
+      *ngTemplateOutlet="
+        sectionHeader;
+        context: {
+          titleKey: 'reservations.reservationDetails.expiredBanner.title',
+          descriptionKey: 'reservations.reservationDetails.expiredBanner.description',
+        }
+      "
+    ></ng-container>
+
+    @if (hasDepositPaidOrRefunded) {
+      @if (displayDeposit?.status === 'paid' && !isBusiness) {
+        @if (isDepositPaidWithCard && ('reservations.reservationDetails.expiredBanner.warningDescription' | translationKeyExists)) {
+          <ignt-alert
+            class="reservation-payment-cta__secured-countdown-alert"
+            data-testid="expired-deposit-warning"
+            sentiment="warning"
+            [description]="'reservations.reservationDetails.expiredBanner.warningDescription' | translate"
+          />
+          @if (
+            ('reservations.reservationDetails.expiredBanner.createNewReservationHint' | translationKeyExists) &&
+            !(
+              remainingAmountForCancelled !== null &&
+              remainingAmountForCancelled > 0 &&
+              ('reservation.checkout.remainingAmountExpired' | translationKeyExists)
+            )
+          ) {
+            <p class="reservation-payment-cta__cancelled-hint">
+              {{ 'reservations.reservationDetails.expiredBanner.createNewReservationHint' | translate }}
+            </p>
+          }
+        } @else if (
+          hasNonCardPaymentMethod &&
+          ('reservations.reservationDetails.expiredBanner.warningTitleCannotRefund' | translationKeyExists) &&
+          ('reservations.reservationDetails.expiredBanner.warningDescriptionCannotRefund' | translationKeyExists)
+        ) {
+          <ignt-alert
+            class="reservation-payment-cta__secured-countdown-alert"
+            data-testid="expired-deposit-warning"
+            sentiment="warning"
+            [title]="'reservations.reservationDetails.expiredBanner.warningTitleCannotRefund' | translate"
+            [description]="'reservations.reservationDetails.expiredBanner.warningDescriptionCannotRefund' | translate"
+          />
+          @if (
+            ('reservations.reservationDetails.expiredBanner.createNewReservationHint' | translationKeyExists) &&
+            !(
+              remainingAmountForCancelled !== null &&
+              remainingAmountForCancelled > 0 &&
+              ('reservation.checkout.remainingAmountExpired' | translationKeyExists)
+            )
+          ) {
+            <p class="reservation-payment-cta__cancelled-hint">
+              {{ 'reservations.reservationDetails.expiredBanner.createNewReservationHint' | translate }}
+            </p>
+          }
+        }
+      } @else if (displayDeposit?.status === 'paid' && isBusiness) {
+        @if ('reservations.reservationDetails.expiredBanner.warningBusinessDescription' | translationKeyExists) {
+          <ignt-alert
+            class="reservation-payment-cta__secured-countdown-alert"
+            data-testid="expired-deposit-business-warning"
+            sentiment="warning"
+            [description]="'reservations.reservationDetails.expiredBanner.warningBusinessDescription' | translate"
+          />
+        }
+      }
+
+      @if (cartSignal()?.deposit; as deposit) {
+        <app-deposit-status-badge
+          [deposit]="deposit"
+          [currency]="cart?.total?.currency ?? null"
+          [isInReservationDetails]="true"
+          [showRefundButton]="!isBusiness && canRefundDeposits"
+          [reservationStatus]="reservationStatus"
+          [reservationId]="reservationId"
+          [onRefund]="refundDeposit"
+        />
+      }
+      @if (
+        remainingAmountForCancelled !== null &&
+        remainingAmountForCancelled > 0 &&
+        ('reservation.checkout.remainingAmountExpired' | translationKeyExists)
+      ) {
+        <app-remaining-payment-cancelled-card
+          [remainingAmount]="remainingAmountForCancelled"
+          [currency]="cart?.total?.currency ?? null"
+          [reservationStatus]="reservationStatus"
+          [showInfoText]="'reservation.checkout.remainingAmountCancelledInfo' | translationKeyExists"
+        />
+      }
+    } @else {
+      @if ('reservations.reservationDetails.expiredBanner.noDepositWarning' | translationKeyExists) {
+        <ignt-alert
+          class="reservation-payment-cta__secured-countdown-alert"
+          data-testid="expired-no-deposit-warning"
+          sentiment="warning"
+          [description]="'reservations.reservationDetails.expiredBanner.noDepositWarning' | translate"
+        />
+        @if ('reservations.reservationDetails.expiredBanner.createNewReservationHint' | translationKeyExists) {
+          <p class="reservation-payment-cta__cancelled-hint">
+            {{ 'reservations.reservationDetails.expiredBanner.createNewReservationHint' | translate }}
+          </p>
+        }
+      } @else {
+        <div class="reservation-payment-cta__message-banner" data-testid="expired-no-deposit-info">
+          <div class="reservation-payment-cta__message-banner-title">
+            <ignt-icon
+              class="reservation-payment-cta__message-banner-icon"
+              name="info-circle"
+              variant="regular"
+              aria-hidden="true"
+            ></ignt-icon>
+            <span>{{ 'reservations.reservationDetails.expiredBanner.title' | translate }}</span>
+          </div>
+          <div
+            class="reservation-payment-cta__message-banner-content"
+            [innerHTML]="
+              'reservations.reservationDetails.expiredBanner.content' | translate: { newReservationLink: createReservationUrl } | sanitize
+            "
+          ></div>
+        </div>
+      }
+    }
+
+    <div class="reservation-payment-cta__cancelled-actions">
+      <button igntButton data-testid="create-new-reservation-button" (click)="goToCreateReservation()">
+        {{ 'reservations.expiredReservation.modal.accept' | translate }}
+      </button>
+      <button igntButton sentiment="secondary" data-testid="back-to-list-button" (click)="goToReservationList()">
+        @if ('reservations.reservationDetails.backToOverview' | translationKeyExists) {
+          {{ 'reservations.reservationDetails.backToOverview' | translate }}
+        } @else {
+          {{ 'reservations.create.goBack' | translate }}
+        }
+      </button>
+    </div>
+  }
+
+  @if (isSecuredFinalPaymentPending) {
+    @if (
+      ('reservation.checkout.paymentSelector.securedFinalPaymentPendingTitle' | translationKeyExists) ||
+      ('reservation.checkout.paymentSelector.securedFinalPaymentPendingDescription' | translationKeyExists)
+    ) {
+      <ng-container
+        *ngTemplateOutlet="
+          sectionHeader;
+          context: {
+            titleKey: 'reservation.checkout.paymentSelector.securedFinalPaymentPendingTitle',
+            descriptionKey: 'reservation.checkout.paymentSelector.securedFinalPaymentPendingDescription',
+          }
+        "
+      ></ng-container>
+    }
+
+    @if (effectiveExpirationDate()) {
+      <app-reservation-expiration-countdown-alert
+        class="reservation-payment-cta__secured-countdown-alert"
+        [canEditDeadlines]="canEditDeadlines()"
+        [deadline]="expirationDateFormatted()"
+        [deadlineLabelKey]="expirationCountdownDeadlineLabelKey()"
+        [editDeadlinesLabelKey]="editDeadlinesLabelKey()"
+        [timeLeft]="timeLeftCountdown()"
+        testId="reservation-secured-countdown"
+        (editDeadlines)="openEditDeadlinesDialog()"
+      />
+    }
+  }
+
+  @if (reservationStatus === ReservationStatus.TO_BE_PAID && !isSecuredFinalPaymentPending) {
+    <div class="reservation-payment-cta__content">
+      <ng-container
+        *ngTemplateOutlet="
+          sectionHeader;
+          context: cart?.deposit
+            ? {
+                titleKey: 'reservation.checkout.reservationNotSecuredTitle',
+                descriptionKey: 'reservation.checkout.reservationNotSecuredDescription',
+              }
+            : {
+                titleKey: 'reservation.checkout.paymentRequiredToSecureTitle',
+                descriptionKey: 'reservation.checkout.paymentRequiredToSecureDescription',
+                titleFallbackKey: 'reservation.checkout.reservationNotSecuredTitle',
+                descriptionFallbackKey: 'reservation.checkout.remainingPaymentRequiredDescription',
+              }
+        "
+      ></ng-container>
+      @if (reservationExpiration) {
+        <div class="reservation-payment-cta__secured-countdown-alert-container">
+          <app-reservation-expiration-countdown-alert
+            class="reservation-payment-cta__secured-countdown-alert"
+            [canEditDeadlines]="canEditDeadlines()"
+            [deadline]="expirationDateFormatted()"
+            [deadlineLabelKey]="expirationCountdownDeadlineLabelKey()"
+            [editDeadlinesLabelKey]="editDeadlinesLabelKey()"
+            [timeLeft]="timeLeftCountdown()"
+            testId="reservation-expiration-message"
+            (editDeadlines)="openEditDeadlinesDialog()"
+          />
+        </div>
+      }
+    </div>
+  }
+
+  @if (isSecuredFinalPaymentPending) {
+    @if (displayDeposit; as deposit) {
+      <app-deposit-status-badge
+        [deposit]="deposit"
+        [currency]="cart?.total?.currency ?? null"
+        [isInReservationDetails]="true"
+        [showRefundButton]="!isBusiness && canRefundDeposits"
+        [reservationStatus]="reservationStatus"
+        [reservationId]="reservationId"
+        [onRefund]="refundDeposit"
+      />
+    }
+
+    @if (canPayReservation && ('reservation.checkout.payRemainingAmountTitle' | translationKeyExists)) {
+      <ng-container
+        *ngTemplateOutlet="
+          paymentActionCard;
+          context: {
+            titleKey: 'reservation.checkout.payRemainingAmountTitle',
+            buttonKey: 'reservation.checkout.payRemainingAmount',
+            descriptionKey: 'reservation.checkout.payRemainingAmountCardDescription',
+            testId: 'remaining-amount-card',
+            action: 'checkout',
+          }
+        "
+      ></ng-container>
+    } @else {
+      @if (canPayReservation) {
+        <button igntButton data-testid="pay-remaining-amount-button" (click)="navigateToPayReservation()">
+          {{ 'reservation.payReservation' | translate }}
+        </button>
+      }
+    }
+  }
+
+  @if (reservationStatus === ReservationStatus.TO_BE_PAID && !isSecuredFinalPaymentPending) {
+    @if ('reservation.checkout.getYourTicketsNowTitle' | translationKeyExists) {
+      @if (
+        cart?.deposit &&
+        (canPayReservation || canSkipDeposit) &&
+        ('reservation.checkout.secureReservationWithDepositTitle' | translationKeyExists)
+      ) {
+        <p class="reservation-payment-cta__payment-options-subtitle">
+          {{ 'reservation.checkout.chooseHowToSecureReservation' | translate }}
+        </p>
+      }
+
+      @if (!cart?.deposit) {
+        <div class="reservation-payment-cta__payment-action-card" data-testid="get-tickets-card">
+          <h3 class="reservation-payment-cta__payment-action-card-title">
+            {{ 'reservation.checkout.getYourTicketsNowTitle' | translate }}
+          </h3>
+          @if (cart?.total) {
+            <div class="reservation-payment-cta__payment-action-card-price">
+              {{ cart!.total!.amount | currency: cart!.total!.currency : 'symbol-narrow' }}
+            </div>
+          }
+          @if (canPayReservation) {
+            <button
+              igntButton
+              class="reservation-payment-cta__payment-action-card-button"
+              sentiment="primary"
+              [fill]="true"
+              data-testid="get-tickets-card-button"
+              (click)="handlePaymentAction('checkout')"
+            >
+              {{ 'reservation.payReservation' | translate }}
+            </button>
+          }
+          <p class="reservation-payment-cta__payment-action-card-description">
+            {{ 'reservation.checkout.getYourTicketsNowDescription' | translate }}
+          </p>
+
+          <hr class="reservation-payment-cta__payment-action-card-divider" />
+
+          <div class="reservation-payment-cta__send-payment-link" data-testid="send-payment-link-section">
+            <div class="reservation-payment-cta__send-payment-link-content">
+              <ignt-icon class="reservation-payment-cta__send-payment-link-icon" name="link" variant="light" aria-hidden="true"></ignt-icon>
+              <div class="reservation-payment-cta__send-payment-link-text">
+                <span class="reservation-payment-cta__send-payment-link-title">{{ 'reservation.sendPaymentLink' | translate }}</span>
+                <p class="reservation-payment-cta__send-payment-link-description" data-testid="send-payment-link-description">
+                  @if (reservationEmail | isPlaceholderEmail) {
+                    {{ 'reservation.checkout.sendPaymentLinkDescriptionNoEmail' | translate }}
+                  } @else {
+                    {{ 'reservation.checkout.sendPaymentLinkDescription' | translate }}
+                  }
+                </p>
+              </div>
+            </div>
+            <a
+              igntLink
+              class="reservation-payment-cta__send-payment-link-action"
+              data-testid="send-payment-link-button"
+              [leadingIcon]="isLoadingPaymentLinkModal() ? ['fad', 'spinner-third'] : null"
+              (click)="!isLoadingPaymentLinkModal() && getPaymentLink()"
+            >
+              @if (reservationEmail | isPlaceholderEmail) {
+                {{ 'reservation.paymentUrlModal.copyButton' | translate }}
+              } @else {
+                {{ 'reservation.paymentUrlModal.sendButton' | translate }}
+              }
+            </a>
+          </div>
+        </div>
+      } @else if (canPayReservation) {
+        <ng-container
+          *ngTemplateOutlet="
+            paymentActionCard;
+            context: {
+              titleKey: 'reservation.checkout.getYourTicketsNowTitle',
+              buttonKey: 'reservation.payReservation',
+              descriptionKey: 'reservation.checkout.getYourTicketsNowDescription',
+              testId: 'get-tickets-card',
+              action: 'checkout',
+            }
+          "
+        ></ng-container>
+      }
+
+      @if (
+        isDepositCtaAvailable &&
+        (canPayReservation || canSkipDeposit) &&
+        ('reservation.checkout.secureReservationWithDepositTitle' | translationKeyExists)
+      ) {
+        <div class="reservation-payment-cta__payment-action-card" data-testid="secure-with-deposit-card">
+          <h3 class="reservation-payment-cta__payment-action-card-title">
+            {{ 'reservation.checkout.secureReservationWithDepositTitle' | translate }}
+          </h3>
+          @if (cart?.deposit?.calculatedAmount; as depositAmount) {
+            <div class="reservation-payment-cta__payment-action-card-price">
+              {{ depositAmount.amount | currency: depositAmount.currency : 'symbol-narrow' }}
+            </div>
+          }
+          @if (canPayReservation) {
+            <button
+              igntButton
+              class="reservation-payment-cta__payment-action-card-button"
+              sentiment="secondary"
+              [fill]="true"
+              data-testid="secure-with-deposit-card-button"
+              (click)="handlePaymentAction('deposit')"
+            >
+              {{ 'reservation.checkout.secureItNow' | translate }}
+            </button>
+          }
+          @if (canSkipDeposit) {
+            <button
+              igntButton
+              class="reservation-payment-cta__payment-action-card-skip-button"
+              sentiment="tertiary"
+              size="small"
+              [fill]="true"
+              data-testid="skip-deposit-button"
+              (click)="openSkipDepositModal()"
+              [loading]="isSkippingDeposit()"
+              [disabled]="isSkippingDeposit()"
+            >
+              {{ 'reservation.checkout.skipDeposit.button' | translate }}
+            </button>
+          }
+          <p class="reservation-payment-cta__payment-action-card-description">
+            @if (secureReservationWithDepositDescriptionParams(); as descriptionParams) {
+              {{ 'reservation.checkout.secureReservationWithDepositDescription' | translate: descriptionParams }}
+            } @else {
+              {{ 'reservation.checkout.secureReservationWithDepositDescriptionFallback' | translate }}
+            }
+          </p>
+        </div>
+      }
+    } @else {
+      @if (displayDeposit; as deposit) {
+        <app-deposit-status-badge
+          [deposit]="deposit"
+          [currency]="cart?.total?.currency ?? null"
+          [isInReservationDetails]="true"
+          [showRefundButton]="canRefundDeposits"
+          [reservationStatus]="reservationStatus"
+          [reservationId]="reservationId"
+          [onRefund]="refundDeposit"
+        />
+        @if (canPayReservation) {
+          <button igntButton data-testid="new-reservation-checkout-pay-reservation-button" (click)="navigateToPayReservation()">
+            {{ 'reservation.payReservation' | translate }}
+          </button>
+        }
+      } @else {
+        <div class="reservation-payment-cta__new-reservation-purchase-screen">
+          <button
+            igntButton
+            sentiment="secondary"
+            data-testid="send-payment-link-button"
+            [loading]="isLoadingPaymentLinkModal()"
+            (click)="getPaymentLink()"
+          >
+            {{ 'reservation.sendPaymentLink' | translate }}
+          </button>
+          @if (canPayReservation) {
+            <button igntButton data-testid="new-reservation-checkout-pay-reservation-button" (click)="navigateToPayReservation()">
+              {{ 'reservation.payReservation' | translate }}
+            </button>
+          }
+        </div>
+      }
+    }
+  }
+</div>
+
+<ng-template #skipDepositConfirmTpl>
+  <ignt-dialog-header hideCloseButton data-testid="skip-deposit-confirm-header">
+    {{ 'reservation.deposit.skip.modal.title' | translate }}
+  </ignt-dialog-header>
+  <ignt-dialog-content>
+    <p class="reservation-payment-cta__skip-deposit-modal-warning">{{ 'reservation.deposit.skip.modal.warning' | translate }}</p>
+    @if (skipDepositExpirationDate(); as expirationDate) {
+      <p class="reservation-payment-cta__skip-deposit-modal-expiration" data-testid="skip-deposit-expiration-warning">
+        {{ 'reservation.deposit.skip.modal.expirationWarning' | translate: { date: expirationDate } }}
+      </p>
+    }
+  </ignt-dialog-content>
+  <ignt-dialog-footer hideCancelButton>
+    <button type="button" igntButton sentiment="secondary" [igntDialogClose]="false" data-testid="skip-deposit-cancel">
+      {{ 'reservation.deposit.skip.modal.cancelButton' | translate }}
+    </button>
+    <button type="button" igntButton sentiment="primary" variant="danger" [igntDialogClose]="true" data-testid="skip-deposit-confirm">
+      {{ 'reservation.deposit.skip.modal.confirmButton' | translate }}
+    </button>
+  </ignt-dialog-footer>
+</ng-template>

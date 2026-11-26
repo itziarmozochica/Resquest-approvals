@@ -1,0 +1,105 @@
+<section class="main-wrapper" [attr.aria-label]="'menu.fundraisingDonations' | translate">
+  <app-fundraising-page-title [section]="'menu.fundraising' | translate" [title]="'menu.fundraisingDonations' | translate">
+    @if (hasDonationsCreated() === true) {
+      <ignt-button
+        variant="primary"
+        size="large"
+        [label]="'fundraising.donations.list.createButton' | translate"
+        (click)="onCreateDonationConfiguration()"
+        data-testid="donation-prompts-list-create-button"
+      />
+    }
+  </app-fundraising-page-title>
+
+  @if (hasDonationsCreated() === false) {
+    <ng-container [ngTemplateOutlet]="emptyState"></ng-container>
+  } @else {
+    <ng-container [ngTemplateOutlet]="donationsList"></ng-container>
+  }
+</section>
+
+<ng-template #donationsList>
+  <div class="donation-prompts-list" [attr.aria-busy]="isLoading()" aria-live="polite">
+    <div class="donation-prompts-list__header">
+      <div class="donation-prompts-list__search">
+        <div class="donation-prompts-list__search-input-wrapper">
+          <ignt-input-field
+            class="donation-prompts-list__search-input"
+            [label]="'fundraising.donations.list.searchPlaceholder' | translate"
+            [ngModel]="searchValue()"
+            (ngModelChange)="onSearchChange($event)"
+            id="donation-prompts-list-search-input"
+            data-testid="donation-prompts-list-search-input"
+          >
+          </ignt-input-field>
+          <ignt-icon class="donation-prompts-list__search-icon" name="search" variant="regular" aria-hidden="true"></ignt-icon>
+        </div>
+      </div>
+    </div>
+
+    <ignt-table [data]="donationConfigurations()" [isLoading]="isLoading()" class="donation-prompts-list__table">
+      <ignt-table-column key="title" [header]="'fundraising.donations.list.headers.title' | translate" columnType="primary">
+        <ng-template [igntTableColumnTemplateType]="donationConfigurations()?.[0]" let-item="item">
+          <a igntLink size="small" sentiment="primary" [routerLink]="['/fundraising/donations', item.id]">{{ item.title }}</a>
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column key="events" [header]="'fundraising.donations.list.headers.event' | translate">
+        <ng-template [igntTableColumnTemplateType]="donationConfigurations()?.[0]" let-item="item">
+          <a igntLink sentiment="primary" size="small" (click)="onEventsClick(item)" (keydown)="$event.stopPropagation()">
+            {{ 'fundraising.donations.list.' + getEventsLinkKey(item.events.length) | translate: { count: item.events.length } }}
+          </a>
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column key="createdAt" [header]="'fundraising.donations.list.headers.creationDate' | translate">
+        <ng-template [igntTableColumnTemplateType]="donationConfigurations()?.[0]" let-item="item">
+          <time [attr.datetime]="item.createdAt | date: 'yyyy-MM-dd'">
+            {{ item.createdAt | momentDate: 'MMM d, yyyy' }}
+          </time>
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column key="status" [header]="'fundraising.donations.list.headers.status' | translate">
+        <ng-template [igntTableColumnTemplateType]="donationConfigurations()?.[0]" let-item="item">
+          <ignt-tag [sentiment]="getDonationStatusSentiment(item.status)" [variant]="'outline'">
+            {{ 'fundraising.donations.list.status.' + getStatusKey(item.status) | translate }}
+          </ignt-tag>
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column [header]="'fundraising.donations.list.headers.actions' | translate" columnType="action">
+        <ng-template [igntTableColumnTemplateType]="donationConfigurations()?.[0]" let-item="item">
+          <div class="donation-prompts-list__cell-actions__inner">
+            <ignt-button-dropdown
+              [options]="getDropdownActionsOptions(item)"
+              [size]="'small'"
+              [sentiment]="'tertiary'"
+              [align]="'right'"
+              [leadingIcon]="['fas', 'ellipsis-v']"
+              [trailingIconClosed]="null"
+              [trailingIconOpened]="null"
+              class="donation-prompts-list__cell-actions"
+              [attr.aria-label]="('fundraising.donations.list.actionsFor' | translate) + ' ' + item.title"
+              (optionClick)="onDropdownOptionClick($event, item)"
+              data-testid="donation-prompts-list-actions-dropdown"
+            >
+            </ignt-button-dropdown>
+          </div>
+        </ng-template>
+      </ignt-table-column>
+    </ignt-table>
+  </div>
+</ng-template>
+
+<ng-template #emptyState>
+  <app-empty-state-action
+    [title]="'fundraising.donations.emptyState.title' | translate"
+    [subtitle]="'fundraising.donations.emptyState.subtitle' | translate"
+    [buttonLabel]="'fundraising.donations.emptyState.createButton' | translate"
+    buttonTestId="donation-prompts-list-empty-state-create-button"
+    (actionClick)="onCreateDonationConfiguration()"
+  />
+</ng-template>
+
+<app-confirmation-dialog />

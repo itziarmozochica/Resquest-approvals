@@ -1,0 +1,600 @@
+<div class="quick-setup-schedule-item" data-testid="create-event-quick-setup-schedule-item" [formGroup]="form">
+  <section class="quick-setup-schedule-item__section">
+    <div class="quick-setup-schedule-item__section-heading">
+      <h3 class="quick-setup-schedule-item__section-title">
+        {{ 'createEvent.quickSetupWizard.step3.eventDateTitle' | translate }}
+      </h3>
+      <p class="quick-setup-schedule-item__section-helper">
+        {{ 'createEvent.quickSetupWizard.step3.eventDateHelper' | translate }}
+      </p>
+    </div>
+
+    <ignt-radio-group formControlName="dateFrequency" class="quick-setup-schedule-item__radio-group">
+      <ignt-radio
+        [label]="'createEvent.quickSetupWizard.step3.singleDates' | translate"
+        [value]="calendarDateFrequency.SingleDates"
+        data-testid="create-event-quick-setup-single-dates-radio"
+      />
+      <ignt-radio
+        [label]="'createEvent.quickSetupWizard.step3.recurringDates' | translate"
+        [value]="calendarDateFrequency.RecurrentDates"
+        data-testid="create-event-quick-setup-recurring-dates-radio"
+      />
+    </ignt-radio-group>
+
+    @if (!isRecurrentDates()) {
+      <div class="quick-setup-schedule-item__rows" formArrayName="specificDates">
+        @for (dateRow of specificDateRows(); track dateRow.rowKey) {
+          <div class="quick-setup-schedule-item__row" [attr.data-testid]="'create-event-quick-setup-date-row-' + dateRow.index">
+            <ng-container
+              [ngTemplateOutlet]="pickerField"
+              [ngTemplateOutletContext]="{
+                control: dateRow.control,
+                formErrors: specificDateInputFormErrors,
+                inputId: 'create-event-quick-setup-date-' + dateRow.index,
+                dataTestId: 'create-event-quick-setup-date-input-' + dateRow.index,
+                type: 'date',
+                label: ('createEvent.quickSetupWizard.step3.startDate' | translate),
+              }"
+            />
+            <div class="quick-setup-schedule-item__row-actions">
+              <button
+                type="button"
+                ignt-icon-button
+                sentiment="tertiary"
+                size="medium"
+                class="quick-setup-schedule-item__delete-button"
+                [icon]="['fas', 'trash']"
+                [attr.data-testid]="'create-event-quick-setup-date-delete-' + dateRow.index"
+                [disabled]="!canDeleteDate()"
+                (click)="removeDate(dateRow.index)"
+              ></button>
+              @if ($last) {
+                <ignt-button
+                  class="quick-setup-schedule-item__add-link"
+                  data-testid="create-event-quick-setup-add-date-button"
+                  [label]="'createEvent.quickSetupWizard.step3.addDate' | translate"
+                  size="small"
+                  variant="tertiary"
+                  [leadingIcon]="{ name: 'plus', variant: 'regular' }"
+                  (click)="addDate()"
+                />
+              }
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="quick-setup-schedule-item__rows" formArrayName="dateRanges">
+        @for (dateRangeRow of dateRangeRows(); track dateRangeRow.key) {
+          <div
+            class="quick-setup-schedule-item__row quick-setup-schedule-item__row--date-range"
+            [attr.data-testid]="'create-event-quick-setup-date-range-row-' + dateRangeRow.index"
+          >
+            <ng-container
+              [ngTemplateOutlet]="pickerField"
+              [ngTemplateOutletContext]="{
+                control: dateRangeRow.startDateControl,
+                formErrors: startDateInputFormErrors,
+                inputId: 'create-event-quick-setup-date-range-start-' + dateRangeRow.index,
+                dataTestId: 'create-event-quick-setup-date-range-start-input-' + dateRangeRow.index,
+                type: 'date',
+                label: ('createEvent.quickSetupWizard.step3.startDate' | translate),
+              }"
+            />
+            <ng-container
+              [ngTemplateOutlet]="pickerField"
+              [ngTemplateOutletContext]="{
+                control: dateRangeRow.endDateControl,
+                formErrors: endDateInputFormErrors,
+                inputId: 'create-event-quick-setup-date-range-end-' + dateRangeRow.index,
+                dataTestId: 'create-event-quick-setup-date-range-end-input-' + dateRangeRow.index,
+                type: 'date',
+                label: ('createEvent.quickSetupWizard.step3.endDate' | translate),
+              }"
+            />
+            <div class="quick-setup-schedule-item__row-actions">
+              <button
+                type="button"
+                ignt-icon-button
+                sentiment="tertiary"
+                size="medium"
+                class="quick-setup-schedule-item__delete-button"
+                [icon]="['fas', 'trash']"
+                [attr.aria-label]="'createEvent.quickSetupWizard.step3.deleteRange' | translate"
+                [attr.data-testid]="'create-event-quick-setup-date-range-delete-' + dateRangeRow.index"
+                [disabled]="!canDeleteDateRange()"
+                (click)="removeDateRange(dateRangeRow.index)"
+              ></button>
+              @if ($last) {
+                <ignt-button
+                  class="quick-setup-schedule-item__add-link"
+                  data-testid="create-event-quick-setup-add-date-range-button"
+                  [label]="'createEvent.quickSetupWizard.step3.addRange' | translate"
+                  size="small"
+                  variant="tertiary"
+                  [leadingIcon]="{ name: 'plus', variant: 'regular' }"
+                  (click)="addDateRange()"
+                />
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="quick-setup-schedule-item__weekdays" data-testid="create-event-quick-setup-weekdays">
+        <p class="quick-setup-schedule-item__weekdays-label">
+          {{ 'createEvent.quickSetupWizard.step3.weekdaysLabel' | translate }}
+        </p>
+        <div class="quick-setup-schedule-item__weekdays-list">
+          @for (weekdayVm of weekdayViewModels(); track weekdayVm.weekday) {
+            <div
+              role="button"
+              tabindex="0"
+              class="quick-setup-schedule-item__weekday-tile"
+              [class.quick-setup-schedule-item__weekday-tile--error]="weekdayVm.isOutOfRange"
+              [class.quick-setup-schedule-item__weekday-tile--selected]="weekdayVm.isSelected"
+              [attr.aria-pressed]="weekdayVm.isSelected"
+              [attr.data-testid]="'create-event-quick-setup-weekday-' + weekdayVm.weekday"
+              (click)="toggleWeekday(weekdayVm.weekday)"
+              (keydown.enter)="toggleWeekday(weekdayVm.weekday)"
+              (keydown.space)="onWeekdayTileSpaceKey($event, weekdayVm.weekday)"
+            >
+              @if (weekdayVm.isOutOfRange) {
+                <ignt-icon
+                  aria-hidden="true"
+                  class="quick-setup-schedule-item__weekday-tile-error-icon"
+                  name="circle-exclamation"
+                  variant="solid"
+                />
+              }
+              {{ weekdayVm.labelKey | translate }}
+            </div>
+          }
+        </div>
+        @if (showWeekdaysRequiredError()) {
+          <p class="quick-setup-schedule-item__validation-error" data-testid="create-event-quick-setup-weekdays-validation-error">
+            {{ weekdaysRequiredErrorTranslationKey | translate }}
+          </p>
+        }
+        @if (showWeekdaysNotInRangeError()) {
+          <p
+            class="quick-setup-schedule-item__validation-error"
+            data-testid="create-event-quick-setup-weekdays-not-in-range-validation-error"
+          >
+            {{ weekdaysNotInRangeErrorTranslationKey | translate }}
+          </p>
+        }
+      </div>
+
+      <div class="quick-setup-schedule-item__excluded-dates">
+        <p class="quick-setup-schedule-item__excluded-dates-title">
+          {{ 'createEvent.quickSetupWizard.step3.excludedDatesTitle' | translate }}
+        </p>
+        <p class="quick-setup-schedule-item__excluded-dates-helper">
+          {{ 'createEvent.quickSetupWizard.step3.excludedDatesHelper' | translate }}
+        </p>
+        <div class="quick-setup-schedule-item__rows" formArrayName="excludedDates">
+          @for (excludedDateRow of excludedDateRows(); track excludedDateRow.rowKey) {
+            <div
+              class="quick-setup-schedule-item__row quick-setup-schedule-item__row--excluded-date"
+              [attr.data-testid]="'create-event-quick-setup-excluded-date-row-' + excludedDateRow.index"
+            >
+              <ng-container
+                [ngTemplateOutlet]="pickerField"
+                [ngTemplateOutletContext]="{
+                  control: excludedDateRow.control,
+                  formErrors: excludedDateInputFormErrors,
+                  inputId: 'create-event-quick-setup-excluded-date-' + excludedDateRow.index,
+                  dataTestId: 'create-event-quick-setup-excluded-date-input-' + excludedDateRow.index,
+                  type: 'date',
+                  label: ('createEvent.quickSetupWizard.step3.startDate' | translate),
+                }"
+              />
+              <button
+                type="button"
+                ignt-icon-button
+                sentiment="tertiary"
+                size="medium"
+                class="quick-setup-schedule-item__delete-button"
+                [icon]="['fas', 'trash']"
+                [attr.data-testid]="'create-event-quick-setup-excluded-date-delete-' + excludedDateRow.index"
+                (click)="removeExcludedDate(excludedDateRow.index)"
+              ></button>
+            </div>
+          }
+        </div>
+        <ignt-button
+          class="quick-setup-schedule-item__add-link"
+          data-testid="create-event-quick-setup-add-excluded-date-button"
+          [label]="'createEvent.quickSetupWizard.step3.addExcludedDate' | translate"
+          size="small"
+          variant="tertiary"
+          [leadingIcon]="{ name: 'plus', variant: 'regular' }"
+          (click)="addExcludedDate()"
+        />
+      </div>
+    }
+  </section>
+
+  <section class="quick-setup-schedule-item__section">
+    <div class="quick-setup-schedule-item__section-heading">
+      <h3 class="quick-setup-schedule-item__section-title">
+        {{ 'createEvent.quickSetupWizard.step3.eventTimeTitle' | translate }}
+      </h3>
+      <p class="quick-setup-schedule-item__section-helper">
+        {{ 'createEvent.quickSetupWizard.step3.eventTimeHelper' | translate }}
+      </p>
+    </div>
+
+    <ignt-radio-group formControlName="timeSlotFrequency" class="quick-setup-schedule-item__radio-group">
+      <ignt-radio
+        [label]="'createEvent.quickSetupWizard.step3.singleTimeSlots' | translate"
+        [value]="calendarTimeSlotFrequency.SingleTimeSlots"
+        data-testid="create-event-quick-setup-single-time-slots-radio"
+      />
+      <ignt-radio
+        [label]="'createEvent.quickSetupWizard.step3.recurringTimeSlots' | translate"
+        [value]="calendarTimeSlotFrequency.RecurrentTimeSlots"
+        data-testid="create-event-quick-setup-recurring-time-slots-radio"
+      />
+    </ignt-radio-group>
+
+    @if (!isRecurrentTimeSlots()) {
+      <div class="quick-setup-schedule-item__rows" formArrayName="singleTimeSlots">
+        @for (timeSlotRow of singleTimeSlotRows(); track timeSlotRow.key) {
+          <div
+            class="quick-setup-schedule-item__row quick-setup-schedule-item__row--single-time"
+            [formGroupName]="timeSlotRow.index"
+            [attr.data-testid]="'create-event-quick-setup-time-slot-row-' + timeSlotRow.index"
+          >
+            <ng-container
+              [ngTemplateOutlet]="pickerField"
+              [ngTemplateOutletContext]="{
+                control: timeSlotRow.startTimeControl,
+                formErrors: startTimeInputFormErrors,
+                inputId: 'create-event-quick-setup-start-time-' + timeSlotRow.index,
+                dataTestId: 'create-event-quick-setup-start-time-input-' + timeSlotRow.index,
+                type: 'time',
+                label: ('createEvent.quickSetupWizard.step3.startTime' | translate),
+              }"
+            />
+            <ng-container
+              [ngTemplateOutlet]="pickerField"
+              [ngTemplateOutletContext]="{
+                control: timeSlotRow.endTimeControl,
+                formErrors: endTimeInputFormErrors,
+                inputId: 'create-event-quick-setup-end-time-' + timeSlotRow.index,
+                dataTestId: 'create-event-quick-setup-end-time-input-' + timeSlotRow.index,
+                type: 'time',
+                label: ('createEvent.quickSetupWizard.step3.endTime' | translate),
+              }"
+            />
+            <div class="quick-setup-schedule-item__row-actions">
+              <button
+                type="button"
+                ignt-icon-button
+                sentiment="tertiary"
+                size="medium"
+                class="quick-setup-schedule-item__delete-button"
+                [icon]="['fas', 'trash']"
+                [attr.data-testid]="'create-event-quick-setup-time-slot-delete-' + timeSlotRow.index"
+                [disabled]="!canDeleteTimeSlot()"
+                (click)="removeTimeSlot(timeSlotRow.index)"
+              ></button>
+              @if ($last) {
+                <ignt-button
+                  class="quick-setup-schedule-item__add-link"
+                  data-testid="create-event-quick-setup-add-time-slot-button"
+                  [label]="'createEvent.quickSetupWizard.step3.addTimeSlot' | translate"
+                  size="small"
+                  variant="tertiary"
+                  [leadingIcon]="{ name: 'plus', variant: 'regular' }"
+                  (click)="addTimeSlot()"
+                />
+              }
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="quick-setup-schedule-item__recurring-meta">
+        <div class="quick-setup-schedule-item__repeats-every">
+          <span class="quick-setup-schedule-item__repeats-every-label">
+            {{ 'createEvent.quickSetupWizard.step3.repeatsEvery' | translate }}
+          </span>
+          <ignt-input-field
+            class="quick-setup-schedule-item__repeats-every-input"
+            id="create-event-quick-setup-repeats-every"
+            [customFormErrors]="repeatsEveryInputFormErrors"
+            [formControl]="form.controls.repeatsEveryMinutes"
+            type="number"
+            [label]="'createEvent.quickSetupWizard.step3.repeatsEveryUnit' | translate"
+            data-testid="create-event-quick-setup-repeats-every-input"
+          />
+        </div>
+        <ignt-input-field
+          class="quick-setup-schedule-item__duration-input"
+          id="create-event-quick-setup-duration"
+          [customFormErrors]="durationInputFormErrors"
+          [formControl]="form.controls.durationInMinutes"
+          type="number"
+          [label]="'createEvent.quickSetupWizard.step3.duration' | translate"
+          data-testid="create-event-quick-setup-duration-input"
+        />
+      </div>
+      <div class="quick-setup-schedule-item__rows" formArrayName="recurringRanges">
+        @for (rangeRow of recurringRangeRows(); track rangeRow.key) {
+          <div
+            class="quick-setup-schedule-item__row quick-setup-schedule-item__row--recurring-range"
+            [formGroupName]="rangeRow.index"
+            [attr.data-testid]="'create-event-quick-setup-recurring-range-row-' + rangeRow.index"
+          >
+            <ng-container
+              [ngTemplateOutlet]="pickerField"
+              [ngTemplateOutletContext]="{
+                control: rangeRow.firstTimeControl,
+                formErrors: firstTimeInputFormErrors,
+                inputId: 'create-event-quick-setup-first-time-' + rangeRow.index,
+                dataTestId: 'create-event-quick-setup-first-time-input-' + rangeRow.index,
+                type: 'time',
+                label: ('createEvent.quickSetupWizard.step3.firstTimeSlot' | translate),
+              }"
+            />
+            <ng-container
+              [ngTemplateOutlet]="pickerField"
+              [ngTemplateOutletContext]="{
+                control: rangeRow.lastTimeControl,
+                formErrors: lastTimeInputFormErrors,
+                inputId: 'create-event-quick-setup-last-time-' + rangeRow.index,
+                dataTestId: 'create-event-quick-setup-last-time-input-' + rangeRow.index,
+                type: 'time',
+                label: ('createEvent.quickSetupWizard.step3.lastTimeSlot' | translate),
+              }"
+            />
+            <div class="quick-setup-schedule-item__row-actions">
+              <button
+                type="button"
+                ignt-icon-button
+                sentiment="tertiary"
+                size="medium"
+                class="quick-setup-schedule-item__delete-button"
+                [icon]="['fas', 'trash']"
+                [attr.data-testid]="'create-event-quick-setup-recurring-range-delete-' + rangeRow.index"
+                [disabled]="!canDeleteRecurringRange()"
+                (click)="removeRecurringRange(rangeRow.index)"
+              ></button>
+              @if ($last) {
+                <ignt-button
+                  class="quick-setup-schedule-item__add-link"
+                  data-testid="create-event-quick-setup-add-range-button"
+                  [label]="'createEvent.quickSetupWizard.step3.addRange' | translate"
+                  size="small"
+                  variant="tertiary"
+                  [leadingIcon]="{ name: 'plus', variant: 'regular' }"
+                  (click)="addRecurringRange()"
+                />
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  @if (shouldShowTierCalendar()) {
+    <section
+      class="quick-setup-schedule-item__section quick-setup-schedule-item__section--tier-calendar"
+      data-testid="create-event-quick-setup-tier-calendar"
+    >
+      <div class="quick-setup-schedule-item__section-heading">
+        <h3 class="quick-setup-schedule-item__section-title">
+          {{ 'createEvent.quickSetupWizard.step3.assignTiersTitle' | translate }}
+        </h3>
+        <p class="quick-setup-schedule-item__section-helper">
+          {{ 'createEvent.quickSetupWizard.step3.assignTiersHelper' | translate }}
+        </p>
+      </div>
+      <app-schedule-tier-calendar-drag-hint />
+      <app-schedule-tier-calendar
+        [days]="calendarDays()"
+        [duration]="calendarGridParams().duration"
+        [endTime]="calendarGridParams().endTime"
+        [fixedTimeSlots]="calendarGridParams().fixedTimeSlots"
+        [fluidColumns]="true"
+        [headerDateFormat]="'EEE, d MMM.'"
+        [hideCapacityTemplate]="true"
+        [scrollableColumnThreshold]="1"
+        [startTime]="calendarGridParams().startTime"
+        [tierOptions]="tierOptions()"
+        [timeLabels]="calendarTimeLabels()"
+        [timezone]="timezone()"
+        tableTestId="create-event-quick-setup-tier-calendar-table"
+        (dayChange)="onDayChange($event)"
+        (dragPaint)="onTierCalendarDragPaint($event)"
+      />
+    </section>
+  }
+
+  <section class="quick-setup-schedule-item__section">
+    <div class="quick-setup-schedule-item__section-heading">
+      <h3 class="quick-setup-schedule-item__section-title">
+        {{ 'createEvent.quickSetupWizard.step3.productsTitle' | translate }}
+      </h3>
+      <p class="quick-setup-schedule-item__section-helper">
+        {{ 'createEvent.quickSetupWizard.step3.productsHelper' | translate }}
+      </p>
+    </div>
+
+    <app-multi-select
+      class="quick-setup-schedule-item__products-select"
+      data-testid="create-event-quick-setup-products-select"
+      [displayInPlaceMaximum]="2"
+      [errorMessage]="sessionTypesRequiredErrorMessage()"
+      [isSelectAllVisible]="true"
+      [options]="productOptions()"
+      [placeholder]="'createEvent.quickSetupWizard.step3.productsLabel' | translate"
+      [selectedOptions]="selectedProductOptions()"
+      (selected)="onProductsSelected($event)"
+    />
+  </section>
+
+  @if (shouldShowDayExceptions()) {
+    <app-quick-setup-day-exceptions
+      formControlName="dayExceptions"
+      [calendarGridParams]="calendarGridParams()"
+      [calendarTimeLabels]="calendarTimeLabels()"
+      [canShowCalendarGrid]="canShowTierCalendarGrid()"
+      [dateRanges]="mappedScheduleFormValue()?.dateRanges ?? []"
+      [excludedDates]="mappedExcludedDates()"
+      [isAssigningTiers]="isAssigningTiers()"
+      [isRecurrentDates]="isRecurrentDates()"
+      [normalTierId]="normalTierId()"
+      [productOptions]="productOptions()"
+      [scheduleFormValue]="mappedScheduleFormValue()"
+      [selectedSessionTypeIds]="scheduleSelectedSessionTypeIds()"
+      [showValidationErrors]="showSectionValidationErrors()"
+      [tierOptions]="tierOptions()"
+      [timezone]="timezone()"
+    />
+  }
+
+  <section class="quick-setup-schedule-item__section" data-testid="create-event-quick-setup-sales-activation">
+    <div class="quick-setup-schedule-item__section-heading">
+      <h3 class="quick-setup-schedule-item__section-title">
+        {{ salesActivationTranslationPrefix + '.title' | translate }}
+      </h3>
+      <p class="quick-setup-schedule-item__section-helper">
+        {{ salesActivationTranslationPrefix + '.description' | translate }}
+      </p>
+    </div>
+
+    <div class="quick-setup-schedule-item__sales-activation">
+      <ng-container
+        [ngTemplateOutlet]="salesWindow"
+        [ngTemplateOutletContext]="{
+          group: salesWindowGroups.start,
+          testId: 'create-event-quick-setup-sales-start',
+          titleKey: salesActivationTranslationPrefix + '.salesStartTime',
+          types: salesActivationStartTypes,
+          view: salesWindows().start,
+        }"
+      />
+      <div class="quick-setup-schedule-item__sales-window-divider" aria-hidden="true"></div>
+      <ng-container
+        [ngTemplateOutlet]="salesWindow"
+        [ngTemplateOutletContext]="{
+          group: salesWindowGroups.end,
+          testId: 'create-event-quick-setup-sales-end',
+          titleKey: salesActivationTranslationPrefix + '.salesEndTime',
+          types: salesActivationEndTypes,
+          view: salesWindows().end,
+        }"
+      />
+    </div>
+  </section>
+</div>
+
+<ng-template
+  #pickerField
+  let-control="control"
+  let-dataTestId="dataTestId"
+  let-formErrors="formErrors"
+  let-inputId="inputId"
+  let-label="label"
+  let-type="type"
+>
+  <ignt-input-field
+    #pickerFieldRef
+    class="quick-setup-schedule-item__picker-field"
+    [customFormErrors]="formErrors"
+    [formControl]="control"
+    [id]="inputId"
+    [label]="label"
+    [type]="type"
+    [trailIcon]="['fal', type === 'time' ? 'clock' : 'calendar']"
+    [trailIconAriaLabel]="
+      (type === 'time' ? 'createEvent.quickSetupWizard.step3.openTimePicker' : 'createEvent.quickSetupWizard.step3.openDatePicker')
+        | translate
+    "
+    [attr.data-testid]="dataTestId"
+    (trailIconClicked)="openNativePicker(pickerFieldRef)"
+  />
+</ng-template>
+
+<ng-template #salesWindow let-group="group" let-testId="testId" let-titleKey="titleKey" let-types="types" let-view="view">
+  <div class="quick-setup-schedule-item__sales-window" [attr.data-testid]="testId">
+    <h4 class="quick-setup-schedule-item__sales-window-title">
+      <ignt-icon name="calendar" variant="light" aria-hidden="true" />
+      <span>{{ titleKey | translate }}</span>
+    </h4>
+    <ignt-radio-group
+      class="quick-setup-schedule-item__radio-group quick-setup-schedule-item__radio-group--wrap"
+      [ariaLabel]="titleKey | translate"
+      [formControl]="group.controls.type"
+      [attr.data-testid]="testId + '-type'"
+    >
+      @for (type of types; track type) {
+        <ignt-radio
+          [label]="salesActivationTranslationPrefix + '.' + type | translate"
+          [value]="type"
+          [attr.data-testid]="testId + '-' + type"
+        />
+      }
+    </ignt-radio-group>
+    @if (view.isFixedDate) {
+      <div class="quick-setup-schedule-item__sales-window-inputs quick-setup-schedule-item__sales-window-inputs--datetime">
+        <ng-container
+          [ngTemplateOutlet]="pickerField"
+          [ngTemplateOutletContext]="{
+            control: group.controls.fixedDateTime,
+            formErrors: salesDateTimeInputFormErrors,
+            inputId: testId + '-date-time',
+            dataTestId: testId + '-date-time-input',
+            type: 'datetime-local',
+            label: (salesActivationTranslationPrefix + '.fields.date' | translate),
+          }"
+        />
+      </div>
+    }
+    @if (view.isRelative) {
+      <div class="quick-setup-schedule-item__sales-window-inputs">
+        <ignt-input-field
+          class="quick-setup-schedule-item__sales-delta-input"
+          type="number"
+          [id]="testId + '-delta'"
+          [customFormErrors]="salesDeltaInputFormErrors"
+          [formControl]="group.controls.delta"
+          [label]="salesActivationTranslationPrefix + '.fields.number' | translate"
+          [attr.data-testid]="testId + '-delta-input'"
+        />
+        <div class="quick-setup-schedule-item__sales-select">
+          <ignt-typeahead
+            [editable]="false"
+            [fieldLabel]="salesActivationTranslationPrefix + '.fields.time.title' | translate"
+            [options]="salesActivationTimeUnitOptions"
+            [selectedOption]="view.selectedTimeUnitOption"
+            [attr.data-testid]="testId + '-time-unit'"
+            (selected)="onSalesWindowTimeUnitSelected(group, $event)"
+          />
+          <ignt-field-error [formControlValue]="group.controls.deltaTimeUnit" errorName="required">
+            {{ 'createEvent.quickSetupWizard.step3.errors.salesTimeUnitRequired' | translate }}
+          </ignt-field-error>
+        </div>
+        <div class="quick-setup-schedule-item__sales-select">
+          <ignt-typeahead
+            [editable]="false"
+            [fieldLabel]="salesActivationTranslationPrefix + '.fields.when.title' | translate"
+            [options]="salesActivationDeltaReferenceOptions"
+            [selectedOption]="view.selectedDeltaReferenceOption"
+            [attr.data-testid]="testId + '-reference'"
+            (selected)="onSalesWindowDeltaReferenceSelected(group, $event)"
+          />
+          <ignt-field-error [formControlValue]="group.controls.deltaReference" errorName="required">
+            {{ 'createEvent.quickSetupWizard.step3.errors.salesReferenceRequired' | translate }}
+          </ignt-field-error>
+        </div>
+      </div>
+    }
+  </div>
+</ng-template>

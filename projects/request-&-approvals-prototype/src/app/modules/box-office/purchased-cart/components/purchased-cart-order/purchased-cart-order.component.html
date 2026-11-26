@@ -1,0 +1,224 @@
+<ignt-wrapper-card class="purchased-cart-order" [elevation]="0">
+  <div class="purchased-cart-order__block">
+    <div class="purchased-cart-order__block__order" data-testid="purchased-cart-order-block">
+      <div class="checkout-order-id">
+        <div class="checkout-order-id__order-id">
+          <div class="font-small-regular" translate>{{ 'boxOffice.order.tickets.orderId' }}</div>
+          <a
+            class="checkout-order-id__order-id__link"
+            data-testid="purchased-cart-order-id-link"
+            igntLink
+            size="small"
+            [href]="validationsUrl()"
+            [attr.target]="shouldOpenInNewTab ? '_blank' : null"
+            (click)="navigateToValidations($event)"
+          >
+            <span class="checkout-order-id__order-id__link__text">{{ order.externalId }}</span>
+            <ignt-icon class="checkout-order-id__order-id__icon" name="external-link" variant="solid" size="base" aria-hidden="true" />
+          </a>
+        </div>
+        <div class="checkout-order-id__actions">
+          @if (order.reservationId) {
+            <ignt-button
+              (click)="openDeliveryNote.emit()"
+              [disabled]="loadingDeliveryNote()"
+              size="small"
+              variant="tertiary"
+              [leadingIcon]="{ name: 'clipboard-list', variant: 'solid' }"
+              [label]="'reservations.deliveryNote' | translate"
+            />
+          }
+          @if (hasAdyenDeviceConfig || isFiscalReprintEnabled || isEpsonReceiptPrinter) {
+            <ignt-button
+              (click)="printReceipt.emit()"
+              data-testid="purchased-cart-print-receipt-button"
+              [disabled]="isFiscalReprintEnabled && isReprintingFiscalReceipt"
+              size="small"
+              variant="tertiary"
+              [leadingIcon]="{ name: 'receipt', variant: 'solid' }"
+              [label]="'boxOffice.order.adyenPrinter.buttons.printReceipt' | translate"
+            />
+          }
+        </div>
+      </div>
+      <div class="checkout-order-header">
+        <div class="checkout-order-header__plan">
+          <div class="main-plan-detail-header">
+            @if (flexibleBundle(); as flexibleBundle) {
+              <app-image-collage
+                class="main-plan-detail-header__collage"
+                data-testid="purchased-cart-bundle-collage"
+                [images]="flexibleBundle.collageImages"
+                [fallback]="mainPlanCoverImage()"
+              />
+            } @else {
+              <img
+                class="main-plan-detail-header__img"
+                data-testid="purchased-cart-order-plan-picture"
+                alt="{{ mainPlan.name }} - Cover image"
+                src="{{ mainPlan.pictureURL }}"
+                width="45"
+                height="45"
+              />
+            }
+            <div class="main-plan-detail-header__details">
+              <div class="main-plan-detail-header__info">
+                <div class="main-plan-detail-header__name" data-testid="purchased-cart-plan-name">
+                  {{ flexibleBundle() ? ('boxOffice.purchaseConfirmation.multiAttraction' | translate) : mainPlan.name }}
+                </div>
+                @if (!flexibleBundle() && uniqueVenueNames().length > 0) {
+                  <div class="main-plan-detail-header__supporting-text" data-testid="purchased-cart-venue">
+                    <ignt-icon name="map-marker-alt" variant="light" size="base" [fixedWidth]="true" aria-hidden="true" />
+                    <span>{{ uniqueVenueNames().join(', ') }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="checkout-order-header__ticket-operations">
+          <div class="checkout-order-header__ticket-operations__buttons">
+            @if (showValidateButton) {
+              <div class="checkout-order-header__ticket-operations__buttons__row">
+                <ignt-button
+                  (click)="validateTicketsClick()"
+                  data-testid="purchased-cart-validate-button"
+                  [disabled]="isValidating || agreementBlocked()"
+                  [fill]="isMobile()"
+                  [loading]="isValidating"
+                  variant="primary"
+                  [label]="'boxOffice.purchaseConfirmation.validateTickets' | translate"
+                />
+              </div>
+            }
+            <div class="checkout-order-header__ticket-operations__buttons__row">
+              @if (!isDualScreen && !hasViewTicketDisabled) {
+                <ignt-button
+                  (click)="openTicketsClick()"
+                  data-testid="purchased-cart-open-tickets-button"
+                  [disabled]="agreementBlocked()"
+                  [fill]="isMobile()"
+                  variant="secondary"
+                  [label]="'boxOffice.purchaseConfirmation.open' | translate"
+                />
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    @if (agreementNoticeVisible()) {
+      <ignt-alert
+        class="purchased-cart-order__agreement-notice"
+        role="alert"
+        data-testid="agreement-block-notice"
+        sentiment="info"
+        [title]="'boxOffice.order.agreementBlock.title' | translate"
+        [description]="'boxOffice.order.agreementBlock.notice' | translate"
+      >
+        <ng-template #igntAlertActions>
+          @if (showAgreementAction()) {
+            <ignt-button
+              size="small"
+              variant="secondary"
+              data-testid="open-agreement-list"
+              [label]="'boxOffice.order.agreementBlock.viewAgreements' | translate"
+              (click)="openAgreementList.emit()"
+            />
+          }
+        </ng-template>
+      </ignt-alert>
+    }
+    <div class="purchased-cart-order__block__content">
+      <div class="purchased-cart-order__block__cart" data-testid="purchased-cart-cart-block">
+        @if (flexibleBundle()) {
+          <div class="purchased-cart-order__bundle-schedule" data-testid="purchased-cart-bundle-schedule">
+            @for (slot of bundleScheduledSlots(); track slot.startsAt) {
+              <ng-container
+                *ngTemplateOutlet="
+                  scheduleGroup;
+                  context: { title: slot.label, attractionNames: slot.attractionNames, sentiment: 'positive' }
+                "
+              />
+            }
+            @if (bundlePendingAttractionNames().length > 0) {
+              <ng-container
+                *ngTemplateOutlet="
+                  scheduleGroup;
+                  context: {
+                    title: ('boxOffice.purchaseConfirmation.stillToSchedule' | translate),
+                    attractionNames: bundlePendingAttractionNames(),
+                    sentiment: 'info',
+                  }
+                "
+              />
+            }
+          </div>
+        }
+        @if (flexibleBundle(); as flexibleBundle) {
+          <app-one-step-multi-cart-detail-sessions
+            data-testid="purchased-cart-bundle-breakdown"
+            labelIconName="ticket"
+            [label]="'boxOffice.purchaseConfirmation.breakdown' | translate"
+            [cartSessions]="flexibleBundle.breakdown.lines"
+          />
+        } @else {
+          <div class="basket-sessions">
+            @for (item of sessionItemsByDatetimeAndVenue(); track trackByDatetimeAndVenue($index, item)) {
+              <app-one-step-multi-cart-detail-sessions
+                [label]="getLabelForDatetimeSessions(item)"
+                [cartSessions]="item.sessions"
+                [enableColapse]="false"
+                [planHasMultipleVenues]="planHasMultipleVenues()"
+                [venueName]="getVenueNameForSessions(item)"
+              />
+            }
+          </div>
+          @if (productItems().length > 0) {
+            <app-one-step-multi-cart-detail-sessions
+              [label]="'boxOffice.order.tickets.shopProductsTitle' | translate"
+              labelIconName="gift"
+              [cartSessions]="productItems()"
+              [enableColapse]="false"
+            />
+          }
+        }
+        @for (discountLine of discountLines(); track discountLine.type) {
+          <div class="basket-coupon" [attr.data-testid]="'purchased-cart-' + discountLine.type">
+            <div class="basket-coupon__label">
+              @if (discountLine.type === discountLineType.Coupon) {
+                <ignt-icon class="basket-coupon__icon" name="badge-percent" variant="solid" size="base" aria-hidden="true" />
+              }
+              <span [title]="discountLine.label">{{ discountLine.label }}</span>
+            </div>
+            <div class="basket-coupon__amount">
+              <ng-container [ngTemplateOutlet]="orderMoney" [ngTemplateOutletContext]="{ money: discountLine.amount, locale: locale }" />
+            </div>
+          </div>
+        }
+        <div class="basket-footer">
+          <div class="basket-footer__total" translate>{{ 'boxOffice.cart.total' }}</div>
+          <div class="basket-footer__money">
+            <ng-container *ngTemplateOutlet="orderMoney; context: { money: orderAmount(), locale: locale }"></ng-container>
+          </div>
+        </div>
+      </div>
+      <ng-content select="[journey]" />
+    </div>
+  </div>
+</ignt-wrapper-card>
+
+<ng-template #orderMoney let-locale="locale" let-money="money">
+  {{ money ? (money.amount | currency: money.currency : 'symbol-narrow' : null : locale) : '-' }}
+</ng-template>
+
+<ng-template #scheduleGroup let-attractionNames="attractionNames" let-sentiment="sentiment" let-title="title">
+  <div class="purchased-cart-order__bundle-schedule__group" data-testid="purchased-cart-bundle-schedule-group">
+    <div class="purchased-cart-order__bundle-schedule__title">{{ title }}</div>
+    <div class="purchased-cart-order__bundle-schedule__tags">
+      @for (attractionName of attractionNames; track attractionName) {
+        <ignt-tag variant="outline" [sentiment]="sentiment">{{ attractionName }}</ignt-tag>
+      }
+    </div>
+  </div>
+</ng-template>

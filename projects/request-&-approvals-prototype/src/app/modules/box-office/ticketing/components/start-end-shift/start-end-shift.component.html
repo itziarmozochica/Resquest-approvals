@@ -1,0 +1,126 @@
+<div class="shift-controls wrapper-card wrapper-card--elevation-0" [class.disabled]="noFilledData()">
+  <div class="shift-controls__icon only-in-desktop" *ngIf="shiftLoaded">
+    <ignt-icon name="clock" variant="light" size="h3" aria-hidden="true"></ignt-icon>
+  </div>
+  <ng-container *ngIf="shiftLoaded; else loadingShiftTemplate">
+    <div class="shift-controls__content" *ngIf="activeShift$ | async as shift; else noShiftStarted">
+      <div data-testid="shift-controls-started-info" class="shift-controls__info only-in-desktop">
+        {{
+          'boxOffice.shifts.shiftStarted'
+            | translate
+              : {
+                  startTime: shift.startTime | momentDate: 'hh:mm a' : shift.timezone,
+                  cashRegister: shift.cashRegisterName,
+                }
+        }}
+      </div>
+      <ng-container *ngIf="updatedShiftDuration$ | async as duration">
+        <ng-container [ngTemplateOutlet]="shiftDuration" [ngTemplateOutletContext]="{ duration: duration }"></ng-container>
+      </ng-container>
+      <ng-container [ngTemplateOutlet]="shiftDetailsMobile" [ngTemplateOutletContext]="{ $implicit: shift }"></ng-container>
+    </div>
+    <div class="shift-controls__content-buttons" [class.shift-controls__content-buttons--no-shift]="noShiftStarted">
+      <ng-container *ngIf="activeShift$ | async as shift; else startShiftTemplate">
+        <button
+          igntButton
+          sentiment="secondary"
+          variant="danger"
+          size="small"
+          [leadingIcon]="['fas', 'stop']"
+          (click)="endShift()"
+          data-testid="shift-controls-end-button"
+          title="{{ 'boxOffice.shifts.endShiftButton' | translate }}"
+        >
+          {{ 'boxOffice.shifts.endShiftButton' | translate }}
+        </button>
+        <ng-container [ngTemplateOutlet]="shiftDetailsDesktop" [ngTemplateOutletContext]="{ $implicit: shift }"> </ng-container>
+      </ng-container>
+    </div>
+  </ng-container>
+</div>
+
+<ng-template #noShiftStarted>
+  <div data-testid="shift-controls-no-shift-started" class="shift-controls__content" [class.disabled]="noFilledData()">
+    {{ 'boxOffice.shifts.noShiftStarted' | translate }}
+  </div>
+</ng-template>
+
+<ng-template #shiftDuration let-duration="duration">
+  <div data-testid="shift-controls-started-duration-mobile" class="shift-controls__duration only-in-mobile">
+    <ignt-icon *ngIf="activeShift$" name="clock" variant="light" aria-hidden="true"></ignt-icon>
+    <span [innerHTML]="'boxOffice.shifts.shiftDurationHours' | translate: { duration }"></span>
+  </div>
+  <div data-testid="shift-controls-started-duration-desktop" class="shift-controls__duration only-in-desktop">
+    {{ 'boxOffice.shifts.shiftDuration' | translate: { duration } }}
+  </div>
+</ng-template>
+
+<ng-template #shiftDetailsMobile let-shift>
+  <a
+    [routerLink]="['/box-office/shift/', shift.id]"
+    [queryParams]="{ placeId: shift.oboVenueId }"
+    data-testid="shift-controls-shift-details"
+    class="button button--left button--terciary only-in-mobile"
+    title="{{ 'boxOffice.shifts.seeShiftDetails' | translate }}"
+  >
+    {{ 'boxOffice.shifts.seeShiftDetailsMobile' | translate }}
+  </a>
+</ng-template>
+
+<ng-template #shiftDetailsDesktop let-shift>
+  <a
+    igntButton
+    sentiment="secondary"
+    size="small"
+    [routerLink]="['/box-office/shift/', shift.id]"
+    [queryParams]="{ placeId: shift.oboVenueId }"
+    data-testid="shift-controls-shift-details"
+    class="only-in-desktop"
+    title="{{ 'boxOffice.shifts.seeShiftDetails' | translate }}"
+  >
+    {{ 'boxOffice.shifts.seeShiftDetails' | translate }}
+  </a>
+</ng-template>
+
+<ng-template #startShiftTemplate>
+  <button
+    [disabled]="noFilledData()"
+    (click)="startShift()"
+    igntButton
+    sentiment="secondary"
+    size="small"
+    [leadingIcon]="['fas', 'play']"
+    data-testid="shift-controls-start-button"
+    [class.button--pos]="!noFilledData()"
+    title="{{ 'boxOffice.shifts.startShiftButton' | translate }}"
+  >
+    {{ 'boxOffice.shifts.startShiftButton' | translate }}
+  </button>
+</ng-template>
+
+<ng-template #loadingStartWait>
+  <ng-container *ngTemplateOutlet="loadingTemplate; context: { title: 'boxOffice.shifts.waitStart' | translate }"></ng-container>
+</ng-template>
+
+<ng-template #loadingEndWait>
+  <ng-container *ngTemplateOutlet="loadingTemplate; context: { title: 'boxOffice.shifts.waitEnd' | translate }"></ng-container>
+</ng-template>
+
+<ng-template #loadingTemplate let-title="title">
+  <div class="wait-modal">
+    <div class="wait-modal__title">
+      {{ title }}
+    </div>
+    <div data-testid="shift-controls-loading-modal" class="spinner">
+      <ignt-icon name="spinner" variant="solid" size="display" class="loader" [spin]="true" aria-hidden="true"></ignt-icon>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #loadingShiftTemplate let-title="title">
+  <div class="shift-controls__loading-shift">
+    <div class="spinner">
+      <ignt-icon name="spinner" variant="solid" size="h1" class="loader" [spin]="true" aria-hidden="true"></ignt-icon>
+    </div>
+  </div>
+</ng-template>

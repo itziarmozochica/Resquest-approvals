@@ -1,0 +1,225 @@
+<app-go-back [goBackTitle]="'menu.whitelabel' | translate" [urlGoBack]="'/whitelabels/'"></app-go-back>
+
+<app-page-title [title]="wizardStrategy.pageTitleKey | translate" class="new-design"></app-page-title>
+
+<div class="whitelabel-intent-form-wizard">
+  <div class="whitelabel-intent-form-wizard__container">
+    @if (auditFetchParams) {
+      <div class="whitelabel-intent-form-wizard__toolbar">
+        <ignt-button
+          data-testid="whitelabel-wizard-version-history-toggle"
+          variant="secondary"
+          [label]="
+            (auditHistoryShow() ? 'whitelabelConfiguration.hideVersionHistory' : 'whitelabelConfiguration.showVersionHistory') | translate
+          "
+          (click)="toggleAuditHistory()"
+        />
+      </div>
+    }
+
+    <div class="whitelabel-intent-form-wizard__form" [hidden]="auditHistoryShow()">
+      <form [formGroup]="form" (ngSubmit)="onSave()">
+        <ol class="whitelabel-intent-form-wizard__steps" data-testid="whitelabel-wizard-steps">
+          <li
+            class="whitelabel-intent-form-wizard__step"
+            data-testid="whitelabel-wizard-step-details"
+            [class.whitelabel-intent-form-wizard__step--active]="currentStep() === 'details'"
+            [attr.aria-current]="currentStep() === 'details' ? 'step' : null"
+          >
+            <span class="whitelabel-intent-form-wizard__step-number">1</span>
+            {{ 'whitelabelManagement.intentWizard.stepDetails' | translate }}
+          </li>
+          <li
+            class="whitelabel-intent-form-wizard__step"
+            data-testid="whitelabel-wizard-step-languages"
+            [class.whitelabel-intent-form-wizard__step--active]="currentStep() === 'languages'"
+            [attr.aria-current]="currentStep() === 'languages' ? 'step' : null"
+          >
+            <span class="whitelabel-intent-form-wizard__step-number">2</span>
+            {{ 'whitelabelManagement.intentWizard.stepLanguages' | translate }}
+          </li>
+        </ol>
+
+        @if (currentStep() !== 'details') {
+          <section class="whitelabel-intent-form-wizard__section" data-testid="whitelabel-wizard-name">
+            <h2 class="whitelabel-intent-form-wizard__section-title">
+              {{ 'whitelabelManagement.intentWizard.sectionIdentity' | translate }}
+            </h2>
+            <div class="whitelabel-intent-form-wizard__form-item">
+              <ignt-input-field
+                [formControl]="whitelabelNameDisplayControl"
+                [label]="'whitelabelManagement.intentWizard.name' | translate"
+              />
+            </div>
+          </section>
+        }
+
+        <div data-testid="whitelabel-wizard-details-step" [hidden]="currentStep() !== 'details'">
+          <section class="whitelabel-intent-form-wizard__section">
+            <h2 class="whitelabel-intent-form-wizard__section-title">
+              {{ 'whitelabelManagement.intentWizard.sectionIdentity' | translate }}
+            </h2>
+
+            <div class="whitelabel-intent-form-wizard__form-item">
+              <ignt-input-field
+                formControlName="name"
+                [label]="'whitelabelManagement.intentWizard.name' | translate"
+                [placeholder]="'whitelabelManagement.intentWizard.namePlaceholder' | translate"
+                [customFormErrors]="[{ type: 'required', message: 'whitelabelManagement.intentWizard.errors.nameRequired' | translate }]"
+                (blurred)="onControlBlur(form.controls.name)"
+              />
+            </div>
+
+            @if (wizardStrategy.showsPartnerField) {
+              <div class="whitelabel-intent-form-wizard__form-item">
+                <ignt-input-field
+                  data-testid="whitelabel-wizard-partner-display"
+                  [formControl]="partnerDisplayControl"
+                  [label]="'whitelabelManagement.intentWizard.partner' | translate"
+                />
+              </div>
+            }
+          </section>
+
+          <section class="whitelabel-intent-form-wizard__section" formArrayName="hosts">
+            <h2 class="whitelabel-intent-form-wizard__section-title">
+              {{ wizardStrategy.hostFieldLabelKey | translate }}
+            </h2>
+            @if (wizardStrategy.allowsMultipleHosts) {
+              <div class="whitelabel-intent-form-wizard__hint">
+                {{ 'whitelabelManagement.intentWizard.domainsHint' | translate }}
+              </div>
+            }
+
+            @for (hostControl of hostControls; track hostControl) {
+              <div class="whitelabel-intent-form-wizard__host">
+                <div class="whitelabel-intent-form-wizard__host-line">
+                  <ignt-input-field
+                    class="whitelabel-intent-form-wizard__host-input"
+                    data-testid="whitelabel-wizard-host-input"
+                    [label]="
+                      ('whitelabelManagement.intentWizard.domain' | translate) +
+                      (wizardStrategy.allowsMultipleHosts ? ' ' + ($index + 1) : '')
+                    "
+                    [formControlName]="$index.toString()"
+                    [placeholder]="wizardStrategy.hostPlaceholderKey | translate"
+                    [customFormErrors]="[
+                      { type: 'required', message: 'whitelabelManagement.intentWizard.errors.hostRequired' | translate },
+                      { type: 'singleDomain', message: 'whitelabelManagement.intentWizard.errors.singleDomainPerField' | translate },
+                      { type: 'invalidDomain', message: 'whitelabelManagement.intentWizard.errors.invalidDomain' | translate },
+                    ]"
+                    (blurred)="onControlBlur(hostControls[$index])"
+                  />
+                  @if (wizardStrategy.allowsMultipleHosts && !isReadOnly) {
+                    <button
+                      ignt-icon-button
+                      type="button"
+                      sentiment="tertiary"
+                      variant="danger"
+                      size="small"
+                      class="whitelabel-intent-form-wizard__host-remove"
+                      data-testid="whitelabel-wizard-remove-host"
+                      [icon]="['fal', 'trash-can']"
+                      [disabled]="hostControls.length <= 1"
+                      [attr.aria-label]="'whitelabelManagement.intentWizard.removeHost' | translate"
+                      (click)="removeHost($index)"
+                    ></button>
+                  }
+                </div>
+              </div>
+            }
+
+            @if (hostsArray.errors?.['duplicateHosts'] && hostsArray.dirty) {
+              <div class="error" role="alert">
+                {{ 'whitelabelManagement.intentWizard.errors.duplicateHost' | translate }}
+              </div>
+            }
+
+            @if (wizardStrategy.allowsMultipleHosts && !isReadOnly) {
+              <ignt-button
+                class="whitelabel-intent-form-wizard__add-host"
+                data-testid="whitelabel-wizard-add-host"
+                size="small"
+                variant="secondary"
+                [label]="'whitelabelManagement.intentWizard.addHost' | translate"
+                [leadingIcon]="addHostIcon"
+                (click)="addHost()"
+              />
+            }
+          </section>
+
+          <section class="whitelabel-intent-form-wizard__section">
+            <h2 class="whitelabel-intent-form-wizard__section-title">
+              {{ 'whitelabelManagement.intentWizard.sectionLocalization' | translate }}
+            </h2>
+
+            <div class="whitelabel-intent-form-wizard__form-item">
+              <ignt-input-field
+                formControlName="includedCities"
+                [label]="'whitelabelManagement.intentWizard.availableCities' | translate"
+                [helperText]="'whitelabelManagement.intentWizard.availableCitiesHint' | translate"
+                [placeholder]="'whitelabelManagement.intentWizard.availableCitiesPlaceholder' | translate"
+                [customFormErrors]="[{ type: 'required', message: 'whitelabelManagement.intentWizard.errors.citiesRequired' | translate }]"
+                (blurred)="onControlBlur(form.controls.includedCities)"
+              />
+            </div>
+          </section>
+        </div>
+
+        <section
+          class="whitelabel-intent-form-wizard__section"
+          data-testid="whitelabel-wizard-languages-step"
+          [hidden]="currentStep() !== 'languages'"
+        >
+          @if (supportedLanguagesLoadPending()) {
+            <div role="status" data-testid="whitelabel-wizard-supported-languages-loading">
+              {{ 'whitelabelManagement.intentWizard.errors.supportedLanguagesLoading' | translate }}
+            </div>
+          }
+          @if (supportedLanguagesLoadFailed()) {
+            <div class="error" role="alert" data-testid="whitelabel-wizard-supported-languages-load-error">
+              {{ 'whitelabelManagement.intentWizard.errors.supportedLanguagesLoadFailed' | translate }}
+            </div>
+          }
+          <app-language-selection
+            data-testid="whitelabel-wizard-languages"
+            [disabled]="isLanguageSelectionDisabled()"
+            [languages]="selectedLanguages()"
+            (catalogLoaded)="onLanguageCatalogLoaded($event)"
+            (languageAdded)="onLanguageAdded($event)"
+            (languageRemoved)="onLanguageRemoved($event)"
+          />
+        </section>
+
+        <div class="whitelabel-intent-form-wizard__footer">
+          @if (currentStep() === 'details') {
+            <ignt-button
+              data-testid="whitelabel-wizard-next"
+              [label]="'whitelabelManagement.intentWizard.next' | translate"
+              (click)="goToLanguagesStep()"
+            />
+          } @else {
+            <ignt-button
+              data-testid="whitelabel-wizard-back"
+              variant="tertiary"
+              [label]="'whitelabelManagement.intentWizard.back' | translate"
+              (click)="goToDetailsStep()"
+            />
+            @if (!isReadOnly) {
+              <ignt-button
+                data-testid="whitelabel-wizard-save"
+                htmlType="submit"
+                [disabled]="form.invalid || form.pristine"
+                [label]="'whitelabelManagement.intentWizard.save' | translate"
+              />
+            }
+          }
+        </div>
+      </form>
+    </div>
+
+    @if (auditFetchParams; as auditParams) {
+      <app-whitelabel-audit [hidden]="!auditHistoryShow()" [fetchParams]="auditParams" [entityConfig]="auditEntityConfig" />
+    }
+  </div>
+</div>

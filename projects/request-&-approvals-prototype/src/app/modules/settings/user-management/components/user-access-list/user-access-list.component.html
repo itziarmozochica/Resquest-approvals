@@ -1,0 +1,46 @@
+@if (isCompact()) {
+  <ignt-button
+    size="small"
+    variant="tertiary"
+    [attr.data-testid]="toggleTestId()"
+    [label]="label() + ' · ' + items().length"
+    [trailingIcon]="{ name: 'chevron-right', variant: 'regular' }"
+    (click)="openList()"
+  />
+} @else {
+  <span class="user-access-list__label">{{ label() }} · {{ items().length }}</span>
+  <span class="user-access-list__line" [class.user-access-list__line--expanded]="isExpanded()">
+    <span class="user-access-list__items">
+      @for (item of visibleItems(); track $index; let last = $last) {
+        <span [attr.data-testid]="itemTestId()">{{ item }}</span
+        >{{ last || isExpanded() ? '' : ', ' }}
+      }
+    </span>
+    @if (hiddenCount() > 0) {
+      <ignt-button
+        class="user-access-list__toggle"
+        size="small"
+        variant="tertiary"
+        [ariaExpanded]="isExpanded()"
+        [attr.data-testid]="toggleTestId()"
+        [label]="
+          isExpanded()
+            ? ('userManagement.accessShowLess' | translate)
+            : ('userManagement.accessShowMore' | translate: { count: hiddenCount() })
+        "
+        (click)="toggle()"
+      />
+    }
+  </span>
+}
+
+<ng-template #listModal>
+  <ignt-dialog-header>{{ label() }} · {{ items().length }}</ignt-dialog-header>
+  <ignt-dialog-content>
+    <ul class="user-access-list__modal-items" data-testid="user-access-list-modal">
+      @for (item of items(); track $index) {
+        <li>{{ item }}</li>
+      }
+    </ul>
+  </ignt-dialog-content>
+</ng-template>

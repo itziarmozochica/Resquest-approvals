@@ -1,0 +1,302 @@
+<section class="synthetic-check-latest-result" data-testid="synthetic-check-latest-result">
+  <h3 class="synthetic-check-latest-result__section-title">{{ i18n + '.resultSection' | translate }}</h3>
+
+  @if (latestRunUnreadable()) {
+    <ignt-alert data-testid="synthetic-check-result-unavailable" sentiment="danger" [description]="i18n + '.resultUnavailable' | translate">
+      <ng-template #igntAlertActions>
+        <ignt-button
+          data-testid="synthetic-check-result-retry"
+          size="small"
+          variant="secondary"
+          [label]="sharedI18n + '.retry' | translate"
+          [loading]="retryingLatestResult()"
+          (click)="onRetryLatestResult()"
+        />
+      </ng-template>
+    </ignt-alert>
+  } @else if (latestResult() === null) {
+    <p class="synthetic-check-latest-result__placeholder" data-testid="synthetic-check-no-result">
+      {{ 'whitelabelManagement.syntheticChecks.result.unknown' | translate }}
+    </p>
+  } @else {
+    <dl class="synthetic-check-latest-result__grid">
+      <div class="synthetic-check-latest-result__row">
+        <dt class="synthetic-check-latest-result__label">{{ i18n + '.statusLabel' | translate }}</dt>
+        <dd class="synthetic-check-latest-result__value" data-testid="synthetic-check-result-status">
+          @if (latestResult()!.status === 'success') {
+            <span class="synthetic-checks-active-tag">
+              <ignt-tag [sentiment]="'positive'" [variant]="'solid'">
+                {{ 'whitelabelManagement.syntheticChecks.result.pass' | translate }}
+              </ignt-tag>
+            </span>
+          } @else if (latestResult()!.status === 'failure') {
+            <span class="synthetic-checks-failure-tag">
+              <ignt-tag [sentiment]="'danger'" [variant]="'solid'">
+                {{ 'whitelabelManagement.syntheticChecks.result.fail' | translate }}
+              </ignt-tag>
+            </span>
+          } @else {
+            <span class="synthetic-checks-failure-tag">
+              <ignt-tag [sentiment]="'danger'" [variant]="'solid'">
+                {{ 'whitelabelManagement.syntheticChecks.result.error' | translate }}
+              </ignt-tag>
+            </span>
+          }
+        </dd>
+      </div>
+
+      <div class="synthetic-check-latest-result__row">
+        <dt class="synthetic-check-latest-result__label">{{ i18n + '.executedAtLabel' | translate }}</dt>
+        <dd class="synthetic-check-latest-result__value" data-testid="synthetic-check-executed-at">{{ formattedExecutedAt() }}</dd>
+      </div>
+
+      @if (latestResult()!.statusCode !== null) {
+        <div class="synthetic-check-latest-result__row">
+          <dt class="synthetic-check-latest-result__label">{{ i18n + '.statusCodeLabel' | translate }}</dt>
+          <dd class="synthetic-check-latest-result__value" data-testid="synthetic-check-status-code">{{ latestResult()!.statusCode }}</dd>
+        </div>
+      }
+
+      @if (latestResult()!.responseTimeMs !== null) {
+        <div class="synthetic-check-latest-result__row">
+          <dt class="synthetic-check-latest-result__label">{{ i18n + '.responseTimeLabel' | translate }}</dt>
+          <dd class="synthetic-check-latest-result__value" data-testid="synthetic-check-response-time">
+            {{ i18n + '.responseTimeValue' | translate: { ms: latestResult()!.responseTimeMs } }}
+          </dd>
+        </div>
+      }
+
+      @if (latestResult()!.ttfbMs !== null) {
+        <div class="synthetic-check-latest-result__row">
+          <dt class="synthetic-check-latest-result__label">{{ i18n + '.ttfbLabel' | translate }}</dt>
+          <dd class="synthetic-check-latest-result__value" data-testid="synthetic-check-ttfb">
+            {{ i18n + '.responseTimeValue' | translate: { ms: latestResult()!.ttfbMs } }}
+          </dd>
+        </div>
+      }
+
+      @if (latestResult()!.domLoadMs !== null) {
+        <div class="synthetic-check-latest-result__row">
+          <dt class="synthetic-check-latest-result__label">{{ i18n + '.domLoadLabel' | translate }}</dt>
+          <dd class="synthetic-check-latest-result__value" data-testid="synthetic-check-dom-load">
+            {{ i18n + '.responseTimeValue' | translate: { ms: latestResult()!.domLoadMs } }}
+          </dd>
+        </div>
+      }
+
+      <div class="synthetic-check-latest-result__row">
+        <dt class="synthetic-check-latest-result__label">{{ i18n + '.resultViewportLabel' | translate }}</dt>
+        <dd class="synthetic-check-latest-result__value" data-testid="synthetic-check-result-viewport">
+          {{ latestResult()!.viewportWidth }} × {{ latestResult()!.viewportHeight }}
+        </dd>
+      </div>
+
+      @if (latestResult()!.errorMessage !== null) {
+        <div class="synthetic-check-latest-result__row synthetic-check-latest-result__row--full">
+          <dt class="synthetic-check-latest-result__label">{{ i18n + '.errorMessageLabel' | translate }}</dt>
+          <dd
+            class="synthetic-check-latest-result__value synthetic-check-latest-result__value--error"
+            data-testid="synthetic-check-error-message"
+          >
+            {{ latestResult()!.errorMessage }}
+          </dd>
+        </div>
+      }
+
+      @if (latestResult()!.screenshotUrl !== null) {
+        <div class="synthetic-check-latest-result__row">
+          <dt class="synthetic-check-latest-result__label">{{ i18n + '.screenshotLabel' | translate }}</dt>
+          <dd class="synthetic-check-latest-result__value">
+            <button
+              type="button"
+              class="synthetic-check-latest-result__screenshot-link"
+              data-testid="synthetic-check-screenshot-open"
+              [appTemplatedTooltip]="screenshotPreviewTooltipTpl"
+              [panelClass]="['app-tooltip-panel', 'synthetic-check-latest-result__screenshot-tooltip-panel']"
+              [zIndex]="2100"
+              (click)="openScreenshotPreview()"
+            >
+              {{ i18n + '.screenshotOpen' | translate }}
+            </button>
+          </dd>
+        </div>
+      }
+
+      @if (latestResult()!.waterfallUrl !== null) {
+        <div class="synthetic-check-latest-result__row">
+          <dt class="synthetic-check-latest-result__label">{{ i18n + '.waterfallLabel' | translate }}</dt>
+          <dd class="synthetic-check-latest-result__value">
+            <button
+              type="button"
+              class="synthetic-check-latest-result__screenshot-link"
+              data-testid="synthetic-check-waterfall-open"
+              (click)="openWaterfallPreview()"
+            >
+              {{ i18n + '.waterfallOpen' | translate }}
+            </button>
+          </dd>
+        </div>
+      }
+    </dl>
+
+    @if (assertionRows().length > 0) {
+      <section class="synthetic-check-latest-result__assertions-section" data-testid="synthetic-check-assertion-results">
+        <h4 class="synthetic-check-latest-result__assertions-title">{{ i18n + '.assertionResultsLabel' | translate }}</h4>
+
+        @if (failedAssertionCount() > 0) {
+          <p class="synthetic-check-latest-result__assertions-summary" data-testid="synthetic-check-assertion-summary">
+            {{ i18n + '.assertionResultsFailedSummary' | translate: { failed: failedAssertionCount(), total: assertionRows().length } }}
+          </p>
+        }
+
+        <ol class="synthetic-check-latest-result__assertions">
+          @for (row of assertionRows(); track row.resultId) {
+            <li
+              class="synthetic-check-latest-result__assertion"
+              [class.synthetic-check-latest-result__assertion--passed]="row.passed"
+              [class.synthetic-check-latest-result__assertion--failed]="!row.passed"
+              [attr.data-testid]="'synthetic-check-assertion-' + row.stepNumber"
+            >
+              <div class="synthetic-check-latest-result__assertion-header">
+                <span class="synthetic-check-latest-result__assertion-step">
+                  {{ i18n + '.assertionStepLabel' | translate: { step: row.stepNumber } }}
+                </span>
+                <span class="synthetic-check-latest-result__assertion-type">
+                  @if (row.formattedLabel !== null) {
+                    {{ row.formattedLabel.labelKey | translate: row.formattedLabel.params }}
+                  } @else {
+                    {{ row.typeLabelKey | translate }}
+                  }
+                </span>
+                @if (row.passed) {
+                  <span class="synthetic-checks-active-tag">
+                    <ignt-tag [sentiment]="'positive'" [variant]="'solid'">
+                      {{ 'whitelabelManagement.syntheticChecks.result.pass' | translate }}
+                    </ignt-tag>
+                  </span>
+                } @else {
+                  <span class="synthetic-checks-failure-tag">
+                    <ignt-tag [sentiment]="'danger'" [variant]="'solid'">
+                      {{ 'whitelabelManagement.syntheticChecks.result.fail' | translate }}
+                    </ignt-tag>
+                  </span>
+                }
+              </div>
+
+              @if (row.details.length > 0 || row.expected !== null || row.actualValue !== null || row.message) {
+                <div class="synthetic-check-latest-result__assertion-fields">
+                  @if (row.details.length > 0) {
+                    <dl class="synthetic-check-latest-result__assertion-details">
+                      @for (detail of row.details; track detail.labelKey + detail.value) {
+                        <div class="synthetic-check-latest-result__assertion-detail-row">
+                          <dt>{{ detail.labelKey | translate }}</dt>
+                          <dd>
+                            @if (detail.valueLabelKey) {
+                              {{ detail.valueLabelKey | translate }}
+                            } @else {
+                              <code class="synthetic-check-latest-result__assertion-code">{{ detail.value }}</code>
+                            }
+                          </dd>
+                        </div>
+                      }
+                    </dl>
+                  }
+
+                  @if ((row.formattedLabel === null && (row.expected !== null || row.actualValue !== null)) || row.message) {
+                    <dl class="synthetic-check-latest-result__assertion-comparison">
+                      @if (row.formattedLabel === null && row.expected !== null) {
+                        <div class="synthetic-check-latest-result__assertion-comparison-row">
+                          <dt>{{ i18n + '.assertionExpectedValueLabel' | translate }}</dt>
+                          <dd>
+                            @if (row.expected.operatorLabelKey) {
+                              <span class="synthetic-check-latest-result__assertion-operator">{{
+                                row.expected.operatorLabelKey | translate
+                              }}</span>
+                            }
+                            <code class="synthetic-check-latest-result__assertion-code">{{ row.expected.value }}</code>
+                          </dd>
+                        </div>
+                      }
+
+                      @if (row.formattedLabel === null && row.actualValue !== null) {
+                        <div
+                          class="synthetic-check-latest-result__assertion-comparison-row"
+                          [class.synthetic-check-latest-result__assertion-comparison-row--passed]="row.passed"
+                          [class.synthetic-check-latest-result__assertion-comparison-row--failed]="!row.passed"
+                        >
+                          <dt>{{ i18n + '.assertionActualValueLabel' | translate }}</dt>
+                          <dd>
+                            <code class="synthetic-check-latest-result__assertion-code">{{ row.actualValue }}</code>
+                          </dd>
+                        </div>
+                      }
+
+                      @if (row.message) {
+                        <div
+                          class="synthetic-check-latest-result__assertion-comparison-row synthetic-check-latest-result__assertion-comparison-row--message"
+                        >
+                          <dt>{{ i18n + '.assertionMessageLabel' | translate }}</dt>
+                          <dd>{{ row.message }}</dd>
+                        </div>
+                      }
+                    </dl>
+                  }
+                </div>
+              }
+            </li>
+          }
+        </ol>
+      </section>
+    }
+  }
+
+  <app-synthetic-check-waterfall-viewer
+    [isOpen]="waterfallPreviewOpen()"
+    [waterfallUrl]="latestResult()?.waterfallUrl ?? null"
+    (closed)="closeWaterfallPreview()"
+  />
+
+  @if (screenshotPreviewOpen() && latestResult()?.screenshotUrl) {
+    <div
+      class="synthetic-check-latest-result__screenshot-overlay"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="i18n + '.screenshotPreviewTitle' | translate"
+      data-testid="synthetic-check-screenshot-overlay"
+      (click)="closeScreenshotPreview()"
+    >
+      <div class="synthetic-check-latest-result__screenshot-dialog" (click)="$event.stopPropagation()">
+        <div class="synthetic-check-latest-result__screenshot-dialog-header">
+          <h4 class="synthetic-check-latest-result__screenshot-dialog-title">{{ i18n + '.screenshotPreviewTitle' | translate }}</h4>
+          <button
+            type="button"
+            igntButton
+            sentiment="tertiary"
+            data-testid="synthetic-check-screenshot-close"
+            (click)="closeScreenshotPreview()"
+          >
+            {{ i18n + '.screenshotClose' | translate }}
+          </button>
+        </div>
+        <div class="synthetic-check-latest-result__screenshot-scroll">
+          <img
+            class="synthetic-check-latest-result__screenshot-full"
+            [src]="latestResult()!.screenshotUrl"
+            [alt]="i18n + '.screenshotAlt' | translate"
+          />
+        </div>
+      </div>
+    </div>
+  }
+</section>
+
+<ng-template #screenshotPreviewTooltipTpl>
+  <div class="synthetic-check-latest-result__screenshot-tooltip">
+    <img
+      class="synthetic-check-latest-result__screenshot-tooltip-image"
+      data-testid="synthetic-check-screenshot-preview"
+      [src]="latestResult()?.screenshotUrl"
+      [alt]="i18n + '.screenshotAlt' | translate"
+    />
+  </div>
+</ng-template>

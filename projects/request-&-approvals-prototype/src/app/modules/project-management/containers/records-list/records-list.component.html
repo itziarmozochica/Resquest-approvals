@@ -1,0 +1,295 @@
+<div class="records-list" data-testid="records-list">
+  @if (launch(); as launchValue) {
+    <header class="records-list__header" data-testid="records-list-header">
+      <h1 class="records-list__title">{{ launchValue.name }}</h1>
+      @if (canCreateAny) {
+        <ignt-button [label]="'+ ' + ('projectManagement.detail.new' | translate)" (click)="openCreate()" data-testid="records-list-new" />
+      }
+    </header>
+  }
+
+  @if (loading()) {
+    <p class="records-list__loading" data-testid="records-list-loading">{{ 'approvals.list.loading' | translate }}</p>
+  } @else if (error()) {
+    <p class="records-list__error" data-testid="records-list-error">{{ 'approvals.errors.loadFailed' | translate }}</p>
+  } @else {
+    @if (actionError()) {
+      <p class="records-list__error" data-testid="records-list-action-error">{{ 'approvals.detail.actions.error' | translate }}</p>
+    }
+    @if (hasSkippedItems()) {
+      <p class="records-list__action-note" data-testid="records-list-skipped-items">
+        {{ 'approvals.list.skippedByReviewer' | translate }}
+      </p>
+    }
+
+    <div class="records-list__toggles">
+      <div class="records-list__toggle-section">
+        <span class="records-list__toggle-title">{{ 'projectManagement.records.typeFilterTitle' | translate }}</span>
+        <div class="records-list__toggle-group" data-testid="records-list-type-toggle">
+          <ignt-button
+            [label]="'projectManagement.records.requests' | translate"
+            [variant]="showRequests() ? 'primary' : 'secondary'"
+            size="small"
+            (click)="toggleType('request')"
+            data-testid="records-list-toggle-requests"
+          />
+          <ignt-button
+            [label]="'projectManagement.records.approvals' | translate"
+            [variant]="showApprovals() ? 'primary' : 'secondary'"
+            size="small"
+            (click)="toggleType('approval')"
+            data-testid="records-list-toggle-approvals"
+          />
+        </div>
+      </div>
+      <div class="records-list__toggle-section">
+        <span class="records-list__toggle-title">{{ 'projectManagement.records.statusFilterTitle' | translate }}</span>
+        <div class="records-list__toggle-group" data-testid="records-list-status-toggle">
+          <ignt-button
+            [label]="'projectManagement.records.statusAll' | translate"
+            [variant]="statusMode() === 'all' ? 'primary' : 'secondary'"
+            size="small"
+            (click)="setStatusMode('all')"
+            data-testid="records-list-status-all"
+          />
+          <ignt-button
+            [label]="'projectManagement.records.statusPending' | translate"
+            [variant]="statusMode() === 'pending' ? 'primary' : 'secondary'"
+            size="small"
+            (click)="setStatusMode('pending')"
+            data-testid="records-list-status-pending"
+          />
+          <ignt-button
+            [label]="'projectManagement.records.statusCompleted' | translate"
+            [variant]="statusMode() === 'completed' ? 'primary' : 'secondary'"
+            size="small"
+            (click)="setStatusMode('completed')"
+            data-testid="records-list-status-completed"
+          />
+          <ignt-button
+            [label]="'projectManagement.records.statusCancelled' | translate"
+            [variant]="statusMode() === 'cancelled' ? 'primary' : 'secondary'"
+            size="small"
+            (click)="setStatusMode('cancelled')"
+            data-testid="records-list-status-cancelled"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div class="records-list__filters" data-testid="records-list-filters">
+      <input
+        type="text"
+        class="records-list__filter-input"
+        [value]="titleFilter()"
+        (input)="setTitleFilter($any($event.target).value)"
+        [attr.placeholder]="'approvals.list.filters.title' | translate"
+        data-testid="records-list-filter-title"
+      />
+      <input
+        type="text"
+        class="records-list__filter-input"
+        [value]="launchFilter()"
+        (input)="setLaunchFilter($any($event.target).value)"
+        [attr.placeholder]="'approvals.list.filters.launch' | translate"
+        data-testid="records-list-filter-launch"
+      />
+      <label class="records-list__filter-field">
+        <span>{{ 'approvals.list.filters.created' | translate }}</span>
+        <input
+          type="date"
+          [value]="createdFilter()"
+          (input)="setCreatedFilter($any($event.target).value)"
+          data-testid="records-list-filter-created"
+        />
+      </label>
+      <label class="records-list__filter-field">
+        <span>{{ 'approvals.list.filters.due' | translate }}</span>
+        <input type="date" [value]="dueFilter()" (input)="setDueFilter($any($event.target).value)" data-testid="records-list-filter-due" />
+      </label>
+      <ignt-button
+        [label]="'approvals.list.filters.clear' | translate"
+        variant="tertiary"
+        size="small"
+        (click)="clearFilters()"
+        data-testid="records-list-filter-clear"
+      />
+    </div>
+
+    @if (selectedCount() > 0) {
+      <div class="records-list__bulk" data-testid="records-list-bulk">
+        <span class="records-list__bulk-count">{{ 'approvals.list.bulk.selected' | translate: { count: selectedCount() } }}</span>
+        <ignt-button
+          [label]="'approvals.list.bulk.approve' | translate: { count: selectedCount() }"
+          sentiment="positive"
+          variant="secondary"
+          size="small"
+          [leadingIcon]="{ name: 'check-circle', variant: 'solid' }"
+          [disabled]="actionInProgress()"
+          (click)="bulkApprove()"
+          data-testid="records-list-bulk-approve"
+        />
+        <ignt-button
+          [label]="'approvals.list.bulk.reject' | translate: { count: selectedCount() }"
+          sentiment="danger"
+          variant="secondary"
+          size="small"
+          [leadingIcon]="{ name: 'times-circle', variant: 'solid' }"
+          [disabled]="actionInProgress()"
+          (click)="bulkReject()"
+          data-testid="records-list-bulk-reject"
+        />
+      </div>
+    }
+
+    <ignt-table
+      class="records-list__table"
+      data-testid="records-list-table"
+      [data]="rows()"
+      [interactiveRows]="true"
+      (rowInteraction)="openRecord($event.item)"
+    >
+      <ignt-table-column key="select" align="center" [header]="'approvals.list.selectAll' | translate" [width]="56">
+        <ng-template igntTableHeaderTemplate>
+          <input
+            type="checkbox"
+            [checked]="allSelected()"
+            [disabled]="reviewableRows().length === 0 || actionInProgress()"
+            (change)="toggleSelectAll()"
+            [attr.aria-label]="'approvals.list.selectAll' | translate"
+            data-testid="records-list-select-all"
+          />
+        </ng-template>
+        <ng-template [igntTableColumnTemplateType]="rowSample()" let-row="item">
+          <div (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+            @if (row.reviewable) {
+              <input
+                type="checkbox"
+                [checked]="isSelected(row)"
+                [disabled]="actionInProgress()"
+                (change)="toggleSelect(row, $event)"
+                [attr.aria-label]="'approvals.list.selectRow' | translate"
+                data-testid="records-list-select-row"
+              />
+            }
+          </div>
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column key="kind" columnType="secondary" [header]="'projectManagement.records.typeColumn' | translate">
+        <ng-template [igntTableColumnTemplateType]="rowSample()" let-row="item">
+          <ignt-tag [sentiment]="row.kind === 'approval' ? 'info' : 'accent'" variant="outline" [attr.data-kind]="row.kind">
+            {{
+              (row.kind === 'approval' ? 'projectManagement.records.kindApproval' : 'projectManagement.records.kindRequest') | translate
+            }}
+          </ignt-tag>
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column key="title" columnType="primary" [header]="'approvals.list.columns.title' | translate">
+        <ng-template [igntTableColumnTemplateType]="rowSample()" let-row="item">{{ row.title }}</ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column key="recordType" [header]="'projectManagement.records.formTypeColumn' | translate">
+        <ng-template [igntTableColumnTemplateType]="rowSample()" let-row="item">
+          <span class="records-list__type" data-testid="records-list-record-type">{{ row.recordType }}</span>
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column key="launchName" [header]="'approvals.list.columns.launch' | translate">
+        <ng-template [igntTableColumnTemplateType]="rowSample()" let-row="item">{{ row.launchName }}</ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column key="createdAt" [header]="'approvals.list.columns.created' | translate">
+        <ng-template [igntTableColumnTemplateType]="rowSample()" let-row="item">{{ row.createdAt | date: 'mediumDate' }}</ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column key="dueDate" [header]="'approvals.list.columns.due' | translate">
+        <ng-template [igntTableColumnTemplateType]="rowSample()" let-row="item">
+          {{ row.dueDate ? (row.dueDate | date: 'mediumDate') : '—' }}
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column key="status" columnType="secondary" [header]="'approvals.list.columns.status' | translate">
+        <ng-template [igntTableColumnTemplateType]="rowSample()" let-row="item">
+            @if (row.cancelled) {
+              <ignt-tag sentiment="disable" variant="outline" data-status="cancelled">
+                {{ 'approvals.status.cancelled' | translate }}
+              </ignt-tag>
+            } @else if (row.draft) {
+              <ignt-tag sentiment="disable" variant="outline" data-status="draft">
+                {{ 'approvals.status.draft' | translate }}
+              </ignt-tag>
+            } @else if (row.pending) {
+              <ignt-tag sentiment="warning" variant="outline" data-status="pending">
+                {{ 'approvals.status.pending' | translate }}
+              </ignt-tag>
+            } @else if (row.requestStatus) {
+              <ignt-tag
+                [sentiment]="row.requestStatus.sentiment"
+                variant="outline"
+                [attr.data-status]="row.requestStatus.slug"
+                data-testid="records-list-request-status"
+              >
+                {{ row.requestStatus.labelKey | translate }}
+              </ignt-tag>
+            } @else {
+              <ignt-tag sentiment="positive" variant="outline" data-status="completed">
+                {{ 'approvals.status.completed' | translate }}
+              </ignt-tag>
+            }
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column key="actions" columnType="action" [header]="'approvals.list.columns.actions' | translate">
+        <ng-template [igntTableColumnTemplateType]="rowSample()" let-row="item">
+          <div (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+            @if (row.reviewable) {
+              <div class="records-list__actions">
+                <button
+                  type="button"
+                  ignt-icon-button
+                  class="records-list__approve"
+                  sentiment="secondary"
+                  size="small"
+                  [icon]="['fas', 'check-circle']"
+                  [disabled]="actionInProgress()"
+                  [attr.aria-label]="'approvals.list.actions.approve' | translate"
+                  [attr.title]="'approvals.list.actions.approve' | translate"
+                  (click)="approveRow(row, $event)"
+                  data-testid="records-list-approve"
+                ></button>
+                <button
+                  type="button"
+                  ignt-icon-button
+                  variant="danger"
+                  sentiment="secondary"
+                  size="small"
+                  [icon]="['fas', 'times-circle']"
+                  [disabled]="actionInProgress()"
+                  [attr.aria-label]="'approvals.list.actions.reject' | translate"
+                  [attr.title]="'approvals.list.actions.reject' | translate"
+                  (click)="rejectRow(row, $event)"
+                  data-testid="records-list-reject"
+                ></button>
+              </div>
+            } @else if (row.kind === 'approval' && row.result) {
+              <ignt-tag
+                [sentiment]="resultSentiment(row.result)"
+                variant="outline"
+                [attr.data-result]="row.result"
+                data-testid="records-list-result"
+              >
+                {{ 'projectManagement.records.result.' + row.result | translate }}
+              </ignt-tag>
+            }
+          </div>
+        </ng-template>
+      </ignt-table-column>
+    </ignt-table>
+
+    @if (rows().length === 0) {
+      <p class="records-list__empty" data-testid="records-list-empty">{{ 'approvals.list.filters.noMatches' | translate }}</p>
+    }
+  }
+</div>

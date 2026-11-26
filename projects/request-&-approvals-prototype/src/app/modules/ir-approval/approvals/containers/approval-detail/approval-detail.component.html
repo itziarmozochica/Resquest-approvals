@@ -1,0 +1,739 @@
+<section class="approval-detail" data-testid="approval-detail">
+  @if (loading()) {
+    <p class="approval-detail__loading" data-testid="approval-detail-loading">
+      {{ 'approvals.list.loading' | translate }}
+    </p>
+  } @else if (error()) {
+    <p class="approval-detail__error" data-testid="approval-detail-error">
+      {{ 'approvals.errors.' + error() | translate }}
+    </p>
+  } @else if (approval()) {
+    @let a = approval()!;
+
+    <ignt-wrapper-card [elevation]="1">
+      <header class="approval-detail__header">
+        <h1 class="approval-detail__title">{{ 'approvals.detail.title' | translate }}</h1>
+        <div class="approval-detail__header-actions">
+          @if (canInformOpen(a)) {
+            <ignt-button
+              [label]="'approvals.detail.actions.inform_open.label' | translate"
+              [disabled]="actionInProgress() !== null"
+              (click)="runAction('inform_open')"
+              data-testid="approval-detail-inform-open"
+            ></ignt-button>
+          }
+          @if (isDriveButtonVisible()) {
+            <app-drive-folder-button
+              [launchId]="launchId()"
+              [folderUrl]="a.driveFolderUrl ?? null"
+              [sheetUrl]="sheetUrl()"
+              [hasLaunchFallback]="!a.isHubPermissionsEnabled"
+            />
+          }
+          @if (canCancel()) {
+            <ignt-button
+              variant="secondary"
+              [label]="'approvals.detail.cancel' | translate"
+              [disabled]="isLifecycleUpdating()"
+              (click)="cancel()"
+              data-testid="approval-detail-cancel"
+            ></ignt-button>
+          } @else if (canReactivate()) {
+            <ignt-button
+              variant="secondary"
+              [label]="'approvals.detail.reactivate' | translate"
+              [disabled]="isLifecycleUpdating()"
+              (click)="reactivate()"
+              data-testid="approval-detail-reactivate"
+            ></ignt-button>
+          }
+          <ignt-tag [sentiment]="overallStatusSentiment(a.status)" variant="outline" [attr.data-status]="overallStatusKey(a.status)">
+            {{ 'approvals.status.' + overallStatusKey(a.status) | translate }}
+          </ignt-tag>
+        </div>
+      </header>
+      @if (actionError()) {
+        <p class="approval-detail__action-error" data-testid="approval-detail-action-error">
+          {{ actionErrorMessage() ?? ('approvals.detail.actions.error' | translate) }}
+        </p>
+      }
+      @for (reason of skippedReasonKeys(); track reason) {
+        <p class="approval-detail__action-error" data-testid="approval-detail-skipped-items">
+          {{ reason | translate }}
+        </p>
+      }
+
+      <div class="approval-detail__summary">
+        <dl class="approval-detail__meta">
+          <dt>{{ 'approvals.detail.name' | translate }}</dt>
+          <dd data-testid="approval-detail-name">{{ a.title || '—' }}</dd>
+          <dt>{{ 'approvals.detail.createdBy' | translate }}</dt>
+          <dd>{{ a.createdBy || '—' }}</dd>
+          <dt>{{ 'approvals.detail.createdAt' | translate }}</dt>
+          <dd>{{ a.createdAt | date: 'medium' }}</dd>
+          <dt>{{ 'approvals.detail.dueDate' | translate }}</dt>
+          <dd data-testid="approval-detail-due-date">{{ a.dueDate ? (a.dueDate | date: 'mediumDate') : '—' }}</dd>
+        </dl>
+        <dl class="approval-detail__meta approval-detail__description" data-testid="approval-detail-description">
+          <dt>{{ 'approvals.detail.description' | translate }}</dt>
+          <dd>{{ a.description || '—' }}</dd>
+        </dl>
+      </div>
+    </ignt-wrapper-card>
+
+    @if (a.sheetSync?.status === 'FAILED') {
+      <div class="approval-detail__sheet-sync-error" role="alert" data-testid="approval-detail-sheet-sync-error">
+        <span>{{ 'approvals.detail.sheetSync.failed' | translate }}</span>
+        @switch (a.sheetSync?.errorCode) {
+          @case ('not_found') {
+            <span class="approval-detail__sheet-sync-account">{{ 'approvals.detail.sheetSync.notFound' | translate }}</span>
+          }
+          @case ('quota') {
+            <span class="approval-detail__sheet-sync-account">{{ 'approvals.detail.sheetSync.quota' | translate }}</span>
+          }
+          @default {
+            @if (a.sheetSync?.serviceAccountEmail) {
+              <span class="approval-detail__sheet-sync-account">
+                {{ 'approvals.detail.sheetSync.shareWith' | translate: { account: a.sheetSync!.serviceAccountEmail } }}
+              </span>
+            } @else {
+              <span class="approval-detail__sheet-sync-account">{{ 'approvals.detail.sheetSync.generic' | translate }}</span>
+            }
+          }
+        }
+      </div>
+    }
+
+    @if (pendingFeedback()) {
+      <ignt-wrapper-card [elevation]="1">
+        <section class="approval-detail__feedback" data-testid="approval-detail-feedback">
+          <h2 class="approval-detail__feedback-title">{{ 'approvals.detail.feedback.title' | translate }}</h2>
+          <p class="approval-detail__feedback-hint">{{ 'approvals.detail.feedback.hint' | translate }}</p>
+          <textarea
+            class="approval-detail__feedback-input"
+            rows="3"
+            [value]="feedbackText()"
+            (input)="setFeedbackText($any($event.target).value)"
+            [attr.placeholder]="'approvals.detail.feedback.placeholder' | translate"
+            data-testid="approval-detail-feedback-input"
+          ></textarea>
+          <div class="approval-detail__feedback-actions">
+            <ignt-button
+              variant="secondary"
+              [label]="'approvals.detail.feedback.cancel' | translate"
+              (click)="cancelFeedback()"
+              data-testid="approval-detail-feedback-cancel"
+            ></ignt-button>
+            <ignt-button
+              variant="secondary"
+              sentiment="danger"
+              [label]="'approvals.detail.feedback.confirm' | translate"
+              (click)="confirmFeedback()"
+              data-testid="approval-detail-feedback-confirm"
+            ></ignt-button>
+          </div>
+        </section>
+      </ignt-wrapper-card>
+    }
+
+    @if (canViewAlerts()) {
+      <ignt-wrapper-card [elevation]="1">
+        <section class="approval-detail__section" data-testid="approval-detail-alerts">
+          <header class="approval-detail__alerts-header">
+            <h2>{{ 'approvals.new.steps.alerts' | translate }}</h2>
+            @if (isAlertConfigFrozen()) {
+              <ignt-button
+                variant="secondary"
+                [label]="(showingAlertDetails() ? 'common.seeLess' : 'common.seeMore') | translate"
+                (click)="toggleAlertDetails()"
+                data-testid="approval-detail-toggle-alert-details"
+              ></ignt-button>
+            } @else if (!editingAlerts() && canManageAlerts()) {
+              <ignt-button
+                variant="secondary"
+                [label]="'common.edit' | translate"
+                [loading]="isReloadingAlerts()"
+                (click)="openAlertsEditor()"
+                data-testid="approval-detail-edit-alerts"
+              ></ignt-button>
+            }
+          </header>
+          @if (editingAlerts()) {
+            <app-alert-config-form
+              [formControl]="alertConfigControl"
+              [partnerId]="partnerId()"
+              [currentUserEmail]="currentUserEmail"
+              [showValidationMode]="showValidationMode()"
+              data-testid="approval-detail-alert-config"
+            ></app-alert-config-form>
+            <footer class="approval-detail__alerts-footer">
+              <ignt-button
+                [label]="'common.save' | translate"
+                [disabled]="savingAlerts() || isAddingMentionAccess() || alertConfigIncomplete() || !isAlertConfigDirectoryLoaded()"
+                (click)="saveAlertConfig()"
+                data-testid="approval-detail-save-alerts"
+              ></ignt-button>
+              <ignt-button
+                variant="secondary"
+                [label]="'common.cancel' | translate"
+                [disabled]="savingAlerts()"
+                (click)="closeAlertsEditor()"
+                data-testid="approval-detail-cancel-alerts"
+              ></ignt-button>
+              @if (alertsSaveError()) {
+                <span class="approval-detail__alerts-error" data-testid="approval-detail-alerts-error">
+                  {{ 'approvals.detail.actions.error' | translate }}
+                </span>
+              }
+            </footer>
+          } @else if (isAlertConfigFrozen() && showingAlertDetails()) {
+            <app-alert-config-form
+              [formControl]="alertConfigControl"
+              [partnerId]="partnerId()"
+              [currentUserEmail]="currentUserEmail"
+              [showValidationMode]="showValidationMode()"
+              data-testid="approval-detail-alert-config-readonly"
+            ></app-alert-config-form>
+          }
+        </section>
+      </ignt-wrapper-card>
+    }
+
+    @if (canAddItems() && addItemsKind(a); as addKind) {
+      <ignt-wrapper-card [elevation]="1">
+        <section class="approval-detail__section" data-testid="approval-detail-add-items">
+          <app-approval-add-items
+            [partnerId]="partnerId()"
+            [launchId]="launchId()"
+            [approvalId]="a.id"
+            [kind]="addKind"
+            [description]="a.description"
+            [disabled]="actionInProgress() !== null"
+            (added)="onItemsAdded()"
+          />
+        </section>
+      </ignt-wrapper-card>
+    }
+
+    <ignt-tabs
+      data-testid="approval-detail-tabs"
+      [variant]="'default'"
+      [hasExtraLine]="true"
+      [keepAlive]="true"
+      [selectedIndex]="activeTabIndex()"
+      (selectedIndexChange)="onTabChange($event)"
+    >
+      <ignt-tabs-item [label]="'approvals.detail.tabs.detail' | translate">
+        <ng-template #bulkActions let-a="a">
+          @if (canReviewItems(a) && allItemIds(a).length) {
+            <div class="approval-detail__bulk" data-testid="approval-detail-bulk">
+              <ignt-checkbox
+                class="approval-detail__bulk-all"
+                size="small"
+                [checked]="allItemsSelected(a)"
+                [disabled]="actionInProgress() !== null"
+                [label]="'approvals.detail.itemActions.selectAll' | translate"
+                dataTestId="approval-detail-select-all"
+                (change)="toggleSelectAllItems(a)"
+              />
+              @if (selectedItemCount() > 0) {
+                <span class="approval-detail__bulk-count">
+                  {{ 'approvals.detail.itemActions.selected' | translate: { count: selectedItemCount() } }}
+                </span>
+                <ignt-button
+                  variant="secondary"
+                  sentiment="positive"
+                  [leadingIcon]="approveActionIcon"
+                  [label]="'approvals.detail.itemActions.approveSelected' | translate: { count: selectedItemCount() }"
+                  [disabled]="actionInProgress() !== null"
+                  (click)="bulkReviewItems('APPROVE')"
+                  data-testid="approval-detail-bulk-approve"
+                ></ignt-button>
+                <ignt-button
+                  variant="secondary"
+                  sentiment="danger"
+                  [leadingIcon]="rejectActionIcon"
+                  [label]="'approvals.detail.itemActions.rejectSelected' | translate: { count: selectedItemCount() }"
+                  [disabled]="actionInProgress() !== null"
+                  (click)="bulkReviewItems('REJECT')"
+                  data-testid="approval-detail-bulk-reject"
+                ></ignt-button>
+              }
+            </div>
+          }
+        </ng-template>
+
+        @if (a.assets.length) {
+          <ignt-wrapper-card [elevation]="1">
+            <section class="approval-detail__assets" data-testid="approval-detail-assets">
+              <header class="approval-detail__section-header">
+                <h2>{{ 'approvals.detail.assets' | translate }}</h2>
+              </header>
+              @if (isDriveSyncStalled()) {
+                <p class="approval-detail__drive-sync-stalled" role="status" data-testid="approval-detail-drive-sync-stalled">
+                  {{ 'approvals.detail.driveSyncStalled' | translate }}
+                </p>
+              }
+              <ng-container *ngTemplateOutlet="bulkActions; context: { a: a }"></ng-container>
+              <ng-container
+                *ngTemplateOutlet="assetBranch; context: { a: a, folders: assetTree().folders, assets: assetTree().assets, depth: 0 }"
+              ></ng-container>
+            </section>
+          </ignt-wrapper-card>
+        }
+
+        <ng-template #assetBranch let-a="a" let-folders="folders" let-assets="assets" let-depth="depth">
+          @for (folder of folders; track folder.key) {
+            <div
+              class="approval-detail__folder"
+              [style.paddingLeft.px]="depth * 16"
+              [attr.data-testid]="'approval-detail-folder-' + folder.pathLabel"
+            >
+              @if (canReviewFolder(a, folder)) {
+                <!-- ignt-checkbox offers no accessible name without a visible label; extending it is
+                     out of scope for this PR, so these selection checkboxes announce as plain checkboxes. -->
+                <ignt-checkbox
+                  class="approval-detail__folder-select"
+                  size="small"
+                  [checked]="isAssetFolderSelected(folder)"
+                  [disabled]="actionInProgress() !== null"
+                  [dataTestId]="'approval-detail-folder-select-' + folder.pathLabel"
+                  (change)="toggleAssetFolderSelected(folder, $event)"
+                />
+              }
+              <div class="approval-detail__folder-heading">
+                <ignt-button
+                  variant="tertiary"
+                  sentiment="neutral"
+                  size="small"
+                  class="approval-detail__folder-toggle"
+                  [leadingIcon]="assetFolderIcon"
+                  [trailingIcon]="assetFolderChevron(folder.key)"
+                  [label]="folder.name"
+                  [attr.aria-expanded]="isAssetFolderExpanded(folder.key)"
+                  [attr.data-testid]="'approval-detail-folder-toggle-' + folder.pathLabel"
+                  (click)="toggleAssetFolder(folder.key)"
+                ></ignt-button>
+                @if (folderCommentedItemCount(folder); as commented) {
+                  <span class="approval-detail__folder-comments" [attr.data-testid]="'approval-detail-folder-comments-' + folder.pathLabel">
+                    {{ 'approvals.detail.comments.folderSummary' | translate: { count: commented } }}
+                  </span>
+                }
+              </div>
+              <!-- Collapsed folders act on their whole subtree (rollup + bulk decisions); expanded
+                   folders defer to the controls of the individual files and nested folders. -->
+              @if (!isAssetFolderExpanded(folder.key)) {
+                @if (folderRollup(folder); as rollup) {
+                  <ignt-tag
+                    class="approval-detail__folder-rollup"
+                    [sentiment]="folderRollupSentiment(rollup)"
+                    variant="outline"
+                    [attr.data-rollup]="rollup"
+                    [attr.data-testid]="'approval-detail-folder-rollup-' + folder.pathLabel"
+                  >
+                    {{ 'approvals.detail.folderRollup.' + rollup | translate }}
+                  </ignt-tag>
+                }
+                @if (canReviewFolder(a, folder)) {
+                  <ignt-button
+                    variant="secondary"
+                    sentiment="positive"
+                    size="small"
+                    [leadingIcon]="approveActionIcon"
+                    [label]="'approvals.detail.itemActions.approveAll' | translate"
+                    [disabled]="actionInProgress() !== null"
+                    (click)="reviewFolderAssets(folder, 'APPROVE')"
+                    [attr.data-testid]="'approval-detail-folder-approve-' + folder.pathLabel"
+                  ></ignt-button>
+                  <ignt-button
+                    variant="secondary"
+                    sentiment="danger"
+                    size="small"
+                    [leadingIcon]="rejectActionIcon"
+                    [label]="'approvals.detail.itemActions.rejectAll' | translate"
+                    [disabled]="actionInProgress() !== null"
+                    (click)="reviewFolderAssets(folder, 'REJECT')"
+                    [attr.data-testid]="'approval-detail-folder-reject-' + folder.pathLabel"
+                  ></ignt-button>
+                }
+              }
+            </div>
+            @if (isAssetFolderExpanded(folder.key)) {
+              <ng-container
+                *ngTemplateOutlet="assetBranch; context: { a: a, folders: folder.folders, assets: folder.assets, depth: depth + 1 }"
+              ></ng-container>
+            }
+          }
+          @if (assets.length) {
+            <ul class="approval-detail__item-list" [style.paddingLeft.px]="depth * 16">
+              @for (asset of assets; track asset.id) {
+                <li class="approval-detail__asset" data-testid="approval-detail-asset">
+                  @if (canDecideAsset(a, asset)) {
+                    <ignt-checkbox
+                      class="approval-detail__item-select"
+                      size="small"
+                      [checked]="isItemSelected(asset.id)"
+                      [disabled]="actionInProgress() !== null"
+                      [dataTestId]="'approval-detail-item-select-' + asset.id"
+                      (change)="toggleItemSelected(asset.id, $event)"
+                    />
+                  }
+                  @if (assetDisplayStatus(asset, a); as st) {
+                    @if (asset.isZiflow || !canReviewItems(a) || !isDecidedStatus(st)) {
+                      <ignt-tag
+                        class="approval-detail__item-status"
+                        [sentiment]="statusTagSentiment(st)"
+                        variant="outline"
+                        [attr.data-status]="statusKey(st)"
+                        [attr.data-testid]="'approval-detail-item-status-' + asset.id"
+                      >
+                        {{ 'approvals.status.' + statusKey(st) | translate }}
+                      </ignt-tag>
+                    }
+                  }
+                  <app-file-thumbnail
+                    [driveFileId]="canPreviewAsset(asset) ? asset.driveFileId : undefined"
+                    [previewImageUrl]="asset.isZiflow ? (asset.thumbnailUrl ?? undefined) : undefined"
+                    [remoteThumbnailUrl]="asset.isZiflow ? undefined : asset.thumbnailUrl"
+                    [kindOverride]="asset.isZiflow ? 'image' : undefined"
+                    [mimeType]="asset.mimeType ?? undefined"
+                    [fileName]="asset.fileName"
+                    [testId]="'approval-detail-asset-thumb-' + asset.id"
+                  />
+                  @if (canViewZiflow(asset)) {
+                    <ignt-button
+                      class="approval-detail__asset-name-link"
+                      variant="tertiary"
+                      size="small"
+                      [label]="asset.fileName"
+                      [disabled]="previewingAssetId() !== null"
+                      (click)="openZiflowReview(asset)"
+                      [attr.data-testid]="'approval-detail-asset-name-' + asset.id"
+                    ></ignt-button>
+                  } @else {
+                    <span class="approval-detail__asset-name">{{ asset.fileName }}</span>
+                  }
+                  @if (canViewAsset(asset)) {
+                    <ignt-button
+                      variant="tertiary"
+                      sentiment="neutral"
+                      size="small"
+                      [label]="'approvals.detail.view' | translate"
+                      [loading]="previewingAssetId() === asset.id"
+                      [disabled]="previewingAssetId() !== null"
+                      (click)="openAssetPreview(asset)"
+                      [attr.data-testid]="'approval-detail-asset-view-' + asset.id"
+                    ></ignt-button>
+                  }
+                  @if (canCommentOnAsset(a, asset)) {
+                    <ignt-button
+                      [variant]="hasItemComments(asset.id) ? 'secondary' : 'tertiary'"
+                      [sentiment]="isCommentThreadOpen(asset.id) || hasItemComments(asset.id) ? 'brand' : 'neutral'"
+                      size="small"
+                      [leadingIcon]="commentsIcon"
+                      [label]="commentToggleLabel(asset.id)"
+                      (click)="toggleCommentThread(asset.id)"
+                      [attr.data-testid]="'approval-detail-asset-comments-' + asset.id"
+                    ></ignt-button>
+                  }
+                  @if (!a.itemComments.enabled && commentFor(asset.id, asset.reviewFeedback)) {
+                    <p class="approval-detail__item-comment" data-testid="approval-detail-asset-comment">
+                      {{ commentFor(asset.id, asset.reviewFeedback) }}
+                    </p>
+                  }
+                  @if (canRemoveItem(a, asset.id)) {
+                    <button
+                      type="button"
+                      ignt-icon-button
+                      [icon]="['fal', 'trash-can']"
+                      sentiment="tertiary"
+                      size="small"
+                      class="approval-detail__item-remove"
+                      [attr.aria-label]="'approvals.detail.removeItem.actionFor' | translate: { name: asset.fileName }"
+                      [disabled]="actionInProgress() !== null"
+                      (click)="removeItem(asset.id)"
+                      [attr.data-testid]="'approval-detail-asset-remove-' + asset.id"
+                    ></button>
+                  }
+                  <app-approval-item-review
+                    [control]="reviewDecisionControl(asset.id)"
+                    [reviewable]="canDecideAsset(a, asset)"
+                    [busy]="reviewsBlocked(asset.id)"
+                    (decisionRequested)="reviewItem(asset.id, $event)"
+                  />
+                  @if (asset.isZiflow) {
+                    @if (canViewZiflow(asset)) {
+                      <ignt-button
+                        class="approval-detail__asset-open"
+                        variant="secondary"
+                        size="small"
+                        [label]="ziflowActionLabelKey() | translate"
+                        [trailingIcon]="ziflowReviewIcon"
+                        [disabled]="previewingAssetId() !== null"
+                        (click)="openZiflowReview(asset)"
+                        [attr.data-testid]="'approval-detail-asset-open-' + asset.id"
+                      ></ignt-button>
+                    } @else {
+                      <ignt-button
+                        class="approval-detail__asset-open"
+                        variant="secondary"
+                        size="small"
+                        [label]="ziflowActionLabelKey() | translate"
+                        [trailingIcon]="ziflowReviewIcon"
+                        igntTooltip
+                        [disabled]="true"
+                        [tooltipLabel]="'approvals.detail.ziflowUnavailable' | translate"
+                        [attr.data-testid]="'approval-detail-asset-open-unavailable-' + asset.id"
+                      ></ignt-button>
+                    }
+                  } @else if (canOpenInDrive(asset)) {
+                    <button
+                      type="button"
+                      ignt-icon-button
+                      [icon]="['far', 'arrow-up-right-from-square']"
+                      sentiment="tertiary"
+                      size="small"
+                      class="approval-detail__asset-open"
+                      (click)="openDriveUrl(asset.driveUrl)"
+                      [attr.aria-label]="'approvals.detail.openInDrive' | translate"
+                      [attr.data-testid]="'approval-detail-asset-open-' + asset.id"
+                    ></button>
+                  } @else {
+                    <app-drive-sync-badge
+                      [status]="asset.driveSyncStatus"
+                      [driveUrl]="asset.driveUrl"
+                      [importProgress]="asset.importProgress ?? null"
+                    />
+                    @if (canRetryDriveSync(asset)) {
+                      <ignt-button
+                        class="approval-detail__asset-retry"
+                        variant="tertiary"
+                        size="small"
+                        [label]="'projectManagement.driveSync.retry' | translate"
+                        [ariaLabel]="'approvals.detail.retryDriveSync.action' | translate: { name: asset.fileName }"
+                        [leadingIcon]="retryDriveSyncIcon"
+                        [loading]="isRetryingDriveSync(asset)"
+                        [disabled]="actionInProgress() !== null"
+                        (click)="retryDriveSync(asset)"
+                        [attr.data-testid]="'approval-detail-asset-retry-' + asset.id"
+                      ></ignt-button>
+                    }
+                  }
+                  @if (reviewProgress(asset); as progress) {
+                    <app-approval-review-progress [progress]="progress" [hideFeedback]="a.itemComments.enabled" />
+                  }
+                  @if (canCommentOnAsset(a, asset) && isCommentThreadMounted(asset.id)) {
+                    <app-approval-item-comments
+                      [hidden]="!isCommentThreadOpen(asset.id)"
+                      [partnerId]="a.partnerId"
+                      [launchId]="launchId() || null"
+                      [approvalId]="a.id"
+                      [itemId]="asset.id"
+                      [canPost]="a.itemComments.canPost"
+                      [mentionable]="a.itemComments.mentionable"
+                      [isHubPermissionsEnabled]="a.isHubPermissionsEnabled"
+                      [isMentionAccessAddBlocked]="savingAlerts()"
+                      (countChange)="onItemCommentCountChange(asset.id, $event)"
+                      (accessChanged)="onItemCommentAccessChanged()"
+                      (commentEdited)="onItemCommentEdited()"
+                      (submittingChange)="onItemCommentSubmittingChange(asset.id, $event)"
+                      (mentionAccessAddingChange)="onItemCommentMentionAccessAddingChange(asset.id, $event)"
+                      (mentionAccessGranted)="onItemCommentMentionAccessGranted()"
+                    />
+                  }
+                </li>
+              }
+            </ul>
+          }
+        </ng-template>
+
+        @if (hasUrlItems(a)) {
+          <ignt-wrapper-card [elevation]="1">
+            <section class="approval-detail__urls" data-testid="approval-detail-urls">
+              <h2>{{ 'approvals.new.payload.urls.title' | translate }}</h2>
+              <ng-container *ngTemplateOutlet="bulkActions; context: { a: a }"></ng-container>
+              <div [class.approval-detail__url-table-scroll]="canRemoveAnyUrlItem(a)">
+                <table class="approval-detail__url-table">
+                  <thead>
+                    <tr>
+                      @if (canReviewItems(a)) {
+                        <th class="approval-detail__url-col-select"></th>
+                      }
+                      <th>{{ 'approvals.detail.urlTable.url' | translate }}</th>
+                      <th>{{ 'approvals.detail.urlTable.comments' | translate }}</th>
+                      <th class="approval-detail__url-col-status">{{ 'approvals.detail.urlTable.status' | translate }}</th>
+                      @if (canRemoveAnyUrlItem(a)) {
+                        <th class="approval-detail__url-col-actions"></th>
+                      }
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of urlItems(a); track item.id) {
+                      <tr class="approval-detail__url-row" data-testid="approval-detail-url-item">
+                        @if (canReviewItems(a)) {
+                          <td class="approval-detail__url-col-select">
+                            @if (!item.informOnly && canDecideItem(a, item.id)) {
+                              <ignt-checkbox
+                                class="approval-detail__item-select"
+                                size="small"
+                                [checked]="isItemSelected(item.id)"
+                                [disabled]="actionInProgress() !== null"
+                                [dataTestId]="'approval-detail-item-select-' + item.id"
+                                (change)="toggleItemSelected(item.id, $event)"
+                              />
+                            }
+                          </td>
+                        }
+                        <td class="approval-detail__url-cell-url">
+                          <a [href]="item.url" target="_blank" rel="noopener" class="approval-detail__url-link">{{ item.url }}</a>
+                          @if (item.description) {
+                            <span class="approval-detail__url-desc">{{ item.description }}</span>
+                          }
+                        </td>
+                        <td class="approval-detail__url-cell-comment">
+                          <div class="approval-detail__url-comment">
+                            @if (!a.itemComments.enabled && !item.informOnly && commentFor(item.id)) {
+                              <span data-testid="approval-detail-url-comment">{{ commentFor(item.id) }}</span>
+                            }
+                            @if (canCommentOnUrl(a)) {
+                              <ignt-button
+                                class="approval-detail__url-comments-toggle"
+                                [variant]="hasItemComments(item.id) ? 'secondary' : 'tertiary'"
+                                [sentiment]="isCommentThreadOpen(item.id) || hasItemComments(item.id) ? 'brand' : 'neutral'"
+                                size="small"
+                                [leadingIcon]="commentsIcon"
+                                [label]="commentToggleLabel(item.id)"
+                                (click)="toggleCommentThread(item.id)"
+                                [attr.data-testid]="'approval-detail-url-comments-' + item.id"
+                              ></ignt-button>
+                            }
+                          </div>
+                        </td>
+                        <td class="approval-detail__url-col-status">
+                          @if (item.informOnly) {
+                            <ignt-tag sentiment="info" variant="outline" data-status="inform_only" data-testid="approval-detail-url-inform">
+                              {{ 'approvals.detail.informOnly' | translate }}
+                            </ignt-tag>
+                          } @else if (canDecideItem(a, item.id)) {
+                            <app-approval-item-review
+                              [control]="reviewDecisionControl(item.id)"
+                              [reviewable]="true"
+                              [busy]="reviewsBlocked(item.id)"
+                              (decisionRequested)="reviewItem(item.id, $event)"
+                            />
+                          } @else {
+                            <ignt-tag
+                              [sentiment]="statusTagSentiment(item.status)"
+                              variant="outline"
+                              [attr.data-status]="statusKey(item.status)"
+                            >
+                              {{ 'approvals.status.' + statusKey(item.status) | translate }}
+                            </ignt-tag>
+                          }
+                        </td>
+                        @if (canRemoveAnyUrlItem(a)) {
+                          <td class="approval-detail__url-col-actions">
+                            @if (canRemoveItem(a, item.id)) {
+                              <button
+                                type="button"
+                                ignt-icon-button
+                                [icon]="['fal', 'trash-can']"
+                                sentiment="tertiary"
+                                size="small"
+                                class="approval-detail__item-remove"
+                                [attr.aria-label]="'approvals.detail.removeItem.action' | translate"
+                                [disabled]="actionInProgress() !== null"
+                                (click)="removeItem(item.id)"
+                                [attr.data-testid]="'approval-detail-url-remove-' + item.id"
+                              ></button>
+                            }
+                          </td>
+                        }
+                      </tr>
+                      @if (canCommentOnUrl(a) && isCommentThreadMounted(item.id)) {
+                        <tr
+                          class="approval-detail__url-comments-row"
+                          [hidden]="!isCommentThreadOpen(item.id)"
+                          [attr.data-testid]="'approval-detail-url-comments-row-' + item.id"
+                        >
+                          <td [attr.colspan]="urlTableColumnCount(a)">
+                            <app-approval-item-comments
+                              [partnerId]="a.partnerId"
+                              [launchId]="launchId() || null"
+                              [approvalId]="a.id"
+                              [itemId]="item.id"
+                              [canPost]="a.itemComments.canPost"
+                              [mentionable]="a.itemComments.mentionable"
+                              [isHubPermissionsEnabled]="a.isHubPermissionsEnabled"
+                              [isMentionAccessAddBlocked]="savingAlerts()"
+                              (countChange)="onItemCommentCountChange(item.id, $event)"
+                              (accessChanged)="onItemCommentAccessChanged()"
+                              (commentEdited)="onItemCommentEdited()"
+                              (submittingChange)="onItemCommentSubmittingChange(item.id, $event)"
+                              (mentionAccessAddingChange)="onItemCommentMentionAccessAddingChange(item.id, $event)"
+                              (mentionAccessGranted)="onItemCommentMentionAccessGranted()"
+                            />
+                          </td>
+                        </tr>
+                      }
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </ignt-wrapper-card>
+        }
+
+        @if (hasSpreadsheetRows(a)) {
+          <ignt-wrapper-card [elevation]="1">
+            <section class="approval-detail__spreadsheet">
+              <h2>{{ 'approvals.detail.rows' | translate }}</h2>
+              @if (canResend(a)) {
+                <div class="approval-detail__resend" data-testid="approval-detail-resend">
+                  <ignt-button
+                    [label]="'approvals.detail.resend.button' | translate"
+                    [disabled]="resending()"
+                    (click)="openResendDialog(a)"
+                    data-testid="approval-detail-resend-toggle"
+                  ></ignt-button>
+                </div>
+              }
+              <ng-container *ngTemplateOutlet="bulkActions; context: { a: a }"></ng-container>
+              <app-approval-spreadsheet
+                [rows]="spreadsheetRows(a)"
+                [reviewForm]="reviewForm"
+                [reviewable]="canReviewItems(a) && !sheetInformOnly()"
+                [informOnly]="sheetInformOnly()"
+                [hiddenColumns]="hiddenColumns(a)"
+                [editableColumns]="canEditColumns(a)"
+                [groupApprovedLast]="groupAfterResend()"
+                [selectedIds]="selectedItemIds()"
+                [reviewingIds]="reviewingItemIds()"
+                [reviewsLocked]="actionInProgress() !== null"
+                (decisionRequested)="reviewRows($event)"
+                (selectChange)="toggleItemSelected($event.id, $event.selected)"
+                (columnToggle)="onColumnToggle(a, $event)"
+              />
+            </section>
+          </ignt-wrapper-card>
+        }
+      </ignt-tabs-item>
+
+      <ignt-tabs-item [label]="'approvals.detail.tabs.history' | translate">
+        <ignt-wrapper-card [elevation]="1">
+          <section class="approval-detail__history" data-testid="approval-detail-history">
+            <h2>{{ 'editHistory.title' | translate }}</h2>
+            @if (a.createdBy) {
+              <p class="approval-detail__history-created" data-testid="approval-detail-history-created">
+                {{ 'approvals.detail.history.createdBy' | translate: { email: a.createdBy, at: historyDateTime(a.createdAt) } }}
+              </p>
+            }
+            <app-edit-history-view [entries]="a.editHistory" />
+          </section>
+        </ignt-wrapper-card>
+      </ignt-tabs-item>
+    </ignt-tabs>
+  }
+
+  <app-file-preview-dialog [file]="previewFile()" (closed)="closePreview()" />
+</section>

@@ -1,0 +1,105 @@
+<ignt-list-item
+  [title]="'cart.adjustment.title' | translate"
+  [description]="'cart.adjustment.description' | translate"
+  [leadingIconTemplate]="icon"
+  [divider]="hasNewAdjustmentPrice"
+  [backgroundColor]="'var(--cart-adjustment-bg)'"
+  [type]="'borderless'"
+>
+  <ng-template #icon>
+    <fa-icon size="lg" [icon]="['far', 'edit']"></fa-icon>
+  </ng-template>
+  <ng-container trailing-modifier>
+    <ignt-toggle
+      [attr.data-testid]="'cart-adjustment-price-toggle'"
+      [checked]="hasNewAdjustmentPrice"
+      [disabled]="!canToggleAdjustmentPrice()"
+      (change)="onToggleAdjustmentPrice()"
+    ></ignt-toggle>
+  </ng-container>
+  <ng-container *ngIf="hasNewAdjustmentPrice">
+    <ng-container *ngTemplateOutlet="overridePriceTemplate"></ng-container>
+  </ng-container>
+</ignt-list-item>
+
+<ng-template #overridePriceTemplate>
+  <div class="cart-detail-override-price__wrapper">
+    <div class="cart-detail-override-price__radio-group">
+      <ignt-list-item
+        [title]="'cart.adjustment.fixedCalculation' | translate"
+        [backgroundColor]="'white'"
+        [selected]="calculation === this.cartAdjustmentPriceCalculationEnum.FIXED"
+        (click)="onCalculationChange(this.cartAdjustmentPriceCalculationEnum.FIXED)"
+        [clickable]="true"
+      >
+        <ng-container leading-modifier>
+          <ignt-radio
+            [checked]="calculation === this.cartAdjustmentPriceCalculationEnum.FIXED"
+            (change)="onCalculationChange(this.cartAdjustmentPriceCalculationEnum.FIXED)"
+          ></ignt-radio>
+        </ng-container>
+      </ignt-list-item>
+      <ignt-list-item
+        [title]="'cart.adjustment.percentageCalculation' | translate"
+        [backgroundColor]="'white'"
+        [selected]="calculation === this.cartAdjustmentPriceCalculationEnum.PERCENTAGE"
+        (click)="onCalculationChange(this.cartAdjustmentPriceCalculationEnum.PERCENTAGE)"
+        [clickable]="true"
+      >
+        <ng-container leading-modifier>
+          <ignt-radio
+            [checked]="calculation === this.cartAdjustmentPriceCalculationEnum.PERCENTAGE"
+            (change)="onCalculationChange(this.cartAdjustmentPriceCalculationEnum.PERCENTAGE)"
+          ></ignt-radio>
+        </ng-container>
+      </ignt-list-item>
+    </div>
+    <span class="cart-detail-override-price__description font-small-regular">
+      {{ 'cart.adjustment.subtitle' | translate }}
+    </span>
+    <div class="cart-detail-override-price__input-wrapper">
+      <ignt-typeahead
+        id="overridePrice"
+        data-testid="override-price-dropdown"
+        [fieldLabel]="'cart.adjustment.calculation' | translate"
+        [options]="operationOptions"
+        (selected)="onOperationChange($event)"
+        [selectedOption]="operation"
+        [editable]="false"
+      >
+      </ignt-typeahead>
+
+      <label class="cell cell--fill-sm field">
+        <input
+          class="field__input"
+          [(ngModel)]="adjustmentPriceAmount"
+          appAutoformatNumericInput
+          min="0"
+          [decimalPlaces]="2"
+          [suffixText]="calculation === this.cartAdjustmentPriceCalculationEnum.PERCENTAGE ? ' %' : ''"
+          [currency]="calculation === this.cartAdjustmentPriceCalculationEnum.PERCENTAGE ? undefined : currency()"
+          (ngModelChange)="onAmountChange()"
+          [class.has-error]="hasError()"
+        />
+        <span class="field__label" [attr.data-testid]="'cart-adjustment-price-input'">{{
+          calculation === this.cartAdjustmentPriceCalculationEnum.PERCENTAGE
+            ? ('cart.adjustment.percentage' | translate)
+            : currency() + ' ' + ('cart.adjustment.amount' | translate)
+        }}</span>
+        <ignt-field-error [showError]="hasError()">
+          {{ errorMessageKey() | translate }}
+        </ignt-field-error>
+      </label>
+    </div>
+    <ignt-textarea-field
+      [(ngModel)]="adjustmentPriceConcept"
+      id="adjustmentPriceConcept"
+      (ngModelChange)="onConceptChange()"
+      autocomplete="off"
+      [placeholder]="'cart.adjustment.concept' | translate"
+      [label]="'cart.adjustment.concept' | translate"
+      [rows]="3"
+      data-testid="override-price-description-text-area"
+    ></ignt-textarea-field>
+  </div>
+</ng-template>

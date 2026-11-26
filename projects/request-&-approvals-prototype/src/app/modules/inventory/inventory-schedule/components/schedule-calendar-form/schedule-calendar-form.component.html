@@ -1,0 +1,780 @@
+<form [formGroup]="formGroup" class="schedule-form" (ngSubmit)="onSubmit()" [class.is-exception-calendar]="isExceptionCalendar()">
+  <div class="schedule-form__accordion">
+    <section class="schedule-form__accordion__section" data-testid="setup-basics-section">
+      <div class="schedule-form__section__header">
+        <div class="schedule-form__section__header__title">
+          <button
+            type="button"
+            class="schedule-form__section__header__title__content cell--fill pointer"
+            data-testid="setup-basics-collapse-button"
+            (click)="toggleIsRelatedItemsCollapsed()"
+          >
+            <ignt-icon [name]="isRelatedItemsCollapsed() ? 'chevron-up' : 'chevron-down'" variant="solid"></ignt-icon>
+            <span>{{ 'inventory.schedule.scheduleForm.sections.setupBasics.title' | translate }}</span>
+            <span class="schedule-form__section__header__check" data-testid="setup-basics-section-check">
+              @if (isSetupBasicsValid()) {
+                <ignt-icon name="check-circle" variant="solid"></ignt-icon>
+              }
+            </span>
+          </button>
+        </div>
+      </div>
+
+      @if (!isRelatedItemsCollapsed()) {
+        <div class="schedule-form__section__content schedule-form__setup-basics" data-testid="setup-basics-section-content">
+          <div class="schedule-form__name-block">
+            <p class="schedule-form__name-hint">
+              <span>{{ 'inventory.schedule.scheduleForm.fields.name.hintPrefix' | translate }}</span>
+              <span class="schedule-form__name-hint__emphasis">
+                {{ 'inventory.schedule.scheduleForm.fields.name.hintEmphasis' | translate }}
+              </span>
+              <span>{{ 'inventory.schedule.scheduleForm.fields.name.hintSuffix' | translate }}</span>
+            </p>
+            <ignt-input-field
+              [label]="'inventory.schedule.scheduleForm.fields.name.label' | translate"
+              class="schedule-form__name"
+              [formControl]="formGroup.controls.name"
+              [customFormErrors]="[{ type: 'required', message: 'form.error.required' | translate }]"
+              id="schedule-name"
+              (blurred)="onScheduleNameBlurred()"
+            ></ignt-input-field>
+          </div>
+
+          <div class="schedule-form__products">
+            <p class="schedule-form__products__description">
+              <span class="schedule-form__products__description__emphasis">
+                {{ 'inventory.schedule.scheduleForm.fields.products.emphasis' | translate }}
+              </span>
+              <span>{{ 'inventory.schedule.scheduleForm.fields.products.suffix' | translate }}</span>
+            </p>
+            @if (canEditSchedule()) {
+              <ignt-button
+                data-testid="add-products-button"
+                size="small"
+                variant="secondary"
+                [disabled]="!inventoryEditingService.canEditInventory()"
+                [label]="'inventory.schedule.scheduleForm.actions.addProducts' | translate"
+                [leadingIcon]="{ name: 'plus-circle', variant: 'solid' }"
+                (click)="triggerOpenCapacityTemplateModal()"
+              />
+            }
+
+            @if (selectedCapacityTemplateName() !== null && selectedSessionTypeOptionAsEditable().length > 0) {
+              <div class="schedule-form__capacity-template">
+                <div class="schedule-form__capacity-template__label">
+                  <span>{{ 'inventory.schedule.scheduleForm.fields.capacityTemplate.label' | translate }}</span>
+                  <span class="tooltip-icon">
+                    <span class="tooltip">
+                      {{ 'inventory.schedule.scheduleForm.fields.capacityTemplate.tooltip' | translate }}
+                    </span>
+                    <ignt-icon name="info-circle" variant="regular"></ignt-icon>
+                  </span>
+                </div>
+                <div class="schedule-form__session-types wrapper-card">
+                  @for (
+                    sessionTypePill of selectedSessionTypeOptionAsEditable() | slice: 0 : maxVisibleSessionTypePills;
+                    track trackByMergedScheduleId(sessionTypePill.id)
+                  ) {
+                    <ignt-pill
+                      [value]="sessionTypePill.id"
+                      [label]="sessionTypePill.title"
+                      [isActive]="sessionTypePill.editable"
+                      [disabled]="!sessionTypePill.editable"
+                      [size]="'small'"
+                      [trailingIcon]="sessionTypePill.editable ? ['far', 'times-circle'] : undefined"
+                      (statusChange)="sessionTypePill.editable ? removeSessionTypeOption($event.value) : null"
+                      class="schedule-form__session-types__pill"
+                    ></ignt-pill>
+                  }
+                  @if (selectedSessionTypeOptionAsEditable().length > maxVisibleSessionTypePills) {
+                    @if (canEditSchedule()) {
+                      <button
+                        type="button"
+                        class="schedule-form__see-all-products-link"
+                        data-testid="see-all-products-button"
+                        [disabled]="!inventoryEditingService.canEditInventory()"
+                        (click)="triggerOpenCapacityTemplateModal()"
+                      >
+                        {{ 'inventory.schedule.scheduleForm.actions.seeAllProducts' | translate }}
+                      </button>
+                    }
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </section>
+
+    <hr class="schedule-form__accordion__divider" />
+
+    <section
+      #scheduleAndSalesSection
+      class="schedule-form__accordion__section"
+      data-testid="schedule-and-sales-section"
+      [class.schedule-form__accordion__section--locked]="!isScheduleAndSalesUnlocked()"
+    >
+      <div class="schedule-form__section__header">
+        <div class="schedule-form__section__header__title">
+          <button
+            type="button"
+            class="schedule-form__section__header__title__content cell--fill pointer"
+            data-testid="schedule-and-sales-collapse-button"
+            [attr.aria-disabled]="!isScheduleAndSalesUnlocked() || null"
+            [disabled]="!isScheduleAndSalesUnlocked()"
+            (click)="toggleIsScheduleAndSalesCollapsed()"
+          >
+            <ignt-icon
+              [name]="!isScheduleAndSalesUnlocked() || isScheduleAndSalesCollapsed() ? 'chevron-up' : 'chevron-down'"
+              variant="solid"
+            ></ignt-icon>
+            <span>{{ 'inventory.schedule.scheduleForm.sections.scheduleAndSales.title' | translate }}</span>
+            <span class="schedule-form__section__header__check" data-testid="schedule-and-sales-section-check">
+              @if (isScheduleAndSalesValid()) {
+                <ignt-icon name="check-circle" variant="solid"></ignt-icon>
+              }
+            </span>
+          </button>
+        </div>
+      </div>
+
+      @if (isScheduleAndSalesUnlocked() && !isScheduleAndSalesCollapsed()) {
+        <div class="schedule-form__section__content schedule-form__schedule-and-sales" data-testid="calendar-recurrence-section">
+          <p class="schedule-form__section-intro">
+            {{ 'inventory.schedule.scheduleForm.sections.scheduleAndSales.description' | translate }}
+          </p>
+          <div class="schedule-form__recurrence">
+            <div class="schedule-form__date">
+              <h6 class="schedule-form__date__title">
+                <ignt-icon name="calendar" variant="light"></ignt-icon>
+                <span>{{ 'inventory.schedule.scheduleForm.fields.calendarRecurrence.dates' | translate }}</span>
+              </h6>
+              <ignt-radio-group [formControl]="formGroup.controls.dateFrequency" class="schedule-form__date__options">
+                @for (option of calendarDateFrequency; track option) {
+                  <ignt-radio
+                    [label]="'inventory.schedule.scheduleForm.fields.calendarRecurrence.' + option | translate"
+                    [value]="option"
+                    [attr.data-testid]="'date-frequency-' + option"
+                    [disabled]="initialConfiguration().disabledCalendarDateFrequency"
+                  />
+                }
+              </ignt-radio-group>
+              @if (isRecurrentDates() && !isExceptionCalendar()) {
+                @for (dateRange of formGroup.controls.dateRanges.controls; track dateRange; let index = $index) {
+                  <div class="schedule-form__date__inputs schedule-form__date-range-row" [attr.data-testid]="'date-range-' + index">
+                    <ng-container
+                      *ngTemplateOutlet="
+                        datePicker;
+                        context: {
+                          control: dateRange.controls.startDate,
+                          label: 'inventory.schedule.scheduleForm.fields.startDate.title' | translate,
+                          dataTestId: 'date-range-' + index + '-start-date',
+                          type: 'date',
+                          min: minAllowedDate(),
+                          max: maxAllowedDate,
+                        }
+                      "
+                    ></ng-container>
+                    <ng-container
+                      *ngTemplateOutlet="
+                        datePicker;
+                        context: {
+                          control: dateRange.controls.endDate,
+                          label: 'inventory.schedule.scheduleForm.fields.endDate.title' | translate,
+                          dataTestId: 'date-range-' + index + '-end-date',
+                          type: 'date',
+                          min: dateRange.controls.startDate.value || minAllowedDate(),
+                          max: maxAllowedDate,
+                        }
+                      "
+                    ></ng-container>
+                    @if (formGroup.controls.dateRanges.length > 1 && dateRange.enabled && canEditSchedule()) {
+                      <button
+                        type="button"
+                        class="schedule-form__date-range-remove"
+                        ignt-icon-button
+                        variant="sharp"
+                        sentiment="tertiary"
+                        [icon]="dateRangeRemoveIcon"
+                        [attr.data-testid]="'date-range-' + index + '-remove-button'"
+                        [attr.aria-label]="'inventory.schedule.scheduleForm.actions.removeDateRange' | translate"
+                        (click)="removeDateRange(index)"
+                      ></button>
+                    }
+                  </div>
+                }
+                @if (canEditSchedule()) {
+                  <ignt-button
+                    data-testid="add-date-range-button"
+                    size="small"
+                    variant="tertiary"
+                    [label]="'inventory.schedule.scheduleForm.actions.addDateRange' | translate"
+                    [leadingIcon]="{ name: 'plus', variant: 'light' }"
+                    (click)="addDateRange()"
+                  />
+                }
+              }
+              @if (isRecurrentDates() && isExceptionCalendar()) {
+                <div class="schedule-form__date__inputs">
+                  <ng-container
+                    *ngTemplateOutlet="
+                      datePicker;
+                      context: {
+                        control: formGroup.controls.startDate,
+                        label: 'inventory.schedule.scheduleForm.fields.startDate.title' | translate,
+                        dataTestId: 'start-date',
+                        type: 'date',
+                        min: minAllowedDate(),
+                        max: maxAllowedDate,
+                      }
+                    "
+                  ></ng-container>
+                  <ng-container
+                    *ngTemplateOutlet="
+                      datePicker;
+                      context: {
+                        control: formGroup.controls.endDate,
+                        label: 'inventory.schedule.scheduleForm.fields.endDate.title' | translate,
+                        dataTestId: 'end-date',
+                        type: 'date',
+                        min: formGroup.controls.startDate.value,
+                        max: maxAllowedDate,
+                      }
+                    "
+                  ></ng-container>
+                </div>
+              }
+              @if (!isRecurrentDates()) {
+                <div class="schedule-form__date__inputs">
+                  @for (dateControl of formGroup.controls.specificDates.controls; track dateControl; let index = $index) {
+                    <ng-container
+                      *ngTemplateOutlet="
+                        datePicker;
+                        context: {
+                          control: dateControl,
+                          label: 'inventory.schedule.scheduleForm.fields.startDate.title' | translate,
+                          dataTestId: 'specific-date-' + index,
+                          type: 'date',
+                          min: minAllowedDate(),
+                          max: maxAllowedDate,
+                          removeAction: formGroup.controls.specificDates.length > 1 ? removeDate : null,
+                          removeIndex: index,
+                          disabled: initialConfiguration().disabledCalendarDateFrequency,
+                        }
+                      "
+                    ></ng-container>
+                  }
+                  @if (canEditSchedule()) {
+                    <ignt-button
+                      data-testid="add-date-button"
+                      size="small"
+                      variant="tertiary"
+                      [disabled]="!inventoryEditingService.canEditInventory()"
+                      [label]="'inventory.schedule.scheduleForm.actions.addDate' | translate"
+                      [leadingIcon]="{ name: 'plus', variant: 'light' }"
+                      (click)="addDate()"
+                    />
+                  }
+                </div>
+              }
+            </div>
+            <div class="schedule-form__time-slot">
+              <h6 class="schedule-form__time-slot__title">
+                <ignt-icon name="repeat" variant="light"></ignt-icon>
+                <span>{{ 'inventory.schedule.scheduleForm.fields.calendarRecurrence.timeSlots' | translate }}</span>
+              </h6>
+              <ignt-radio-group [formControl]="formGroup.controls.timeSlotFrequency" class="schedule-form__time-slot__options">
+                @for (option of calendarTimeSlotFrequency; track option) {
+                  <ignt-radio
+                    [label]="'inventory.schedule.scheduleForm.fields.calendarRecurrence.' + option | translate"
+                    [value]="option"
+                    [attr.data-testid]="'time-slot-frequency-' + option"
+                    [disabled]="initialConfiguration().disabledTimeSlotFrequency"
+                  />
+                }
+              </ignt-radio-group>
+              @if (isRecurrentTimeSlots()) {
+                <div class="schedule-form__time-slot__inputs">
+                  <ng-container
+                    *ngTemplateOutlet="
+                      datePicker;
+                      context: {
+                        control: formGroup.controls.startTime,
+                        label: 'inventory.schedule.scheduleForm.fields.startTime.title' | translate,
+                        dataTestId: 'start-time',
+                        type: 'time',
+                        step: timeInputStep(),
+                        disabled: initialConfiguration().disabledTimeSlotFrequency && !scheduleCalendar()?.id,
+                      }
+                    "
+                  ></ng-container>
+                  <div class="schedule-form__duration-label">
+                    <span>{{ 'inventory.schedule.scheduleForm.fields.duration.label' | translate }}</span>
+                  </div>
+                  <ignt-input-field
+                    class="schedule-form__duration-input"
+                    [label]="'inventory.schedule.scheduleForm.fields.duration.title' | translate"
+                    [formControl]="formGroup.controls.timeSlotFrequencyInMinutes"
+                    [hideErrorLabels]="formGroup.controls.timeSlotFrequencyInMinutes.hasError(offGridFrequencyError)"
+                    [disabled]="initialConfiguration().disabledTimeSlotFrequency"
+                    id="duration"
+                  ></ignt-input-field>
+                  <div class="schedule-form__recurrent-end">
+                    @if (isRecurrentEndedByMustEndBy()) {
+                      <ng-container
+                        *ngTemplateOutlet="
+                          datePicker;
+                          context: {
+                            control: formGroup.controls.mustEndBy,
+                            label: 'inventory.schedule.scheduleForm.fields.mustEndBy.title' | translate,
+                            dataTestId: 'must-end-by',
+                            type: 'time',
+                            step: timeInputStep(),
+                          }
+                        "
+                      ></ng-container>
+                    } @else {
+                      <ng-container
+                        *ngTemplateOutlet="
+                          datePicker;
+                          context: {
+                            control: formGroup.controls.endTime,
+                            label: 'inventory.schedule.scheduleForm.fields.endTime.title' | translate,
+                            dataTestId: 'end-time',
+                            type: 'time',
+                            step: timeInputStep(),
+                            min: formGroup.controls.startTime.value,
+                            disabled: initialConfiguration().disabledTimeSlotFrequency && !scheduleCalendar()?.id,
+                          }
+                        "
+                      ></ng-container>
+                    }
+                    @if (isRecurrentEndModeShown()) {
+                      <ignt-button
+                        data-testid="switch-recurrent-end-mode-button"
+                        size="small"
+                        variant="tertiary"
+                        [label]="switchRecurrentEndModeLabelKey() | translate"
+                        [disabled]="!canEditSchedule()"
+                        (click)="switchRecurrentEndMode()"
+                      />
+                    }
+                  </div>
+                  <ng-container *ngTemplateOutlet="sessionDurationInput"></ng-container>
+                </div>
+                @if (lastSessionSummary(); as summary) {
+                  <p class="schedule-form__last-session" data-testid="last-session-summary">
+                    <ignt-icon name="clock" variant="light" aria-hidden="true"></ignt-icon>
+                    <span>{{ summary }}</span>
+                  </p>
+                }
+                @if (isSessionStartingAfterMidnightLeftOut()) {
+                  <ignt-alert
+                    data-testid="sessions-after-midnight-hint"
+                    sentiment="warning"
+                    [description]="'inventory.schedule.scheduleForm.fields.recurrentEnd.afterMidnight' | translate"
+                  ></ignt-alert>
+                }
+                @if (hasOffGridRecurrentTimeSlots()) {
+                  <ignt-field-error data-testid="recurrent-time-slots-grid-error" [showError]="true">
+                    {{ 'inventory.schedule.scheduleForm.fieldErrors.offGridRecurrentTimeSlots' | translate }}
+                  </ignt-field-error>
+                }
+              }
+              @if (!isRecurrentTimeSlots()) {
+                <div class="schedule-form__time-slot__inputs">
+                  <ng-container *ngTemplateOutlet="sessionDurationInput"></ng-container>
+                  @for (timeControl of formGroup.controls.singleTimeSlots.controls; track timeControl; let index = $index) {
+                    <ng-container
+                      *ngTemplateOutlet="
+                        datePicker;
+                        context: {
+                          control: timeControl,
+                          label: 'inventory.schedule.scheduleForm.fields.singleTimeSlot.title' | translate,
+                          dataTestId: 'single-time-slot-' + index,
+                          type: 'time',
+                          step: timeInputStep(),
+                          removeAction: formGroup.controls.singleTimeSlots.length > 1 ? removeTimeSlot : null,
+                          removeIndex: index,
+                          note: timeSlotsLeftOutByMustEndBy().includes(timeControl.value) ? mustEndByLeftOutReason() : null,
+                        }
+                      "
+                    ></ng-container>
+                  }
+                  @if (canEditSchedule()) {
+                    <ignt-button
+                      data-testid="add-time-slot-button"
+                      size="small"
+                      variant="tertiary"
+                      [disabled]="!inventoryEditingService.canEditInventory()"
+                      [label]="'inventory.schedule.scheduleForm.actions.addTimeSlot' | translate"
+                      [leadingIcon]="{ name: 'plus', variant: 'light' }"
+                      (click)="addTimeSlot()"
+                    />
+                  }
+                </div>
+                @if (hasOffGridSingleTimeSlots()) {
+                  <ignt-field-error data-testid="single-time-slots-grid-error" [showError]="true">
+                    {{ 'inventory.schedule.scheduleForm.fieldErrors.offGridTime' | translate }}
+                  </ignt-field-error>
+                }
+              }
+              @if (isSessionDurationFromAssets() && !isRecurrentTimeSlots()) {
+                <div class="schedule-form__must-end-by" data-testid="must-end-by-section">
+                  <ng-container
+                    *ngTemplateOutlet="
+                      datePicker;
+                      context: {
+                        control: formGroup.controls.mustEndBy,
+                        label: 'inventory.schedule.scheduleForm.fields.mustEndBy.title' | translate,
+                        dataTestId: 'must-end-by',
+                        type: 'time',
+                        step: timeInputStep(),
+                      }
+                    "
+                  ></ng-container>
+                  <p class="schedule-form__must-end-by__hint">
+                    {{ 'inventory.schedule.scheduleForm.fields.mustEndBy.hint' | translate }}
+                  </p>
+                </div>
+              }
+            </div>
+          </div>
+          @if (isDeclarativeInventory()) {
+            <p class="schedule-form__section-intro" data-testid="time-slot-capacity-template-hint">
+              {{ 'inventory.schedule.scheduleForm.fields.capacityTemplate.everyTimeSlotHint' | translate }}
+            </p>
+          }
+          @if (assetBasedCalendarDurationErrorKey(); as errorKey) {
+            <ignt-alert
+              data-testid="asset-based-calendar-duration-error"
+              sentiment="danger"
+              [description]="errorKey | translate"
+            ></ignt-alert>
+          } @else if (areSomeSelectedProductsAssetBased()) {
+            <ignt-alert
+              data-testid="asset-based-capacity-template-hint"
+              sentiment="warning"
+              [description]="'inventory.schedule.scheduleForm.fields.capacityTemplate.assetBasedProductsHint' | translate"
+            ></ignt-alert>
+          }
+          @if (shouldShowCalendar()) {
+            <div class="schedule-form__calendar">
+              @if (isExceptionCalendar() && !exceptionInfoDismissed()) {
+                <div>
+                  <ignt-alert
+                    showCloseButton
+                    [description]="'inventory.schedule.messages.exceptionTimeSlotsInformation' | translate"
+                    (closeAlert)="exceptionInfoDismissed.set(true)"
+                  ></ignt-alert>
+                </div>
+              }
+              <app-schedule-tier-calendar-panel
+                [capacityOptions]="capacityTemplateOptions()"
+                [capacityTemplatePerSlotDisabled]="isDeclarativeInventory() || areAllSelectedProductsAssetBased()"
+                [capacityTemplateToolbarDisabled]="!inventoryEditingService.canEditInventory()"
+                [days]="days()"
+                [defaultCapacityTemplateId]="formGroup.controls.capacityTemplateId.value"
+                [duration]="isRecurrentTimeSlots() ? formGroup.controls.timeSlotFrequencyInMinutes.value : 60"
+                [endTime]="isRecurrentTimeSlots() ? formGroup.controls.endTime.value! : getStartTimePlusDefaultDuration()"
+                [fixedTimeSlots]="isRecurrentTimeSlots() ? [] : filledSingleTimeSlots()"
+                [interactionDisabled]="!canEditSchedule()"
+                [isDayDisabled]="isDayDisabledFn"
+                [showCapacityTemplateToolbar]="canEditSchedule()"
+                [showDragHint]="!isExceptionCalendar()"
+                [showOpenTimeSlotError]="showOpenTimeSlotError()"
+                [startTime]="formGroup.controls.startTime.value!"
+                [tierOptions]="tierOptions()"
+                [timeLabels]="calendarTimeLabels()"
+                [timeSlotLeftOutReason]="mustEndByLeftOutReason()"
+                [timeSlotsLeftOut]="timeSlotsLeftOutByMustEndBy()"
+                [timezone]="timezone()"
+                (dayChange)="onDayChange($event)"
+                (dragPaint)="onTierCalendarDragPaint($event)"
+              />
+            </div>
+          }
+          @if (!isExceptionCalendar()) {
+            <div class="schedule-form__sales-activation-block" data-testid="sales-activation-section-content">
+              <div class="schedule-form__sales-activation-block__heading">
+                <h6 class="schedule-form__sales-activation-block__title">
+                  {{ 'inventory.schedule.scheduleForm.fields.salesActivation.title' | translate }}
+                </h6>
+                <p class="schedule-form__sales-activation-block__description">
+                  {{ 'inventory.schedule.scheduleForm.fields.salesActivation.description' | translate }}
+                </p>
+              </div>
+              <div class="schedule-form__sales-activation">
+                <div class="schedule-form__sales-starts">
+                  <h6 class="schedule-form__sales-starts__title">
+                    <ignt-icon name="calendar" variant="light"></ignt-icon>
+                    <span>{{ 'inventory.schedule.scheduleForm.fields.salesActivation.salesStartTime' | translate }}</span>
+                  </h6>
+                  <ignt-radio-group
+                    [formControl]="formGroup.controls.salesActivationStartType"
+                    class="schedule-form__sales-starts__options"
+                  >
+                    @for (option of calendarSalesActivationStartType(); track option) {
+                      <ignt-radio
+                        [label]="'inventory.schedule.scheduleForm.fields.salesActivation.' + option | translate"
+                        [value]="option"
+                        [attr.data-testid]="'sales-activation-start-' + option"
+                        [disabled]="isSalesActivationDisabled()"
+                      />
+                    }
+                  </ignt-radio-group>
+                  @if (isSalesActivationStartFixedDate()) {
+                    <div class="schedule-form__sales-starts__inputs">
+                      <ng-container
+                        *ngTemplateOutlet="
+                          salesActivationFixedDateDatetime;
+                          context: {
+                            control: formGroup.controls.salesActivationStartFixedDate,
+                            label: 'inventory.schedule.scheduleForm.fields.salesActivation.fields.date' | translate,
+                            dataTestId: 'sales-start-date',
+                          }
+                        "
+                      ></ng-container>
+                    </div>
+                  }
+                  @if (isSalesActivationStartRelativeTo()) {
+                    <div class="schedule-form__sales-starts__inputs">
+                      <ng-container
+                        *ngTemplateOutlet="
+                          salesActivationNumberInput;
+                          context: {
+                            control: formGroup.controls.salesActivationStartDelta,
+                            label: 'inventory.schedule.scheduleForm.fields.salesActivation.fields.number' | translate,
+                            dataTestId: 'sales-start-number',
+                          }
+                        "
+                      ></ng-container>
+                      <ignt-typeahead
+                        class="schedule-form__sales-starts__time-reference"
+                        (selected)="onSalesActivationStartTimeUnitSelected($event)"
+                        [fieldLabel]="'inventory.schedule.scheduleForm.fields.salesActivation.fields.time.title' | translate"
+                        [options]="calendarSalesActivationTimeUnitOptions"
+                        [selectedOption]="selectedSalesActivationStartTimeUnitOption()"
+                        [attr.data-testid]="'sales-start-time-select'"
+                        [disabled]="isSalesActivationDisabled()"
+                      ></ignt-typeahead>
+                      <ignt-typeahead
+                        (selected)="onSalesActivationStartDeltaReferenceSelected($event)"
+                        [fieldLabel]="'inventory.schedule.scheduleForm.fields.salesActivation.fields.when.title' | translate"
+                        [options]="calendarSalesActivationDeltaReferenceOptions"
+                        [selectedOption]="selectedSalesActivationStartDeltaReferenceOption()"
+                        [attr.data-testid]="'sales-start-when-select'"
+                        [disabled]="isSalesActivationDisabled()"
+                      ></ignt-typeahead>
+                    </div>
+                  }
+                </div>
+
+                <div class="schedule-form__sales-activation-divider" aria-hidden="true"></div>
+
+                <div class="schedule-form__sales-ends">
+                  <h6 class="schedule-form__sales-ends__title">
+                    <ignt-icon name="calendar" variant="light"></ignt-icon>
+                    <span>{{ 'inventory.schedule.scheduleForm.fields.salesActivation.salesEndTime' | translate }}</span>
+                  </h6>
+                  <ignt-radio-group [formControl]="formGroup.controls.salesActivationEndType" class="schedule-form__sales-ends__options">
+                    @for (option of calendarSalesActivationEndType(); track option) {
+                      <ignt-radio
+                        [label]="'inventory.schedule.scheduleForm.fields.salesActivation.' + option | translate"
+                        [value]="option"
+                        [disabled]="isSalesActivationDisabled()"
+                      />
+                    }
+                  </ignt-radio-group>
+                  @if (isSalesActivationEndFixedDate()) {
+                    <div class="schedule-form__sales-ends__inputs">
+                      <ng-container
+                        *ngTemplateOutlet="
+                          salesActivationFixedDateDatetime;
+                          context: {
+                            control: formGroup.controls.salesActivationEndFixedDate,
+                            label: 'inventory.schedule.scheduleForm.fields.salesActivation.fields.date' | translate,
+                            dataTestId: 'sales-end-date',
+                          }
+                        "
+                      ></ng-container>
+                    </div>
+                  }
+                  @if (!isSalesActivationEndFixedDate()) {
+                    <div class="schedule-form__sales-ends__inputs">
+                      <ng-container
+                        *ngTemplateOutlet="
+                          salesActivationNumberInput;
+                          context: {
+                            control: formGroup.controls.salesActivationEndDelta,
+                            label: 'inventory.schedule.scheduleForm.fields.salesActivation.fields.number' | translate,
+                            dataTestId: 'sales-end-number',
+                          }
+                        "
+                      ></ng-container>
+                      <ignt-typeahead
+                        class="schedule-form__sales-ends__time-reference"
+                        (selected)="onSalesActivationEndTimeUnitSelected($event)"
+                        [fieldLabel]="'inventory.schedule.scheduleForm.fields.salesActivation.fields.time.title' | translate"
+                        [options]="calendarSalesActivationTimeUnitOptions"
+                        [selectedOption]="selectedSalesActivationEndTimeUnitOption()"
+                        [attr.data-testid]="'sales-end-time-select'"
+                        [disabled]="isSalesActivationDisabled()"
+                      ></ignt-typeahead>
+                      <ignt-typeahead
+                        (selected)="onSalesActivationEndDeltaReferenceSelected($event)"
+                        [fieldLabel]="'inventory.schedule.scheduleForm.fields.salesActivation.fields.when.title' | translate"
+                        [options]="calendarSalesActivationDeltaReferenceOptions"
+                        [selectedOption]="selectedSalesActivationEndDeltaReferenceOption()"
+                        [attr.data-testid]="'sales-end-when-select'"
+                        [disabled]="isSalesActivationDisabled()"
+                      ></ignt-typeahead>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </section>
+  </div>
+
+  @if (isExceptionCalendar()) {
+    <div class="schedule-form__action-buttons">
+      <ignt-button variant="tertiary" [label]="'common.cancel' | translate" (click)="onSubmitCancel()" />
+      <ignt-button
+        htmlType="submit"
+        variant="primary"
+        [disabled]="formGroup.invalid || !inventoryEditingService.canEditInventory() || !canEditSchedule()"
+        [label]="'common.save' | translate"
+      />
+    </div>
+  }
+</form>
+
+<ng-template #salesActivationFixedDateDatetime let-control="control" let-dataTestId="dataTestId" let-label="label">
+  <div class="schedule-form__date-input-wrapper schedule-form__sales-activation-datetime">
+    <label class="field date-input">
+      <input
+        #salesFixedDateInput
+        class="field__input"
+        type="datetime-local"
+        [attr.data-testid]="dataTestId"
+        [value]="dateToDateTimeLocalString(control.value)"
+        [min]="minAllowedDateTimeLocal()"
+        [max]="maxAllowedDateTimeLocal()"
+        [disabled]="control.disabled"
+        (change)="onSalesActivationFixedDateChange($event, control)"
+        (blur)="onSalesActivationFixedDateBlur(control)"
+      />
+      <span class="field__label" [attr.data-testid]="dataTestId + '-label'">{{ label }}</span>
+      <button
+        type="button"
+        class="field__icon field__icon--trail"
+        (click)="!control.disabled && salesFixedDateInput.showPicker()"
+        [disabled]="control.disabled"
+      >
+        <ignt-icon name="calendar" variant="light" [attr.aria-label]="'Open date picker'"></ignt-icon>
+      </button>
+    </label>
+    @if (control.touched && control.invalid) {
+      <div>
+        @for (errorType of scheduleFormErrorTypes; track errorType) {
+          <ignt-field-error [formControlValue]="control" [errorName]="errorType">{{
+            getFieldErrorMessage(control, errorType)
+          }}</ignt-field-error>
+        }
+      </div>
+    }
+  </div>
+</ng-template>
+
+<ng-template #salesActivationNumberInput let-control="control" let-dataTestId="dataTestId" let-label="label">
+  <div class="schedule-form__sales-number-input-wrapper">
+    <label class="field schedule-form__session-duration-input">
+      <input class="field__input" type="number" min="0" [attr.data-testid]="dataTestId" [formControl]="control" />
+      <span class="field__label">{{ label }}</span>
+    </label>
+    @if (control.dirty && control.invalid) {
+      <div>
+        @for (errorType of scheduleFormErrorTypes; track errorType) {
+          <ignt-field-error [formControlValue]="control" [errorName]="errorType">{{
+            getFieldErrorMessage(control, errorType)
+          }}</ignt-field-error>
+        }
+      </div>
+    }
+  </div>
+</ng-template>
+
+<ng-template #sessionDurationInput>
+  <ignt-input-field
+    class="schedule-form__session-duration-input"
+    [class.schedule-form__session-duration-input--from-assets]="isSessionDurationFromAssets()"
+    [label]="'inventory.schedule.scheduleForm.fields.sessionDuration.title' | translate"
+    [formControl]="formGroup.controls.sessionDurationInMinutes"
+    [disabled]="initialConfiguration().disabledTimeSlotFrequency"
+    [helperText]="sessionDurationHelperTextKey() | translate"
+    id="session-duration"
+  ></ignt-input-field>
+</ng-template>
+
+<ng-template
+  #datePicker
+  let-label="label"
+  let-dataTestId="dataTestId"
+  let-control="control"
+  let-min="min"
+  let-type="type"
+  let-removeAction="removeAction"
+  let-removeIndex="removeIndex"
+  let-step="step"
+  let-note="note"
+>
+  <div class="schedule-form__date-input-wrapper">
+    <label class="field schedule-form__date-input">
+      <input
+        #datePickerInput
+        class="field__input"
+        [class.ng-invalid]="control.invalid"
+        [attr.data-testid]="dataTestId"
+        [attr.lang]="type === 'time' ? appLang() : null"
+        [type]="type"
+        [min]="min ?? undefined"
+        [max]="type === 'date' ? maxAllowedDate : undefined"
+        [attr.step]="step"
+        [formControl]="control"
+        (click)="openDatePicker(datePickerInput, control, removeAction)"
+      />
+      <span class="field__label" [attr.data-testid]="dataTestId + '-label-span'">{{ label }}</span>
+      @if (!removeAction) {
+        <button type="button" class="field__icon field__icon--trail" (click)="datePickerInput.showPicker()" [disabled]="control.disabled">
+          <ignt-icon
+            [name]="type === 'date' ? 'calendar' : 'clock'"
+            variant="light"
+            [attr.aria-label]="type === 'date' ? 'Open date picker' : 'Open time picker'"
+          ></ignt-icon>
+        </button>
+      }
+      @if (removeAction) {
+        <button type="button" class="field__icon field__icon--trail" (click)="removeAction(removeIndex)" [disabled]="control.disabled">
+          <ignt-icon name="trash-alt" variant="light" [attr.aria-label]="'Remove date'"></ignt-icon>
+        </button>
+      }
+    </label>
+    @if (note) {
+      <span class="schedule-form__date-input-note" [attr.data-testid]="dataTestId + '-note'">{{ note }}</span>
+    }
+    @if (shouldShowDatePickerErrors(control)) {
+      <div>
+        @for (errorType of timeFieldErrorTypes; track errorType) {
+          <ignt-field-error [formControlValue]="control" [errorName]="errorType">{{
+            getFieldErrorMessage(control, errorType)
+          }}</ignt-field-error>
+        }
+      </div>
+    }
+  </div>
+</ng-template>

@@ -1,0 +1,342 @@
+<div [fzAssistantHost]="assistantHostConfig" class="information-request-detail" data-testid="information-request-detail">
+  @if (loading()) {
+    <p class="information-request-detail__loading" data-testid="information-request-detail-loading">
+      {{ 'informationRequests.detail.loading' | translate }}
+    </p>
+  } @else if (error()) {
+    <p class="information-request-detail__error" data-testid="information-request-detail-error">
+      {{ 'informationRequests.errors.' + error() | translate }}
+    </p>
+  } @else if (request()) {
+    @let ir = request()!;
+
+    <ignt-wrapper-card [elevation]="1">
+      <header class="information-request-detail__header">
+        <h1 class="information-request-detail__title">{{ 'informationRequests.detail.title' | translate }}</h1>
+        <div class="information-request-detail__header-actions">
+          <app-drive-folder-button
+            [launchId]="launchId()"
+            [folderUrl]="ir.driveFolderUrl ?? null"
+            [hasLaunchFallback]="!ir.isHubPermissionsEnabled"
+          />
+          @if (canCancel()) {
+            <ignt-button
+              variant="secondary"
+              [label]="'informationRequests.detail.cancel' | translate"
+              [disabled]="isLifecycleUpdating()"
+              (click)="cancel()"
+              data-testid="information-request-detail-cancel"
+            ></ignt-button>
+          } @else if (canReactivate()) {
+            <ignt-button
+              variant="secondary"
+              [label]="'informationRequests.detail.reactivate' | translate"
+              [disabled]="isLifecycleUpdating()"
+              (click)="reactivate()"
+              data-testid="information-request-detail-reactivate"
+            ></ignt-button>
+          }
+          @if (canEvaluate()) {
+            <ignt-button
+              variant="primary"
+              [label]="'informationRequests.detail.evaluate' | translate"
+              (click)="evaluate()"
+              data-testid="information-request-detail-evaluate"
+            ></ignt-button>
+          }
+          <ignt-tag [sentiment]="statusTagSentiment(ir.status)" variant="outline" [attr.data-status]="ir.status">
+            {{ statusLabelKey(ir.status) | translate }}
+          </ignt-tag>
+          @if (canCreatePlan()) {
+            <ignt-button
+              *permissionBased="Permissions.CAN_CREATE_PLANS"
+              variant="primary"
+              [label]="(creatingPlan() ? 'informationRequests.detail.creatingPlan' : 'informationRequests.detail.createPlan') | translate"
+              [disabled]="creatingPlan()"
+              (click)="createPlan()"
+              data-testid="information-request-detail-create-plan"
+            ></ignt-button>
+          }
+        </div>
+        @if (createPlanErrorKey(); as createPlanErrorKey) {
+          <p
+            class="information-request-detail__save-status information-request-detail__save-status--error"
+            data-testid="information-request-detail-create-plan-error"
+          >
+            {{ 'informationRequests.detail.createPlanErrors.' + createPlanErrorKey | translate }}
+          </p>
+        }
+        @if (createdPlanId(); as createdPlanId) {
+          <p
+            class="information-request-detail__save-status information-request-detail__save-status--success"
+            data-testid="information-request-detail-create-plan-success"
+          >
+            {{ 'informationRequests.detail.createPlanSuccess' | translate: { id: createdPlanId } }}
+          </p>
+        }
+      </header>
+
+      <div class="information-request-detail__summary">
+        <dl class="information-request-detail__meta">
+          <dt>{{ 'informationRequests.detail.name' | translate }}</dt>
+          <dd data-testid="information-request-detail-name">{{ ir.title || '—' }}</dd>
+          <dt>{{ 'informationRequests.detail.createdBy' | translate }}</dt>
+          <dd>{{ ir.createdBy || '—' }}</dd>
+          <dt>{{ 'informationRequests.detail.createdAt' | translate }}</dt>
+          <dd>{{ ir.createdAt | date: 'medium' }}</dd>
+          <dt>{{ 'informationRequests.detail.dueDate' | translate }}</dt>
+          <dd data-testid="information-request-detail-due-date">{{ ir.dueDate ? (ir.dueDate | date: 'mediumDate') : '—' }}</dd>
+        </dl>
+        <dl
+          class="information-request-detail__meta information-request-detail__description"
+          data-testid="information-request-detail-description"
+        >
+          <dt>{{ 'informationRequests.detail.description' | translate }}</dt>
+          <dd>{{ ir.description || '—' }}</dd>
+        </dl>
+      </div>
+    </ignt-wrapper-card>
+
+    @if (canViewAlerts()) {
+      <ignt-wrapper-card [elevation]="1">
+        <section class="information-request-detail__section" data-testid="information-request-detail-alerts">
+          <header class="information-request-detail__alerts-header">
+            <h2>{{ 'informationRequests.new.steps.alerts' | translate }}</h2>
+            @if (!editingAlerts() && canManageAlerts()) {
+              <ignt-button
+                variant="secondary"
+                [label]="'common.edit' | translate"
+                (click)="openAlertsEditor()"
+                data-testid="information-request-detail-edit-alerts"
+              ></ignt-button>
+            }
+          </header>
+          @if (editingAlerts()) {
+            <app-alert-config-form
+              [formControl]="alertConfigControl"
+              [partnerId]="partnerId()"
+              [currentUserEmail]="currentUserEmail"
+              data-testid="information-request-detail-alert-config"
+            ></app-alert-config-form>
+            <footer class="information-request-detail__alerts-footer">
+              <ignt-button
+                variant="primary"
+                [label]="(savingAlerts() ? 'informationRequests.detail.saving' : 'common.save') | translate"
+                [disabled]="savingAlerts() || !isAlertConfigDirectoryLoaded()"
+                (click)="saveAlertConfig()"
+                data-testid="information-request-detail-save-alerts"
+              ></ignt-button>
+              <ignt-button
+                variant="secondary"
+                [label]="'common.cancel' | translate"
+                [disabled]="savingAlerts()"
+                (click)="closeAlertsEditor()"
+                data-testid="information-request-detail-cancel-alerts"
+              ></ignt-button>
+              @if (alertsSaveError()) {
+                <span
+                  class="information-request-detail__save-status information-request-detail__save-status--error"
+                  data-testid="information-request-detail-alerts-error"
+                >
+                  {{ 'informationRequests.detail.saveFailed' | translate }}
+                </span>
+              }
+            </footer>
+          } @else if (isCancelled()) {
+            <app-alert-config-form
+              [formControl]="alertConfigControl"
+              [partnerId]="partnerId()"
+              [currentUserEmail]="currentUserEmail"
+              data-testid="information-request-detail-alert-config-readonly"
+            ></app-alert-config-form>
+          }
+        </section>
+      </ignt-wrapper-card>
+    }
+
+    @if (showsAiDeclaration()) {
+      <div class="information-request-detail__ai-declaration" data-testid="information-request-detail-ai-generated">
+        @if (canEditAiDeclaration()) {
+          <ignt-checkbox
+            [checked]="ir.aiGenerated"
+            [disabled]="aiDeclarationBusy()"
+            [label]="'informationRequests.detail.aiGenerated.label' | translate"
+            dataTestId="information-request-detail-ai-generated-checkbox"
+            (change)="onAiGeneratedToggle($event)"
+          />
+          @if (aiDeclarationError()) {
+            <span
+              class="information-request-detail__save-status information-request-detail__save-status--error"
+              data-testid="information-request-detail-ai-generated-error"
+            >
+              {{ 'informationRequests.detail.aiGenerated.saveFailed' | translate }}
+            </span>
+          }
+        } @else {
+          <p class="information-request-detail__ai-declaration-value">
+            {{
+              (ir.aiGenerated ? 'informationRequests.detail.aiGenerated.declared' : 'informationRequests.detail.aiGenerated.notDeclared')
+                | translate
+            }}
+          </p>
+        }
+      </div>
+    }
+
+    <ignt-tabs
+      data-testid="information-request-detail-tabs"
+      [variant]="'default'"
+      [hasExtraLine]="true"
+      [keepAlive]="true"
+      [selectedIndex]="activeTabIndex()"
+      (selectedIndexChange)="onTabChange($event)"
+    >
+      <ignt-tabs-item [label]="'informationRequests.detail.tabs.detail' | translate">
+        @if (showsAnswers()) {
+          <ignt-wrapper-card [elevation]="2">
+            <section class="information-request-detail__section" data-testid="information-request-detail-questions">
+              <header class="information-request-detail__questions-header">
+                <h2>{{ 'informationRequests.detail.answers' | translate }}</h2>
+                @if (canEditFields() && !editingFields()) {
+                  <ignt-button
+                    variant="secondary"
+                    [label]="(loadingFieldCatalog() ? 'common.loading' : 'informationRequests.detail.fieldConfig.edit') | translate"
+                    [disabled]="loadingFieldCatalog()"
+                    (click)="enterFieldEditing()"
+                    data-testid="information-request-detail-edit-fields"
+                  ></ignt-button>
+                }
+                @if (saving()) {
+                  <span class="information-request-detail__save-status" data-testid="information-request-detail-saving">
+                    {{ 'informationRequests.detail.saving' | translate }}
+                  </span>
+                } @else if (saveError()) {
+                  <span
+                    class="information-request-detail__save-status information-request-detail__save-status--error"
+                    data-testid="information-request-detail-save-error"
+                  >
+                    {{ 'informationRequests.detail.saveFailed' | translate }}
+                  </span>
+                }
+              </header>
+              <div class="information-request-detail__questions">
+                @if (fieldCatalogFailed()) {
+                  <div class="information-request-detail__field-config-error" data-testid="information-request-detail-field-config-failed">
+                    <span>{{ 'informationRequests.detail.fieldConfig.catalogFailed' | translate }}</span>
+                    <ignt-button
+                      variant="secondary"
+                      [label]="'informationRequests.detail.fieldConfig.retry' | translate"
+                      size="small"
+                      (click)="retryFieldCatalog()"
+                      data-testid="information-request-detail-retry-catalog"
+                    ></ignt-button>
+                  </div>
+                }
+
+                @if (editingFields()) {
+                  <p class="information-request-detail__field-config-hint" data-testid="information-request-detail-field-config-hint">
+                    {{ 'informationRequests.detail.fieldConfig.hint' | translate }}
+                  </p>
+                }
+
+                <app-ir-form-layout
+                  [form]="form"
+                  [questions]="ir.questions"
+                  [fieldEditing]="editingFields() ? fieldEditingState() : null"
+                  [locked]="formLocked()"
+                  (fieldAction)="onFieldAction($event)"
+                  [layout]="ir.layout ?? null"
+                  [partnerId]="partnerId()"
+                  [launchId]="launchId()"
+                  [informationRequestId]="ir.id"
+                  [referencedStepperTemplates]="ir.referencedStepperTemplates ?? {}"
+                  (fileUploaded)="onFileUploaded($event)"
+                  (activeSectionChange)="onActiveSectionChange($event)"
+                />
+              </div>
+
+              @if (editingFields()) {
+                <div class="information-request-detail__available" data-testid="information-request-detail-available">
+                  @if (!ir.templateKey) {
+                    <p data-testid="information-request-detail-field-config-no-template">
+                      {{ 'informationRequests.detail.fieldConfig.noTemplate' | translate }}
+                    </p>
+                  } @else if (!availableQuestions().length) {
+                    <p data-testid="information-request-detail-field-config-none-available">
+                      {{ 'informationRequests.detail.fieldConfig.noneAvailable' | translate }}
+                    </p>
+                  } @else {
+                    <app-ir-available-questions
+                      [questions]="availableQuestions()"
+                      [state]="fieldEditingState()"
+                      (action)="onFieldAction($event)"
+                    />
+                  }
+                </div>
+
+                <footer class="information-request-detail__questions-footer" data-testid="information-request-detail-field-config-footer">
+                  <ignt-button
+                    variant="primary"
+                    [label]="(savingFields() ? 'informationRequests.detail.saving' : 'common.save') | translate"
+                    [disabled]="savingFields() || !hasFieldEdits()"
+                    (click)="saveFieldConfig()"
+                    data-testid="information-request-detail-save-fields"
+                  ></ignt-button>
+                  <ignt-button
+                    variant="secondary"
+                    [label]="'common.cancel' | translate"
+                    [disabled]="savingFields()"
+                    (click)="exitFieldEditing()"
+                    data-testid="information-request-detail-cancel-fields"
+                  ></ignt-button>
+                  @if (hasFieldEdits()) {
+                    <span class="information-request-detail__save-status" data-testid="information-request-detail-field-config-summary">
+                      {{ 'informationRequests.detail.fieldConfig.pendingSummary' | translate: pendingFieldSummary() }}
+                    </span>
+                  }
+                  @if (fieldsErrorKey()) {
+                    <span
+                      class="information-request-detail__save-status information-request-detail__save-status--error"
+                      data-testid="information-request-detail-fields-error"
+                    >
+                      {{ 'informationRequests.detail.fieldConfig.errors.' + fieldsErrorKey() | translate }}
+                    </span>
+                  }
+                </footer>
+              } @else if (isEditable() && ir.questions && ir.questions.length) {
+                <footer class="information-request-detail__questions-footer">
+                  <ignt-button
+                    variant="secondary"
+                    [label]="(saving() ? 'informationRequests.detail.saving' : 'informationRequests.detail.save') | translate"
+                    [disabled]="saving()"
+                    (click)="save()"
+                    data-testid="information-request-detail-save"
+                  ></ignt-button>
+                  @if (dirty()) {
+                    <span class="information-request-detail__save-status" data-testid="information-request-detail-unsaved">
+                      {{ 'informationRequests.detail.unsavedChanges' | translate }}
+                    </span>
+                  }
+                  @if (notifiesPmsOnSave()) {
+                    <span class="information-request-detail__save-hint" data-testid="information-request-detail-notify-hint">
+                      {{ 'informationRequests.detail.notifiesPmsOnSave' | translate }}
+                    </span>
+                  }
+                </footer>
+              }
+            </section>
+          </ignt-wrapper-card>
+        }
+      </ignt-tabs-item>
+
+      <ignt-tabs-item [label]="'informationRequests.detail.tabs.history' | translate">
+        <ignt-wrapper-card [elevation]="1">
+          <section class="information-request-detail__section" data-testid="information-request-detail-history">
+            <h2>{{ 'editHistory.title' | translate }}</h2>
+            <app-edit-history-view [entries]="ir.editHistory" />
+          </section>
+        </ignt-wrapper-card>
+      </ignt-tabs-item>
+    </ignt-tabs>
+  }
+</div>

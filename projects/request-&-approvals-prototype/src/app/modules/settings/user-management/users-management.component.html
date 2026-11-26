@@ -1,0 +1,388 @@
+<section class="users-page" [attr.aria-label]="'userManagement.title' | translate">
+  <div class="users-page__title">
+    <div class="users-page__title-content">
+      <span class="users-page__section">{{ 'menu.settings' | translate }}</span>
+      <h1 class="users-page__heading" data-testid="page-title">{{ 'userManagement.title' | translate }}</h1>
+    </div>
+    @if (hasCanManageUsers && !showAddUser && !showEditUser && !seeRoles) {
+      <div class="users-page__actions" data-testid="users-title-actions">
+        @if (showMfaFeatures) {
+          @if (isMfaEnabled) {
+            <ignt-button
+              data-testid="mfa-disable-button"
+              size="large"
+              variant="tertiary"
+              [disabled]="isLoadingMfaStatus"
+              [label]="'mfaEnforcement.button.enabled' | translate"
+              [leadingIcon]="{ name: 'check-circle', variant: 'regular' }"
+              [loading]="isLoadingMfaStatus"
+              (click)="onMfaEnforce()"
+            />
+          } @else {
+            <ignt-button
+              data-testid="mfa-enforce-button"
+              size="large"
+              variant="secondary"
+              [disabled]="isLoadingMfaStatus"
+              [label]="'mfaEnforcement.button.enable' | translate"
+              [loading]="isLoadingMfaStatus"
+              (click)="onMfaEnforce()"
+            />
+          }
+        }
+        <ignt-button data-testid="add-button" size="large" [label]="'userManagement.addUser' | translate" (click)="showCreateUser()" />
+      </div>
+    }
+  </div>
+
+  <ng-container [ngTemplateOutlet]="userList" />
+  @if (!seeRoles) {
+    @if (showAddUser) {
+      <app-add-user
+        (updateOrganizationUser)="updateOrganizationUser($event)"
+        (saveChanges)="createOrganizationUser()"
+        (cancelChanges)="goBack()"
+        (seeRoles)="showRoles()"
+        (validForm)="updateValidForm($event)"
+        [organizationRolesOptions]="organizationRolesOptions"
+        [organizationRolesMapper]="organizationRolesMapper"
+        [accessTypeOptions]="accessTypeOptions"
+        [initialOrganizationRolesOption]="initialOrganizationRolesOption"
+        [initialAccessTypeOption]="initialAccessTypeOption"
+        [plans]="plans"
+        [places]="places"
+        [cityOptions]="cityOptions"
+        [whitelabelOptions]="whitelabelOptions"
+      ></app-add-user>
+    }
+    @if (showEditUser) {
+      <app-edit-user
+        (updateOrganizationUser)="updateOrganizationUser($event)"
+        (saveChanges)="editOrganizationUser()"
+        (cancelChanges)="goBack()"
+        (seeRoles)="showRoles()"
+        (validForm)="updateValidForm($event)"
+        [organizationRolesOptions]="organizationRolesOptions"
+        [organizationRolesMapper]="organizationRolesMapper"
+        [accessTypeOptions]="accessTypeOptions"
+        [initialOrganizationRolesOption]="selectedOrganizationRolesOption"
+        [initialAccessTypeOption]="selectedAccessTypeOption"
+        [organizationUser]="organizationUser"
+        [plans]="plans"
+        [places]="places"
+        [cityOptions]="cityOptions"
+        [whitelabelOptions]="whitelabelOptions"
+      ></app-edit-user>
+    }
+  }
+
+  @if (seeRoles) {
+    <ignt-button
+      variant="secondary"
+      class="users-page__roles-back only-in-desktop"
+      [label]="'common.back' | translate"
+      (click)="goBackRoles()"
+      data-testid="roles-back-button"
+    ></ignt-button>
+  }
+
+  <div class="users-page__help-topic" appHideWrapperOnHelpTopicClose>
+    <app-help-topic-banner
+      [message]="'helpTopics.users.message' | translate"
+      [ctaLabel]="'helpTopics.generic.cta.label' | translate"
+      [ctaLink]="'helpTopics.users.cta.href' | translate"
+    ></app-help-topic-banner>
+  </div>
+</section>
+
+<!-- On a phone the add and edit forms keep their Cancel and Save buttons in the bottom slider; the list's Add user sits in the title. -->
+@if (!seeRoles && (showAddUser || showEditUser)) {
+  <div class="only-in-mobile">
+    <bottom-slider [buttonsTemplate]="buttonsTemplate"> </bottom-slider>
+  </div>
+}
+
+<ng-template #userList>
+  @if (seeRoles) {
+    <div class="button-back only-in-mobile" data-testid="roles-back-button" (click)="goBackRoles()">
+      <ignt-icon class="button-back-icon" name="angle-left" variant="light" [fixedWidth]="true" size="base"></ignt-icon>
+      <a class="button-back-button" translate>common.back</a>
+    </div>
+    <app-see-roles-and-permissions></app-see-roles-and-permissions>
+  }
+
+  <div class="users-page__list" [hidden]="showAddUser || showEditUser || seeRoles">
+    <div class="users-page__filters" data-testid="users-filters">
+      <ignt-input-field
+        data-testid="table-search-search-bar-input"
+        name="searchParam"
+        type="text"
+        [placeholder]="'filters.searchByNameOrEmail' | translate"
+        [label]="'filters.searchByNameOrEmail' | translate"
+        (input)="searchSubject.next($event)"
+        [(ngModel)]="searchParam"
+      />
+      <ignt-typeahead
+        data-testid="filter-by-user-role"
+        id="filter-by-role"
+        [emptyLabel]="'filters.filterByRole' | translate"
+        [fieldLabel]="'filters.filterByRole' | translate"
+        [selectAllLabel]="'filters.filterByRole' | translate"
+        [options]="organizationRolesOptionsFilters"
+        [selectedOption]="selectedRoleFilterOption"
+        [editable]="false"
+        (selected)="selectOrganizationRoleFilter($event)"
+      >
+      </ignt-typeahead>
+    </div>
+
+    <div class="users-page__status-row">
+      <ignt-tabs
+        class="users-page__status-tabs"
+        data-testid="user-management-status-tabs"
+        [hasExtraLine]="false"
+        [selectedIndex]="statusOptions.indexOf(selectedStatus)"
+        (selectedIndexChange)="showUsersByStatus(statusOptions[$event])"
+      >
+        @for (tab of statusOptions; track tab) {
+          <ignt-tabs-item [label]="'userManagement.status.' + tab | translate" />
+        }
+      </ignt-tabs>
+      <ignt-button
+        data-testid="user-management-table-see-roles"
+        size="small"
+        variant="tertiary"
+        [label]="'userManagement.seeRoles' | translate"
+        (click)="showRoles()"
+      />
+    </div>
+
+    <ignt-table
+      class="users-page__table"
+      data-testid="user-management-table-data"
+      [data]="organizationUsers"
+      [getRowId]="getRowId"
+      [isLoading]="isLoadingOrganizationUsers && organizationUsers.length === 0"
+    >
+      <ignt-table-column key="name" columnType="primary" [header]="'userManagement.fullName' | translate">
+        <ng-template [igntTableColumnTemplateType]="organizationUsers[0]" let-item="item">
+          <div class="users-page__identity">
+            <div class="users-page__name" data-testid="user-management-table-full-name">
+              {{ item.name }} {{ item.id !== userId ? '' : '(' + ('userManagement.you' | translate) + ')' }}
+              @if (item.isOriginal()) {
+                <span class="users-page__original" data-testid="user-management-original-badge">{{
+                  'userManagement.original' | translate
+                }}</span>
+              }
+            </div>
+            @let atIndex = item.email.indexOf('@');
+            <span class="users-page__email" data-testid="user-management-table-email" [attr.title]="item.email"
+              >{{ item.email.slice(0, atIndex + 1) }}<wbr />{{ item.email.slice(atIndex + 1) }}</span
+            >
+          </div>
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column key="role" columnType="secondary" [header]="'userManagement.role' | translate" [width]="280">
+        <ng-template [igntTableColumnTemplateType]="organizationUsers[0]" let-item="item">
+          @if (hasCanViewRoles) {
+            <a
+              class="user-role user-role--link {{ getRoleColorClass(item) }}"
+              igntTooltip
+              [routerLink]="[roleManagementRoute]"
+              [queryParams]="{ role_id: item.roleId }"
+              [tooltipLabel]="'userManagement.openRoleManagement' | translate"
+              tooltipPlacement="top"
+              data-testid="user-management-table-role-link"
+            >
+              <span class="user-role__dot" aria-hidden="true"></span>
+              <span class="user-role__name">{{ translateRoleLabel(getRoleLabel(item)) }}</span>
+            </a>
+          } @else {
+            <div class="user-role {{ getRoleColorClass(item) }}" data-testid="user-management-table-role">
+              <span class="user-role__dot" aria-hidden="true"></span>
+              <span class="user-role__name">{{ translateRoleLabel(getRoleLabel(item)) }}</span>
+            </div>
+          }
+          @if (getRoleLabel(item) === 'box-office_booker') {
+            <div class="font-caption-regular user-role__append">
+              {{ 'userManagement.canMakeReservation' | translate }}
+            </div>
+          }
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column key="access" columnType="secondary" [header]="'userManagement.hasAccessTo' | translate">
+        <ng-template [igntTableColumnTemplateType]="organizationUsers[0]" let-item="item">
+          <div class="users-page__access" data-testid="user-management-table-limitation-access">
+            <div data-testid="user-management-resources">
+              @switch (item.resourceAccessType) {
+                @case ('specific-plan') {
+                  <app-user-access-list
+                    itemTestId="user-management-resources-plan"
+                    toggleTestId="user-management-resources-show-more-plans"
+                    [items]="getResources(item)"
+                    [label]="'userManagement.events' | translate"
+                  />
+                }
+                @case ('specific-venue') {
+                  <app-user-access-list
+                    itemTestId="user-management-resources-place"
+                    toggleTestId="user-management-resources-show-more-places"
+                    [items]="getResources(item)"
+                    [label]="'userManagement.venues' | translate"
+                  />
+                }
+                @default {
+                  <span>{{ 'userManagement.fullAccess' | translate }}</span>
+                }
+              }
+            </div>
+            @if (hasCanViewWhitelabel && whitelabelOptionsReady && item.whitelabelResources.length > 0) {
+              <app-user-access-list
+                data-testid="user-management-whitelabel-resources"
+                itemTestId="user-management-resources-whitelabel"
+                toggleTestId="user-management-resources-show-more-whitelabels"
+                [items]="getWhitelabelResources(item)"
+                [label]="'userManagement.whitelabels' | translate"
+              />
+            }
+          </div>
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column columnType="action" [header]="'common.actions' | translate" [width]="112">
+        <ng-template [igntTableColumnTemplateType]="organizationUsers[0]" let-item="item">
+          @if (canShowUserActions(item)) {
+            <button
+              ignt-icon-button
+              sentiment="tertiary"
+              size="small"
+              data-testid="user-management-actions-dropdown-button"
+              [attr.aria-label]="'common.actions' | translate"
+              [icon]="['far', 'ellipsis-h']"
+              [igntMenuTriggerFor]="menu"
+            ></button>
+            <ng-template #menu>
+              <ignt-menu>
+                @if (item.isActive() && canManageOrganizationUser(item)) {
+                  <ignt-menu-item
+                    value="edit-role"
+                    data-testid="user-management-actions-edit-role"
+                    [label]="'userManagement.editUser' | translate"
+                    (triggered)="showUpdateUser(item)"
+                  >
+                    <ignt-icon name="user" variant="light" [fixedWidth]="true" size="base"></ignt-icon>
+                  </ignt-menu-item>
+                }
+                @if (item.isActive() && canManageOrganizationUser(item)) {
+                  <ignt-menu-item
+                    value="reset-password"
+                    data-testid="user-management-actions-reset-password"
+                    [label]="'userManagement.resetPassword' | translate"
+                    (triggered)="resetUserPassword(item)"
+                  >
+                    <ignt-icon name="key" variant="solid" [fixedWidth]="true" size="base"></ignt-icon>
+                  </ignt-menu-item>
+                }
+                @if (canShowResetNfcPinAction(item)) {
+                  <ignt-menu-item
+                    value="reset-nfc-pin"
+                    data-testid="user-management-actions-reset-nfc-pin"
+                    [label]="'userManagement.resetNfcPin' | translate"
+                    (triggered)="resetUserNfcPin(item)"
+                  >
+                    <ignt-icon name="address-card" variant="solid" [fixedWidth]="true" size="base"></ignt-icon>
+                  </ignt-menu-item>
+                }
+                @if (item.isActive() && canManageOrganizationUser(item) && showMfaFeatures) {
+                  <ignt-menu-item
+                    value="reset-mfa"
+                    data-testid="user-management-actions-reset-mfa"
+                    [label]="'userManagement.resetMfa' | translate"
+                    (triggered)="resetUserMfa(item)"
+                  >
+                    <ignt-icon name="qrcode" variant="solid" [fixedWidth]="true" size="base"></ignt-icon>
+                  </ignt-menu-item>
+                }
+                @if (item.isActive() && canManageOrganizationUser(item)) {
+                  <ignt-menu-item
+                    value="deactivate"
+                    data-testid="user-management-actions-deactivate"
+                    [label]="'userManagement.deactivate' | translate"
+                    (triggered)="deactivateUser(item)"
+                  >
+                    <ignt-icon name="ban" variant="solid" [fixedWidth]="true" size="base"></ignt-icon>
+                  </ignt-menu-item>
+                }
+                @if (canShowImpersonateAction(item)) {
+                  <ignt-menu-item
+                    value="impersonate"
+                    data-testid="user-management-actions-impersonate"
+                    [label]="'userManagement.impersonate' | translate"
+                    (triggered)="impersonateUser(item)"
+                  >
+                    <ignt-icon name="user-secret" variant="solid" [fixedWidth]="true" size="base"></ignt-icon>
+                  </ignt-menu-item>
+                }
+                @if (!item.isActive() && canManageOrganizationUser(item)) {
+                  <ignt-menu-item
+                    value="reactivate"
+                    data-testid="user-management-actions-reactivate"
+                    [label]="'userManagement.reactivate' | translate"
+                    (triggered)="reactivateUser(item)"
+                  >
+                    <ignt-icon name="undo" variant="solid" [fixedWidth]="true" size="base"></ignt-icon>
+                  </ignt-menu-item>
+                }
+              </ignt-menu>
+            </ng-template>
+          }
+        </ng-template>
+      </ignt-table-column>
+    </ignt-table>
+
+    @if (isLoadingOrganizationUsers && organizationUsers.length > 0) {
+      <div class="users-page__load-more" data-testid="user-management-loading-more">
+        <ignt-icon aria-hidden="true" name="spinner" size="h2" variant="solid" [spin]="true" />
+      </div>
+    }
+  </div>
+</ng-template>
+
+<ng-template #buttonsTemplate>
+  @if (!seeRoles) {
+    @if (showAddUser) {
+      <ignt-button
+        variant="secondary"
+        fill
+        [label]="'common.cancel' | translate"
+        (click)="goBack()"
+        data-testid="back-button"
+      ></ignt-button>
+      <ignt-button
+        fill
+        [disabled]="!validForm || !organizationUser"
+        [label]="'userManagement.addUser' | translate"
+        (click)="createOrganizationUser()"
+        data-testid="add-user-button"
+      ></ignt-button>
+    }
+    @if (showEditUser) {
+      <ignt-button
+        variant="secondary"
+        fill
+        [label]="'common.cancel' | translate"
+        (click)="goBack()"
+        data-testid="back-button"
+      ></ignt-button>
+      <ignt-button
+        fill
+        [disabled]="!validForm || !organizationUser"
+        [label]="'userManagement.editUser' | translate"
+        (click)="editOrganizationUser()"
+        data-testid="edit-user-button"
+      ></ignt-button>
+    }
+  }
+</ng-template>

@@ -1,0 +1,122 @@
+<ignt-dialog-header hideCloseButton data-testid="modification-booking-questions-dialog__title">
+  {{ 'bookingQuestions.modificationDialog.title' | translate }}
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="modification-booking-questions-dialog">
+    @if (step() === 'removal') {
+      <p class="modification-booking-questions-dialog__hint" data-testid="modification-booking-questions-dialog__removal-description">
+        {{ 'bookingQuestions.modificationDialog.removalDescription' | translate }}
+      </p>
+
+      @if (keptRows().length > 0) {
+        <section class="modification-booking-questions-dialog__section" data-testid="modification-booking-questions-dialog__kept-rows">
+          <ul class="modification-booking-questions-dialog__kept-list">
+            @for (row of keptRows(); track row.sourceIndex) {
+              <li class="modification-booking-questions-dialog__kept-item">
+                <span class="modification-booking-questions-dialog__row-title">{{ row.label }}</span>
+                @for (line of row.answerLines; track line) {
+                  <span class="modification-booking-questions-dialog__row-answer">{{ line }}</span>
+                }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      @if (removableRows().length > 0) {
+        <section class="modification-booking-questions-dialog__section" data-testid="modification-booking-questions-dialog__removable-rows">
+          <ul class="modification-booking-questions-dialog__removal-list">
+            @for (row of removableRows(); track row.sourceIndex) {
+              <li class="modification-booking-questions-dialog__removal-item">
+                <ignt-checkbox
+                  [checked]="isRemovalSelected(row.sourceIndex)"
+                  [disabled]="!canSelectRemoval(row.sourceIndex)"
+                  [label]="row.label"
+                  (change)="toggleRemoval(row.sourceIndex, $event)"
+                  [attr.data-testid]="'modification-booking-questions-dialog__removal-checkbox-' + row.sourceIndex"
+                ></ignt-checkbox>
+                @for (line of row.answerLines; track line) {
+                  <span class="modification-booking-questions-dialog__row-answer">{{ line }}</span>
+                }
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      @if (showInvalidRemovalCount()) {
+        <p
+          class="modification-booking-questions-dialog__error"
+          data-testid="modification-booking-questions-dialog__invalid-removal-count"
+          role="alert"
+        >
+          {{ 'bookingQuestions.modificationDialog.invalidRemovalCount' | translate: { count: data.removalsRequired } }}
+        </p>
+      }
+    } @else {
+      <p class="modification-booking-questions-dialog__hint" data-testid="modification-booking-questions-dialog__answers-description">
+        {{ 'bookingQuestions.modificationDialog.answersDescription' | translate }}
+      </p>
+
+      @if (formData(); as answersFormData) {
+        @if (formGroup(); as answersFormGroup) {
+          <form
+            class="modification-booking-questions-dialog__answers-form"
+            [formGroup]="answersFormGroup"
+            data-testid="modification-booking-questions-dialog__answers-form"
+          >
+            <fv-booking-questions-form-group
+              [formData]="answersFormData"
+              [formGroup]="answersFormGroup"
+              [showTicketCounter]="true"
+              [showTicketLabel]="true"
+            ></fv-booking-questions-form-group>
+          </form>
+        }
+      }
+
+      @if (showIncompleteAnswersError()) {
+        <p
+          class="modification-booking-questions-dialog__error"
+          data-testid="modification-booking-questions-dialog__incomplete-answers"
+          role="alert"
+        >
+          {{ 'bookingQuestions.modificationDialog.incompleteAnswers' | translate }}
+        </p>
+      }
+    }
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer class="modification-booking-questions-dialog__footer" hideCancelButton>
+  <ignt-button
+    variant="tertiary"
+    data-testid="modification-booking-questions-dialog__cancel"
+    [label]="'common.cancel' | translate"
+    (click)="cancel()"
+  />
+
+  @if (step() === 'removal') {
+    <ignt-button
+      data-testid="modification-booking-questions-dialog__continue"
+      [label]="'bookingQuestions.modificationDialog.removeTicket' | translate"
+      (click)="continueToAnswers()"
+    />
+  } @else {
+    @if (showBackButton()) {
+      <ignt-button
+        variant="secondary"
+        data-testid="modification-booking-questions-dialog__back"
+        [label]="'bookingQuestions.modificationDialog.back' | translate"
+        (click)="backToRemoval()"
+      />
+    }
+
+    <ignt-button
+      data-testid="modification-booking-questions-dialog__confirm"
+      [label]="'bookingQuestions.modificationDialog.addTicket' | translate"
+      (click)="confirmAnswers()"
+    />
+  }
+</ignt-dialog-footer>

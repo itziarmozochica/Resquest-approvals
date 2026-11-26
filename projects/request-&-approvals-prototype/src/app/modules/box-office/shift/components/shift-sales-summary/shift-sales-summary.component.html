@@ -1,0 +1,92 @@
+<div class="shift-sales-summary">
+  <div class="shift-sales-summary__header">
+    {{ 'boxOffice.shiftDetail.paymentSummary.salesSummary' | translate }}
+  </div>
+  <table class="shifts-sales-summary-table">
+    <thead class="shifts-sales-summary-table__header">
+      <th class="shifts-sales-summary-table__header-cell">
+        {{ 'boxOffice.shiftDetail.paymentSummary.paymentMethod' | translate }}
+      </th>
+      <th data-testid="shift-sales-summary-header-sold-count" class="shifts-sales-summary-table__header-cell number-cell">
+        {{ 'boxOffice.shiftDetail.paymentSummary.ticketsSold' | translate }}
+      </th>
+      <th data-testid="shift-sales-summary-header-cancelled-count" class="shifts-sales-summary-table__header-cell number-cell">
+        {{ 'boxOffice.shiftDetail.paymentSummary.ticketsRefounded' | translate }}
+      </th>
+      <th class="shifts-sales-summary-table__header-cell number-cell">
+        {{ 'boxOffice.shiftDetail.paymentSummary.amount' | translate }}
+      </th>
+    </thead>
+    <tbody class="shifts-sales-summary-table__body">
+      <tr
+        data-testid="shift-sales-summary-row"
+        class="shifts-sales-summary-table__row"
+        [class.shifts-sales-summary-table__row--totals]="rowContent.paymentMethod === 'totals'"
+        *ngFor="let rowContent of salesSummaryRows; trackBy: trackByPaymentMethod"
+      >
+        <td data-testid="shift-sales-summary-row-label" class="shifts-sales-summary-table__row-cell">
+          {{
+            rowContent.paymentMethod === 'totals'
+              ? ('boxOffice.shiftDetail.paymentSummary.totals' | translate)
+              : (rowContent.paymentMethod | orderPaymentMethodLabel: 'box-office' : rowContent.paymentMethodName)
+          }}
+        </td>
+        <td data-testid="shift-sales-summary-sold-count" class="shifts-sales-summary-table__row-cell number-cell">
+          {{ rowContent.ticketsSoldCount }}
+        </td>
+        <td data-testid="shift-sales-summary-cancelled-count" class="shifts-sales-summary-table__row-cell number-cell">
+          {{ rowContent.ticketsCancelledCount }}
+        </td>
+        <td data-testid="shift-sales-summary-total" class="shifts-sales-summary-table__row-cell number-cell">
+          <ng-container [ngTemplateOutlet]="formatMoney" [ngTemplateOutletContext]="{ money: rowContent.total }"> </ng-container>
+        </td>
+      </tr>
+    </tbody>
+    <tfoot class="shifts-sales-summary-table__foot">
+      <tr>
+        <td colspan="4" class="shifts-sales-summary-table__foot">
+          <div class="shifts-sales-summary-table__foot-notes-title">
+            {{ 'boxOffice.shiftDetail.notes.title' | translate }}
+          </div>
+          <div class="shifts-sales-summary-table__foot-notes-content">
+            <ng-container *ngIf="editingNotes; else showNotesBlock" [ngTemplateOutlet]="editNotesBlock"> </ng-container>
+          </div>
+        </td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<ng-template #formatMoney let-money="money">
+  <span class="shift-sales-summary-money">
+    {{ money ? (money.amount | currency: money.currency : 'symbol-narrow' : null : locale) : '-' }}
+  </span>
+</ng-template>
+
+<ng-template #editNotesBlock>
+  <div class="shifts-sales-summary-table__foot-notes-content-text">
+    <textarea
+      class="shifts-sales-summary-table__foot-notes-content-textarea"
+      required
+      data-testid="notes-input"
+      [placeholder]="'boxOffice.shiftDetail.notes.placeholder' | translate"
+      [(ngModel)]="notes"
+      maxlength="500"
+    >
+    </textarea>
+  </div>
+  <button igntButton sentiment="secondary" size="small" (click)="addNotes()" [disabled]="!notes">
+    {{ 'boxOffice.shiftDetail.notes.addButton' | translate }}
+  </button>
+</ng-template>
+
+<ng-template #showNotesBlock>
+  <div class="shifts-sales-summary-table__foot-notes-content-text">
+    <div class="shifts-sales-summary-table__foot-notes-content-comment">
+      {{ shift.comment }}
+    </div>
+  </div>
+  <button igntButton sentiment="secondary" size="small" (click)="editingNotes = true">
+    {{ 'boxOffice.shiftDetail.notes.editButton' | translate }}
+  </button>
+</ng-template>

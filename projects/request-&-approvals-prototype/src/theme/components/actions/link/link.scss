@@ -1,0 +1,102 @@
+@use 'sass:map';
+@use 'tokens' as link;
+
+$link-sizes-map: (
+  base: (
+    font: link.$font-base,
+  ),
+  small: (
+    font: link.$font-small,
+  ),
+  caption: (
+    font: link.$font-caption,
+  ),
+);
+
+$link-sentiment-map: (
+  primary: (
+    rest: (
+      color: link.$color-action-text-primary,
+    ),
+    hover: (
+      color: link.$color-action-text-primary-hover,
+      text-decoration: underline,
+    ),
+    focus: (
+      color: link.$color-action-text-primary-hover,
+      text-decoration: underline,
+      outline-color: link.$color-accessibility-outline,
+    ),
+  ),
+  danger: (
+    rest: (
+      color: link.$color-action-text-danger,
+      text-decoration: none,
+    ),
+    hover: (
+      color: link.$color-action-text-danger-hover,
+      text-decoration: underline,
+    ),
+    focus: (
+      color: link.$color-action-text-danger-hover,
+      text-decoration: underline,
+      outline-color: link.$color-accessibility-outline-danger,
+    ),
+  ),
+);
+
+a.link,
+a.link:not([href]):not([tabindex]) {
+  padding-inline: link.$dimensions-padding-inline;
+
+  & .link__icon-lead {
+    padding-inline-end: link.$dimensions-padding-inline;
+  }
+
+  & .link__icon-trail {
+    padding-inline-start: link.$dimensions-padding-inline;
+  }
+}
+
+@each $link-size, $link-size-properties in $link-sizes-map {
+  a.link,
+  a.link:not([href]):not([tabindex]) {
+    @if $link-size != 'base' {
+      &.link--#{$link-size} {
+        font: map-get($link-size-properties, font);
+      }
+    }
+  }
+}
+
+@mixin link-styles($type) {
+  color: map-get($type, rest, color);
+  text-decoration: map-get($type, rest, text-decoration);
+  font: map-get($link-sizes-map, base, font);
+
+  &:hover {
+    color: map-get($type, hover, color);
+    text-decoration: map-get($type, hover, text-decoration);
+  }
+  &:focus {
+    color: map-get($type, focus, color);
+    text-decoration: map-get($type, focus, text-decoration);
+  }
+  &:focus-visible {
+    outline-color: map-get($type, focus, outline-color);
+  }
+}
+
+@each $sentiment-name, $sentiment in $link-sentiment-map {
+  @if $sentiment-name == 'primary' {
+    a.link,
+    a.link:not([href]):not([tabindex]) {
+      @include link-styles($sentiment);
+    }
+  } @else {
+    a.link--#{$sentiment-name},
+    a.link--#{$sentiment-name}:not([href]):not([tabindex]) {
+      @include link-styles($sentiment);
+    }
+  }
+}

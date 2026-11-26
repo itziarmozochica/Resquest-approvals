@@ -1,0 +1,108 @@
+<app-page-title
+  [title]="'menu.reservationDetails' | translate"
+  [section]="'menu.overview' | translate"
+  [sectionLink]="reservationListUrl"
+  [subsection]="reservationDetail.reservationData.locator ?? ''"
+  class="new-design reservation-details-page-title"
+></app-page-title>
+<div class="reservation-details">
+  @if (externalReservationIdEnabled) {
+    <div class="reservation-details__external-reservation-id">
+      <ignt-input-field
+        data-testid="reservation-details__external-reservation-id"
+        type="text"
+        [label]="'reservation.externalReservationId.label' | translate"
+        [placeholder]="'reservation.externalReservationId.placeholder' | translate"
+        [readonly]="!editingExternalReservationId()"
+        [ngModel]="editingExternalReservationId() ? externalReservationIdDraft() : externalReservationId()"
+        (ngModelChange)="externalReservationIdDraft.set($event)"
+      />
+      <div class="reservation-details__external-reservation-id-actions">
+        @if (!editingExternalReservationId()) {
+          <button
+            igntButton
+            type="button"
+            variant="ghost"
+            data-testid="reservation-details__external-reservation-id-edit"
+            (click)="startEditExternalReservationId()"
+          >
+            {{ 'reservation.externalReservationId.edit' | translate }}
+          </button>
+        } @else {
+          <button
+            igntButton
+            type="button"
+            variant="ghost"
+            data-testid="reservation-details__external-reservation-id-cancel"
+            [disabled]="savingExternalReservationId()"
+            (click)="cancelEditExternalReservationId()"
+          >
+            {{ 'reservation.externalReservationId.cancel' | translate }}
+          </button>
+          <button
+            igntButton
+            type="button"
+            data-testid="reservation-details__external-reservation-id-save"
+            [loading]="savingExternalReservationId()"
+            [disabled]="savingExternalReservationId() || !externalReservationIdDirty()"
+            (click)="saveExternalReservationId()"
+          >
+            {{ 'reservation.externalReservationId.save' | translate }}
+          </button>
+        }
+      </div>
+    </div>
+  }
+
+  <ng-container *ngIf="order">
+    <app-order-card
+      [showTags]="true"
+      [showCustomerNotes]="true"
+      [notesCollapsed]="false"
+      [showActivityJourney]="true"
+      [order]="order"
+      [cartSessions]="cartSessions"
+      [groupedOrders]="groupedOrders"
+      [hiddenValidation]="false"
+      [hiddenCancellation]="false"
+      [reservationId]="reservationDetail.reservationData.id"
+      [businessId]="reservationDetail.reservationData.businessId"
+      [orderPartnerId]="reservationDetail.reservationData.partnerId"
+      [cancellationPartnerId]="reservationDetail.reservationData.partnerId"
+      [depositCart]="cart ?? null"
+      [showDepositRefundButton]="!isBusiness && canRefundDeposits"
+      [depositReservationStatus]="reservationDetail.reservationData.status"
+      [onDepositRefund]="refundDeposit"
+      [planNamesByPlanId]="planNamesByPlanId"
+      [planNamesDisplay]="planNamesDisplay"
+      [showPlanNames]="showPlanNames"
+      (orderAction)="onOrderAction($event)"
+    >
+    </app-order-card>
+  </ng-container>
+  <ng-container *ngIf="!order && cart">
+    <app-reservation-details-unpaid
+      [cart]="cart"
+      [reservation]="reservationDetail.reservationData"
+      [plan]="plan"
+      [planNamesByPlanId]="planNamesByPlanId"
+      [planNamesDisplay]="planNamesDisplay"
+      [showPlanNames]="showPlanNames"
+    ></app-reservation-details-unpaid>
+  </ng-container>
+
+  <ng-container *ngIf="!order && !cart">
+    <div data-testid="reservation-details-no-order" class="reservation-details__no-order">
+      <ignt-icon class="icon-empty" name="receipt" variant="regular"></ignt-icon>
+      <div>{{ 'reservations.noOrder' | translate }}</div>
+    </div>
+  </ng-container>
+
+  <div class="reservation-details__help-topic" appHideWrapperOnHelpTopicClose>
+    <app-help-topic-banner
+      [message]="'helpTopics.reservationDetails.message' | translate"
+      [ctaLabel]="'helpTopics.generic.cta.label' | translate"
+      [ctaLink]="'helpTopics.reservationDetails.cta.href' | translate"
+    ></app-help-topic-banner>
+  </div>
+</div>

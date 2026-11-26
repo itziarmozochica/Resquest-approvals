@@ -1,0 +1,234 @@
+<div class="donation-prompts-form-content-translations">
+  <app-donation-language-pill-selector
+    [activeLanguages]="activeLanguages()"
+    [invalidLanguages]="invalidLanguages()"
+    [(selectedLanguage)]="selectedLanguageCode"
+    testIdPrefix="donation-prompts-form-content-translations"
+    (addLanguageClick)="onAddLanguageClick()"
+  />
+
+  @if (missingNeededLocales().length > 0) {
+    <ignt-alert
+      class="donation-prompts-form-content-translations__needed-locales-warning"
+      sentiment="warning"
+      data-testid="donation-prompts-form-needed-locales-warning"
+      [description]="
+        'fundraising.donations.form.contentTranslations.neededLocalesWarning' | translate: { languages: missingNeededLocaleLabels() }
+      "
+    ></ignt-alert>
+  }
+
+  <form [formGroup]="contentForm()" class="donation-prompts-form-content-translations__form">
+    <ignt-wrapper-card>
+      <app-expandable-content
+        [label]="'fundraising.donations.form.contentTranslations.identity.title' | translate"
+        [description]="'fundraising.donationPages.form.contentTranslations.fieldsCount' | translate: { count: allowDisclaimer() ? 3 : 2 }"
+        variant="presentation"
+        [isChecked]="sections.isExpanded('identity')"
+        (checkedChange)="sections.toggle('identity', $event)"
+      >
+        <div class="donation-prompts-form-content-translations__card-content">
+          <div class="donation-prompts-form-content-translations__field-wrapper">
+            <ignt-input-field
+              id="donation-prompts-form-content-translations-title"
+              [formControl]="formControls().title.controls[activeLanguageCode()]"
+              [label]="'fundraising.donations.form.contentTranslations.identity.titleLabel' | translate"
+              type="text"
+            />
+            @if (
+              formControls().title.controls[activeLanguageCode()].touched &&
+              formControls().title.controls[activeLanguageCode()].hasError('required')
+            ) {
+              <ignt-field-error errorName="required" [showError]="true">
+                {{ 'form.error.required' | translate }}
+              </ignt-field-error>
+            } @else {
+              <p class="donation-prompts-form-content-translations__hint">
+                {{ 'fundraising.donations.form.contentTranslations.identity.titleHint' | translate }}
+              </p>
+            }
+          </div>
+
+          <div>
+            <ignt-rich-text-editor
+              [formControl]="formControls().description.controls[activeLanguageCode()]"
+              data-testid="donation-prompts-description-editor"
+              [features]="inlineLinkListsFeatures"
+              [blockElement]="'p'"
+              [placeholder]="'fundraising.donations.form.contentTranslations.identity.descriptionLabel' | translate"
+            />
+            @if (
+              formControls().description.controls[activeLanguageCode()].touched &&
+              formControls().description.controls[activeLanguageCode()].hasError('required')
+            ) {
+              <ignt-field-error errorName="required" [showError]="true">
+                {{ 'fundraising.donations.form.validation.descriptionRequired' | translate }}
+              </ignt-field-error>
+            } @else {
+              <p class="donation-prompts-form-content-translations__hint">
+                {{ 'fundraising.donations.form.contentTranslations.identity.descriptionHint' | translate }}
+              </p>
+            }
+          </div>
+
+          @if (allowDisclaimer()) {
+            <div>
+              <ignt-rich-text-editor
+                [formControl]="formControls().disclaimerText.controls[activeLanguageCode()]"
+                data-testid="donation-prompts-disclaimer-editor"
+                [features]="inlineLinkListsFeatures"
+                [blockElement]="'p'"
+                [placeholder]="'fundraising.donations.form.contentTranslations.identity.disclaimerLabel' | translate"
+              />
+              @if (
+                formControls().disclaimerText.controls[activeLanguageCode()].touched &&
+                formControls().disclaimerText.controls[activeLanguageCode()].hasError('required')
+              ) {
+                <ignt-field-error errorName="required" [showError]="true">
+                  {{ 'fundraising.donations.form.validation.disclaimerRequired' | translate }}
+                </ignt-field-error>
+              } @else {
+                <p class="donation-prompts-form-content-translations__hint">
+                  {{ 'fundraising.donations.form.contentTranslations.identity.disclaimerHint' | translate }}
+                </p>
+              }
+            </div>
+          }
+        </div>
+      </app-expandable-content>
+    </ignt-wrapper-card>
+
+    <ignt-wrapper-card>
+      <app-expandable-content
+        [label]="'fundraising.donations.form.contentTranslations.image.title' | translate"
+        [description]="'fundraising.donationPages.form.contentTranslations.fieldsCount' | translate: { count: 1 }"
+        variant="presentation"
+        [isChecked]="sections.isExpanded('image')"
+        (checkedChange)="sections.toggle('image', $event)"
+      >
+        <div class="donation-prompts-form-content-translations__field-wrapper">
+          <ignt-tag
+            [startIcon]="['fal', 'info-circle']"
+            class="donation-prompts-form-content-translations__same-image-tag"
+            sentiment="info"
+            variant="outline"
+          >
+            {{ 'fundraising.donationPages.form.contentTranslations.sameImageForAllLanguages' | translate }}
+          </ignt-tag>
+
+          <app-image-upload-zone
+            [photos]="imageMediaItems()"
+            [uploadFileCallback]="uploadImageCallback()"
+            (photosChange)="onImagesChange($event)"
+          />
+        </div>
+      </app-expandable-content>
+    </ignt-wrapper-card>
+
+    @if (allowCustomDonations() || showLegacyFields()) {
+      <ignt-wrapper-card>
+        <app-expandable-content
+          [label]="'fundraising.donations.form.contentTranslations.buttonText.title' | translate"
+          [description]="'fundraising.donationPages.form.contentTranslations.fieldsCount' | translate: { count: 1 }"
+          variant="presentation"
+          [isChecked]="sections.isExpanded('button')"
+          (checkedChange)="sections.toggle('button', $event)"
+        >
+          <div class="donation-prompts-form-content-translations__card-content">
+            <ignt-input-field
+              id="donation-prompts-form-content-translations-button-text"
+              [formControl]="formControls().buttonText.controls[activeLanguageCode()]"
+              [label]="'fundraising.donations.form.contentTranslations.buttonText.label' | translate"
+              type="text"
+            />
+          </div>
+        </app-expandable-content>
+      </ignt-wrapper-card>
+    }
+
+    @if (allowCustomDonations()) {
+      <ignt-wrapper-card>
+        <app-expandable-content
+          [label]="'fundraising.donations.form.contentTranslations.outOfRange.title' | translate"
+          [description]="'fundraising.donationPages.form.contentTranslations.fieldsCount' | translate: { count: 1 }"
+          variant="presentation"
+          [isChecked]="sections.isExpanded('outOfRange')"
+          (checkedChange)="sections.toggle('outOfRange', $event)"
+        >
+          <div class="donation-prompts-form-content-translations__card-content">
+            <div>
+              <ignt-textarea-field
+                id="donation-prompts-form-content-translations-above-limit-message"
+                [formControl]="formControls().aboveLimitMessage.controls[activeLanguageCode()]"
+                [label]="'fundraising.donations.form.contentTranslations.outOfRange.label' | translate"
+                [placeholder]="'fundraising.donations.form.contentTranslations.outOfRange.label' | translate"
+                [helperText]="'fundraising.donations.form.contentTranslations.outOfRange.hint' | translate"
+                [customFormErrors]="[
+                  {
+                    type: 'required',
+                    message: ('fundraising.donations.form.validation.aboveLimitMessageRequired' | translate),
+                  },
+                ]"
+                [rows]="2"
+              />
+            </div>
+          </div>
+        </app-expandable-content>
+      </ignt-wrapper-card>
+    }
+
+    @if (showLegacyFields()) {
+      <ignt-wrapper-card>
+        <app-expandable-content
+          [label]="'fundraising.donations.form.contentTranslations.legacy.title' | translate"
+          [description]="
+            'fundraising.donationPages.form.contentTranslations.fieldsCount' | translate: { count: showThankYouMessage() ? 5 : 3 }
+          "
+          variant="presentation"
+          [isChecked]="sections.isExpanded('legacy')"
+          (checkedChange)="sections.toggle('legacy', $event)"
+        >
+          <div class="donation-prompts-form-content-translations__card-content">
+            @if (showThankYouMessage()) {
+              <ignt-input-field
+                id="donation-prompts-form-content-translations-thank-you-message-title"
+                [formControl]="formControls().thankYouMessageTitle.controls[activeLanguageCode()]"
+                [label]="'fundraising.donations.form.contentTranslations.legacy.thankYouTitle' | translate"
+                type="text"
+              />
+              <ignt-rich-text-editor
+                [formControl]="formControls().thankYouMessage.controls[activeLanguageCode()]"
+                data-testid="donation-prompts-thank-you-editor"
+                [features]="inlineLinkListsFeatures"
+                [blockElement]="'p'"
+                [placeholder]="'fundraising.donations.form.contentTranslations.legacy.thankYouBody' | translate"
+              />
+            }
+
+            <ignt-rich-text-editor
+              [formControl]="formControls().feeMessage.controls[activeLanguageCode()]"
+              data-testid="donation-prompts-fee-message-editor"
+              [features]="inlineLinkListsFeatures"
+              [blockElement]="'p'"
+              [placeholder]="'fundraising.donations.form.contentTranslations.legacy.feeMessage' | translate"
+            />
+
+            <ignt-input-field
+              id="donation-prompts-form-content-translations-custom-amount-placeholder"
+              [formControl]="formControls().customAmountPlaceholder.controls[activeLanguageCode()]"
+              [label]="'fundraising.donations.form.contentTranslations.legacy.customAmountPlaceholder' | translate"
+              type="text"
+            />
+
+            <ignt-input-field
+              id="donation-prompts-form-content-translations-custom-value-button-text"
+              [formControl]="formControls().customAmountButtonText.controls[activeLanguageCode()]"
+              [label]="'fundraising.donations.form.contentTranslations.legacy.customAmountButtonText' | translate"
+              type="text"
+            />
+          </div>
+        </app-expandable-content>
+      </ignt-wrapper-card>
+    }
+  </form>
+</div>

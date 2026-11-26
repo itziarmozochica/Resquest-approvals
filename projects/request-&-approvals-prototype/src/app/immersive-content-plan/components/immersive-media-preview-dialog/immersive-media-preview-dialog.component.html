@@ -1,0 +1,67 @@
+<ignt-dialog-header>{{ 'planEdition.preview' | translate }}</ignt-dialog-header>
+
+<ignt-dialog-content>
+  @if (loadState() === 'broken') {
+    <p class="immersive-media-preview-dialog__broken" data-testid="immersive-media-preview-broken">
+      {{ 'planEdition.immersiveContentPlan.mediaUrlError' | translate }}
+    </p>
+  } @else {
+    <div class="immersive-media-preview-dialog__frame">
+      <!-- Kept in the DOM after the media resolves, sharing one grid cell with it, so the pulse
+           only stops once there is nothing left to wait for — same pattern as the module preview. -->
+      <ignt-skeleton
+        class="immersive-media-preview-dialog__placeholder"
+        [class.immersive-media-preview-dialog__placeholder--faded]="loadState() === 'loaded'"
+        [animation]="loadState() === 'loading'"
+        [height]="previewHeight"
+        type="image"
+      />
+      @if (renderKind() === 'video') {
+        <video
+          class="immersive-media-preview-dialog__media"
+          data-testid="immersive-media-preview-video"
+          controls
+          [class.immersive-media-preview-dialog__media--loaded]="loadState() === 'loaded'"
+          [src]="data.url"
+          (error)="onVideoError()"
+          (loadedmetadata)="onVideoLoadedMetadata($event)"
+        ></video>
+      } @else {
+        <img
+          class="immersive-media-preview-dialog__media"
+          data-testid="immersive-media-preview-image"
+          alt=""
+          [class.immersive-media-preview-dialog__media--loaded]="loadState() === 'loaded'"
+          [src]="data.url"
+          (error)="onImageError()"
+          (load)="onImageLoad($event)"
+        />
+      }
+    </div>
+  }
+
+  <a
+    class="immersive-media-preview-dialog__url"
+    data-testid="immersive-media-preview-url"
+    rel="noopener noreferrer"
+    target="_blank"
+    [href]="data.url"
+  >
+    <code>{{ data.url }}</code>
+  </a>
+  @if (dimensions(); as size) {
+    <span class="immersive-media-preview-dialog__size" data-testid="immersive-media-preview-size">
+      {{ size.width }} × {{ size.height }} px
+    </span>
+  }
+</ignt-dialog-content>
+
+<ignt-dialog-footer hideCancelButton>
+  <ignt-button
+    data-testid="immersive-media-preview-close"
+    sentiment="neutral"
+    variant="tertiary"
+    [igntDialogClose]="true"
+    [label]="'common.close' | translate"
+  />
+</ignt-dialog-footer>

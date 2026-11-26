@@ -1,0 +1,62 @@
+<div class="reservation-rules-list main-wrapper rules-management">
+  <div class="reservation-rules-list__header">
+    <div class="reservation-rules-list__header__breadcrumb">
+      <a routerLink="/reservations/list" class="breadcrumb-link" role="link" tabindex="0">{{ 'menu.reservations' | translate }} / </a>
+    </div>
+    <div class="reservation-rules-list__header__title-container">
+      <h3 class="reservation-rules-list__header__title">{{ 'reservations.reservationRulesList.title' | translate }}</h3>
+      <p class="reservation-rules-list__header__description">{{ 'reservations.reservationRulesList.description' | translate }}</p>
+    </div>
+    <div class="reservation-rules-list__header__actions">
+      <div class="reservation-rules-list__header__actions-search-container">
+        <ignt-input-field
+          [ngModel]="searchTerm()"
+          (input)="selectSearchTerm($event)"
+          [label]="'reservations.reservationRulesList.searchPlaceholder' | translate"
+          [leadIcon]="['far', 'search']"
+        />
+      </div>
+
+      <button igntButton size="large" (click)="onAddNewRule()" data-testid="add-new-rule-button">
+        {{ 'reservations.reservationRulesList.addNewRule' | translate }}
+      </button>
+    </div>
+  </div>
+  <div class="rules-management__container">
+    <div class="fz-table table fz-table--striped">
+      <div class="fz-table__header rules-list-table__header" data-testid="rules-list-table-header">
+        <div class="fz-table__row">
+          <div class="fz-table__cell item__big-columns">
+            {{ 'reservations.reservationRulesList.headers.applyingTo' | translate }}
+          </div>
+          <div class="fz-table__cell item__big-columns fz-table__cell--number">
+            {{ 'reservations.reservationRulesList.headers.numberOfAffectedBusinesses' | translate }}
+          </div>
+        </div>
+      </div>
+      <div class="fz-table__body rules-list-table__body" data-testid="rules-list-table-data">
+        @if (!isLoadingRules()) {
+          @for (item of rulesList().body; track item.key) {
+            <div class="fz-table__row" (click)="onEditRule(item.key)">
+              <div class="fz-table__cell item__big-columns">
+                {{ item.displayName }}
+              </div>
+              <div class="fz-table__cell item__big-columns fz-table__cell--number">{{ item.affectedBusinessesCount }}</div>
+            </div>
+          }
+        }
+      </div>
+    </div>
+    @if (isLoadingRules()) {
+      <div class="rules-management__spinner">
+        <fa-icon [icon]="['fas', 'spinner']" [size]="'4x'" class="loader"></fa-icon>
+      </div>
+    }
+    @if (!isLoadingRules() && !hasError() && (rules() === null || rulesList().body.length === 0)) {
+      <div data-testid="rules-list-no-results" class="reservation-rules-list__no-results">
+        <fa-icon class="icon-empty" [icon]="['far', 'receipt']"></fa-icon>
+        <div>{{ 'reservations.reservationRulesList.noRulesFound' | translate }}</div>
+      </div>
+    }
+  </div>
+</div>

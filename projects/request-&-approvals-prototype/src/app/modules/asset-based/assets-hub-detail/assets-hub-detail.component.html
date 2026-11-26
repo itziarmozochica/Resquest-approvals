@@ -1,0 +1,174 @@
+<div class="content-wrapper">
+  @if (isLoading()) {
+    <div class="skeleton-header">
+      <div class="skeleton-header__left">
+        <ignt-skeleton-base [height]="14" width="60px" [animation]="true"></ignt-skeleton-base>
+        <ignt-skeleton-base [height]="28" width="240px" [animation]="true"></ignt-skeleton-base>
+        <ignt-skeleton-base [height]="16" width="380px" [animation]="true"></ignt-skeleton-base>
+      </div>
+      <ignt-skeleton-base [height]="40" width="100px" [animation]="true"></ignt-skeleton-base>
+    </div>
+  } @else {
+    <div class="page-header">
+      <div class="hub-header">
+        <a class="breadcrumb-link" routerLink="/asset-based/hubs" translate>assetsHubs.pageTitle</a>
+        <h1 class="hub-name">{{ hubName() }}</h1>
+        <p class="hub-description" translate>assetsHubs.detail.description</p>
+      </div>
+      @if (showHubActionsMenu()) {
+        <div class="hub-actions-menu">
+          <button
+            ignt-icon-button
+            type="button"
+            sentiment="tertiary"
+            size="large"
+            [icon]="['fas', 'ellipsis-v']"
+            [attr.aria-label]="'assetsHubs.detail.actions.menuTitle' | translate"
+            [igntMenuTriggerFor]="hubActionsMenu"
+            data-testid="hub-actions-menu"
+          ></button>
+
+          <ng-template #hubActionsMenu>
+            <ignt-menu>
+              <ignt-menu-item
+                value="edit-hub"
+                [label]="'assetsHubs.detail.actions.editHubDetails' | translate"
+                (triggered)="openEditHubModal()"
+              >
+                <ignt-icon name="pen" variant="light"></ignt-icon>
+              </ignt-menu-item>
+              <ignt-menu-item
+                value="delete-hub"
+                sentiment="danger"
+                [label]="'assetsHubs.detail.actions.deleteHub' | translate"
+                (triggered)="openDeleteHubModal()"
+              >
+                <ignt-icon name="trash-alt" variant="light"></ignt-icon>
+              </ignt-menu-item>
+            </ignt-menu>
+          </ng-template>
+        </div>
+      }
+    </div>
+  }
+
+  <div class="hub-tabs">
+    <ignt-tabs [variant]="'default'" [hasExtraLine]="true" [selectedIndex]="activeTabIndex()" (selectedIndexChange)="onTabChange($event)">
+      @for (tab of tabs(); track tab.id) {
+        <ignt-tabs-item [label]="tab.label | translate">
+          @switch (tab.id) {
+            @case (AssetsHubDetailTab.venues) {
+              <app-assets-hub-venues
+                [hubId]="hubId()"
+                [partnerId]="partnerId()"
+                (assignedVenueIds)="assignedVenueIds.set($event)"
+                (assignVenueRequested)="openAddVenueSlider()"
+              ></app-assets-hub-venues>
+            }
+            @case (AssetsHubDetailTab.assets) {
+              <app-assets-hub-assets
+                [hubId]="hubId()"
+                [hubName]="hubName()"
+                [partnerId]="partnerId()"
+                (assetsUpdated)="onHubDetailUpdated()"
+              ></app-assets-hub-assets>
+            }
+            @case (AssetsHubDetailTab.activities) {
+              <app-assets-hub-activities
+                [hubId]="hubId()"
+                [hubName]="hubName()"
+                [partnerId]="partnerId()"
+                [assetsCount]="hubDetail()?.assetsCount ?? 0"
+                (activitiesUpdated)="onHubDetailUpdated()"
+                (tabRequested)="openTab($event)"
+              ></app-assets-hub-activities>
+            }
+            @case (AssetsHubDetailTab.setupMap) {
+              <app-assets-hub-setup-map [hubId]="hubId()" [hubName]="hubName()" [partnerId]="partnerId()"></app-assets-hub-setup-map>
+            }
+            @case (AssetsHubDetailTab.translations) {
+              <app-assets-hub-translations [hubId]="hubId()" [partnerId]="partnerId()"></app-assets-hub-translations>
+            }
+            @case (AssetsHubDetailTab.schedule) {
+              <app-assets-hub-schedule [hubId]="hubId()" [partnerId]="partnerId()"></app-assets-hub-schedule>
+            }
+            @case (AssetsHubDetailTab.packs) {
+              <app-assets-hub-packs
+                [hubId]="hubId()"
+                [partnerId]="partnerId()"
+                [activitiesCount]="hubDetail()?.activitiesCount ?? 0"
+                [hubName]="hubName()"
+                (tabRequested)="openTab($event)"
+              ></app-assets-hub-packs>
+            }
+            @case (AssetsHubDetailTab.changeLog) {
+              <app-assets-hub-change-log [hubId]="hubId()" [partnerId]="partnerId()"></app-assets-hub-change-log>
+            }
+          }
+        </ignt-tabs-item>
+      }
+    </ignt-tabs>
+  </div>
+
+  <app-lateral-slider
+    [showDetails]="showAddVenueSlider()"
+    [title]="'assetsHubs.detail.addVenueForm.sliderTitle' | translate"
+    [contentTemplate]="addVenueLateralSlider"
+    (closeSlider)="closeAddVenueSlider()"
+  ></app-lateral-slider>
+</div>
+
+<ng-template #addVenueLateralSlider>
+  <app-add-venue-form
+    [isSubmitting]="isAddingVenue()"
+    [resetToken]="addVenueFormResetToken()"
+    [assignedVenueIds]="assignedVenueIds()"
+    [assignedVenueCityName]="assignedVenueCityName()"
+    (venueSubmitted)="addVenue($event)"
+    (discard)="closeAddVenueSlider()"
+  ></app-add-venue-form>
+</ng-template>
+
+<ng-template #editHubSidePanelTpl>
+  <ignt-dialog-header>{{ 'assetsHubs.detail.editHubModal.title' | translate }}</ignt-dialog-header>
+  <ignt-dialog-content>
+    <div class="hub-edit-side-panel">
+      <form class="hub-edit-slider-form" id="edit-hub-details-form" [formGroup]="editHubForm" (ngSubmit)="saveHubDetails()">
+        <div class="hub-edit-side-panel__body lateral-slider-body__wrapper">
+          <div class="hub-edit-slider-form__group">
+            <div class="hub-edit-slider-form__section">
+              <span class="hub-edit-slider-form__section-title" translate>assetsHubs.detail.editHubModal.nameSectionTitle</span>
+              <p class="hub-edit-slider-form__section-hint" translate>assetsHubs.detail.editHubModal.nameSectionHint</p>
+            </div>
+            <label class="hub-edit-slider-form__field cell field">
+              <input
+                class="field__input"
+                type="text"
+                formControlName="hubName"
+                autocomplete="off"
+                data-testid="edit-hub-name-input"
+                [readonly]="isSavingHubName()"
+              />
+              <span class="field__label">{{ 'assetsHubs.detail.editHubModal.hubNameLabel' | translate }} *</span>
+            </label>
+          </div>
+        </div>
+      </form>
+    </div>
+  </ignt-dialog-content>
+  <ignt-dialog-footer [hideCancelButton]="true">
+    <button type="button" class="hub-edit-slider-form__discard" [disabled]="isSavingHubName()" (click)="closeEditHubModal()">
+      {{ 'assetsHubs.detail.editHubModal.discard' | translate }}
+    </button>
+    <ignt-button
+      class="hub-edit-side-panel__save"
+      variant="primary"
+      size="large"
+      fill
+      data-testid="save-hub-details"
+      [label]="'assetsHubs.detail.editHubModal.save' | translate"
+      [disabled]="isSavingHubName()"
+      (click)="saveHubDetails()"
+    ></ignt-button>
+  </ignt-dialog-footer>
+</ng-template>

@@ -1,0 +1,99 @@
+@let tabs = tabItems();
+@let tab = currentTabItem();
+<div class="prop">
+  <app-db-prop-label [contract]="FIELDS" field="tabBarColor" />
+  <ignt-color-picker
+    [value]="tabBarColor()"
+    [defaultHex]="TABS_BAR_COLOR_DEFAULT_HEX"
+    [presets]="TABS_BAR_COLOR_PRESETS"
+    [ariaLabel]="'planEdition.contentEdition.builder.blocks.tabs.tabBarColor' | translate"
+    [disabled]="disabled()"
+    (valueChange)="setTabBarColor($event)"
+  />
+</div>
+<div class="prop">
+  <label class="prop-label">{{ 'planEdition.contentEdition.builder.blocks.tabs.activeTab' | translate }}</label>
+  <!-- Tab selector buttons (1/2/…) intentionally stay enabled regardless
+       of `disabled` — switching between tabs is navigation, not edition.
+       Only the trailing "+" (add tab) requires the edit permission. -->
+  <div class="prop-segment prop-image-grid-card-tabs" role="tablist">
+    @for (t of tabs; track $index; let i = $index) {
+      <button type="button" role="tab" [class.active]="activeTabIndex() === i" (click)="selectTabAt(i)">
+        {{ i + 1 }}
+      </button>
+    }
+    @if (tabs.length < TABS_MAX) {
+      <button
+        type="button"
+        class="prop-segment-add"
+        [attr.aria-label]="'planEdition.contentEdition.builder.blocks.tabs.addTabAria' | translate"
+        [disabled]="disabled()"
+        (click)="addTab()"
+      >
+        +
+      </button>
+    }
+  </div>
+</div>
+@if (tab) {
+  <div class="prop-tabs-section">
+    <div class="prop-tabs-section-head">
+      <div class="prop-tabs-section-head-text">
+        <span class="prop-tabs-section-eyebrow">{{ 'planEdition.contentEdition.builder.blocks.tabs.tabContent' | translate }}</span>
+        <h3 class="prop-tabs-section-heading">
+          {{ 'planEdition.contentEdition.builder.blocks.tabs.tabLabel' | translate: { index: activeTabIndex() + 1 } }}
+        </h3>
+      </div>
+      @if (tabs.length > 1) {
+        <button igntButton variant="danger" sentiment="tertiary" size="small" type="button" [disabled]="disabled()" (click)="removeTab()">
+          <span class="ms material-symbols-outlined">delete</span>
+          {{ 'planEdition.contentEdition.builder.blocks.tabs.deleteTab' | translate }}
+        </button>
+      }
+    </div>
+    <div class="prop-tabs-section-fields">
+      <div class="prop" [class.prop--missing]="isMissing('label')">
+        <app-db-prop-label [contract]="FIELDS" field="label" />
+        <input
+          type="text"
+          [placeholder]="'planEdition.contentEdition.builder.blocks.tabs.tabLabel' | translate: { index: activeTabIndex() + 1 }"
+          [value]="tab.label"
+          [disabled]="disabled()"
+          [attr.aria-invalid]="isMissing('label') ? true : null"
+          (input)="updateTab({ label: $any($event.target).value })"
+        />
+      </div>
+      <div class="prop">
+        <app-db-prop-label [contract]="FIELDS" field="contentTitle" />
+        <input
+          type="text"
+          [placeholder]="'planEdition.contentEdition.builder.blocks.tabs.sectionHeadingPlaceholder' | translate"
+          [value]="tab.contentTitle"
+          [disabled]="disabled()"
+          (input)="updateTab({ contentTitle: $any($event.target).value })"
+        />
+      </div>
+      <div class="prop" [class.prop--missing]="isMissing('body')">
+        <app-db-prop-label [contract]="FIELDS" field="body" />
+        <app-db-expandable-rich-text-editor
+          class="prop-rich-text"
+          data-testid="tab-body"
+          [labelKey]="'planEdition.contentEdition.builder.blocks.tabs.editBody'"
+          [content]="tab.body"
+          [disabled]="disabled()"
+          (contentChange)="updateTab({ body: $event })"
+        ></app-db-expandable-rich-text-editor>
+      </div>
+      <div class="prop" [class.prop--missing]="isMissing('imageSrc')">
+        <app-db-prop-label [contract]="FIELDS" field="imageSrc" />
+        <app-db-local-image-upload
+          [previewUrl]="tab.imageSrc"
+          [uploadCallback]="uploadImageCallback()"
+          [disabled]="disabled()"
+          (urlChange)="updateTab({ imageSrc: $event })"
+          (cleared)="updateTab({ imageSrc: '' })"
+        ></app-db-local-image-upload>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,180 @@
+<section class="main-wrapper shifts-page" [attr.aria-label]="'menu.shifts' | translate">
+  <app-event-selection-band
+    data-testid="shifts-list-selectors"
+    [heading]="'listPlan.venueSelection' | translate"
+    [summary]="placeName || ('boxOffice.shiftsList.searchFilters' | translate)"
+  >
+    <app-search-bar
+      [mandatoryFilters]="mandatoryFilters"
+      [screen]="screen.boxOffice"
+      [searchOnChange]="true"
+      [showPlan]="false"
+      [showVenue]="true"
+      (searchEmitter)="loadNewSearch($event)"
+    ></app-search-bar>
+  </app-event-selection-band>
+
+  <div class="shifts-page__title">
+    <span class="shifts-page__section">{{ 'menu.boxOffice' | translate }}</span>
+    <h1 class="shifts-page__heading" data-testid="page-title">{{ 'menu.shifts' | translate }}</h1>
+  </div>
+
+  <div class="shifts-list">
+    <ng-container *ngIf="currentState !== stateEnum.noFiltersSelected; else noFilterSelected">
+      <div class="shifts-list__filters">
+        <div class="shifts-list__filter-container">
+          <div class="shifts-list__label">{{ 'boxOffice.shiftsList.shiftStartFilter' | translate }}</div>
+          <app-date-range
+            [class.shifts-list__date-range-filter--disabled]="!hasMandandatoryFilters"
+            class="shifts-list__date-range-filter"
+            (selected)="selectDate($event)"
+            [initialDateShown]="false"
+            [queryDateRange]="queryDateRange"
+            [allowClearDate]="true"
+          >
+          </app-date-range>
+        </div>
+
+        <div class="shifts-list__filter-container">
+          <div class="shifts-list__label">{{ 'boxOffice.shiftsList.shiftStatusFilter' | translate }}</div>
+          <app-typeahead
+            class="shifts-list__status"
+            id="filter-by-status-type"
+            [icon]="['fal', 'chevron-down']"
+            [selectAllLabel]="'shiftStatus.all' | translate"
+            [options]="statusOptions"
+            [editable]="false"
+            (selected)="selectStatus($event)"
+            [selectedOption]="lastStatus"
+          >
+          </app-typeahead>
+        </div>
+
+        <ng-container *ngIf="canViewAllShifts">
+          <div class="shifts-list__filter-container">
+            <div class="shifts-list__checkboxes">
+              <label class="shifts-list__checkbox">
+                <input
+                  type="checkbox"
+                  [checked]="showOnsiteSetupColumn()"
+                  (change)="onShowOnsiteSetupColumnChange($event.target.checked)"
+                  data-testid="show-onsite-setup-checkbox"
+                />
+                {{ 'boxOffice.shiftsList.showOnsiteSetup' | translate }}
+              </label>
+              <label class="shifts-list__checkbox">
+                <input
+                  type="checkbox"
+                  [checked]="showCashRegisterColumn()"
+                  (change)="onShowCashRegisterColumnChange($event.target.checked)"
+                  data-testid="show-cash-register-checkbox"
+                />
+                {{ 'boxOffice.shiftsList.showCashRegister' | translate }}
+              </label>
+            </div>
+          </div>
+
+          <div class="shifts-list__filter-container" *ngIf="showOnsiteSetupColumn()">
+            <div class="shifts-list__label">{{ 'boxOffice.shiftsList.onsiteSetupFilter' | translate }}</div>
+            <app-typeahead
+              class="shifts-list__onsite-setup"
+              id="filter-by-onsite-setup"
+              [icon]="['fal', 'chevron-down']"
+              [selectAllLabel]="'boxOffice.shiftsList.allOnsiteSetups' | translate"
+              [options]="onsiteSetupOptions"
+              [editable]="true"
+              (selected)="selectOnsiteSetup($event)"
+              [selectedOption]="selectedOnsiteSetup"
+            >
+            </app-typeahead>
+          </div>
+
+          <div class="shifts-list__filter-container" *ngIf="showCashRegisterColumn()">
+            <div class="shifts-list__label">{{ 'boxOffice.shiftsList.cashRegisterFilter' | translate }}</div>
+            <app-typeahead
+              class="shifts-list__cash-register"
+              id="filter-by-cash-register"
+              [icon]="['fal', 'chevron-down']"
+              [selectAllLabel]="'boxOffice.shiftsList.allCashRegisters' | translate"
+              [options]="cashRegisterOptions"
+              [editable]="true"
+              (selected)="selectCashRegister($event)"
+              [selectedOption]="selectedCashRegister"
+            >
+            </app-typeahead>
+          </div>
+        </ng-container>
+
+        @if (currentState === stateEnum.withResults) {
+          <div class="shifts-list__pagination">
+            <button
+              type="button"
+              ignt-icon-button
+              class="flip-rtl"
+              variant="sharp"
+              sentiment="tertiary"
+              size="small"
+              data-testid="shifts-list-previous-page"
+              [icon]="['fas', 'chevron-left']"
+              [attr.aria-label]="'common.previous' | translate"
+              [disabled]="!hasPreviousPage() || isLoading"
+              (click)="onPreviousPage()"
+            ></button>
+            <button
+              type="button"
+              ignt-icon-button
+              class="flip-rtl"
+              variant="sharp"
+              sentiment="tertiary"
+              size="small"
+              data-testid="shifts-list-next-page"
+              [icon]="['fas', 'chevron-right']"
+              [attr.aria-label]="'common.next' | translate"
+              [disabled]="!hasMorePages || isLoading"
+              (click)="onNextPage()"
+            ></button>
+          </div>
+        }
+      </div>
+      <ng-container [ngSwitch]="currentState">
+        <ng-container *ngSwitchCase="stateEnum.noResults" [ngTemplateOutlet]="noResults"></ng-container>
+        <ng-container *ngSwitchCase="stateEnum.withResults" [ngTemplateOutlet]="withResults"></ng-container>
+        <ng-container *ngSwitchCase="stateEnum.error" [ngTemplateOutlet]="error"></ng-container>
+      </ng-container>
+    </ng-container>
+  </div>
+</section>
+
+<ng-template #error>
+  <div data-testid="shifts-list-error" class="shifts-list__error">
+    <ignt-alert sentiment="danger" [description]="'boxOffice.shiftsList.error' | translate" />
+  </div>
+</ng-template>
+
+<ng-template #withResults>
+  <app-shifts-list-table
+    data-testid="shifts-list-table"
+    class="shifts-list__table"
+    [attr.aria-busy]="isLoading"
+    [isLoading]="isLoading"
+    [shifts]="shifts"
+    [showCashRegisterColumn]="canViewAllShifts && showCashRegisterColumn()"
+    [showOnsiteSetupColumn]="canViewAllShifts && showOnsiteSetupColumn()"
+    [timezone]="timezoneSubject | async"
+    (selectedShift)="viewShift($event)"
+  />
+</ng-template>
+
+<ng-template #noResults>
+  <div data-testid="shifts-list-no-results" class="shifts-list__no-results">
+    <fa-icon class="state-icon" [icon]="['far', 'receipt']"></fa-icon>
+    <div>{{ 'boxOffice.shiftsList.noResults' | translate }}</div>
+  </div>
+</ng-template>
+
+<ng-template #noFilterSelected>
+  <div data-testid="shifts-list-no-filters-selected" class="shifts-list__no-filters-selected">
+    <fa-icon class="state-icon" [icon]="['fal', 'sensor-alert']"></fa-icon>
+    <div>{{ 'boxOffice.shiftsList.noFilterSelected' | translate }}</div>
+  </div>
+</ng-template>

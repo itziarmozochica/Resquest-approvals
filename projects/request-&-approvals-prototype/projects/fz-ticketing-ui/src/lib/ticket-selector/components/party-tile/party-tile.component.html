@@ -1,0 +1,49 @@
+@let tile = vm();
+
+<div class="party-tile" data-testid="party-tile">
+  <div
+    #name="fztTruncation"
+    class="party-tile__name"
+    data-testid="party-tile-name"
+    fztTooltipGestures="label"
+    fztTruncation
+    igntTooltip
+    tooltipTrigger="manual"
+    [tooltipDisabled]="!name.isTruncated()"
+    [tooltipLabel]="tile.name"
+  >
+    {{ tile.name }}
+  </div>
+  @if (tile.startTimes.length === 0) {
+    <div class="party-tile__empty" data-testid="party-tile-no-time-slots">
+      <ignt-icon name="triangle-exclamation" variant="solid" size="base" aria-hidden="true" />
+      <span>{{ translations().partyNoTimeSlotsLeft }}</span>
+    </div>
+  } @else {
+    <div class="tile-wrapper party-tile__start-times" data-testid="party-tile-start-times">
+      @for (startTime of tile.startTimes; track startTime.key) {
+        <button
+          #wave="fztTapWave"
+          class="tile-wrapper__item tile"
+          data-testid="party-start-time"
+          type="button"
+          [class.tile--disabled]="startTime.isDisabled"
+          [class.tile--with-caption]="startTime.unitsAvailable !== null"
+          [disabled]="startTime.isDisabled"
+          [fztTapWave]="startTime.key"
+          (click)="startTimeSelected.emit(startTime)"
+        >
+          <span class="party-tile__start-time-wave" [class.party-tile__start-time-wave--active]="wave.isActive()"></span>
+          <span data-testid="party-start-time-label">{{ startTime.timeLabel }}</span>
+          @if (startTime.unitsAvailable !== null) {
+            <span class="tile-caption" data-testid="party-start-time-stock">
+              <span>{{ startTime.unitsAvailable }}</span>
+              <span class="visually-hidden">&nbsp;{{ translations().available }}</span>
+              <ignt-icon name="ticket" size="caption" variant="light" aria-hidden="true" />
+            </span>
+          }
+        </button>
+      }
+    </div>
+  }
+</div>

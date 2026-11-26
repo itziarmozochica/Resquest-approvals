@@ -1,0 +1,936 @@
+<div class="common-session-edit lateral-slider-body__wrapper">
+  <ng-container *ngIf="formLoaded()">
+    <form [formGroup]="formGroup" class="common-session-edit__form">
+      <div class="input-inline">
+        <div
+          class="form-group form-switch-group onsite-setup-form__name-field"
+          [class.form-group--error]="getControlError(formGroup.get('name'))"
+        >
+          <label for="name" class="form-label" translate>{{ 'boxOffice.settings.actions.onsiteSetup.name.label' }}</label>
+          <ignt-input-field
+            data-testid="cashRegister-name"
+            label=""
+            type="text"
+            formControlName="name"
+            [id]="'name'"
+            [maxlength]="200"
+            [hideErrorLabels]="true"
+          ></ignt-input-field>
+          <ng-container *ngTemplateOutlet="validationErrors; context: { error: getControlError(formGroup.get('name')) }"></ng-container>
+        </div>
+      </div>
+
+      <div class="input-inline">
+        <div class="form-group form-switch-group onsite-setup-form__hardware-type" data-testid="onsite-setup-hardware-type">
+          <label class="form-label" translate>{{ 'boxOffice.settings.actions.onsiteSetup.hardwareType.label' }}</label>
+          <app-filter-select
+            [options]="hardwareTypeOptions"
+            [allowEmpty]="true"
+            [preloadedOption]="selectedHardwareTypeOption"
+            [emptyLabel]="'boxOffice.settings.actions.onsiteSetup.hardwareType.unknown' | translate"
+            (selected)="selectHardwareType($event)"
+          >
+          </app-filter-select>
+        </div>
+      </div>
+
+      @if (formGroup.get('channelId')?.value; as channelId) {
+        <app-onsite-setup-sales-channel-selector
+          [channelId]="channelId"
+          (channelSelected)="onSalesChannelSelected($event)"
+        ></app-onsite-setup-sales-channel-selector>
+      }
+
+      <div class="input-inline">
+        <div class="form-group form-switch-group" [class.form-group-accordion--opened]="prioritizedPlansFilterShow() === true">
+          <div class="form-accordion-wrapper" (click)="toggleItem(prioritizedPlansFilterShow)">
+            <ignt-icon class="form-icon" name="ticket" size="h3" variant="light" />
+            <div class="form-accordion">
+              <label class="form-label" translate>
+                {{ 'boxOffice.settings.actions.onsiteSetup.plansOnSale.label' }}
+              </label>
+              <ignt-icon class="form-accordion__icon" name="angle-down" size="h3" variant="light" [fixedWidth]="true" />
+            </div>
+            <ng-container *ngIf="!prioritizedPlansFilterShow()">
+              <ng-container
+                *ngTemplateOutlet="closedAccordionMessage; context: { itemSize: formGroup.get('prioritizedMainPlans').value?.length }"
+              ></ng-container>
+            </ng-container>
+          </div>
+          <div class="onsite-setup-form__checkbox-dropdown onsite-setup-form__accordion">
+            <div class="form-value">
+              <span class="description" translate>
+                {{ 'boxOffice.settings.actions.onsiteSetup.plansOnSale.description' }}
+              </span>
+            </div>
+            <app-onsite-prioritized-main-plans-filter
+              [planOptions]="planOptions"
+              [prioritizedMainPlans]="formGroup.get('prioritizedMainPlans')?.value ?? []"
+              (selected)="selectPrioritizedMainPlans($event)"
+            ></app-onsite-prioritized-main-plans-filter>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-inline" *ngIf="shouldShowCatalogConfigurationForm()">
+        <div class="form-group form-switch-group" [class.form-group-accordion--opened]="catalogConfigurationFormOpened()">
+          <div class="form-accordion-wrapper" (click)="toggleItem(catalogConfigurationFormOpened)">
+            <ignt-icon class="form-icon" name="warehouse-alt" size="h3" variant="light" />
+            <div class="form-accordion">
+              <label class="form-label" translate>
+                {{ 'boxOffice.settings.actions.onsiteSetup.catalogConfiguration.label' }}
+              </label>
+              <ignt-icon class="form-accordion__icon" name="angle-down" size="h3" variant="light" [fixedWidth]="true" />
+            </div>
+            <ng-container *ngIf="!catalogConfigurationFormOpened()">
+              <div class="form-accordion__message">
+                <span class="description">
+                  {{
+                    formGroup.get('retailSetupId').value
+                      ? ('boxOffice.settings.actions.onsiteSetup.catalogConfiguration.selected'
+                        | translate: { retailSetup: selectedRetailSetupOption?.title })
+                      : ('boxOffice.settings.actions.onsiteSetup.catalogConfiguration.noSelection' | translate)
+                  }}
+                </span>
+              </div>
+            </ng-container>
+          </div>
+          <div class="onsite-setup-form__checkbox-dropdown onsite-setup-form__accordion">
+            <app-filter-select
+              [options]="retailSetupOptions"
+              [allowEmpty]="true"
+              [preloadedOption]="selectedRetailSetupOption"
+              [emptyLabel]="'boxOffice.settings.actions.onsiteSetup.retailSetupId.label' | translate"
+              (selected)="selectRetailSetup($event)"
+            >
+            </app-filter-select>
+
+            <ng-container *ngIf="shouldShowRetailSetupFields()" [ngTemplateOutlet]="retailSetupWarehouseForm"></ng-container>
+            <ng-container *ngIf="shouldShowRetailSetupFields()" [ngTemplateOutlet]="retailSetupProductsHolderPlanForm"></ng-container>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-inline">
+        <div
+          class="form-group form-switch-group"
+          [class.form-group-accordion--opened]="ticketSelectionFormOpened()"
+          data-testid="ticket-selection-card"
+        >
+          <div class="form-accordion-wrapper" (click)="toggleItem(ticketSelectionFormOpened)" data-testid="ticket-selection-toggle">
+            <ignt-icon class="form-icon" name="ticket-alt" size="h3" variant="light" />
+            <div class="form-accordion">
+              <label class="form-label" translate>
+                {{ 'boxOffice.settings.actions.onsiteSetup.ticketSelection.label' }}
+              </label>
+              <ignt-icon class="form-accordion__icon" name="angle-down" size="h3" variant="light" [fixedWidth]="true" />
+            </div>
+          </div>
+          <div class="onsite-setup-form__checkbox-dropdown onsite-setup-form__accordion">
+            <div class="form-value">
+              <span class="description" translate>
+                {{ 'boxOffice.settings.actions.onsiteSetup.ticketSelection.description' }}
+              </span>
+            </div>
+            <ignt-radio-group formControlName="ticketSelectorType" class="onsite-setup-form__radio-group">
+              <ignt-list-item
+                [title]="'boxOffice.settings.actions.onsiteSetup.ticketSelection.standard.title' | translate"
+                [description]="'boxOffice.settings.actions.onsiteSetup.ticketSelection.standard.description' | translate"
+                (click)="selectTicketSelectorType(ticketSelectorTypeEnum.standard)"
+                [selected]="formGroup.get('ticketSelectorType')?.value === ticketSelectorTypeEnum.standard"
+                data-testid="ticket-selector-type-standard"
+              >
+                <ng-container trailing-modifier>
+                  <ignt-radio [value]="ticketSelectorTypeEnum.standard"></ignt-radio>
+                </ng-container>
+              </ignt-list-item>
+              <ignt-list-item
+                [title]="'boxOffice.settings.actions.onsiteSetup.ticketSelection.party_members.title' | translate"
+                [description]="'boxOffice.settings.actions.onsiteSetup.ticketSelection.party_members.description' | translate"
+                (click)="selectTicketSelectorType(ticketSelectorTypeEnum.party_members)"
+                [selected]="formGroup.get('ticketSelectorType')?.value === ticketSelectorTypeEnum.party_members"
+                data-testid="ticket-selector-type-party-members"
+              >
+                <ng-container trailing-modifier>
+                  <ignt-radio [value]="ticketSelectorTypeEnum.party_members"></ignt-radio>
+                </ng-container>
+              </ignt-list-item>
+            </ignt-radio-group>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-inline">
+        <div class="form-group form-switch-group" [class.form-group-accordion--opened]="sessionsVisibilityFormOpened()">
+          <div class="form-accordion-wrapper" (click)="toggleItem(sessionsVisibilityFormOpened)">
+            <ignt-icon class="form-icon" name="eye" size="h3" variant="light" />
+            <div class="form-accordion">
+              <label class="form-label" translate>
+                {{ 'boxOffice.settings.actions.onsiteSetup.sessionsVisibility.label' }}
+              </label>
+              <ignt-icon class="form-accordion__icon" name="angle-down" size="h3" variant="light" [fixedWidth]="true" />
+            </div>
+          </div>
+          <div class="onsite-setup-form__checkbox-dropdown onsite-setup-form__accordion">
+            <div class="input-inline">
+              <ng-container
+                *ngTemplateOutlet="
+                  switchTemplate;
+                  context: {
+                    fieldName: 'onlyTicketsForToday',
+                    icon: 'calendar',
+                    checked: 'boxOffice.settings.actions.onsiteSetup.onlyTicketsForToday.on',
+                    unchecked: 'boxOffice.settings.actions.onsiteSetup.onlyTicketsForToday.off',
+                  }
+                "
+              ></ng-container>
+              <ng-container
+                *ngTemplateOutlet="
+                  switchTemplate;
+                  context: {
+                    fieldName: 'showSoldOutSessions',
+                    icon: 'store-slash',
+                    checked: 'boxOffice.settings.actions.onsiteSetup.showSoldOutSessions.on',
+                    unchecked: 'boxOffice.settings.actions.onsiteSetup.showSoldOutSessions.off',
+                  }
+                "
+              ></ng-container>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-inline">
+        <div class="form-group form-switch-group" [class.form-group-accordion--opened]="presetCouponsFilterShow()">
+          <div class="form-accordion-wrapper" (click)="toggleItem(presetCouponsFilterShow)">
+            <ignt-icon class="form-icon" name="badge-percent" size="h3" variant="light" />
+            <div class="form-accordion">
+              <label class="form-label" translate>
+                {{ 'boxOffice.settings.actions.onsiteSetup.presetCouponCodes.label' }}
+              </label>
+              <ignt-icon class="form-accordion__icon" name="angle-down" size="h3" variant="light" [fixedWidth]="true" />
+            </div>
+            <ng-container *ngIf="!presetCouponsFilterShow()">
+              <ng-container
+                *ngTemplateOutlet="closedAccordionMessage; context: { itemSize: formGroup.get('presetCouponCodes').value?.length }"
+              ></ng-container>
+            </ng-container>
+          </div>
+          <div class="onsite-setup-form__checkbox-dropdown onsite-setup-form__accordion">
+            <app-onsite-preset-coupon-codes-filter
+              [presetCouponCodes]="formGroup.get('presetCouponCodes').value"
+              (selected)="selectPresetCouponCodes($event)"
+            ></app-onsite-preset-coupon-codes-filter>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-inline">
+        <div
+          class="form-group form-switch-group"
+          [class.form-group--error]="getCashRegisterSelectionError()"
+          [class.form-group-accordion--opened]="shiftsConfigurationFormOpened()"
+        >
+          <div class="form-accordion-wrapper" (click)="toggleItem(shiftsConfigurationFormOpened)">
+            <ignt-icon class="form-icon" name="clock" size="h3" variant="light" />
+            <div class="form-accordion">
+              <label class="form-label" translate>
+                {{ 'boxOffice.settings.actions.onsiteSetup.shiftsConfiguration.label' }}
+              </label>
+              <ignt-icon class="form-accordion__icon" name="angle-down" size="h3" variant="light" [fixedWidth]="true" />
+            </div>
+            <ng-container *ngIf="!shiftsConfigurationFormOpened()">
+              <div class="form-accordion__message">
+                <span class="description">
+                  {{ selectedOboShiftsConfigOptions?.title }}
+                </span>
+              </div>
+            </ng-container>
+          </div>
+          <div class="onsite-setup-form__checkbox-dropdown onsite-setup-form__accordion">
+            <app-filter-select
+              [options]="oboShiftsConfigOptions"
+              [allowEmpty]="false"
+              [preloadedOption]="selectedOboShiftsConfigOptions"
+              (selected)="selectOboShiftsConfig($event)"
+            >
+            </app-filter-select>
+            <div
+              *ngIf="formGroup.get('shiftsMandatory').value !== shiftStrategyEnum.disabled"
+              class="onsite-setup-form__shifts-extra-fields"
+            >
+              <div class="onsite-setup-form__checkbox-dropdown">
+                <span class="onsite-setup-form__checkbox-dropdown-description" translate>{{
+                  'boxOffice.settings.actions.onsiteSetup.cashRegisters.label'
+                }}</span>
+                <app-multi-select
+                  [allowCustomOption]="allowCashRegisterCustomOption()"
+                  [customOptionAsync]="allowCashRegisterCustomOption() ? cashRegisterCustomOptionAsync() : null"
+                  [customOptionI18n]="cashRegistersAddCustomOptionI18n"
+                  [options]="cashRegisterSelectOptions"
+                  [placeholder]="'boxOffice.settings.actions.onsiteSetup.cashRegisters.placeholder' | translate"
+                  [selectedOptions]="selectedCashRegisterOptions"
+                  (customOptionAsyncEvent)="onCashRegisterCustomOptionAsync($event)"
+                  (selected)="selectCashRegisters($event)"
+                  [displayInPlaceMaximum]="2"
+                  [errorMessage]="getCashRegisterSelectionErrorMessage()"
+                >
+                </app-multi-select>
+              </div>
+              <div class="onsite-setup-form__checkbox-dropdown">
+                <ng-container
+                  *ngTemplateOutlet="
+                    switchDropwdownTemplate;
+                    context: {
+                      fieldName: 'enableShiftMaxHoursOpen',
+                      icon: null,
+                      checked: 'boxOffice.settings.actions.onsiteSetup.enableShiftMaxHoursOpen.on',
+                      unchecked: 'boxOffice.settings.actions.onsiteSetup.enableShiftMaxHoursOpen.off',
+                      dropdownTemplate: shiftMaxHoursOpenForm,
+                    }
+                  "
+                >
+                </ng-container>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-inline">
+        <div
+          #paymentConfigurationSection
+          class="form-group form-switch-group"
+          [class.form-group-accordion--opened]="paymentConfigurationAssignmentFormOpened()"
+          [class.form-group--error]="hasPaymentConfigurationAssignmentError()"
+        >
+          <div
+            class="form-accordion-wrapper"
+            data-testid="onsite-setup-payment-configuration-accordion-toggle"
+            (click)="toggleItem(paymentConfigurationAssignmentFormOpened)"
+          >
+            <ignt-icon class="form-icon" name="credit-card" size="h3" variant="light" />
+            <div class="form-accordion">
+              <label class="form-label" translate>
+                {{ 'boxOffice.settings.actions.onsiteSetup.paymentConfiguration.label' }}
+              </label>
+              <ignt-icon class="form-accordion__icon" name="angle-down" size="h3" variant="light" [fixedWidth]="true" />
+            </div>
+          </div>
+          <div class="onsite-setup-form__checkbox-dropdown onsite-setup-form__accordion">
+            <app-onsite-payment-configuration-assignment
+              [placeId]="placeId"
+              [assigned]="assignedPaymentConfiguration"
+              [saveAttempted]="paymentConfigurationSaveAttempted"
+              (assignmentChange)="onPaymentConfigurationAssignmentChange($event)"
+              (assignmentValidChange)="onPaymentConfigurationAssignmentValidChange($event)"
+              (paymentConfigurationsTabRequested)="paymentConfigurationsTabRequested.emit()"
+            ></app-onsite-payment-configuration-assignment>
+          </div>
+        </div>
+      </div>
+
+      <ng-container *ngTemplateOutlet="contactInformationForm"></ng-container>
+
+      <div class="input-inline">
+        <div class="form-group form-switch-group" [class.form-group-accordion--opened]="isPrinterConfigurationFormOpened()">
+          <div class="form-accordion-wrapper" (click)="toggleItem(printerConfigurationFormOpened)">
+            <ignt-icon class="form-icon" name="print" size="h3" variant="light" />
+            <div class="form-accordion">
+              <label class="form-label" translate>
+                {{ 'boxOffice.settings.actions.onsiteSetup.printer.label' }}
+              </label>
+              <ignt-icon class="form-accordion__icon" name="angle-down" size="h3" variant="light" [fixedWidth]="true" />
+            </div>
+          </div>
+          <div class="onsite-setup-form__checkbox-dropdown onsite-setup-form__accordion onsite-setup-form__printer-content">
+            @if (showBrandingConfiguration()) {
+              <div class="form-group form-switch-group onsite-setup-form__printer-brand" data-testid="branding-configuration">
+                <label class="form-label" translate>
+                  {{ 'boxOffice.settings.actions.onsiteSetup.brandingConfiguration.label' }}
+                </label>
+                <div class="onsite-setup-form__checkbox-dropdown">
+                  <app-filter-select
+                    [options]="brandingConfigOptions()"
+                    [allowEmpty]="true"
+                    [preloadedOption]="selectedBrandingConfigOption()"
+                    (selected)="selectBrandingConfig($event)"
+                  >
+                  </app-filter-select>
+                </div>
+                @if (selectedBrandingConfig() && brandingSummaryItems().length > 0) {
+                  <div class="onsite-setup-form__branding-summary" data-testid="branding-configuration-summary">
+                    <div class="onsite-setup-form__branding-summary-title">
+                      {{
+                        'boxOffice.settings.actions.onsiteSetup.brandingConfiguration.summaryTitle'
+                          | translate: { count: brandingSummaryItems().length }
+                      }}
+                    </div>
+                    <ul class="onsite-setup-form__branding-summary-list">
+                      @for (item of brandingSummaryItems(); track item) {
+                        <li class="onsite-setup-form__branding-summary-item">{{ item | translate }}</li>
+                      }
+                    </ul>
+                  </div>
+                }
+              </div>
+            }
+            <div class="form-group form-switch-group onsite-setup-form__printer-brand" [class.form-group--error]="getPrinterTypeError()">
+              <label class="form-label" translate>
+                {{ 'boxOffice.settings.actions.onsiteSetup.oboPrinterType.label' }}
+              </label>
+              <div class="onsite-setup-form__checkbox-dropdown">
+                <app-filter-select
+                  [options]="oboPrinterTypeOptions"
+                  [allowEmpty]="false"
+                  [preloadedOption]="selectedOboPrinterTypeOptions"
+                  (selected)="selectOboPrinterType($event)"
+                >
+                </app-filter-select>
+              </div>
+              <div class="form-error form-error--no-margin" *ngIf="getPrinterTypeError()">
+                <ignt-icon class="form-error--icon" name="exclamation-circle" size="caption" variant="solid" />
+                <span class="form-error--message">
+                  {{ 'boxOffice.settings.actions.onsiteSetup.oboPrinterType.errorPrinterGatewayCombo' | translate }}
+                </span>
+              </div>
+            </div>
+            <div class="form-group form-switch-group onsite-setup-form__printer-brand">
+              <label class="form-label" translate>
+                {{ 'boxOffice.settings.actions.onsiteSetup.receiptPrinterType.label' }}
+              </label>
+              <div class="onsite-setup-form__checkbox-dropdown">
+                <app-filter-select
+                  [options]="receiptPrinterTypeOptions"
+                  [allowEmpty]="false"
+                  [preloadedOption]="selectedReceiptPrinterTypeOptions"
+                  (selected)="selectReceiptPrinterType($event)"
+                >
+                </app-filter-select>
+              </div>
+            </div>
+            <div class="input-inline">
+              <ng-container
+                *ngTemplateOutlet="
+                  switchTemplate;
+                  context: {
+                    fieldName: 'hasNewPaper',
+                    icon: 'print',
+                    checked: 'boxOffice.settings.actions.onsiteSetup.hasNewPaper.on',
+                    unchecked: 'boxOffice.settings.actions.onsiteSetup.hasNewPaper.off',
+                  }
+                "
+              ></ng-container>
+              <ng-container
+                *ngTemplateOutlet="
+                  switchTemplate;
+                  context: {
+                    fieldName: 'hasCutter',
+                    icon: 'cut',
+                    checked: 'boxOffice.settings.actions.onsiteSetup.hasCutter.on',
+                    unchecked: 'boxOffice.settings.actions.onsiteSetup.hasCutter.off',
+                  }
+                "
+              ></ng-container>
+            </div>
+            <ng-container
+              *ngTemplateOutlet="
+                switchDropwdownTemplate;
+                context: {
+                  fieldName: 'enablePrintTicketsCombinedForPlans',
+                  icon: 'ticket',
+                  checked: 'boxOffice.settings.actions.onsiteSetup.enablePrintTicketsCombinedForPlans.on',
+                  unchecked: 'boxOffice.settings.actions.onsiteSetup.enablePrintTicketsCombinedForPlans.off',
+                  dropdownTemplate: printTicketsCombinedForPlansForm,
+                }
+              "
+            >
+            </ng-container>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-inline">
+        <div class="form-group form-switch-group" [class.form-group-accordion--opened]="validationFormOpened()">
+          <div class="form-accordion-wrapper" (click)="toggleItem(validationFormOpened)">
+            <ignt-icon class="form-icon" name="door-open" size="h3" variant="light" />
+            <div class="form-accordion">
+              <label class="form-label" translate>
+                {{ 'boxOffice.settings.actions.onsiteSetup.validation.label' }}
+              </label>
+              <ignt-icon class="form-accordion__icon" name="angle-down" size="h3" variant="light" [fixedWidth]="true" />
+            </div>
+          </div>
+          <div class="onsite-setup-form__checkbox-dropdown onsite-setup-form__accordion">
+            <ng-container
+              *ngTemplateOutlet="
+                switchTemplate;
+                context: {
+                  fieldName: 'autovalidateTickets',
+                  icon: 'ticket-alt',
+                  checked: 'boxOffice.settings.actions.onsiteSetup.autovalidateTickets.on',
+                  unchecked: 'boxOffice.settings.actions.onsiteSetup.autovalidateTickets.off',
+                }
+              "
+            ></ng-container>
+            <ng-container *ngIf="accessControlSetupsOptions.length > 0">
+              <ng-container
+                *ngTemplateOutlet="
+                  switchDropwdownTemplate;
+                  context: {
+                    fieldName: 'validationProfilesEnabled',
+                    icon: 'scanner-gun',
+                    checked: 'boxOffice.settings.actions.onsiteSetup.validationProfilesEnabled.on',
+                    unchecked: 'boxOffice.settings.actions.onsiteSetup.validationProfilesEnabled.off',
+                    dropdownTemplate: accessControlForm,
+                  }
+                "
+              ></ng-container>
+            </ng-container>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-inline">
+        <div class="form-group form-switch-group" [class.form-group-accordion--opened]="sessionAvailabilityFormOpened()">
+          <div class="form-accordion-wrapper" (click)="toggleItem(sessionAvailabilityFormOpened)">
+            <ignt-icon class="form-icon" name="bolt" size="h3" variant="light" />
+            <div class="form-accordion">
+              <label class="form-label" translate>
+                {{ 'boxOffice.settings.actions.onsiteSetup.sessionAvailability.label' }}
+              </label>
+              <ignt-icon class="form-accordion__icon" name="angle-down" size="h3" variant="light" [fixedWidth]="true" />
+            </div>
+          </div>
+          <div class="onsite-setup-form__checkbox-dropdown onsite-setup-form__accordion">
+            <div class="form-value">
+              <span class="description" translate>
+                {{ 'boxOffice.settings.actions.onsiteSetup.sessionAvailability.description' }}
+              </span>
+            </div>
+            <ignt-radio-group formControlName="sessionAvailabilityCacheStrategy" class="onsite-setup-form__radio-group">
+              <ignt-list-item
+                [title]="'boxOffice.settings.actions.onsiteSetup.sessionAvailability.strategy.no_cache.title' | translate"
+                [description]="'boxOffice.settings.actions.onsiteSetup.sessionAvailability.strategy.no_cache.description' | translate"
+                (click)="selectSessionAvailabilityCacheStrategy(sessionAvailabilityCacheStrategyEnum.no_cache)"
+                [selected]="formGroup.get('sessionAvailabilityCacheStrategy')?.value === sessionAvailabilityCacheStrategyEnum.no_cache"
+                data-testid="session-availability-strategy-no-cache"
+              >
+                <ng-container trailing-modifier>
+                  <ignt-radio [value]="sessionAvailabilityCacheStrategyEnum.no_cache"></ignt-radio>
+                </ng-container>
+              </ignt-list-item>
+              <ignt-list-item
+                [title]="'boxOffice.settings.actions.onsiteSetup.sessionAvailability.strategy.time_to_live.title' | translate"
+                [description]="'boxOffice.settings.actions.onsiteSetup.sessionAvailability.strategy.time_to_live.description' | translate"
+                (click)="selectSessionAvailabilityCacheStrategy(sessionAvailabilityCacheStrategyEnum.time_to_live)"
+                [selected]="formGroup.get('sessionAvailabilityCacheStrategy')?.value === sessionAvailabilityCacheStrategyEnum.time_to_live"
+                data-testid="session-availability-strategy-time-to-live"
+              >
+                <ng-container trailing-modifier>
+                  <ignt-radio [value]="sessionAvailabilityCacheStrategyEnum.time_to_live"></ignt-radio>
+                </ng-container>
+                <div
+                  *ngIf="formGroup.get('sessionAvailabilityCacheStrategy')?.value === sessionAvailabilityCacheStrategyEnum.time_to_live"
+                  class="onsite-setup-form__session-availability-timeout"
+                  data-testid="session-availability-ttl-timeout"
+                >
+                  <ng-container
+                    *ngTemplateOutlet="
+                      inputNumberTemplate;
+                      context: {
+                        fieldName: 'sessionAvailabilityCacheTimeoutInSeconds',
+                        min: 0,
+                      }
+                    "
+                  ></ng-container>
+                </div>
+              </ignt-list-item>
+              <ignt-list-item
+                [title]="'boxOffice.settings.actions.onsiteSetup.sessionAvailability.strategy.stale_while_revalidate.title' | translate"
+                [description]="
+                  'boxOffice.settings.actions.onsiteSetup.sessionAvailability.strategy.stale_while_revalidate.description' | translate
+                "
+                (click)="selectSessionAvailabilityCacheStrategy(sessionAvailabilityCacheStrategyEnum.stale_while_revalidate)"
+                [selected]="
+                  formGroup.get('sessionAvailabilityCacheStrategy')?.value === sessionAvailabilityCacheStrategyEnum.stale_while_revalidate
+                "
+              >
+                <ng-container trailing-modifier>
+                  <ignt-radio [value]="sessionAvailabilityCacheStrategyEnum.stale_while_revalidate"></ignt-radio>
+                </ng-container>
+              </ignt-list-item>
+            </ignt-radio-group>
+
+            <div class="onsite-setup-form__session-availability-override">
+              <div class="form-group form-switch-group">
+                <label class="form-label" translate>
+                  {{ 'boxOffice.settings.actions.onsiteSetup.sessionAvailability.overridePerPlan.label' }}
+                </label>
+                <ignt-switch
+                  id="session-availability-plan-override-switch"
+                  data-testid="session-availability-plan-override-switch"
+                  [ariaLabel]="'boxOffice.settings.actions.onsiteSetup.sessionAvailability.overridePerPlan.label' | translate"
+                  [checked]="sessionAvailabilityPlanOverrideEnabled()"
+                  (checkedChange)="toggleSessionAvailabilityPlanOverride()"
+                ></ignt-switch>
+              </div>
+
+              <div *ngIf="sessionAvailabilityPlanOverrideEnabled()" class="onsite-setup-form__session-availability-plans">
+                <div class="onsite-setup-form__session-availability-plan-selector">
+                  <app-multi-select
+                    [options]="availableSessionAvailabilityPlanOptions"
+                    [placeholder]="'boxOffice.settings.actions.onsiteSetup.sessionAvailability.overridePerPlan.selectPlan' | translate"
+                    [selectedOptions]="sessionAvailabilityPlanSelectionOptions()"
+                    [maxSelectedOptions]="1"
+                    [displayInPlaceMaximum]="1"
+                    (selected)="onSessionAvailabilityPlanSelectionChanged($event)"
+                    data-testid="session-availability-plan-select"
+                  >
+                  </app-multi-select>
+                </div>
+
+                <div *ngFor="let config of sessionAvailabilityPlanConfigs()" class="onsite-setup-form__session-availability-plan-config">
+                  <div class="onsite-setup-form__session-availability-plan-header">
+                    <span class="onsite-setup-form__session-availability-plan-name">{{ getPlanNameById(config.plan_id) }}</span>
+                    <button
+                      ignt-icon-button
+                      size="small"
+                      [icon]="['fas', 'trash']"
+                      sentiment="tertiary"
+                      variant="danger"
+                      (click)="removeSessionAvailabilityPlanConfig(config.plan_id)"
+                      data-testid="remove-plan-config"
+                      aria-label="Remove plan config"
+                    ></button>
+                  </div>
+                  <div class="onsite-setup-form__session-availability-plan-strategy">
+                    <app-filter-select
+                      [options]="sessionAvailabilityStrategyOptions"
+                      [allowEmpty]="false"
+                      [preloadedOption]="getSessionAvailabilityStrategyPreloadedOption(config.strategy)"
+                      (selected)="updateSessionAvailabilityPlanConfigStrategy(config.plan_id, $event.id)"
+                    >
+                    </app-filter-select>
+                    <div
+                      *ngIf="config.strategy === sessionAvailabilityCacheStrategyEnum.time_to_live"
+                      class="onsite-setup-form__session-availability-plan-timeout"
+                    >
+                      <ng-container
+                        *ngIf="
+                          getSessionAvailabilityPlanTimeoutControl(config.plan_id, config.timeout_in_seconds ?? 0) as planTimeoutControl
+                        "
+                      >
+                        <ignt-input-field
+                          type="number"
+                          [label]="'boxOffice.settings.actions.onsiteSetup.sessionAvailability.timeoutLabel' | translate"
+                          [formControl]="planTimeoutControl"
+                          [hideErrorLabels]="true"
+                          (blurred)="onSessionAvailabilityPlanTimeoutBlurred(config.plan_id)"
+                          data-testid="plan-config-timeout"
+                        ></ignt-input-field>
+                        <ng-container
+                          *ngTemplateOutlet="
+                            validationErrors;
+                            context: { error: getControlError(planTimeoutControl), control: planTimeoutControl }
+                          "
+                        ></ng-container>
+                      </ng-container>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-inline">
+        <div class="form-group form-switch-group" [class.form-group-accordion--opened]="advancedFormOpened()">
+          <div class="form-accordion-wrapper" (click)="toggleItem(advancedFormOpened)">
+            <ignt-icon class="form-icon" name="sliders-h" size="h3" variant="light" />
+            <div class="form-accordion">
+              <label class="form-label" translate>
+                {{ 'boxOffice.settings.actions.onsiteSetup.advanced.label' }}
+              </label>
+              <ignt-icon class="form-accordion__icon" name="angle-down" size="h3" variant="light" [fixedWidth]="true" />
+            </div>
+          </div>
+          <div class="onsite-setup-form__checkbox-dropdown onsite-setup-form__accordion">
+            <div class="input-inline">
+              <ng-container
+                *ngTemplateOutlet="
+                  switchTemplate;
+                  context: {
+                    fieldName: 'hasPriceViewer',
+                    icon: 'scanner-keyboard',
+                    checked: 'boxOffice.settings.actions.onsiteSetup.hasPriceViewer.on',
+                    unchecked: 'boxOffice.settings.actions.onsiteSetup.hasPriceViewer.off',
+                  }
+                "
+              ></ng-container>
+              @if (overrideCapacityEnabled()) {
+                <ng-container
+                  *ngTemplateOutlet="
+                    switchTemplate;
+                    context: {
+                      fieldName: 'canOverrideCapacities',
+                      icon: 'users',
+                      checked: 'boxOffice.settings.actions.onsiteSetup.canOverrideCapacities.on',
+                      unchecked: 'boxOffice.settings.actions.onsiteSetup.canOverrideCapacities.off',
+                    }
+                  "
+                ></ng-container>
+              }
+              <ng-container
+                *ngTemplateOutlet="
+                  switchTemplate;
+                  context: {
+                    fieldName: 'isHidden',
+                    icon: 'eye-slash',
+                    checked: 'boxOffice.settings.actions.onsiteSetup.isHidden.on',
+                    unchecked: 'boxOffice.settings.actions.onsiteSetup.isHidden.off',
+                  }
+                "
+              ></ng-container>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <ng-template #inputNumberTemplate let-fieldName="fieldName" let-icon="icon" let-description="description" let-min="min">
+        <div class="input-inline__numeric-field">
+          <div class="form-group form-switch-group" [class.form-group--error]="getControlError(formGroup.get(fieldName))">
+            @if (icon) {
+              <ignt-icon class="form-icon" size="h3" variant="light" [name]="icon" />
+            }
+            <label [for]="fieldName" class="form-label" translate
+              >{{ 'boxOffice.settings.actions.onsiteSetup.' + fieldName + '.label' }}
+            </label>
+            <div class="form-value">
+              <span class="description" translate>{{ description }}</span>
+            </div>
+            <div class="form-check form-value-number" data-testid="capacity-card-switch-button">
+              <ignt-input-field
+                [attr.data-testid]="'numeric_input-' + fieldName"
+                label=""
+                type="number"
+                [formControlName]="fieldName"
+                [id]="fieldName"
+                [minValue]="min"
+                [hideErrorLabels]="true"
+              ></ignt-input-field>
+            </div>
+          </div>
+          <ng-container
+            *ngTemplateOutlet="
+              validationErrors;
+              context: { error: getControlError(formGroup.get(fieldName)), control: formGroup.get(fieldName) }
+            "
+          ></ng-container>
+        </div>
+      </ng-template>
+
+      <ng-template #switchTemplate let-fieldName="fieldName" let-icon="icon" let-checked="checked" let-unchecked="unchecked">
+        <div class="form-group form-switch-group">
+          @if (icon) {
+            <ignt-icon class="form-icon" size="h3" variant="light" [name]="icon" />
+          }
+          <label [for]="fieldName" class="form-label" translate
+            >{{ 'boxOffice.settings.actions.onsiteSetup.' + fieldName + '.label' }}
+          </label>
+          <div class="form-value">
+            <span [class.form-value--checked]="!formGroup.get(fieldName).value" translate>{{ unchecked }}</span> /
+            <span [class.form-value--checked]="formGroup.get(fieldName).value" translate>{{ checked }}</span>
+          </div>
+          <div class="onsite-setup-form__switch" data-testid="capacity-card-switch-button">
+            <ignt-switch
+              [formControl]="formGroup.get(fieldName)"
+              [attr.data-testid]="'session-' + fieldName"
+              [id]="'custom-capacity-switch-' + fieldName"
+              [ariaLabel]="'boxOffice.settings.actions.onsiteSetup.' + fieldName + '.label' | translate"
+            ></ignt-switch>
+          </div>
+        </div>
+      </ng-template>
+
+      <ng-template
+        #switchDropwdownTemplate
+        let-fieldName="fieldName"
+        let-icon="icon"
+        let-checked="checked"
+        let-unchecked="unchecked"
+        let-dropdownTemplate="dropdownTemplate"
+      >
+        <div class="form-group form-switch-group">
+          @if (icon) {
+            <ignt-icon class="form-icon" size="h3" variant="light" [name]="icon" />
+          }
+          <label [for]="fieldName" class="form-label" translate
+            >{{ 'boxOffice.settings.actions.onsiteSetup.' + fieldName + '.label' }}
+          </label>
+          <div class="form-value">
+            <span [class.form-value--checked]="!formGroup.get(fieldName).value" translate>{{ unchecked }}</span> /
+            <span [class.form-value--checked]="formGroup.get(fieldName).value" translate>{{ checked }}</span>
+          </div>
+          <div class="onsite-setup-form__switch" data-testid="capacity-card-switch-button">
+            <ignt-switch
+              [formControl]="formGroup.get(fieldName)"
+              [attr.data-testid]="'session-' + fieldName"
+              [id]="'custom-capacity-switch-' + fieldName"
+              [ariaLabel]="'boxOffice.settings.actions.onsiteSetup.' + fieldName + '.label' | translate"
+            ></ignt-switch>
+          </div>
+          <div class="onsite-setup-form__checkbox-box" *ngIf="formGroup.get(fieldName).value === true">
+            <ng-container *ngTemplateOutlet="dropdownTemplate"></ng-container>
+          </div>
+        </div>
+      </ng-template>
+    </form>
+  </ng-container>
+</div>
+<div class="lateral-slider-body__footer">
+  <ignt-button
+    fill
+    data-testid="session-save-button"
+    [disabled]="isSaveButtonDisabled()"
+    [label]="(onsiteSetup?.name ? 'common.save' : 'common.create') | translate"
+    (click)="save()"
+  ></ignt-button>
+</div>
+
+<ng-template #contactInformationForm>
+  <div class="input-inline">
+    <div
+      class="form-group form-switch-group"
+      [class.form-group--error]="getContactInformationFieldsError()"
+      [class.form-group-accordion--opened]="contactInformationConfigurationFormOpened()"
+    >
+      <div class="form-accordion-wrapper" (click)="toggleItem(contactInformationConfigurationFormOpened)">
+        <ignt-icon class="form-icon" name="user" size="h3" variant="light" />
+        <div class="form-accordion">
+          <label class="form-label" translate>
+            {{ 'boxOffice.settings.actions.onsiteSetup.contactInformationSetup.label' }}
+          </label>
+          <ignt-icon class="form-accordion__icon" name="angle-down" size="h3" variant="light" [fixedWidth]="true" />
+        </div>
+      </div>
+      <div class="onsite-setup-form__checkbox-dropdown onsite-setup-form__accordion">
+        <app-onsite-contact-information-setup [value]="contactInformationSetup()" (valueChange)="selectContactInformationSetup($event)" />
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #printTicketsCombinedForPlansForm>
+  <div class="onsite-setup-form__checkbox-dropdown">
+    <app-multi-select
+      [options]="planOptions"
+      [placeholder]="
+        'boxOffice.settings.actions.onsiteSetup.enablePrintTicketsCombinedForPlans.printTicketsCombinedForPlans.label' | translate
+      "
+      [selectedOptions]="selectedPlanOptions"
+      (selected)="selectPlans($event)"
+      [displayInPlaceMaximum]="2"
+    >
+    </app-multi-select>
+  </div>
+</ng-template>
+
+<ng-template #accessControlForm>
+  <div class="onsite-setup-form__checkbox-dropdown">
+    <app-filter-select
+      [options]="accessControlSetupsOptions"
+      [allowEmpty]="true"
+      [preloadedOption]="selectedAccessControlSetupOption"
+      [emptyLabel]="'boxOffice.settings.actions.onsiteSetup.validationProfilesEnabled.selectSetupPlaceholder' | translate"
+      (selected)="selectAccessControlSetup($event)"
+    >
+    </app-filter-select>
+  </div>
+  <div class="onsite-setup-form__checkbox-dropdown" *ngIf="filteredValidationProfilesOptions.length > 0">
+    <app-multi-select
+      [options]="filteredValidationProfilesOptions"
+      [placeholder]="'boxOffice.settings.actions.onsiteSetup.validationProfilesEnabled.selectProfilePlaceholder' | translate"
+      [selectedOptions]="selectedValidationProfilesOptions"
+      (selected)="selectValidationProfiles($event)"
+      [displayInPlaceMaximum]="2"
+    >
+    </app-multi-select>
+  </div>
+</ng-template>
+
+<ng-template #retailSetupWarehouseForm>
+  <div class="onsite-setup-form__checkbox-dropdown">
+    <span class="onsite-setup-form__checkbox-dropdown-description" translate>{{
+      'boxOffice.settings.actions.onsiteSetup.warehouseId.label'
+    }}</span>
+    <app-filter-select
+      [options]="warehouseOptionsForRetailSetup"
+      [allowEmpty]="true"
+      [preloadedOption]="selectedWarehouseOption"
+      [emptyLabel]="'boxOffice.settings.actions.onsiteSetup.warehouseId.placeholder' | translate"
+      (selected)="selectWarehouse($event)"
+    >
+    </app-filter-select>
+  </div>
+</ng-template>
+
+<ng-template #retailSetupProductsHolderPlanForm>
+  <div class="onsite-setup-form__checkbox-dropdown">
+    <span class="onsite-setup-form__checkbox-dropdown-description" translate>{{
+      'boxOffice.settings.actions.onsiteSetup.productsHolderPlanId.label'
+    }}</span>
+    <app-filter-select
+      [options]="productsHolderPlanOptionsForRetailSetup"
+      [allowEmpty]="true"
+      [preloadedOption]="selectedProductsHolderPlanOption"
+      [emptyLabel]="'boxOffice.settings.actions.onsiteSetup.productsHolderPlanId.placeholder' | translate"
+      (selected)="selectProductsHolderPlan($event)"
+    >
+    </app-filter-select>
+  </div>
+</ng-template>
+
+<ng-template #shiftMaxHoursOpenForm>
+  <div class="onsite-setup-form__dropdown">
+    <app-filter-select
+      [options]="shiftMaxHoursOpenOptions"
+      [emptyLabel]="'boxOffice.settings.actions.onsiteSetup.enableShiftMaxHoursOpen.dropdown.label' | translate"
+      [allowEmpty]="true"
+      [preloadedOption]="getSelectedShiftMaxHoursOpenOptions()"
+      (selected)="selectShiftMaxHours($event)"
+    >
+    </app-filter-select>
+  </div>
+</ng-template>
+
+<ng-template #validationErrors let-error="error" let-control="control">
+  <ng-container *ngIf="error">
+    <div class="form-error" [ngSwitch]="error">
+      <ignt-icon class="form-error--icon" name="exclamation-circle" size="caption" variant="solid" />
+      <span class="form-error--message" *ngSwitchCase="'required'" data-testid="error-mandatory-field">
+        {{ 'form.error.mandatoryField' | translate }}
+      </span>
+      <span class="form-error--message" *ngSwitchCase="'min'" data-testid="error-min-value-field">
+        {{ 'form.error.minValue' | translate: { value: control?.errors?.['min']?.min } }}
+      </span>
+      <span class="form-error--message" *ngSwitchCase="'max'" data-testid="error-max-value-field">
+        {{ 'form.error.maxValue' | translate: { value: control?.errors?.['max']?.max } }}
+      </span>
+    </div>
+  </ng-container>
+</ng-template>
+
+<ng-template #closedAccordionMessage let-itemSize="itemSize">
+  <div class="form-accordion__message">
+    <ng-container *ngIf="itemSize && itemSize > 0; else emptyAccordionMessage">
+      {{ 'boxOffice.settings.actions.onsiteSetup.accordionMessage' | translate: { optionsLength: itemSize } }}
+    </ng-container>
+    <ng-template #emptyAccordionMessage>
+      <span class="onsite-setup-form__checkbox-empty">
+        {{ 'boxOffice.settings.actions.onsiteSetup.accordionEmptyMessage' | translate }}
+      </span>
+    </ng-template>
+  </div>
+</ng-template>

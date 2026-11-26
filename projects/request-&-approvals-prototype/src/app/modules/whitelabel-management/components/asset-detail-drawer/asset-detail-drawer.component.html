@@ -1,0 +1,131 @@
+<ignt-dialog-header>
+  <span class="asset-detail__title" [title]="asset.file_name">{{ asset.file_name }}</span>
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="asset-detail">
+    <div class="asset-detail__preview">
+      @if (previewSrc; as src) {
+        <img class="asset-detail__preview-img" [src]="src" [alt]="asset.file_name" />
+      } @else {
+        <ignt-icon class="asset-detail__preview-icon" name="image" variant="regular" size="h2" aria-hidden="true" />
+      }
+    </div>
+
+    <div class="asset-detail__url">
+      <span class="asset-detail__url-text" [title]="asset.url">{{ asset.url }}</span>
+      <button
+        type="button"
+        ignt-icon-button
+        size="small"
+        sentiment="tertiary"
+        [icon]="copied() ? ['fas', 'check'] : ['fal', 'copy']"
+        [attr.title]="copyLabelKey | translate"
+        [attr.aria-label]="copyLabelKey | translate"
+        (click)="copyUrl()"
+        data-testid="asset-detail-copy"
+      ></button>
+    </div>
+
+    <dl class="asset-detail__metadata">
+      <div class="asset-detail__field">
+        <dt class="asset-detail__field-label">{{ 'whitelabelAssetDetail.type.label' | translate }}</dt>
+        <dd class="asset-detail__field-value">
+          @if (itemTypeLabelKey; as key) {
+            {{ key | translate }}
+          } @else {
+            {{ asset.item_type }}
+          }
+        </dd>
+      </div>
+
+      <div class="asset-detail__field">
+        <dt class="asset-detail__field-label">{{ 'whitelabelAssetDetail.scope.label' | translate }}</dt>
+        <dd class="asset-detail__field-value">
+          <ignt-tag [sentiment]="scope === 'shared' ? 'info' : 'accent'" variant="outline">
+            {{ 'whitelabelAssetDetail.scope.' + scope | translate }}
+          </ignt-tag>
+          @if (scope === 'whitelabel') {
+            <span class="asset-detail__field-muted">{{ asset.whitelabel_id }}</span>
+          }
+        </dd>
+      </div>
+
+      <div class="asset-detail__field">
+        <dt class="asset-detail__field-label">{{ 'whitelabelAssetDetail.createdAt.label' | translate }}</dt>
+        <dd class="asset-detail__field-value">{{ asset.created_at | date: 'medium' }}</dd>
+      </div>
+
+      <div class="asset-detail__field">
+        <dt class="asset-detail__field-label">{{ 'whitelabelAssetDetail.createdBy.label' | translate }}</dt>
+        <dd class="asset-detail__field-value">
+          {{ asset.created_by ?? ('whitelabelAssetDetail.createdBy.unknown' | translate) }}
+        </dd>
+      </div>
+    </dl>
+
+    <section class="asset-detail__usages">
+      <h6 class="asset-detail__usages-heading">
+        {{ 'whitelabelAssetDetail.usages.heading' | translate: { count: usages.length } }}
+      </h6>
+      @if (usages.length === 0) {
+        <p class="asset-detail__usages-empty" data-testid="asset-detail-usages-empty">
+          {{ 'whitelabelAssetDetail.usages.empty' | translate }}
+        </p>
+        <p class="asset-detail__usages-hint">{{ 'whitelabelAssetDetail.usages.emptyHint' | translate }}</p>
+      } @else {
+        <app-asset-usage-list [usages]="usages" />
+      }
+    </section>
+
+    @if (forbidForceDelete && blockedUsages()?.length; as blockedCount) {
+      <section class="asset-detail__blocked" data-testid="asset-detail-blocked-usages">
+        <h6 class="asset-detail__usages-heading">
+          {{ 'whitelabelAssetDetail.blocked.heading' | translate: { count: blockedCount } }}
+        </h6>
+        <p class="asset-detail__usages-hint">{{ 'whitelabelAssetDetail.blocked.hint' | translate }}</p>
+        <app-asset-usage-list [usages]="blockedUsages()!" />
+      </section>
+    } @else if (forbidForceDelete && usages.length > 0) {
+      <p class="asset-detail__usages-hint" data-testid="asset-detail-in-use-hint">
+        {{ 'whitelabelAssetDetail.blocked.hint' | translate }}
+      </p>
+    }
+
+    @if (forbidForceDelete && cssReferences.length > 0) {
+      <section class="asset-detail__css-references" data-testid="asset-detail-css-references">
+        <h6 class="asset-detail__usages-heading">
+          {{ 'whitelabelFontDetail.references.heading' | translate: { count: cssReferences.length } }}
+        </h6>
+        <ul class="asset-detail__css-references-list">
+          @for (reference of cssReferences; track reference.styleId + reference.variable) {
+            <li class="asset-detail__css-references-item">
+              <p class="asset-detail__css-references-variable" [title]="reference.variable">{{ reference.variable }}</p>
+              <p class="asset-detail__css-references-value" [title]="reference.value">{{ reference.value }}</p>
+              @if (reference.styleName; as styleName) {
+                <ignt-tag sentiment="info" variant="outline">{{ styleName }}</ignt-tag>
+              }
+            </li>
+          }
+        </ul>
+        <p class="asset-detail__usages-hint">{{ 'whitelabelFontDetail.blocked.hint' | translate }}</p>
+      </section>
+    }
+  </div>
+</ignt-dialog-content>
+
+@if (canDelete) {
+  <ignt-dialog-footer hideCancelButton>
+    <button
+      type="button"
+      igntButton
+      variant="danger"
+      [loading]="deleting()"
+      [disabled]="deleting() || isDeleteBlocked"
+      (click)="onDelete()"
+      data-testid="asset-detail-delete"
+    >
+      {{ 'whitelabelAssetDetail.delete' | translate }}
+    </button>
+  </ignt-dialog-footer>
+}

@@ -1,0 +1,65 @@
+<header class="stepper-catalog__head">
+  <h3 class="stepper-catalog__title">{{ 'adminServiceCatalog.stepperTemplates.title' | translate }}</h3>
+  <button type="button" igntButton sentiment="primary" size="small" (click)="onCreate()" data-testid="stepper-template-create">
+    {{ 'adminServiceCatalog.stepperTemplates.createCta' | translate }}
+  </button>
+</header>
+
+@if (!templates.length) {
+  <p class="stepper-catalog__empty">{{ 'adminServiceCatalog.stepperTemplates.empty' | translate }}</p>
+} @else {
+  <ul class="stepper-catalog">
+    @for (template of templates; track template.key) {
+      <li class="stepper-catalog__item" [class.stepper-catalog__item--active]="template.key === selectedKey">
+        <button
+          type="button"
+          class="stepper-catalog__header"
+          (click)="onSelect(template.key)"
+          [attr.aria-pressed]="template.key === selectedKey"
+          [attr.data-testid]="'stepper-template-select-' + template.key"
+        >
+          <span class="stepper-catalog__name">{{ template.label }}</span>
+          @if (template.builtin) {
+            <span class="stepper-catalog__badge" data-testid="stepper-template-builtin-badge">{{
+              'adminServiceCatalog.stepperTemplates.builtinBadge' | translate
+            }}</span>
+          }
+          @if (template.multiInstance) {
+            <span class="stepper-catalog__badge">{{ 'adminServiceCatalog.stepperTemplates.multiBadge' | translate }}</span>
+          }
+          @if (template.key === loadingKey) {
+            <span class="stepper-catalog__spinner" aria-hidden="true"></span>
+          }
+        </button>
+
+        @if (!template.builtin) {
+          @if (confirmingKey() === template.key) {
+            <span class="stepper-catalog__confirm">
+              <span>{{ 'adminProjectManagement.deleteTemplate.confirm' | translate }}</span>
+              <button
+                type="button"
+                class="stepper-catalog__delete stepper-catalog__delete--confirm"
+                (click)="confirmDelete(template.key)"
+                [attr.data-testid]="'stepper-template-delete-confirm-' + template.key"
+              >
+                {{ 'adminProjectManagement.deleteTemplate.yes' | translate }}
+              </button>
+              <button type="button" class="stepper-catalog__delete-cancel" (click)="cancelDelete()">
+                {{ 'adminProjectManagement.deleteTemplate.no' | translate }}
+              </button>
+            </span>
+          } @else {
+            <button
+              type="button"
+              class="stepper-catalog__delete"
+              (click)="requestDelete(template.key)"
+              [attr.data-testid]="'stepper-template-delete-' + template.key"
+            >
+              {{ 'adminProjectManagement.deleteTemplate.action' | translate }}
+            </button>
+          }
+        }
+      </li>
+    }
+  </ul>
+}

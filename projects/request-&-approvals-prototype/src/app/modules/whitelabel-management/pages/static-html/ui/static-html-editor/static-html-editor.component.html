@@ -1,0 +1,124 @@
+<section class="static-html-editor">
+  <div class="static-html-editor__meta">
+    <div class="static-html-editor__field">
+      <span class="static-html-editor__label" id="static-html-editor-locale-label">{{ 'staticHtml.editor.locale' | translate }}</span>
+      <ng-select
+        class="static-html-editor__select"
+        bindLabel="label"
+        bindValue="slug"
+        labelForId="static-html-editor-locale"
+        [attr.data-testid]="'static-html-editor-locale'"
+        [clearable]="false"
+        [items]="localeChoices()"
+        [ngModel]="page().localeSlug"
+        [ngModelOptions]="{ standalone: true }"
+        [readonly]="isReadOnly()"
+        [searchable]="false"
+        (ngModelChange)="localeSlugChanged.emit($event)"
+      ></ng-select>
+    </div>
+
+    <!-- The locale segment is fixed by the dropdown beside it, so it is shown rather than typed. -->
+    <div class="static-html-editor__field static-html-editor__field--grow">
+      <span class="static-html-editor__label">{{ 'staticHtml.editor.slug' | translate }}</span>
+
+      <div class="static-html-editor__slug">
+        <code class="static-html-editor__slug-prefix" data-testid="static-html-editor-slug-prefix">{{ slugPrefix() }}</code>
+
+        <ignt-input-field
+          class="static-html-editor__slug-input"
+          id="static-html-editor-slug"
+          label=""
+          [disabled]="isReadOnly()"
+          [ngModel]="page().slug"
+          [ngModelOptions]="{ standalone: true }"
+          (ngModelChange)="slugChanged.emit($event)"
+        />
+
+        <!-- Opens what the whitelabel serves, which is not what is on screen until this is saved. -->
+        @if (servedUrl(); as url) {
+          <a
+            igntLink
+            class="static-html-editor__open"
+            rel="noopener noreferrer"
+            size="caption"
+            target="_blank"
+            data-testid="static-html-editor-open"
+            [href]="url"
+          >
+            {{ 'staticHtml.editor.open' | translate }}
+          </a>
+        }
+      </div>
+    </div>
+
+    <!-- A destructive button that answers to nothing is worse than none, so it goes rather than greys. -->
+    @if (!isReadOnly()) {
+      <ignt-button
+        sentiment="danger"
+        size="small"
+        variant="secondary"
+        data-testid="static-html-editor-delete"
+        [label]="'staticHtml.editor.delete' | translate"
+        (click)="deleted.emit()"
+      />
+    }
+  </div>
+
+  <ignt-tabs
+    class="static-html-editor__tabs"
+    variant="sharp"
+    [keepAlive]="true"
+    [selectedIndex]="selectedTabIndex()"
+    (selectedIndexChange)="selectedTabIndex.set($event)"
+  >
+    <ignt-tabs-item [label]="'staticHtml.editor.tabs.document' | translate">
+      <div class="static-html-editor__document">
+        <!--
+          Above the document rather than under it: the code editor is tall enough that anything below
+          it sits off the bottom of the card, and an author who has to scroll to find out why a save
+          is blocked does not find out. One quiet line each, so the editor barely moves when an issue
+          appears mid-edit. Errors first — they are what stops a save.
+        -->
+        @if (errors().length || warnings().length) {
+          <ul class="static-html-editor__issues" data-testid="static-html-editor-issues">
+            <!-- Keyed by `issueKey`, not by `code`: see the method for why `code` repeats within one list. -->
+            @for (issue of errors(); track issueKey(issue)) {
+              <li class="static-html-editor__issue static-html-editor__issue--error">
+                {{ translationKey(issue) | translate: issue.params }}
+              </li>
+            }
+            @for (issue of warnings(); track issueKey(issue)) {
+              <li class="static-html-editor__issue static-html-editor__issue--warning">
+                {{ translationKey(issue) | translate: issue.params }}
+              </li>
+            }
+          </ul>
+        }
+
+        <!--
+          `[isReadOnly]` and nothing else. There was an `inert` attribute here too, and it was the
+          wrong tool twice over: `inert` is a fence against *interaction*, and reading a document is
+          an interaction. It takes the whole pane out of the accessibility tree, so a screen reader
+          finds nothing where the markup is; it swallows the caret, so the text cannot be selected or
+          copied; and it eats the click on Find, which stays enabled beside it because searching is a
+          read and has no business being disabled. What it was there to stop is already stopped
+          without it — the editor refuses the keystroke through `EditorState.readOnly` and refuses to
+          report one that arrives any other way, and Format is disabled by the pane's own `canFormat`.
+          So the fence bought nothing an author could still do, and cost them the reading it was
+          meant to be protecting.
+        -->
+        <app-static-html-code-editor
+          [documentId]="documentId()"
+          [isReadOnly]="isReadOnly()"
+          [value]="page().html"
+          (valueChanged)="htmlChanged.emit($event)"
+        />
+      </div>
+    </ignt-tabs-item>
+
+    <ignt-tabs-item [label]="assetsTabKey() | translate: { count: assetAttentionCount() }">
+      <ng-content />
+    </ignt-tabs-item>
+  </ignt-tabs>
+</section>

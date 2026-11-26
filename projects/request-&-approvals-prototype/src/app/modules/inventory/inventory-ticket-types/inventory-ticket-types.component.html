@@ -1,0 +1,508 @@
+<div class="itt-view-header">
+  <div class="header__left-side">
+    @if (canShowStepsView()) {
+      <p class="itt-steps-subtitle" data-testid="itt-steps-subtitle">
+        <span [innerHTML]="stepsSubtitleKey() | translate: { count: stepTree().stepCount }"></span>
+        @if (hasNamesNotSplit()) {
+          <span data-testid="itt-steps-names-not-split">&#32;{{ 'inventory.ticketTypes.steps.namesNotSplit' | translate }}</span>
+        }
+        <ignt-icon
+          class="itt-steps-subtitle__info"
+          name="circle-info"
+          variant="light"
+          size="sm"
+          tabindex="0"
+          role="img"
+          igntTooltip
+          [tooltipLabel]="'inventory.ticketTypes.steps.subtitleSetBy' | translate"
+          [attr.aria-label]="'inventory.ticketTypes.steps.subtitleSetBy' | translate"
+        />
+      </p>
+    } @else if (isStepsSkeletonVisible()) {
+      <!-- The steps line is on its way: no generic copy that would swap under the reader. -->
+      <ignt-skeleton-base data-testid="itt-steps-subtitle-skeleton" [animation]="true" [height]="16" width="min(100%, 560px)" />
+    } @else {
+      <span>{{ 'inventory.ticketTypes.description' | translate }}</span>
+    }
+  </div>
+
+  <div class="header__right-side">
+    <!-- In the steps view archived is a filter: the page's actions stay. Bulk edit picks its own ticket types, from the active ones. -->
+    @if ((canModifyTicketTypes || canCreateTicketTypes) && searchQuery?.planId && (isShowingArchived() === false || canShowStepsView())) {
+      <div class="action-buttons" [class.action-buttons--wrap]="isStepsViewFlagEnabled()">
+        @if (canCreateTicketTypes) {
+          <ignt-button
+            data-testid="itt-new-ticket-type-button"
+            size="small"
+            variant="primary"
+            [disabled]="!inventoryEditingService.canEditInventory() || isSortModeActive()"
+            [fill]="isMobile() && !isStepsViewFlagEnabled()"
+            [label]="'inventory.ticketTypes.actions.addTicketType' | translate"
+            [leadingIcon]="isStepsViewFlagEnabled() ? { name: 'plus', variant: 'solid' } : undefined"
+            (click)="openSessionTypeForm({ sessionType: null, group: null })"
+          />
+          <ignt-button
+            data-testid="itt-new-group-button"
+            size="small"
+            variant="secondary"
+            [disabled]="!inventoryEditingService.canEditInventory() || isSortModeActive()"
+            [fill]="isMobile() && !isStepsViewFlagEnabled()"
+            [label]="'inventory.ticketTypes.actions.addGroup' | translate"
+            (click)="openSessionTypeGroupForm(null)"
+          />
+        }
+        @if (canModifyTicketTypes) {
+          <ignt-button
+            data-testid="itt-bulk-edit-button"
+            size="small"
+            variant="secondary"
+            [disabled]="!inventoryEditingService.canEditInventory() || isSortModeActive() || activeSessionTypes().length === 0"
+            [fill]="isMobile() && !isStepsViewFlagEnabled()"
+            [label]="'inventory.ticketTypes.actions.bulkEdit' | translate"
+            (click)="openBulkEditForm()"
+          />
+        }
+      </div>
+    }
+    <!-- The steps view switches to archived ticket types from its toolbar instead, which only shows with ticket types to list. -->
+    @if (isArchivedViewToggleAllowed() && (!canShowStepsView() || sessionTypes().length === 0)) {
+      <ignt-button
+        class="header__archived-toggle"
+        data-testid="archived-ticket-types-button"
+        size="small"
+        variant="tertiary"
+        [disabled]="isSortModeActive()"
+        [fill]="isMobile() && !isStepsViewFlagEnabled()"
+        [label]="
+          (isShowingArchived() === true ? 'sessions.pricing.priceListsOverview.unarchived' : 'sessions.pricing.priceListsOverview.archived')
+            | translate
+        "
+        (click)="onToggleArchivedView()"
+      />
+    }
+  </div>
+
+  @if (canModifyTicketTypes && searchQuery?.planId && isShowingArchived() === false && !canShowStepsView() && !isStepsSkeletonVisible()) {
+    <button
+      type="button"
+      data-testid="order-ticket-types-button"
+      class="change-visualization-order-link"
+      [disabled]="!inventoryEditingService.canEditInventory() || isSortModeActive() || isSortSaving() || !hasSessionTypesToSort"
+      (click)="onClickOrderTicketTypes()"
+    >
+      {{ 'inventory.ticketTypes.actions.editVisualizationOrder' | translate }}
+      <fa-icon [icon]="['far', 'sort-alt']"></fa-icon>
+    </button>
+  }
+</div>
+
+@if (showMissingRequiredFieldsAlert()) {
+  <ignt-alert
+    class="itt-missing-required-fields-alert"
+    data-testid="itt-missing-required-fields-alert"
+    sentiment="warning"
+    [description]="'inventory.ticketTypes.missingRequiredFieldsAlert' | translate"
+    [showCloseButton]="true"
+    (closeAlert)="dismissMissingRequiredFieldsAlert()"
+  />
+}
+
+<!-- About what is on sale, so they stay while the archived ticket types show; their actions show the active ones. -->
+@if (canShowStepsView() && activeSessionTypes().length > 0 && !isSortModeActive()) {
+  <app-inventory-ticket-type-steps-summary
+    class="itt-steps-summary"
+    [tree]="stepTree()"
+    [areNamesLocked]="isTicketTypeEditionLimited"
+    [planId]="searchQuery?.planId ?? null"
+    [withoutSessions]="ticketTypesWithoutSessions()"
+    [isShowingWithoutSessions]="isShowingWithoutSessions()"
+    (showNotInSteps)="onShowNotInSteps()"
+    (toggleWithoutSessions)="toggleTicketTypesWithoutSessions()"
+  />
+}
+
+@if (sessionTypes().length > 0 && (!isSortModeActive() || isStepsViewActive())) {
+  @if (isSortModeActive()) {
+    @if (canModifyTicketTypes && inventoryEditingService.canEditInventory()) {
+      <!-- Reordering in steps or in the list: the banner takes the toolbar's place at its height, so the columns below stay put. -->
+      <div class="itt-steps-sorting">
+        <app-inventory-ticket-types-sorting-banner
+          [message]="isStepsList() ? 'inventory.ticketTypes.steps.reorderMessageList' : 'inventory.ticketTypes.steps.reorderMessage'"
+          [isSaveButtonDisabled]="!hasSortingChanged() || isSortSaving()"
+          [isSaveButtonLoading]="isSortSaving()"
+          [isCancelButtonDisabled]="isSortSaving()"
+          (cancelSorting)="cancelSortMode()"
+          (saveSorting)="saveSortMode()"
+        ></app-inventory-ticket-types-sorting-banner>
+      </div>
+    }
+  } @else {
+    <div class="itt-name-search" [class.itt-name-search--with-view]="canShowStepsView()">
+      <ignt-input-field
+        data-testid="itt-ticket-type-search"
+        [formControl]="nameSearchControl"
+        [label]="''"
+        [leadIcon]="['far', 'search']"
+        [placeholder]="'inventory.ticketTypes.searchPlaceholder' | translate"
+        [placeholderAsEmptyValue]="true"
+      />
+      @if (canShowStepsView()) {
+        <ignt-typeahead
+          class="itt-category-filter"
+          data-testid="itt-category-filter"
+          [fieldLabel]="'inventory.ticketTypes.columnNames.category.name' | translate"
+          [options]="ticketTypesCategoryOptions()"
+          [selectedOption]="selectedTicketTypesCategoryOption()"
+          (selected)="onTicketTypesCategoryFilterChange($event)"
+        ></ignt-typeahead>
+        <div
+          class="itt-view-switch"
+          role="group"
+          data-testid="itt-view-switch"
+          [attr.aria-label]="'inventory.ticketTypes.steps.viewBy' | translate"
+        >
+          <ignt-pill-button
+            data-testid="itt-view-switch-steps"
+            value="steps"
+            [label]="(isStepsList() ? 'inventory.ticketTypes.steps.viewList' : 'inventory.ticketTypes.steps.viewSteps') | translate"
+            [checked]="ticketTypesView() === 'steps'"
+            (checkedChange)="onTicketTypesViewChange('steps')"
+          />
+          <ignt-pill-button
+            data-testid="itt-view-switch-groups"
+            value="groups"
+            [label]="'inventory.ticketTypes.steps.viewCapacityGroups' | translate"
+            [checked]="ticketTypesView() === 'groups'"
+            (checkedChange)="onTicketTypesViewChange('groups')"
+          />
+        </div>
+        @if (isArchivedViewToggleAllowed()) {
+          <!-- Which ticket types, not how to view them: on or off, in either view. -->
+          <ignt-pill-button
+            data-testid="itt-archived-toggle"
+            value="archived"
+            [label]="'inventory.ticketTypes.steps.viewArchived' | translate: { count: totalArchived() }"
+            [checked]="isShowingArchived() === true"
+            [disabled]="isSortModeActive()"
+            (checkedChange)="onToggleArchivedView()"
+          />
+        }
+        @if (canModifyTicketTypes && searchQuery?.planId) {
+          <!-- Stays in place in every view and list so nothing shifts; in Groups or archived it is disabled and says why. -->
+          <ignt-button
+            data-testid="itt-steps-reorder-button"
+            size="small"
+            variant="tertiary"
+            igntTooltip
+            [tooltipDisabled]="reorderBlockedKey() === null"
+            [tooltipLabel]="reorderBlockedKey() ?? '' | translate"
+            [label]="'inventory.ticketTypes.steps.reorder' | translate"
+            [leadingIcon]="{ name: 'arrows-up-down', variant: 'solid' }"
+            [disabled]="
+              reorderBlockedKey() !== null || !inventoryEditingService.canEditInventory() || isSortSaving() || !hasSessionTypesToSort
+            "
+            (click)="onClickOrderTicketTypes()"
+          />
+        }
+        <!-- How customers see these steps: next to Reorder, as both act on the steps shown. -->
+        <ignt-button
+          data-testid="itt-steps-selector-layout-button"
+          size="small"
+          variant="tertiary"
+          [label]="'inventory.ticketTypes.steps.previewLayout' | translate"
+          [leadingIcon]="{ name: 'eye', variant: 'solid' }"
+          (click)="openSelectorLayout()"
+        />
+      }
+    </div>
+  }
+}
+
+@if (!canShowStepsView() && !isStepsViewFlagEnabled() && hasExplodePipeSelector() && sessionTypes().length > 0) {
+  <app-inventory-ticket-type-explode-pipe-banner
+    [hasInconsistentStepCounts]="explodePipeStepSummary().hasInconsistentStepCounts"
+    [stepCount]="explodePipeStepSummary().stepCount"
+    [valuesByStep]="explodePipeStepSummary().valuesByStep"
+  />
+}
+
+<app-unpaginated-table-container
+  [filters]="searchQuery"
+  [showEndOfResults]="!canShowStepsView()"
+  [showLoader]="!isStepsSkeletonVisible() && !canShowStepsView()"
+  [checkHasMandatoryFilters]="checkHasMandatoryFilters"
+  [checkIsEmpty]="checkIsEmpty"
+  [request]="loadData"
+  [noFiltersMessage]="'sessions.sessionTypes.sessionTypeSettings.noFilterSelected' | translate"
+  [noFiltersIcon]="['far', 'sort-alt']"
+  [noResultMessage]="'sessions.sessionTypes.sessionTypeSettings.noResults' | translate"
+  [noResultIcon]="['far', 'receipt']"
+  (searchResults)="onSearchResults($event)"
+>
+  @if (canModifyTicketTypes && isSortModeActive() && inventoryEditingService.canEditInventory() && !isStepsViewActive()) {
+    <app-inventory-ticket-types-sorting-banner
+      [isSaveButtonDisabled]="!hasSortingChanged() || isSortSaving()"
+      [isSaveButtonLoading]="isSortSaving()"
+      [isCancelButtonDisabled]="isSortSaving()"
+      (cancelSorting)="cancelSortMode()"
+      (saveSorting)="saveSortMode()"
+    ></app-inventory-ticket-types-sorting-banner>
+  }
+
+  <div #tableWrapper class="itt-table-wrapper" cdkScrollable>
+    @if (canShowStepsView()) {
+      <app-inventory-ticket-type-steps-browser
+        data-testid="itt-steps-browser"
+        [sessionTypes]="stepsBrowserSessionTypes()"
+        [stepCount]="stepTree().stepCount"
+        [view]="ticketTypesView()"
+        [groupSessionTypes]="groupsBrowserSessionTypes()"
+        [isSortModeActive]="isSortModeActive()"
+        [isSortSaving]="isSortSaving()"
+        [displaySortingById]="stepsBrowserDisplaySorting()"
+        [availableActions]="stepsBrowserActions()"
+        [readOnlySessionTypeIds]="readOnlySessionTypeIds()"
+        [showActions]="stepsBrowserActions().length > 0"
+        (rowAction)="onStepsRowAction($event)"
+        (treeReordered)="onStepsTreeReordered($event)"
+        [canCreateTicketTypes]="canCreateTicketTypes && isShowingArchived() !== true && inventoryEditingService.canEditInventory()"
+        (newTicketTypeInStep)="openNewSessionTypeInStep($event)"
+        [isFiltered]="isTicketTypesFiltered()"
+        [groupAssetNames]="stepsGroupAssetNames()"
+        [ticketTypeTags]="stepsTicketTypeTags()"
+        [sessionTypeIdsMissingRequiredFields]="sessionTypeIdsMissingRequiredFields()"
+        [canEditGroups]="canEditStepsGroups()"
+        (editGroup)="onStepsEditGroup($event)"
+        [productTaxRates]="productTaxRates"
+        (clearFilters)="clearTicketTypesFilters()"
+        [isShopProductsFilter]="isStepsViewActive() && ticketTypesCategoryFilter() === CategoryFilterOption.shopProduct"
+        (showInCapacityGroups)="onTicketTypesViewChange('groups')"
+      />
+    } @else if (isStepsSkeletonVisible()) {
+      <!-- Same shape as the steps view (toolbar, columns), so nothing jumps when the ticket types arrive. -->
+      <div class="itt-steps-skeleton" data-testid="itt-steps-skeleton" aria-busy="true">
+        <div class="itt-steps-skeleton__toolbar">
+          <ignt-skeleton-base class="itt-steps-skeleton__search" [animation]="true" [height]="40" />
+          <ignt-skeleton-base class="itt-steps-skeleton__field" [animation]="true" [height]="40" />
+          <ignt-skeleton-base class="itt-steps-skeleton__field" [animation]="true" [height]="40" />
+        </div>
+        <div class="itt-steps-skeleton__columns" [class.itt-steps-skeleton__columns--list]="!hasExplodePipeSelector()">
+          @for (column of hasExplodePipeSelector() ? [1, 2, 3] : [1]; track column) {
+            <div class="itt-steps-skeleton__column">
+              <div class="itt-steps-skeleton__head">
+                <ignt-skeleton-base [animation]="true" [height]="12" width="45%" />
+              </div>
+              @for (row of [1, 2, 3, 4, 5, 6]; track row) {
+                <div class="itt-steps-skeleton__row">
+                  <ignt-skeleton-base [animation]="true" [height]="12" [width]="row % 2 === 0 ? '55%' : '75%'" />
+                  <ignt-skeleton-base [animation]="true" [height]="8" width="30%" />
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    } @else if (isSortModeActive()) {
+      <app-inventory-ticket-types-sorting-table
+        data-testid="itt-sorting-table"
+        [sortableSessionTypes]="sortableSessionTypes()"
+        [isSortSaving]="isSortSaving()"
+        [isLoading]="isLoading"
+        [productTaxRates]="productTaxRates"
+        (sortableOrderChanged)="onSortableOrderChanged($event)"
+      />
+    } @else {
+      <app-inventory-ticket-types-table
+        data-testid="itt-table"
+        [sessionTypes]="filteredSessionTypesByName()"
+        [sessionTypeGroups]="filteredSessionTypeGroupsByName()"
+        [productTaxRates]="productTaxRates"
+        [isLoading]="isLoading"
+        [isShowingArchived]="isShowingArchived() === true"
+        [canModifyTicketTypes]="canModifyTicketTypes && inventoryEditingService.canEditInventory()"
+        [canCreateTicketTypes]="canCreateTicketTypes && inventoryEditingService.canEditInventory()"
+        [canDuplicateTicketTypes]="canCreateTicketTypes && inventoryEditingService.canEditInventory()"
+        [canArchiveTicketTypes]="hasArchiveTicketTypesPermission() && inventoryEditingService.canEditInventory()"
+        [sessionTypeIdsMissingRequiredFields]="sessionTypeIdsMissingRequiredFields()"
+        [readOnlySessionTypeIds]="readOnlySessionTypeIds()"
+        (sessionTypeFormPayload)="openSessionTypeForm($event)"
+        (duplicateSessionTypePayload)="duplicateSessionType($event.sessionType, $event.group)"
+        (sessionTypeArchivedStatePayload)="updateSessionTypeArchivedState($event)"
+        (sessionTypeGroupFormPayload)="openSessionTypeGroupForm($event)"
+      />
+    }
+  </div>
+</app-unpaginated-table-container>
+
+<app-lateral-slider
+  class="itt-group-form-slider"
+  [showDetails]="displaySessionTypeGroupForm"
+  [title]="
+    selectedSessionTypeGroup
+      ? ('inventory.ticketTypes.groupForm.title.edition' | translate)
+      : ('inventory.ticketTypes.groupForm.title.creation' | translate)
+  "
+  [contentTemplate]="groupFormTemplate"
+  (closeSlider)="closeGroupFormSlider()"
+>
+</app-lateral-slider>
+
+<ng-template #bulkEditSidePanelTemplate>
+  <ignt-dialog-header [hideCloseButton]="isBulkEditSaving()">
+    {{ 'inventory.ticketTypes.bulkEdit.title' | translate: { step: bulkEditStep(), total: bulkEditStepCount } }}
+    <ng-template>
+      @if (bulkEditForm()?.canGoBack() && !isBulkEditSaving()) {
+        <button
+          ignt-icon-button
+          type="button"
+          class="itt-bulk-edit-title__back"
+          data-testid="itt-bulk-edit-back-button"
+          sentiment="tertiary"
+          size="small"
+          variant="sharp"
+          [attr.aria-label]="'common.back' | translate"
+          [icon]="['far', 'chevron-left']"
+          (click)="goToPreviousBulkEditStep()"
+        ></button>
+      }
+    </ng-template>
+  </ignt-dialog-header>
+
+  <ignt-dialog-content class="itt-bulk-edit-content">
+    @if (bulkEditSaveErrorMessage(); as saveErrorMessage) {
+      <ignt-alert
+        class="itt-bulk-edit-save-error"
+        data-testid="itt-bulk-edit-save-error-alert"
+        sentiment="danger"
+        [title]="saveErrorMessage"
+      />
+    }
+
+    <app-inventory-ticket-types-bulk-edit-form
+      [isSaving]="isBulkEditSaving()"
+      [hasDeclarativeInventory]="isDeclarativeInventoryPlan()"
+      [isSuperuser]="isSuperuser()"
+      [isTicketTypeEditionLimited]="isTicketTypeEditionLimited"
+      [productTaxRates]="productTaxRates"
+      [readOnlySessionTypeIds]="readOnlySessionTypeIds()"
+      [sessionTypeGroups]="sessionTypeGroups()"
+      [sessionTypes]="activeSessionTypes()"
+      (formChanges)="openBulkEditConfirmation($event)"
+    />
+  </ignt-dialog-content>
+
+  <ignt-dialog-footer class="itt-bulk-edit-footer" hideCancelButton>
+    @if (bulkEditStep() === bulkEditValuesStep) {
+      <ignt-button
+        data-testid="itt-bulk-edit-save-button"
+        [disabled]="bulkEditForm()?.isSaveButtonDisabled() ?? true"
+        [label]="'common.save' | translate"
+        [loading]="isBulkEditSaving()"
+        (click)="bulkEditForm()?.save()"
+      />
+    } @else {
+      <ignt-button
+        data-testid="itt-bulk-edit-continue-button"
+        [disabled]="bulkEditForm()?.isContinueDisabled() ?? true"
+        [label]="'common.continue' | translate"
+        (click)="goToNextBulkEditStep()"
+      />
+    }
+  </ignt-dialog-footer>
+</ng-template>
+
+<ng-template #bulkEditConfirmationDialogTemplate>
+  <ignt-dialog-header>
+    {{ 'inventory.ticketTypes.bulkEdit.confirmation.title' | translate: { count: pendingBulkEditSessionTypeLabels().length } }}
+  </ignt-dialog-header>
+
+  <ignt-dialog-content>
+    <app-inventory-ticket-types-bulk-edit-confirmation-modal
+      [properties]="pendingBulkEditProperties()"
+      [sessionTypeLabels]="pendingBulkEditSessionTypeLabels()"
+    />
+  </ignt-dialog-content>
+
+  <ignt-dialog-footer [hideCancelButton]="true">
+    <ignt-button
+      data-testid="itt-bulk-edit-confirmation-back-button"
+      variant="tertiary"
+      [label]="'common.back' | translate"
+      (click)="closeBulkEditConfirmation(false)"
+    />
+    <ignt-button
+      data-testid="itt-bulk-edit-confirmation-save-button"
+      [label]="'inventory.ticketTypes.bulkEdit.confirmation.confirm' | translate"
+      (click)="closeBulkEditConfirmation(true)"
+    />
+  </ignt-dialog-footer>
+</ng-template>
+
+<ng-template #sessionTypeFormDialogTemplate>
+  <div class="itt-ticket-type-dialog">
+    <ignt-dialog-header [attr.inert]="isGroupFormOpen() ? '' : null">
+      {{
+        (selectedSessionType === null ? 'inventory.ticketTypes.form.title.creation' : 'inventory.ticketTypes.form.title.edition')
+          | translate
+      }}
+    </ignt-dialog-header>
+
+    <ignt-dialog-content class="itt-ticket-type-dialog-content" [attr.inert]="isGroupFormOpen() ? '' : null">
+      <app-inventory-ticket-types-form
+        #sessionTypeForm
+        [activeSessionTypes]="activeSessionTypes()"
+        [allSessionTypeGroups]="sessionTypeGroups()"
+        [hasDeclarativeInventory]="hasDeclarativeInventory()"
+        [hasExplodePipeSelector]="hasExplodePipeSelector()"
+        [hasRequiredDynamicFields]="hasRequiredDynamicFields()"
+        [isTicketTypeEditionLimited]="isTicketTypeEditionLimited"
+        [newlyCreatedGroupName]="newlyCreatedGroupName()"
+        [defaultBookingTimeGranularity]="defaultBookingTimeGranularity()"
+        [partnerId]="partnerId"
+        [planId]="searchQuery?.planId ?? 0"
+        [prefillSessionType]="prefillSessionType()"
+        [productTaxRates]="productTaxRates"
+        [sessionType]="selectedSessionType"
+        [sessionTypeGroup]="selectedGroupForNewSessionType"
+        [sessionTypes]="activeSessionTypes()"
+        [showDynamicFieldsTab]="showDynamicFieldsTab()"
+        (formChanges)="closeSessionTypeDialog($event)"
+        (openGroupForm)="openGroupFormFromTicketTypeForm()"
+        (tagIdsChange)="onTicketTypeTagIdsChange($event)"
+        (externalCodeClassificationChange)="onExternalCodeClassificationChange($event)"
+      />
+    </ignt-dialog-content>
+
+    <ignt-dialog-footer [hideCancelButton]="true" [attr.inert]="isGroupFormOpen() ? '' : null">
+      <ignt-button
+        data-testid="itt-form-cancel-button"
+        variant="tertiary"
+        [label]="'common.cancel' | translate"
+        (click)="closeSessionTypeDialog(null)"
+      />
+      <ignt-button
+        data-testid="itt-form-save-button"
+        [disabled]="sessionTypeForm.isSaveButtonDisabled() || dynamicFieldsBlockSave()"
+        [label]="'common.save' | translate"
+        (click)="sessionTypeForm.save()"
+      />
+    </ignt-dialog-footer>
+  </div>
+</ng-template>
+
+<ng-template #groupFormTemplate>
+  @if (displaySessionTypeGroupForm) {
+    <app-inventory-ticket-types-group-form
+      [sessionTypeGroup]="selectedSessionTypeGroup ?? null"
+      [allSessionTypes]="activeSessionTypes()"
+      [hasDeclarativeInventory]="hasDeclarativeInventory()"
+      [isAssetBasedEnabled]="isAssetBasedGroupCreationEnabled"
+      [partnerId]="partnerId ?? 0"
+      [planId]="searchQuery?.planId ?? 0"
+      [placeId]="searchQuery?.placeId ?? 0"
+      [readOnlySessionTypeIds]="readOnlySessionTypeIds()"
+      (formChanges)="processGroupFormChanges($event, searchQuery?.planId ?? null)"
+    >
+    </app-inventory-ticket-types-group-form>
+  }
+</ng-template>

@@ -1,0 +1,126 @@
+<div class="scheduled-report-export-table">
+  <!--
+    Every data column is `secondary` so the card view below `mobile` shows all of them: the
+    "see more" toggle only collects columns that declare no type, and an export's schedule is
+    not worth hiding behind one. `primary` titles the card, `action` sits in its header.
+  -->
+  <ignt-table data-testid="scheduled-report-export-table" [data]="exportList()">
+    <ignt-table-column key="exportName" [width]="115" [header]="'analytics.sftpExports.table.exportName' | translate" columnType="primary">
+      <ng-template [igntTableColumnTemplateType]="exportList()[0]" let-item="item">
+        <span class="scheduled-report-export-table__ellipsis" data-testid="export-name" [attr.title]="item.exportName">{{
+          item.exportName
+        }}</span>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column key="reportName" [width]="100" [header]="'analytics.sftpExports.table.source' | translate" columnType="secondary">
+      <ng-template [igntTableColumnTemplateType]="exportList()[0]" let-item="item">
+        @let source = getSourceDisplay(item);
+        <span class="scheduled-report-export-table__ellipsis" data-testid="export-source" [attr.title]="source.name">
+          @if (source.link) {
+            <a class="scheduled-report-export-table__source-link" [routerLink]="source.link">{{ source.name }}</a>
+          } @else {
+            {{ source.name }}
+          }
+        </span>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column key="loadType" [width]="125" [header]="'analytics.sftpExports.table.loadType' | translate" columnType="secondary">
+      <ng-template [igntTableColumnTemplateType]="exportList()[0]" let-item="item">
+        @let loadTypeBadge = getLoadTypeBadge(item);
+        <ignt-tag data-testid="export-load-type" [sentiment]="loadTypeBadge.sentiment" [variant]="loadTypeBadge.variant">
+          {{ loadTypeBadge.labelKey | translate }}
+        </ignt-tag>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column
+      key="deliveryMethodType"
+      [width]="80"
+      [header]="'analytics.sftpExports.table.deliveryMethod' | translate"
+      columnType="secondary"
+    >
+      <ng-template [igntTableColumnTemplateType]="exportList()[0]" let-item="item">
+        @let deliveryBadge = getDeliveryBadge(item);
+        <ignt-tag data-testid="export-delivery-method" [sentiment]="deliveryBadge.sentiment" [variant]="deliveryBadge.variant">
+          {{ deliveryBadge.labelKey | translate }}
+        </ignt-tag>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column
+      key="deliveryMethod"
+      [width]="140"
+      [header]="'analytics.sftpExports.table.recipient' | translate"
+      columnType="secondary"
+    >
+      <ng-template [igntTableColumnTemplateType]="exportList()[0]" let-item="item">
+        @if (getRecipientDisplay(item); as recipient) {
+          <span class="scheduled-report-export-table__ellipsis" data-testid="export-recipient" [attr.title]="recipient.tooltip">{{
+            recipient.summary
+          }}</span>
+        } @else {
+          <span data-testid="export-recipient">—</span>
+        }
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column key="frequency" [width]="115" [header]="'analytics.sftpExports.table.frequency' | translate" columnType="secondary">
+      <ng-template [igntTableColumnTemplateType]="exportList()[0]" let-item="item">
+        @let frequency = formatFrequency(item);
+        <span data-testid="export-frequency" [attr.title]="frequency">{{ frequency }}</span>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column key="validTo" [width]="100" [header]="'analytics.sftpExports.table.expiration' | translate" columnType="secondary">
+      <ng-template [igntTableColumnTemplateType]="exportList()[0]" let-item="item">
+        <span data-testid="export-expiration">
+          @if (item.validTo) {
+            <!-- A date without a time is read as local midnight: formatting it in UTC would show the day before. -->
+            {{ item.validTo | date: exportDateFormat }}
+          } @else {
+            —
+          }
+        </span>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column key="createdAt" [width]="100" [header]="'analytics.sftpExports.table.creation' | translate" columnType="secondary">
+      <ng-template [igntTableColumnTemplateType]="exportList()[0]" let-item="item">
+        <span data-testid="export-creation">
+          @if (item.createdAt) {
+            {{ item.createdAt | date: exportDateFormat : 'UTC' }}
+          } @else {
+            —
+          }
+        </span>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column key="owner" [width]="130" [header]="'analytics.sftpExports.table.owner' | translate" columnType="secondary">
+      <ng-template [igntTableColumnTemplateType]="exportList()[0]" let-item="item">
+        @let owner = formatOwner(item);
+        <span class="scheduled-report-export-table__ellipsis" data-testid="export-owner" [attr.title]="owner">{{ owner }}</span>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column [header]="'analytics.sftpExports.table.delete' | translate" [width]="75" align="right" columnType="action">
+      <ng-template [igntTableColumnTemplateType]="exportList()[0]" let-item="item">
+        <span data-testid="export-delete">
+          @if (canDeleteExport(item)) {
+            <button
+              ignt-icon-button
+              sentiment="tertiary"
+              size="small"
+              [icon]="['fas', 'trash']"
+              [attr.aria-label]="'common.delete' | translate"
+              (click)="$event.stopPropagation(); openDeleteDialog(item)"
+              (keydown)="$event.stopPropagation()"
+            ></button>
+          }
+        </span>
+      </ng-template>
+    </ignt-table-column>
+  </ignt-table>
+</div>

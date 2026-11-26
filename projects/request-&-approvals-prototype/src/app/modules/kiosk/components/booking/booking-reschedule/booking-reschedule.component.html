@@ -1,0 +1,180 @@
+<section class="booking-reschedule">
+  @if (hasError() && !order()) {
+    <p class="booking-reschedule__error">{{ 'kiosk.booking.reschedule.error' | translate }}</p>
+  }
+
+  @if (order(); as detail) {
+    <app-kiosk-hero [title]="'kiosk.booking.reschedule.title' | translate">
+      <div class="booking-reschedule__subhead">
+        <p class="booking-reschedule__plan">{{ planName() }}</p>
+        @if (currentBooking(); as current) {
+          <p class="booking-reschedule__current">
+            <span>{{ 'kiosk.booking.reschedule.current' | translate }}</span>
+            <ignt-icon name="calendar-day" variant="light"></ignt-icon>
+            <span>{{ current | momentDate: 'EEEE, d MMM - hh:mm a' : venueTimezone() }}</span>
+          </p>
+        }
+      </div>
+    </app-kiosk-hero>
+
+    <section class="booking-reschedule__card">
+      <h2 class="booking-reschedule__section">{{ 'kiosk.booking.reschedule.dateAndHour' | translate }}</h2>
+
+      @if (remainingReschedules() > 0 && daysLeft() !== null) {
+        <div class="booking-reschedule__alert">
+          <ignt-icon name="circle-info" variant="light"></ignt-icon>
+          <span>{{ 'kiosk.booking.reschedule.changeWindow' | translate: { count: remainingReschedules(), days: daysLeft() } }}</span>
+        </div>
+      }
+
+      @if (availableDates().length) {
+        <ul class="booking-reschedule__dates">
+          @for (date of availableDates(); track date) {
+            <li>
+              <ignt-button
+                [label]="(date | date: 'EEE') + '\n' + (date | date: 'd MMM')"
+                variant="tertiary"
+                class="booking-reschedule__date"
+                [class.booking-reschedule__date--selected]="date === selectedDate()"
+                (click)="selectDate(date)"
+              />
+            </li>
+          }
+          <li>
+            <ignt-button
+              label=""
+              variant="tertiary"
+              [leadingIcon]="{ name: 'calendar-day', variant: 'light' }"
+              [ariaLabel]="'kiosk.booking.reschedule.dateAndHour' | translate"
+              class="booking-reschedule__date booking-reschedule__date--more"
+              (click)="openDatePicker()"
+            />
+          </li>
+        </ul>
+      } @else {
+        <p class="booking-reschedule__empty">{{ 'kiosk.booking.reschedule.noDates' | translate }}</p>
+      }
+
+      @if (selectedDate()) {
+        @if (isLoadingSessions()) {
+          <div class="booking-reschedule__sessions-loading" role="status">
+            <div class="ignt-loader"></div>
+            <span class="booking-reschedule__visually-hidden">{{ 'kiosk.booking.reschedule.loadingSessions' | translate }}</span>
+          </div>
+        } @else if (timeSlots().length) {
+          @for (group of timeSlotGroups(); track group.period) {
+            <div class="booking-reschedule__period">
+              <h3 class="booking-reschedule__period-title">{{ 'kiosk.booking.reschedule.period.' + group.period | translate }}</h3>
+              <ul class="booking-reschedule__sessions">
+                @for (slot of group.slots; track slot.time) {
+                  <li>
+                    <ignt-button
+                      [label]="slot.time"
+                      variant="tertiary"
+                      class="booking-reschedule__session"
+                      [class.booking-reschedule__session--selected]="slot.time === selectedTime()"
+                      [disabled]="!slot.bookable || isSubmitting()"
+                      (click)="selectTime(slot.time)"
+                    />
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        } @else if (!hasError()) {
+          <p class="booking-reschedule__empty">{{ 'kiosk.booking.reschedule.noSessions' | translate }}</p>
+        }
+      }
+
+      @if (clashDetected()) {
+        <div class="booking-reschedule__clash">
+          <p class="booking-reschedule__clash-text">{{ 'kiosk.booking.reschedule.clashWarning' | translate }}</p>
+          <kiosk-button
+            [secondary]="true"
+            [disabled]="isSubmitting()"
+            (click)="confirmAnyway()"
+            [label]="'kiosk.booking.reschedule.confirmAnyway' | translate"
+          ></kiosk-button>
+        </div>
+      }
+
+      @if (hasError()) {
+        <p class="booking-reschedule__error">{{ 'kiosk.booking.reschedule.error' | translate }}</p>
+      }
+    </section>
+
+    <div class="booking-reschedule__actions">
+      <kiosk-button [secondary]="true" (click)="goBack()" [label]="'kiosk.booking.back' | translate"></kiosk-button>
+      <kiosk-button
+        [fill]="true"
+        [disabled]="selectedTime() === null || isSubmitting()"
+        (click)="confirm()"
+        [label]="'kiosk.booking.reschedule.continue' | translate"
+      ></kiosk-button>
+    </div>
+  }
+
+  @if (rescheduled() && !printing()) {
+    <div class="booking-reschedule__overlay">
+      <div class="booking-reschedule__modal">
+        <div class="booking-reschedule__modal-topbar">
+          <app-icon-button icon="close" customClass="icon-button--secondary" (click)="returnToBooking()"></app-icon-button>
+        </div>
+
+        <div class="booking-reschedule__modal-header">
+          <img class="booking-reschedule__modal-illustration" src="assets/images/kiosk/reschedule-success.svg" alt="" />
+          <h2 class="booking-reschedule__modal-title">{{ 'kiosk.booking.reschedule.successTitle' | translate }}</h2>
+        </div>
+
+        <div class="booking-reschedule__modal-details">
+          <p class="booking-reschedule__modal-plan">{{ planName() }}</p>
+          @if (location()) {
+            <p class="booking-reschedule__modal-line">
+              <ignt-icon name="map-marker-alt" variant="light"></ignt-icon>
+              <span>{{ location() }}</span>
+            </p>
+          }
+          <p class="booking-reschedule__modal-line">
+            <ignt-icon name="calendar-alt" variant="light"></ignt-icon>
+            <span>{{ selectedDate() | date: 'EEEE, d MMM' }} - {{ selectedTime() }}</span>
+          </p>
+        </div>
+
+        @if (printError()) {
+          <p class="booking-reschedule__modal-error">{{ 'kiosk.booking.list.printError' | translate }}</p>
+        }
+
+        <div class="booking-reschedule__modal-actions">
+          <kiosk-button
+            [fill]="true"
+            iconSrc="assets/images/kiosk/fa-print.svg"
+            [iconTrailing]="true"
+            (click)="printTickets()"
+            [label]="'kiosk.booking.reschedule.printTickets' | translate"
+          ></kiosk-button>
+          <kiosk-button
+            [fill]="true"
+            [secondary]="true"
+            (click)="returnToBooking()"
+            [label]="'kiosk.booking.reschedule.returnToBooking' | translate"
+          ></kiosk-button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (printing()) {
+    <div class="booking-reschedule__overlay">
+      <div class="booking-reschedule__modal">
+        <div class="booking-reschedule__modal-topbar">
+          <app-icon-button icon="close" customClass="icon-button--secondary" (click)="returnToBooking()"></app-icon-button>
+        </div>
+        <div class="booking-reschedule__printing">
+          <h2 class="booking-reschedule__modal-title">{{ 'kiosk.booking.reschedule.printingTitle' | translate }}</h2>
+          <img class="booking-reschedule__printing-icon" src="assets/images/kiosk/fa-print.svg" alt="" />
+          <p class="booking-reschedule__printing-callout">{{ 'kiosk.booking.reschedule.printingHint' | translate }}</p>
+        </div>
+      </div>
+    </div>
+  }
+</section>

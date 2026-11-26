@@ -1,0 +1,99 @@
+<div class="time-slot-tier-selector">
+  <div
+    class="time-slot-tier-selector__trigger"
+    [class.time-slot-tier-selector__trigger--with-label]="label()"
+    [class.time-slot-tier-selector__trigger--label-floating]="isLabelFloating()"
+    [class.time-slot-tier-selector__trigger--has-value]="selectedTier()"
+    [class.time-slot-tier-selector__trigger--open]="isPanelOpen()"
+    [class.time-slot-tier-selector__trigger--focused]="isTriggerFocused()"
+    [class.time-slot-tier-selector__trigger--has-error]="hasError()"
+    [class.time-slot-tier-selector__trigger--disabled]="isDisabled()"
+    cdkOverlayOrigin
+    #trigger="cdkOverlayOrigin"
+    data-testid="tier-selector-select"
+    role="combobox"
+    tabindex="0"
+    aria-haspopup="listbox"
+    [attr.aria-expanded]="isPanelOpen()"
+    [attr.aria-disabled]="isDisabled()"
+    [attr.aria-label]="label() || placeholder() || null"
+    [attr.aria-controls]="isPanelOpen() ? listboxId : null"
+    [attr.aria-activedescendant]="activeDescendantId()"
+    (click)="onTriggerClick($event)"
+    (keydown)="onTriggerKeydown($event)"
+    (focusin)="onTriggerFocusIn()"
+    (focusout)="onTriggerFocusOut($event)"
+  >
+    @if (label()) {
+      <span class="time-slot-tier-selector__label" data-testid="tier-selector-label">{{ label() }}</span>
+    }
+
+    <div class="time-slot-tier-selector__value">
+      @if (selectedTier(); as tier) {
+        <span class="time-slot-tier" [style.color]="tier.color">
+          <ignt-tag variant="outline">
+            {{ tier.name }}
+          </ignt-tag>
+        </span>
+      } @else if (placeholder()) {
+        <span class="time-slot-tier-selector__placeholder" data-testid="tier-selector-placeholder">{{ placeholder() }}</span>
+      }
+    </div>
+
+    <div class="time-slot-tier-selector__actions">
+      @if (selectedTier() && !isDisabled()) {
+        <span
+          class="time-slot-tier-selector__clear"
+          data-testid="tier-selector-clear"
+          role="button"
+          tabindex="0"
+          [attr.aria-label]="'seatingSelector.clearSelection' | translate"
+          (click)="clearSelection($event)"
+          (keydown.enter)="clearSelection($event)"
+          (keydown.space)="clearSelection($event)"
+        >
+          <ignt-icon name="times" variant="solid" />
+        </span>
+      }
+      <ignt-icon class="time-slot-tier-selector__chevron" name="chevron-down" variant="solid" aria-hidden="true" />
+    </div>
+  </div>
+
+  <ng-template
+    cdkConnectedOverlay
+    [cdkConnectedOverlayOrigin]="trigger"
+    [cdkConnectedOverlayOpen]="isPanelOpen()"
+    [cdkConnectedOverlayPositions]="overlayPositions"
+    [cdkConnectedOverlayWidth]="overlayPanelWidth()"
+    [cdkConnectedOverlayMinWidth]="overlayPanelWidth()"
+    [cdkConnectedOverlayHasBackdrop]="true"
+    [cdkConnectedOverlayViewportMargin]="8"
+    cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
+    (backdropClick)="closePanel()"
+    (detach)="closePanel()"
+  >
+    <ul class="time-slot-tier-selector__panel" [id]="listboxId" role="listbox" data-testid="tier-selector-panel">
+      @for (tier of options(); track tier.id) {
+        <li role="presentation">
+          <div
+            appTimeSlotTierSelectorOption
+            class="time-slot-tier-selector__option"
+            [class.time-slot-tier-selector__option--selected]="tier.id === selectedTierId()"
+            [optionId]="getOptionId(tier.id)"
+            [selected]="tier.id === selectedTierId()"
+            [tierId]="tier.id"
+            data-testid="template-select-option-button"
+            role="option"
+            (click)="selectTier(tier.id)"
+          >
+            <span class="time-slot-tier" [style.color]="tier.color">
+              <ignt-tag variant="outline">
+                {{ tier.name }}
+              </ignt-tag>
+            </span>
+          </div>
+        </li>
+      }
+    </ul>
+  </ng-template>
+</div>

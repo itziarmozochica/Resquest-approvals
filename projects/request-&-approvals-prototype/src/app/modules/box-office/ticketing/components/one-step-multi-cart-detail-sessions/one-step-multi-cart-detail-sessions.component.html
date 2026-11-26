@@ -1,0 +1,94 @@
+<div class="one-step-multi-cart-detail-sessions">
+  <div class="one-step-multi-cart-detail-sessions__block">
+    <div class="one-step-multi-cart-detail-sessions__header">
+      <div class="one-step-multi-cart-detail-sessions__header__text">
+        <div class="font-h6">
+          <ignt-icon [name]="labelIconName" [variant]="labelIconVariant" [fixedWidth]="true" size="base" />
+          {{ label }}
+        </div>
+        <div *ngIf="planHasMultipleVenues && venueName" class="font-h6 one-step-multi-cart-detail-sessions__header__text__venue">
+          <ignt-icon name="map-marker-alt" variant="light" size="sm" [fixedWidth]="true" />
+          <span>{{ venueName }}</span>
+        </div>
+        <ng-container *ngIf="this.hasSeating">
+          <button
+            (click)="openSeatingModal()"
+            [disabled]="!this.hasSeating"
+            class="font-small-bold one-step-multi-cart-detail-sessions__header__text__text-button"
+            data-testid="cart-seats-button"
+          >
+            {{ 'invitations.viewSeats' | translate }}
+          </button>
+        </ng-container>
+      </div>
+      <div *ngIf="enableColapse" (click)="toggleCollapse()">
+        <ng-container *ngIf="collapsed">
+          <ignt-icon name="caret-up" variant="solid" size="sm" [fixedWidth]="true" />
+        </ng-container>
+        <ng-container *ngIf="!collapsed">
+          <ignt-icon name="caret-down" variant="solid" size="sm" [fixedWidth]="true" />
+        </ng-container>
+      </div>
+    </div>
+    <ng-container *ngIf="!collapsed">
+      <ng-container *ngFor="let cartSession of cartSessions; trackBy: trackByCartSessionId">
+        <div class="session" data-testid="cart-ticket-item">
+          <div class="session__top">
+            <div class="font-base">{{ cartSession.units }}x</div>
+            <div class="font-base session__top__name">{{ getSessionName(cartSession) }}</div>
+            <div class="font-base" data-testid="cart-total-ticket-session-price">
+              <ng-container *ngTemplateOutlet="cartMoney; context: { money: getCartSessionTotalPrice(cartSession), locale: locale }">
+              </ng-container>
+            </div>
+          </div>
+          <div class="session__bottom">
+            <div class="font-small-regular session__bottom__ticket-fee">
+              {{ 'boxOffice.cart.bookingFeePerProduct' | translate }}:<ng-container
+                *ngTemplateOutlet="cartMoney; context: { money: cartSession.surchargePerTicket, locale: locale }"
+              ></ng-container>
+            </div>
+            <div class="font-small-regular session__bottom__ticket-fee-price">
+              <ng-container
+                *ngTemplateOutlet="cartMoney; context: { money: cartSession.totalSurchargePerTicket, locale: locale }"
+              ></ng-container>
+            </div>
+          </div>
+          <div *ngIf="hasDiscountCartSession(cartSession)" class="session__discounts">
+            <div class="font-small-bold session__discount-label">
+              {{ 'boxOffice.memberships.discounts.label' | translate }}
+              <ignt-icon
+                name="info-circle"
+                variant="regular"
+                size="base"
+                [fixedWidth]="true"
+                igntTooltip
+                [tooltipLabel]="showTooltipText(cartSession)"
+              />
+            </div>
+            <div class="font-small-regular session__discount-price">
+              <ng-container
+                *ngTemplateOutlet="cartTotalDiscountMoney; context: { money: getTotalDiscountByCartSession(cartSession), locale: locale }"
+              ></ng-container>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+    </ng-container>
+    @for (partySizeWarning of partySizeWarnings; track $index) {
+      <ignt-field-error
+        class="one-step-multi-cart-detail-sessions__party-size-warning"
+        [showError]="true"
+        data-testid="party-size-warning"
+        >{{ partySizeWarning }}</ignt-field-error
+      >
+    }
+  </div>
+</div>
+
+<ng-template #cartMoney let-locale="locale" let-money="money">
+  {{ money ? (money.amount | currency: money.currency : 'symbol-narrow' : null : locale) : '-' }}
+</ng-template>
+
+<ng-template #cartTotalDiscountMoney let-locale="locale" let-money="money">
+  -{{ money ? (money.amount | currency: money.currency : 'symbol-narrow' : null : locale) : '-' }}
+</ng-template>

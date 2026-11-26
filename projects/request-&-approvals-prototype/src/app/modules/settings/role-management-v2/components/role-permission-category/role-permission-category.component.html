@@ -1,0 +1,126 @@
+<div class="role-permission-category" [class.role-permission-category--has-changes]="hasChanges()">
+  <div
+    class="role-permission-category__header"
+    (click)="onToggleExpandClick()"
+    (keydown.enter)="onToggleExpandClick()"
+    (keydown.space)="$event.preventDefault(); onToggleExpandClick()"
+    [attr.aria-expanded]="isExpanded()"
+    [attr.aria-label]="categoryDisplayTitle()"
+    role="button"
+    tabindex="0"
+  >
+    <div class="role-permission-category__header-top">
+      <span class="role-permission-category__chevron">
+        <ignt-icon [name]="isExpanded() ? 'chevron-down' : 'chevron-right'" size="base" variant="light"></ignt-icon>
+      </span>
+      <div class="role-permission-category__header-content">
+        <div class="role-permission-category__title-row">
+          <span class="role-permission-category__title">{{ categoryDisplayTitle() }}</span>
+          <span class="role-permission-category__permission-count" data-testid="role-permission-category-count">
+            {{ grantedPermissionsCount() }}/{{ totalPermissionsCount() }}
+          </span>
+        </div>
+        @if (categoryDisplayDescription(); as moduleDescription) {
+          <p class="role-permission-category__module-description" data-testid="role-permission-category-module-description">
+            {{ moduleDescription }}
+          </p>
+        }
+      </div>
+    </div>
+  </div>
+
+  @if (isExpanded()) {
+    <hr class="role-permission-category__divider" />
+    <div class="role-permission-category__toolbar">
+      <ignt-checkbox
+        #permissionCheckbox
+        [checked]="allPermissionsGranted()"
+        [disabled]="readOnly()"
+        [label]="'roleManagement.selectAllPermissions' | translate"
+        (change)="onSelectAllChange($event)"
+      />
+    </div>
+    <div class="role-permission-category__body" role="group">
+      @for (permission of localPermissions(); track permission.id) {
+        <div
+          class="role-permission-category__row"
+          [class.role-permission-category__row--granted]="permission.isGranted"
+          igntTooltip
+          [tooltipDisabled]="!isPermissionManagedByFever(permission)"
+          [tooltipTemplate]="isPermissionManagedByFever(permission) ? managedByFeverTooltipRef() : null"
+          [tooltipMaxWidth]="320"
+          tooltipPlacement="top"
+        >
+          <ignt-checkbox
+            #permissionCheckbox
+            [checked]="permission.isGranted"
+            [description]="permission.description ?? ''"
+            [disabled]="readOnly() || isPermissionManagedByFever(permission)"
+            [label]="permissionDisplayLabel(permission)"
+            (change)="onPermissionCheckboxChange(permission.id, $event)"
+          />
+          @if (autoGrantedByLabelMap().get(permission.id); as dependencyLabel) {
+            <p class="role-permission-category__dependency-label">{{ dependencyLabel }}</p>
+          }
+        </div>
+      }
+    </div>
+
+    @if (autoGrantMessage()) {
+      <ignt-alert
+        class="role-permission-category__dependency-alert"
+        sentiment="accent"
+        [description]="autoGrantMessage()"
+        [actionLabel]="'common.undo' | translate"
+        (actionClicked)="onUndoAutoGrant()"
+      />
+    }
+
+    @if (hasChanges()) {
+      <div class="role-permission-category__footer">
+        <button
+          class="role-permission-category__footer-action role-permission-category__footer-action--save"
+          type="button"
+          (click)="onSaveClick()"
+        >
+          <ignt-icon name="check-circle" size="sm" variant="solid"></ignt-icon>
+          <span class="role-permission-category__footer-action-label">{{ 'common.save' | translate }}</span>
+        </button>
+        <button
+          class="role-permission-category__footer-action role-permission-category__footer-action--discard"
+          type="button"
+          (click)="onDiscardClick()"
+        >
+          <ignt-icon name="times-circle" size="sm" variant="solid"></ignt-icon>
+          <span class="role-permission-category__footer-action-label">{{ 'common.discard' | translate }}</span>
+        </button>
+      </div>
+    }
+  }
+</div>
+
+<ng-template #revokeConfirmDialogTemplate>
+  <ignt-dialog-header>{{ 'roleManagement.revokeDependencyTitle' | translate }}</ignt-dialog-header>
+  <ignt-dialog-content>
+    @if (pendingRevoke(); as revoke) {
+      <p>{{ 'roleManagement.revokeDependencyMessage' | translate: { permissionLabel: revoke.permissionLabel } }}</p>
+      <ul class="role-permission-category__revoke-list">
+        @for (label of revoke.dependentLabels; track label) {
+          <li>{{ label }}</li>
+        }
+      </ul>
+    }
+  </ignt-dialog-content>
+  <ignt-dialog-footer [hideCancelButton]="true">
+    <button type="button" igntButton sentiment="tertiary" [igntDialogClose]="false">
+      {{ 'common.cancel' | translate }}
+    </button>
+    <button type="button" igntButton sentiment="primary" [igntDialogClose]="true">
+      {{ 'roleManagement.disableAll' | translate }}
+    </button>
+  </ignt-dialog-footer>
+</ng-template>
+
+<ng-template #managedByFeverTooltipTemplate>
+  <span class="role-permission-category__managed-tooltip">{{ 'roleManagement.permissionManagedByFever' | translate }}</span>
+</ng-template>

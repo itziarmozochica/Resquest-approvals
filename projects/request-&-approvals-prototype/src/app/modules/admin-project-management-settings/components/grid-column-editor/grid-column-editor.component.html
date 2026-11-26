@@ -1,0 +1,131 @@
+<div class="grid-editor">
+  <p class="grid-editor__title">{{ 'adminServiceCatalog.editor.grid.columns' | translate }}</p>
+
+  <div class="grid-editor__list">
+    @for (col of cols(); track col.id; let i = $index) {
+      <div class="grid-editor__col">
+        <div class="grid-editor__col-header">
+          <span class="grid-editor__col-name">{{ col.label || col.id }}</span>
+          <div class="grid-editor__reorder">
+            <button
+              type="button"
+              igntButton
+              sentiment="secondary"
+              size="small"
+              class="grid-editor__move"
+              [disabled]="disabled || i === 0"
+              (click)="moveUp(i)"
+              aria-label="Move column up"
+            >
+              ↑
+            </button>
+            <button
+              type="button"
+              igntButton
+              sentiment="secondary"
+              size="small"
+              class="grid-editor__move"
+              [disabled]="disabled || i === cols().length - 1"
+              (click)="moveDown(i)"
+              aria-label="Move column down"
+            >
+              ↓
+            </button>
+          </div>
+        </div>
+
+        <div class="grid-editor__row">
+          <label class="grid-editor__field">
+            {{ 'adminServiceCatalog.editor.grid.label' | translate }}
+            <input type="text" class="form-control" [ngModel]="col.label" (ngModelChange)="setLabel(i, $event)" [disabled]="disabled" />
+          </label>
+          <label class="grid-editor__field">
+            {{ 'adminServiceCatalog.editor.grid.type' | translate }}
+            <select class="form-control" [ngModel]="col.type" (ngModelChange)="setType(i, $event)" [disabled]="disabled">
+              @for (t of typeOptions; track t) {
+                <option [ngValue]="t">{{ t }}</option>
+              }
+            </select>
+          </label>
+        </div>
+
+        <label class="grid-editor__field">
+          {{ 'adminServiceCatalog.editor.grid.help' | translate }}
+          <input
+            type="text"
+            class="form-control"
+            [ngModel]="col.helpText ?? ''"
+            (ngModelChange)="setHelpText(i, $event)"
+            [disabled]="disabled"
+          />
+        </label>
+
+        <div class="grid-editor__flags">
+          <label class="grid-editor__check">
+            <input
+              type="checkbox"
+              [checked]="!!col.defaultRequired"
+              [disabled]="disabled || !!col.requiredLocked"
+              (change)="toggleDefaultRequired(i, $any($event.target).checked)"
+            />
+            {{ 'adminServiceCatalog.editor.grid.defaultRequired' | translate }}
+          </label>
+          <label class="grid-editor__check">
+            <input
+              type="checkbox"
+              [checked]="!!col.requiredLocked"
+              [disabled]="disabled"
+              (change)="toggleRequiredLocked(i, $any($event.target).checked)"
+            />
+            {{ 'adminServiceCatalog.editor.grid.lockRequired' | translate }}
+          </label>
+        </div>
+
+        <label class="grid-editor__field">
+          {{ 'adminServiceCatalog.editor.grid.appliesTo' | translate }}
+          <select
+            class="form-control grid-editor__placement"
+            [ngModel]="col.placement === 'table_header' ? 'table_header' : 'row'"
+            (ngModelChange)="setPlacement(i, $event)"
+            [disabled]="disabled"
+          >
+            <option [ngValue]="'row'">{{ 'adminServiceCatalog.editor.grid.placementRow' | translate }}</option>
+            <option [ngValue]="'table_header'">{{ 'adminServiceCatalog.editor.grid.placementHeader' | translate }}</option>
+          </select>
+        </label>
+
+        @if (usesPicklist(col)) {
+          <label class="grid-editor__field">
+            {{ 'adminServiceCatalog.editor.grid.picklist' | translate }}
+            <textarea
+              class="form-control grid-editor__picklist"
+              rows="3"
+              [ngModel]="picklistText(i)"
+              (ngModelChange)="setPicklistText(i, $event)"
+              [disabled]="disabled"
+            ></textarea>
+          </label>
+        }
+
+        <div class="grid-editor__col-actions">
+          <button
+            type="button"
+            igntButton
+            sentiment="tertiary"
+            variant="danger"
+            size="small"
+            class="grid-editor__remove"
+            [disabled]="disabled || !canRemove"
+            (click)="removeColumn(i)"
+          >
+            {{ 'adminServiceCatalog.editor.grid.removeColumn' | translate }}
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+
+  <button type="button" igntButton sentiment="secondary" size="small" [disabled]="disabled" (click)="addColumn()">
+    + {{ 'adminServiceCatalog.editor.grid.addColumn' | translate }}
+  </button>
+</div>

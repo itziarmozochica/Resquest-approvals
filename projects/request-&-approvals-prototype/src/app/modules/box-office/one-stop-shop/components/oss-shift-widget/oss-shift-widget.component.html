@@ -1,0 +1,62 @@
+<ng-container *ngIf="!isLoading() && showShiftWidget()">
+  <div class="oss-shift-widget oss-shift-widget--fade-in" data-testid="oss-shift-widget-started-info" [igntTourAnchor]="'shift'">
+    <div class="oss-shift-widget__icon">
+      <ignt-icon name="clock" variant="light" aria-hidden="true"></ignt-icon>
+      <div class="oss-shift-widget__time">{{ currentTime() | date: 'EEE d MMM, HH:mm' }}</div>
+    </div>
+    <div class="oss-shift-widget__content">
+      <ng-container *ngIf="activeShift$ | async as shift; else noActiveShift">
+        <a
+          [routerLink]="['/box-office/shift/', shift.id]"
+          [queryParams]="{ placeId: shift.oboVenueId }"
+          title="{{ 'oneStopShop.shiftWidget.seeShiftDetails' | translate }}"
+          class="oss-shift-widget__text oss-shift-widget__text--link"
+          data-testid="oss-shift-widget-shift-details"
+        >
+          {{ 'oneStopShop.shiftWidget.seeShiftDetails' | translate }}
+        </a>
+        <ignt-button
+          size="small"
+          variant="secondary"
+          sentiment="danger"
+          [disabled]="isEndingShift"
+          data-testid="oss-shift-widget-end-button"
+          [leadingIcon]="{ name: 'stop', variant: 'solid' }"
+          [label]="'oneStopShop.shiftWidget.endShift' | translate"
+          (click)="endShift()"
+        />
+      </ng-container>
+    </div>
+  </div>
+</ng-container>
+
+<ng-template #noActiveShift>
+  <ignt-button
+    size="small"
+    variant="secondary"
+    sentiment="neutral"
+    data-testid="oss-shift-widget-start-button"
+    [leadingIcon]="{ name: 'play', variant: 'solid' }"
+    [label]="'oneStopShop.shiftWidget.startShift' | translate"
+    (click)="startShift()"
+  />
+</ng-template>
+
+<ng-template #loadingStartWait>
+  <ng-container *ngTemplateOutlet="loadingTemplate; context: { title: 'boxOffice.shifts.waitStart' | translate }"></ng-container>
+</ng-template>
+
+<ng-template #loadingEndWait>
+  <ng-container *ngTemplateOutlet="loadingTemplate; context: { title: 'boxOffice.shifts.waitEnd' | translate }"></ng-container>
+</ng-template>
+
+<ng-template #loadingTemplate let-title="title">
+  <div class="wait-modal">
+    <div class="wait-modal__title">
+      {{ title }}
+    </div>
+    <div data-testid="shift-controls-loading-modal" class="spinner">
+      <ignt-icon name="spinner" variant="solid" size="display" class="loader" [spin]="true" aria-hidden="true"></ignt-icon>
+    </div>
+  </div>
+</ng-template>

@@ -1,0 +1,86 @@
+<div class="contact-phone-field">
+  <div
+    class="contact-phone-field__prefix"
+    cdkOverlayOrigin
+    #prefixOrigin="cdkOverlayOrigin"
+    (click)="onPrefixClick()"
+    (focusout)="onPrefixFocusOut()"
+  >
+    <ignt-input-field
+      #prefixInput
+      class="contact-phone-field__prefix-input"
+      data-testid="contact-phone-prefix-input"
+      autocomplete="off"
+      [type]="'text'"
+      [id]="prefixInputId()"
+      [placeholder]="prefixLabel()"
+      [formControl]="prefixControl"
+      [label]="('common.prefix' | translate) + (isMandatory() ? ' *' : '')"
+      (input)="onPrefixInput($event)"
+      (keydown.arrowdown)="onPrefixArrow(1, $event)"
+      (keydown.arrowup)="onPrefixArrow(-1, $event)"
+      (keydown.enter)="onPrefixEnter($event)"
+      (keydown.escape)="onPrefixEscape($event)"
+    />
+  </div>
+
+  <ignt-input-field
+    #phoneInput
+    appInputMobileBehavior
+    class="contact-phone-field__number"
+    data-testid="contact-phone-input"
+    autocomplete="tel-national"
+    [type]="'tel'"
+    [id]="id()"
+    [value]="nationalNumber()"
+    [placeholder]="phonePlaceholder()"
+    [label]="('form.field.phoneNumber' | translate) + (isMandatory() ? ' *' : '')"
+    [disabled]="isDisabled()"
+    [customFormErrors]="phoneErrors()"
+    (input)="onPhoneInput($event)"
+    (keypress)="onKeyPress($event)"
+    (blurred)="onBlur()"
+  />
+
+  <ng-content select="[edit-control]" />
+</div>
+
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="prefixOrigin"
+  [cdkConnectedOverlayOpen]="isCountryPanelOpen()"
+  [cdkConnectedOverlayPositions]="countryPanelPositions"
+  [cdkConnectedOverlayViewportMargin]="8"
+  (detach)="onCountryPanelDetached()"
+>
+  <div
+    class="contact-phone-field__panel"
+    [class.contact-phone-field__panel--loading]="!isCountryListReady()"
+    role="listbox"
+    data-testid="contact-phone-country-list"
+    [id]="listboxId()"
+    [attr.aria-label]="'common.country' | translate"
+  >
+    @if (isCountryListReady()) {
+      @for (option of filteredCountryOptions(); track option.country; let index = $index) {
+        <div
+          #countryOption
+          class="contact-phone-field__option"
+          role="option"
+          [id]="listboxId() + '-' + option.country"
+          [attr.data-testid]="'contact-phone-country-option-' + option.country"
+          [attr.aria-selected]="option.country === country()"
+          [class.contact-phone-field__option--active]="index === activeIndex()"
+          (mousedown)="$event.preventDefault()"
+          (click)="onCountryOptionSelected(option)"
+        >
+          <span class="contact-phone-field__option-flag" aria-hidden="true">{{ option.flag }}</span>
+          <span class="contact-phone-field__option-code">+{{ option.callingCode }}</span>
+          <span class="contact-phone-field__option-label">{{ option.label }}</span>
+        </div>
+      } @empty {
+        <div class="contact-phone-field__empty">{{ 'common.noResults' | translate }}</div>
+      }
+    }
+  </div>
+</ng-template>

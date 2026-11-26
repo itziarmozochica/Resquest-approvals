@@ -1,0 +1,174 @@
+<ignt-dialog-header hideCloseButton data-testid="modify-reservation-review-changes-dialog__title">
+  {{ 'reservations.modify.confirmChanges' | translate }}
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  @let summary = data.summary;
+  @let currency = summary.currency;
+  @let hasDeposit = summary.paidAmount.amount > 0;
+  @let originalTotal = data.originalCart?.deposit?.effectiveTotal ?? data.originalCart?.total;
+
+  <div class="modify-reservation-review-changes-dialog">
+    <p class="modify-reservation-review-changes-dialog__subtitle">
+      {{ 'reservations.modify.paymentSummary' | translate }}
+    </p>
+
+    <div class="modify-reservation-review-changes-dialog__rows">
+      <div class="modify-reservation-review-changes-dialog__row">
+        <span class="modify-reservation-review-changes-dialog__label">
+          {{ 'reservations.modify.originalReservation' | translate }}
+        </span>
+        <span class="modify-reservation-review-changes-dialog__value" data-testid="modify-reservation-review-changes-dialog__original">
+          {{ originalTotal?.amount | currency: currency : 'symbol' : '1.2-2' : data.locale }}
+        </span>
+      </div>
+      @if (depositAmount()) {
+        <div class="modify-reservation-review-changes-dialog__row modify-reservation-review-changes-dialog__row--sub">
+          <span class="modify-reservation-review-changes-dialog__label modify-reservation-review-changes-dialog__label--sub">
+            {{ 'reservations.modify.deposit.sectionTitle' | translate }}
+          </span>
+          <span
+            class="modify-reservation-review-changes-dialog__value modify-reservation-review-changes-dialog__value--sub"
+            data-testid="modify-reservation-review-changes-dialog__deposit-amount"
+          >
+            {{ depositAmount()!.amount | currency: currency : 'symbol' : '1.2-2' : data.locale }}
+          </span>
+        </div>
+        <div class="modify-reservation-review-changes-dialog__row modify-reservation-review-changes-dialog__row--sub">
+          <span class="modify-reservation-review-changes-dialog__label modify-reservation-review-changes-dialog__label--sub">
+            {{ 'reservations.modify.remainingAmount' | translate }}
+          </span>
+          <span
+            class="modify-reservation-review-changes-dialog__value modify-reservation-review-changes-dialog__value--sub"
+            data-testid="modify-reservation-review-changes-dialog__deposit-final-payment"
+          >
+            {{ remainingAmount()?.amount | currency: currency : 'symbol' : '1.2-2' : data.locale }}
+          </span>
+        </div>
+      }
+
+      <div class="modify-reservation-review-changes-dialog__row">
+        <span class="modify-reservation-review-changes-dialog__label">
+          {{ 'reservations.modify.modifiedReservation' | translate }}
+        </span>
+        <span class="modify-reservation-review-changes-dialog__value" data-testid="modify-reservation-review-changes-dialog__modified">
+          {{ summary.modified.total.amount | currency: currency : 'symbol' : '1.2-2' : data.locale }}
+        </span>
+      </div>
+      @if (modifiedDepositDue(); as depositDue) {
+        <div class="modify-reservation-review-changes-dialog__row modify-reservation-review-changes-dialog__row--sub">
+          <span class="modify-reservation-review-changes-dialog__label modify-reservation-review-changes-dialog__label--sub">
+            {{ 'reservations.modify.deposit.sectionTitle' | translate }}
+          </span>
+          <span
+            class="modify-reservation-review-changes-dialog__value modify-reservation-review-changes-dialog__value--sub"
+            data-testid="modify-reservation-review-changes-dialog__modified-deposit-amount"
+          >
+            {{ depositDue.amount | currency: currency : 'symbol' : '1.2-2' : data.locale }}
+          </span>
+        </div>
+      }
+
+      @if (hasDeposit) {
+        <div class="modify-reservation-review-changes-dialog__row modify-reservation-review-changes-dialog__row--sub">
+          <span class="modify-reservation-review-changes-dialog__label modify-reservation-review-changes-dialog__label--sub">
+            {{ 'reservations.modify.alreadyPaid' | translate }}
+          </span>
+          <span
+            class="modify-reservation-review-changes-dialog__value modify-reservation-review-changes-dialog__value--paid-credit modify-reservation-review-changes-dialog__value--sub"
+            data-testid="modify-reservation-review-changes-dialog__already-paid"
+          >
+            {{ negateMoney(summary.paidAmount).amount | currency: currency : 'symbol' : '1.2-2' : data.locale }}
+          </span>
+        </div>
+      }
+
+      @if (modifiedDepositDue() || hasDeposit) {
+        <div class="modify-reservation-review-changes-dialog__row modify-reservation-review-changes-dialog__row--sub">
+          <span class="modify-reservation-review-changes-dialog__label modify-reservation-review-changes-dialog__label--sub">
+            {{ 'reservations.modify.remainingAmount' | translate }}
+          </span>
+          <span
+            class="modify-reservation-review-changes-dialog__value modify-reservation-review-changes-dialog__value--sub"
+            data-testid="modify-reservation-review-changes-dialog__modified-remaining-amount"
+          >
+            {{ modifiedRemainingAmount().amount | currency: currency : 'symbol' : '1.2-2' : data.locale }}
+          </span>
+        </div>
+      }
+    </div>
+
+    <div class="modify-reservation-review-changes-dialog__compare">
+      <ignt-button
+        variant="tertiary"
+        size="small"
+        [leadingIcon]="{ name: 'search', variant: 'solid' }"
+        [label]="'reservations.modify.viewBeforeAndAfter' | translate"
+        data-testid="modify-reservation-review-changes-dialog__view-compare"
+        (click)="viewCompare()"
+      />
+    </div>
+
+    @if (!hasInlineErrors()) {
+      <ignt-alert
+        class="modify-reservation-review-changes-dialog__alert"
+        [title]="'reservations.modify.confirmChangesApplyHint' | translate"
+        data-testid="modify-reservation-review-changes-dialog__alert"
+      ></ignt-alert>
+    } @else {
+      <ignt-alert
+        class="modify-reservation-review-changes-dialog__inline-error-alert"
+        sentiment="warning"
+        [title]="(confirmBlocked() ? 'reservations.modify.inlineErrorsBlockedTitle' : 'reservations.modify.inlineErrorsTitle') | translate"
+        data-testid="modify-reservation-review-changes-dialog__inline-error-alert"
+      ></ignt-alert>
+
+      <ul
+        class="modify-reservation-review-changes-dialog__inline-error-list"
+        data-testid="modify-reservation-review-changes-dialog__inline-error"
+      >
+        @for (error of visibleInlineErrors(); track $index) {
+          <li class="modify-reservation-review-changes-dialog__inline-error-item">
+            <span class="modify-reservation-review-changes-dialog__inline-error-icon">
+              <ignt-icon name="exclamation-circle" variant="solid" />
+            </span>
+            @if (error.kind === 'key') {
+              <span class="modify-reservation-review-changes-dialog__inline-error-text" [innerHTML]="error.key | translate"></span>
+            } @else {
+              <span class="modify-reservation-review-changes-dialog__inline-error-text">{{ error.text }}</span>
+            }
+          </li>
+        }
+      </ul>
+
+      @if (hasHiddenInlineErrors()) {
+        <div class="modify-reservation-review-changes-dialog__inline-error-show-all">
+          <button
+            type="button"
+            class="modify-reservation-review-changes-dialog__inline-error-show-all-button"
+            data-testid="modify-reservation-review-changes-dialog__inline-error-show-all"
+            (click)="revealAllInlineErrors()"
+          >
+            {{ 'reservations.modify.inlineErrorsShowAll' | translate: { count: inlineErrors().length } }}
+          </button>
+        </div>
+      }
+    }
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer hideCancelButton>
+  <ignt-button
+    variant="secondary"
+    [label]="'reservations.modify.compareBackToEditing' | translate"
+    data-testid="modify-reservation-review-changes-dialog__back"
+    (click)="backToEditing()"
+  />
+  <ignt-button
+    [disabled]="confirmBlocked()"
+    [loading]="submitting()"
+    [label]="'reservations.modify.confirmAndModify' | translate"
+    data-testid="modify-reservation-review-changes-dialog__confirm"
+    (click)="confirmAndModify()"
+  />
+</ignt-dialog-footer>

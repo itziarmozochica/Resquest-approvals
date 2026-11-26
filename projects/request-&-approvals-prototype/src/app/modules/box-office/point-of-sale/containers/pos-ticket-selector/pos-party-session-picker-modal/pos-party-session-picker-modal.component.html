@@ -1,0 +1,153 @@
+<ignt-dialog-header data-testid="party-session-picker-title">{{
+  'boxOffice.partyMembers.sessionPicker.title' | translate
+}}</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="pos-party-session-picker-modal__body">
+    <p class="pos-party-session-picker-modal__subtitle" data-testid="party-session-picker-subtitle">{{ subtitle }}</p>
+
+    @if (alert(); as alert) {
+      <ignt-alert
+        data-testid="party-session-picker-alert"
+        sentiment="warning"
+        size="small"
+        aria-live="polite"
+        [description]="alert.text ?? (alert.key | translate)"
+      />
+    }
+
+    @for (section of sections(); track section.memberKey) {
+      <section class="pos-party-session-picker-modal__section" data-testid="party-session-picker-section" [attr.aria-label]="section.name">
+        <header class="pos-party-session-picker-modal__section-header">
+          <span class="pos-party-session-picker-modal__member" data-testid="party-session-picker-member"
+            >{{ section.name }} · {{ section.quantity }}</span
+          >
+          @if (section.isSplit) {
+            <span
+              class="pos-party-session-picker-modal__progress"
+              data-testid="party-session-picker-progress"
+              aria-live="polite"
+              [class.pos-party-session-picker-modal__progress--complete]="section.isComplete"
+            >
+              {{ 'boxOffice.partyMembers.sessionPicker.assigned' | translate: { assigned: section.assigned, total: section.quantity } }}
+            </span>
+          }
+          @if (section.canSplit) {
+            <ignt-switch
+              class="pos-party-session-picker-modal__mode"
+              data-testid="party-session-picker-split"
+              [checked]="section.isSplit"
+              [label]="'boxOffice.partyMembers.sessionPicker.split' | translate"
+              (checkedChange)="setAllocationMode(section.memberKey, $event)"
+            />
+          }
+        </header>
+
+        @if (section.isSplit) {
+          <ul class="pos-party-session-picker-modal__counters" data-testid="party-session-picker-counters">
+            @for (counter of section.counters; track counter.sessionId) {
+              <li class="pos-party-session-picker-modal__counter" data-testid="party-session-picker-counter">
+                <span class="pos-party-session-picker-modal__counter-text">
+                  <span class="pos-party-session-picker-modal__counter-name" data-testid="party-session-picker-counter-name">{{
+                    counter.name
+                  }}</span>
+                  <span class="pos-party-session-picker-modal__counter-price">
+                    {{ counter.price }}
+                    @if (counter.bookingFee; as bookingFee) {
+                      {{ bookingFee.key | translate: bookingFee.params }}
+                    }
+                  </span>
+                  @if (counter.limitLeft !== null) {
+                    <span class="pos-party-session-picker-modal__counter-limit" data-testid="party-session-picker-counter-limit">
+                      {{ 'boxOffice.partyMembers.sessionPicker.onlyLeft' | translate: { count: counter.limitLeft } }}
+                    </span>
+                  }
+                </span>
+                <div class="pos-party-session-picker-modal__stepper" role="group" [attr.aria-label]="counter.name">
+                  <button
+                    ignt-icon-button
+                    sentiment="primary"
+                    type="button"
+                    data-testid="party-session-picker-decrease"
+                    [attr.aria-label]="'boxOffice.partyMembers.sessionPicker.decrease' | translate: { session: counter.name }"
+                    [disabled]="!counter.canDecrease"
+                    [icon]="['far', 'minus']"
+                    (click)="stepSessionQuantity(section.memberKey, counter, -1)"
+                  ></button>
+                  <output class="pos-party-session-picker-modal__quantity" data-testid="party-session-picker-quantity" aria-live="polite">{{
+                    counter.quantity
+                  }}</output>
+                  <button
+                    ignt-icon-button
+                    sentiment="primary"
+                    type="button"
+                    data-testid="party-session-picker-increase"
+                    [attr.aria-label]="'boxOffice.partyMembers.sessionPicker.increase' | translate: { session: counter.name }"
+                    [disabled]="!counter.canIncrease"
+                    [icon]="['far', 'plus']"
+                    (click)="stepSessionQuantity(section.memberKey, counter, 1)"
+                  ></button>
+                </div>
+              </li>
+            }
+          </ul>
+        } @else {
+          <div class="pos-party-session-picker-modal__tiles" role="group" [attr.aria-label]="section.name">
+            @for (tile of section.tiles; track tile.sessionId) {
+              <ignt-option-tile
+                data-testid="party-session-picker-option-tile"
+                [description]="
+                  tile.bookingFee === null ? tile.price : tile.price + ' ' + (tile.bookingFee.key | translate: tile.bookingFee.params)
+                "
+                [selected]="tile.isSelected"
+                [title]="tile.name"
+                (tileClick)="selectSession(section.memberKey, tile.sessionId)"
+              />
+            }
+          </div>
+        }
+
+        @if (section.hiddenCount > 0) {
+          <ignt-button
+            class="pos-party-session-picker-modal__more"
+            data-testid="party-session-picker-more"
+            size="small"
+            variant="tertiary"
+            [label]="'boxOffice.partyMembers.sessionPicker.moreSessions' | translate: { count: section.hiddenCount }"
+            (click)="expandSessions(section.memberKey)"
+          />
+        }
+      </section>
+    }
+
+    @if (fixedAdditionsSummary.length > 0) {
+      <p class="pos-party-session-picker-modal__also" data-testid="party-session-picker-also-adding">
+        {{ 'boxOffice.partyMembers.sessionPicker.alsoAdding' | translate: { members: fixedAdditionsSummary } }}
+      </p>
+    }
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer hideCancelButton>
+  <ignt-button
+    data-testid="party-session-picker-cancel"
+    variant="tertiary"
+    fill
+    [igntDialogClose]="undefined"
+    [label]="'boxOffice.partyMembers.sessionPicker.cancel' | translate"
+  />
+  <ignt-button
+    data-testid="party-session-picker-confirm"
+    variant="primary"
+    fill
+    [disabled]="!canConfirm()"
+    [label]="confirmLabel().key | translate: confirmLabel().params"
+    (click)="confirm()"
+  />
+  <!-- Last child of the footer, so it sits next to Confirm in a row and above it when the footer stacks. -->
+  @if (incompleteSection(); as progress) {
+    <p class="pos-party-session-picker-modal__progress-text" data-testid="party-session-picker-missing" aria-live="polite">
+      {{ progress.key | translate: progress.params }}
+    </p>
+  }
+</ignt-dialog-footer>

@@ -1,0 +1,296 @@
+<div class="modify-reservation-compare-dialog" data-testid="modify-reservation-compare-dialog">
+  <div class="modify-reservation-compare-dialog__header">
+    <h2 class="modify-reservation-compare-dialog__title">
+      {{ 'reservations.modify.compareDialogTitle' | translate }}
+    </h2>
+    <button
+      type="button"
+      class="modify-reservation-compare-dialog__close"
+      data-testid="modify-reservation-compare-dialog__close"
+      [attr.aria-label]="'common.close' | translate"
+      (click)="close()"
+    >
+      <ignt-icon name="times" variant="solid" size="sm" aria-hidden="true" />
+    </button>
+  </div>
+
+  <div class="modify-reservation-compare-dialog__body">
+    <div class="modify-reservation-compare-dialog__columns">
+      <div class="modify-reservation-compare-dialog__column">
+        <h3 class="modify-reservation-compare-dialog__column-title">
+          {{ 'reservations.modify.compareColumnOriginal' | translate }}
+        </h3>
+        <div class="modify-reservation-compare-dialog__column-tickets">
+          @if (!columnHasTickets(data.original)) {
+            <p class="modify-reservation-compare-dialog__empty">
+              {{ 'reservations.modify.compareNoTickets' | translate }}
+            </p>
+          } @else {
+            @for (group of groupsWithTickets(data.original.dateGroups); track group.startDate) {
+              <div class="modify-reservation-compare-dialog__card">
+                <div class="modify-reservation-compare-dialog__card-head">
+                  @if (group.startDate === productsGroupKey) {
+                    <ignt-icon name="shop" variant="light" size="caption" aria-hidden="true" />
+                    <span data-testid="modify-reservation-compare-dialog__products-group-title">{{
+                      'reservation.shopProducts.productsGroupTitle' | translate
+                    }}</span>
+                  } @else {
+                    <ignt-icon name="calendar" variant="solid" size="caption" aria-hidden="true" />
+                    <span>{{ group.startDate | momentDate: 'MMM dd yyyy, HH:mm' : group.timezone : data.locale }}</span>
+                  }
+                </div>
+                <div class="modify-reservation-compare-dialog__card-body">
+                  @for (line of group.lines; track line.id) {
+                    @if (line.quantity > 0) {
+                      <div class="modify-reservation-compare-dialog__line">
+                        <div class="modify-reservation-compare-dialog__line-copy">
+                          <span class="modify-reservation-compare-dialog__line-title">{{ line.quantity }}× {{ line.title }}</span>
+                          @if (line.seatLabels.length > 0) {
+                            <span
+                              class="modify-reservation-compare-dialog__line-seats"
+                              data-testid="modify-reservation-compare-dialog__line-seats"
+                            >
+                              {{ line.seatLabels.join(', ') }}
+                            </span>
+                          }
+                        </div>
+                        <span class="modify-reservation-compare-dialog__line-price">
+                          {{ line.lineTotal | currency: line.currency : 'symbol' : '1.2-2' : data.locale }}
+                        </span>
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
+            }
+          }
+        </div>
+        <div class="modify-reservation-compare-dialog__totals">
+          <div class="modify-reservation-compare-dialog__total-row">
+            <span class="modify-reservation-compare-dialog__total-label">{{ 'reservations.modify.compareTotal' | translate }}</span>
+            <span class="modify-reservation-compare-dialog__total-value">
+              {{ data.original.total.amount | currency: data.original.total.currency : 'symbol' : '1.2-2' : data.locale }}
+            </span>
+          </div>
+          @if (data.original.tickets; as originalTickets) {
+            <div class="modify-reservation-compare-dialog__breakdown-row">
+              <span>{{ 'reservations.modify.summaryTickets' | translate }}</span>
+              <span>{{ originalTickets.amount | currency: data.original.total.currency : 'symbol' : '1.2-2' : data.locale }}</span>
+            </div>
+          }
+          <div class="modify-reservation-compare-dialog__breakdown-row">
+            <span>{{ 'reservations.modify.summaryBookingFees' | translate }}</span>
+            <span>
+              {{ data.original.bookingFees.amount | currency: data.original.total.currency : 'symbol' : '1.2-2' : data.locale }}
+            </span>
+          </div>
+          @if (data.original.override; as originalOverride) {
+            <div
+              class="modify-reservation-compare-dialog__breakdown-row"
+              data-testid="modify-reservation-compare-dialog__original-override"
+            >
+              <span>{{ 'reservations.modify.summaryOverridePrice' | translate }}</span>
+              <span>{{ originalOverride.amount.amount | currency: data.original.total.currency : 'symbol' : '1.2-2' : data.locale }}</span>
+            </div>
+          }
+          @if (data.original.rounding; as originalRounding) {
+            <div
+              class="modify-reservation-compare-dialog__breakdown-row"
+              data-testid="modify-reservation-compare-dialog__original-rounding"
+            >
+              <span class="modify-reservation-compare-dialog__breakdown-label">
+                {{ 'cart.adjustment.rounding' | translate }}
+                <a igntLink size="caption" (click)="openRoundingModal()">
+                  {{ 'cart.adjustment.modalRounding.openCta' | translate }}
+                </a>
+              </span>
+              <span>{{ originalRounding.amount | currency: data.original.total.currency : 'symbol' : '1.2-2' : data.locale }}</span>
+            </div>
+          }
+          @if (data.original.coupon; as originalCoupon) {
+            <div class="modify-reservation-compare-dialog__breakdown-row" data-testid="modify-reservation-compare-dialog__original-coupon">
+              <span>{{ 'reservations.modify.summaryPromoCode' | translate }}</span>
+              <span
+                >- {{ originalCoupon.discount.amount | currency: data.original.total.currency : 'symbol' : '1.2-2' : data.locale }}</span
+              >
+            </div>
+          }
+          @if (data.paidAmount.amount > 0 || data.original.depositDue !== null) {
+            <div class="modify-reservation-compare-dialog__section-divider" aria-hidden="true"></div>
+            <p class="modify-reservation-compare-dialog__section-title">
+              {{ 'reservations.modify.deposit.paymentBreakdown' | translate }}
+            </p>
+            @if (data.paidAmount.amount > 0) {
+              <div class="modify-reservation-compare-dialog__breakdown-row">
+                <span>{{ 'reservations.modify.alreadyPaid' | translate }}</span>
+                <span class="modify-reservation-compare-dialog__deposit-value">
+                  {{ negateMoney(data.paidAmount).amount | currency: data.paidAmount.currency : 'symbol' : '1.2-2' : data.locale }}
+                </span>
+              </div>
+            } @else {
+              <div class="modify-reservation-compare-dialog__breakdown-row">
+                <span>{{ 'reservations.modify.deposit.depositDue' | translate }}</span>
+                <span>{{
+                  data.original.depositDue!.amount | currency: data.original.total.currency : 'symbol' : '1.2-2' : data.locale
+                }}</span>
+              </div>
+            }
+            @if (data.original.remaining !== null) {
+              <div class="modify-reservation-compare-dialog__breakdown-row">
+                <span>{{ 'reservations.modify.remainingAmount' | translate }}</span>
+                <span>{{
+                  data.original.remaining.amount | currency: data.original.remaining.currency : 'symbol' : '1.2-2' : data.locale
+                }}</span>
+              </div>
+            }
+          }
+        </div>
+      </div>
+
+      <div class="modify-reservation-compare-dialog__divider" aria-hidden="true"></div>
+
+      <div class="modify-reservation-compare-dialog__column">
+        <h3 class="modify-reservation-compare-dialog__column-title">
+          {{ 'reservations.modify.compareColumnModified' | translate }}
+        </h3>
+        <div class="modify-reservation-compare-dialog__column-tickets">
+          @if (!columnHasTickets(data.modified)) {
+            <p class="modify-reservation-compare-dialog__empty">
+              {{ 'reservations.modify.compareNoTickets' | translate }}
+            </p>
+          } @else {
+            @for (group of groupsWithTickets(data.modified.dateGroups); track group.startDate) {
+              <div class="modify-reservation-compare-dialog__card">
+                <div class="modify-reservation-compare-dialog__card-head">
+                  @if (group.startDate === productsGroupKey) {
+                    <ignt-icon name="shop" variant="light" size="caption" aria-hidden="true" />
+                    <span data-testid="modify-reservation-compare-dialog__products-group-title">{{
+                      'reservation.shopProducts.productsGroupTitle' | translate
+                    }}</span>
+                  } @else {
+                    <ignt-icon name="calendar" variant="solid" size="caption" aria-hidden="true" />
+                    <span>{{ group.startDate | momentDate: 'MMM dd yyyy, HH:mm' : group.timezone : data.locale }}</span>
+                  }
+                </div>
+                <div class="modify-reservation-compare-dialog__card-body">
+                  @for (line of group.lines; track line.id) {
+                    @if (line.quantity > 0) {
+                      <div class="modify-reservation-compare-dialog__line">
+                        <div class="modify-reservation-compare-dialog__line-copy">
+                          <span class="modify-reservation-compare-dialog__line-title">{{ line.quantity }}× {{ line.title }}</span>
+                          @if (line.seatLabels.length > 0) {
+                            <span
+                              class="modify-reservation-compare-dialog__line-seats"
+                              data-testid="modify-reservation-compare-dialog__line-seats"
+                            >
+                              {{ line.seatLabels.join(', ') }}
+                            </span>
+                          }
+                        </div>
+                        <span class="modify-reservation-compare-dialog__line-price">
+                          {{ line.lineTotal | currency: line.currency : 'symbol' : '1.2-2' : data.locale }}
+                        </span>
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
+            }
+          }
+        </div>
+        <div class="modify-reservation-compare-dialog__totals">
+          <div class="modify-reservation-compare-dialog__total-row">
+            <span class="modify-reservation-compare-dialog__total-label">{{ 'reservations.modify.compareTotal' | translate }}</span>
+            <span class="modify-reservation-compare-dialog__total-value">
+              {{ data.modified.total.amount | currency: data.modified.total.currency : 'symbol' : '1.2-2' : data.locale }}
+            </span>
+          </div>
+          @if (data.modified.tickets; as modifiedTickets) {
+            <div class="modify-reservation-compare-dialog__breakdown-row">
+              <span>{{ 'reservations.modify.summaryTickets' | translate }}</span>
+              <span>{{ modifiedTickets.amount | currency: data.modified.total.currency : 'symbol' : '1.2-2' : data.locale }}</span>
+            </div>
+          }
+          <div class="modify-reservation-compare-dialog__breakdown-row">
+            <span>{{ 'reservations.modify.summaryBookingFees' | translate }}</span>
+            <span>
+              {{ data.modified.bookingFees.amount | currency: data.modified.total.currency : 'symbol' : '1.2-2' : data.locale }}
+            </span>
+          </div>
+          @if (data.modified.override; as modifiedOverride) {
+            <div
+              class="modify-reservation-compare-dialog__breakdown-row"
+              data-testid="modify-reservation-compare-dialog__modified-override"
+            >
+              <span>{{ 'reservations.modify.summaryOverridePrice' | translate }}</span>
+              <span>{{ modifiedOverride.amount.amount | currency: data.modified.total.currency : 'symbol' : '1.2-2' : data.locale }}</span>
+            </div>
+          }
+          @if (data.modified.rounding; as modifiedRounding) {
+            <div
+              class="modify-reservation-compare-dialog__breakdown-row"
+              data-testid="modify-reservation-compare-dialog__modified-rounding"
+            >
+              <span class="modify-reservation-compare-dialog__breakdown-label">
+                {{ 'cart.adjustment.rounding' | translate }}
+                <a igntLink size="caption" (click)="openRoundingModal()">
+                  {{ 'cart.adjustment.modalRounding.openCta' | translate }}
+                </a>
+              </span>
+              <span>{{ modifiedRounding.amount | currency: data.modified.total.currency : 'symbol' : '1.2-2' : data.locale }}</span>
+            </div>
+          }
+          @if (data.modified.coupon; as modifiedCoupon) {
+            <div
+              class="modify-reservation-compare-dialog__breakdown-row"
+              [class.modify-reservation-compare-dialog__breakdown-row--inactive]="!modifiedCoupon.stillApplicable"
+              data-testid="modify-reservation-compare-dialog__modified-coupon"
+            >
+              <span>{{ 'reservations.modify.summaryPromoCode' | translate }}</span>
+              <span>
+                @if (modifiedCoupon.discount.amount > 0) {
+                  - {{ modifiedCoupon.discount.amount | currency: data.modified.total.currency : 'symbol' : '1.2-2' : data.locale }}
+                } @else {
+                  {{ 0 | currency: data.modified.total.currency : 'symbol' : '1.2-2' : data.locale }}
+                }
+              </span>
+            </div>
+          }
+          @if (data.paidAmount.amount > 0 || data.modified.depositDue !== null) {
+            <div class="modify-reservation-compare-dialog__section-divider" aria-hidden="true"></div>
+            <p class="modify-reservation-compare-dialog__section-title">
+              {{ 'reservations.modify.deposit.paymentBreakdown' | translate }}
+            </p>
+            @if (data.paidAmount.amount > 0) {
+              <div class="modify-reservation-compare-dialog__breakdown-row">
+                <span>{{ 'reservations.modify.alreadyPaid' | translate }}</span>
+                <span class="modify-reservation-compare-dialog__deposit-value">
+                  {{ negateMoney(data.paidAmount).amount | currency: data.paidAmount.currency : 'symbol' : '1.2-2' : data.locale }}
+                </span>
+              </div>
+            } @else {
+              <div class="modify-reservation-compare-dialog__breakdown-row">
+                <span>{{ 'reservations.modify.deposit.depositDue' | translate }}</span>
+                <span>{{
+                  data.modified.depositDue!.amount | currency: data.modified.total.currency : 'symbol' : '1.2-2' : data.locale
+                }}</span>
+              </div>
+            }
+            @if (data.modified.remaining !== null) {
+              <div class="modify-reservation-compare-dialog__breakdown-row">
+                <span>{{ 'reservations.modify.remainingAmount' | translate }}</span>
+                <span>{{
+                  data.modified.remaining.amount | currency: data.modified.remaining.currency : 'symbol' : '1.2-2' : data.locale
+                }}</span>
+              </div>
+            }
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modify-reservation-compare-dialog__footer">
+    <ignt-button variant="secondary" [label]="'reservations.modify.compareBackToEditing' | translate" (click)="close()" />
+  </div>
+</div>

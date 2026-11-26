@@ -1,0 +1,137 @@
+<div class="catalog-request-list">
+  <ignt-breadcrumb class="catalog-request-list__breadcrumb" [items]="breadcrumbs" />
+
+  <h1 class="catalog-request-list__title">{{ 'catalogRequests.title' | translate }}</h1>
+  <p class="catalog-request-list__description" [innerHTML]="'catalogRequests.description' | translate: { distributorsUrl }"></p>
+
+  <div class="catalog-request-list__truncated-notice" role="status">
+    @if (isTruncated()) {
+      <p data-testid="catalog-requests-truncated-notice">
+        {{ 'catalogRequests.truncatedNotice' | translate: { shown: loadedCount(), total: totalCount() } }}
+      </p>
+    }
+  </div>
+
+  <ignt-tabs class="catalog-request-list__tabs" [hasExtraLine]="true" [selectedIndex]="0">
+    <ignt-tabs-item [label]="'catalogRequests.tabs.pending' | translate">
+      @if (hasError()) {
+        <div class="catalog-request-list__message" data-testid="catalog-requests-error">
+          {{ 'catalogRequests.loadError' | translate }}
+          <ignt-button
+            class="catalog-request-list__retry"
+            size="small"
+            variant="secondary"
+            data-testid="catalog-requests-retry"
+            [label]="'catalogRequests.retry' | translate"
+            (click)="load()"
+          />
+          @if (hasActiveSearchOrFilters()) {
+            <ignt-button
+              class="catalog-request-list__clear-on-error"
+              size="small"
+              variant="tertiary"
+              data-testid="catalog-requests-clear-on-error"
+              [label]="'catalogRequests.clearFiltersOnError' | translate"
+              (click)="onClearSearchAndFilters()"
+            />
+          }
+        </div>
+      } @else {
+        <ignt-table
+          class="catalog-request-list__table"
+          layout="table"
+          [data]="pageRequests()"
+          [filterConfig]="filterConfig()"
+          [hasServerSidePagination]="true"
+          [isLoading]="isLoading()"
+          [pageIndex]="pageIndex()"
+          [pageSize]="pageSize"
+          [searchConfig]="searchConfig()"
+          [totalRowCount]="loadedCount()"
+          (filterClearAll)="onFilterClearAll()"
+          (filterClosed)="onFilterClosed($event)"
+          (filterPillRemoved)="onFilterPillRemoved($event)"
+          (paginationChange)="onPaginationChange($event)"
+          (searchChanged)="onSearchChanged($event)"
+        >
+          <ignt-table-column
+            key="distributorName"
+            columnType="primary"
+            [header]="'catalogRequests.columns.distributor' | translate"
+            [width]="240"
+          >
+            <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+              <div class="catalog-request-list__distributor">
+                <span class="catalog-request-list__name" data-testid="catalog-request-name">{{ item.distributorName }}</span>
+                <span class="catalog-request-list__email" data-testid="catalog-request-email">{{ item.distributorEmail }}</span>
+              </div>
+            </ng-template>
+          </ignt-table-column>
+
+          <ignt-table-column
+            key="distributorType"
+            columnType="secondary"
+            [header]="'catalogRequests.columns.type' | translate"
+            [width]="150"
+          >
+            <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+              @if (item.distributorType; as distributorType) {
+                <ignt-tag data-testid="catalog-request-type" [sentiment]="'sharp'" [variant]="'outline'">
+                  {{ distributorTypeLabelKey(distributorType) | translate }}
+                </ignt-tag>
+              } @else {
+                <span class="catalog-request-list__empty-cell">&mdash;</span>
+              }
+            </ng-template>
+          </ignt-table-column>
+
+          <ignt-table-column key="message" columnType="secondary" [header]="'catalogRequests.columns.message' | translate" [width]="280">
+            <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+              @if (item.message) {
+                <span class="catalog-request-list__message-text" data-testid="catalog-request-message">{{ item.message }}</span>
+              } @else {
+                <span class="catalog-request-list__empty-cell" data-testid="catalog-request-message">-</span>
+              }
+            </ng-template>
+          </ignt-table-column>
+
+          <ignt-table-column
+            key="requestedAt"
+            columnType="secondary"
+            [header]="'catalogRequests.columns.requested' | translate"
+            [width]="150"
+          >
+            <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+              <span class="catalog-request-list__requested" data-testid="catalog-request-date">{{
+                item.requestedAt | date: 'd MMM y'
+              }}</span>
+            </ng-template>
+          </ignt-table-column>
+
+          <ignt-table-column align="right" columnType="action" [header]="''" [width]="64">
+            <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+              <div class="catalog-request-list__actions" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+                <ignt-button-dropdown
+                  #rowMenu
+                  [align]="'right'"
+                  [autoWidth]="true"
+                  [leadingIcon]="['fas', 'ellipsis-v']"
+                  [options]="rowActions"
+                  [sentiment]="'tertiary'"
+                  [size]="'small'"
+                  [trailingIconClosed]="null"
+                  [trailingIconOpened]="null"
+                  data-testid="catalog-request-row-actions"
+                  (openedChange)="onRowMenuOpenedChange($event, rowMenu)"
+                  (optionClick)="onRowDropdownOptionClick($event, item)"
+                >
+                  <span class="visually-hidden">{{ 'catalogRequests.actions.menuLabel' | translate: { name: item.distributorName } }}</span>
+                </ignt-button-dropdown>
+              </div>
+            </ng-template>
+          </ignt-table-column>
+        </ignt-table>
+      }
+    </ignt-tabs-item>
+  </ignt-tabs>
+</div>

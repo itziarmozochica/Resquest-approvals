@@ -1,0 +1,89 @@
+<ignt-dialog-header>{{ 'customerQuestionsCatalog.typePicker.title' | translate }}</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="type-picker">
+    <p class="type-picker__hint">{{ 'customerQuestionsCatalog.typePicker.hint' | translate }}</p>
+
+    <div class="type-picker__grid">
+      @for (type of typeOptions; track type) {
+        <ignt-option-tile
+          [iconName]="getTypeIcon(type)"
+          [title]="getTypeLabelKey(type) | translate"
+          [selected]="selectedType() === type"
+          (tileClick)="selectType(type)"
+        />
+      }
+    </div>
+
+    @if (withSimilarQuestions && selectedType()) {
+      <div class="type-picker__similar" data-testid="similar-questions">
+        <h3 class="type-picker__similar-title">{{ 'customerQuestionsCatalog.typePicker.similarTitle' | translate }}</h3>
+        <p class="type-picker__similar-hint">{{ 'customerQuestionsCatalog.typePicker.similarHint' | translate }}</p>
+
+        <div #similarList class="type-picker__similar-list">
+          <!-- [active] must be bound last: it triggers the first page load synchronously, so pageRequestCallback must already be set. -->
+          <div
+            class="type-picker__similar-list-content"
+            appInfiniteScrollLoader
+            [pageRequestCallback]="loadSimilarPage"
+            [scrollContainer]="similarList"
+            [active]="similarActive$"
+          >
+            <div class="type-picker__similar-grid">
+              @for (question of similarQuestions(); track question.id) {
+                <ignt-list-item
+                  class="type-picker__similar-item"
+                  clickable
+                  [class.type-picker__similar-item--wide]="isChoiceQuestion(question)"
+                  [title]="question.title"
+                  [description]="isChoiceQuestion(question) ? '' : question.description"
+                  [selected]="selectedQuestion()?.id === question.id"
+                  (click)="selectQuestion(question)"
+                >
+                  @if (isChoiceQuestion(question) && question.choices) {
+                    <div class="type-picker__choices-scroll">
+                      @for (choice of question.choices; track choice.id) {
+                        <ignt-tag sentiment="sharp" variant="outline">{{ choice.label }}</ignt-tag>
+                      }
+                    </div>
+                  }
+                </ignt-list-item>
+              }
+            </div>
+
+            @if (loadingSimilar()) {
+              <ignt-skeleton type="paragraph" [numElements]="3" animation />
+            } @else if (similarQuestions().length === 0) {
+              <p class="type-picker__similar-empty">{{ 'customerQuestionsCatalog.typePicker.similarEmpty' | translate }}</p>
+            }
+          </div>
+        </div>
+
+        @if (canCreateFromScratch) {
+          <p class="type-picker__create-scratch">
+            {{ 'customerQuestionsCatalog.typePicker.createScratchPrompt' | translate }}
+            <ignt-button
+              htmlType="button"
+              variant="tertiary"
+              size="small"
+              data-testid="create-from-scratch"
+              [label]="'customerQuestionsCatalog.typePicker.createScratch' | translate"
+              [igntDialogClose]="createFromScratchResult()"
+            />
+          </p>
+        }
+      </div>
+    }
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer>
+  <ignt-button
+    htmlType="button"
+    variant="primary"
+    data-testid="confirm-type"
+    [label]="'customerQuestionsCatalog.typePicker.confirm' | translate"
+    [disabled]="confirmDisabled()"
+    [igntDialogClose]="result()"
+  ></ignt-button>
+</ignt-dialog-footer>

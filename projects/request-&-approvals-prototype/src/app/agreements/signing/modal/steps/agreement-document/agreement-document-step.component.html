@@ -1,0 +1,103 @@
+<div class="agreement-document-step">
+  @if (store.isSelectedAgreementMissing()) {
+    <p
+      class="agreement-document-step__state agreement-document-step__state--error"
+      role="alert"
+      data-testid="agreement-document-not-in-order"
+    >
+      {{ 'agreements.signing.modal.document.notInOrder' | translate }}
+    </p>
+  } @else if (store.isLoadingDocument()) {
+    <p class="agreement-document-step__state" data-testid="agreement-document-loading">
+      {{ 'agreements.signing.modal.document.loading' | translate }}
+    </p>
+  } @else if (store.documentError() !== null) {
+    <p class="agreement-document-step__state agreement-document-step__state--error" role="alert" data-testid="agreement-document-error">
+      {{ 'agreements.signing.modal.document.error' | translate }}
+    </p>
+    <ignt-button
+      variant="secondary"
+      data-testid="agreement-document-retry"
+      [label]="'agreements.signing.modal.document.retry' | translate"
+      (click)="retry()"
+    />
+  } @else {
+    @if (agreement(); as agreement) {
+      @if (store.isVersionSuperseded()) {
+        <ignt-alert
+          sentiment="warning"
+          data-testid="agreement-document-version-superseded"
+          [description]="'agreements.signing.modal.document.versionSuperseded' | translate"
+        />
+      }
+
+      <h3 class="agreement-document-step__title" data-testid="agreement-document-title">
+        {{ 'agreements.signing.modal.document.heading' | translate: { title: agreement.title, version: agreement.version } }}
+      </h3>
+
+      <dl class="agreement-document-step__metadata" data-testid="agreement-document-metadata">
+        <div class="agreement-document-step__metadata-row">
+          <dt>{{ 'agreements.signing.modal.document.version' | translate }}</dt>
+          <dd>{{ 'agreements.signing.modal.document.versionValue' | translate: { version: agreement.version } }}</dd>
+        </div>
+        @if (agreement.signerRole === signerRole.guardian) {
+          <div class="agreement-document-step__metadata-row">
+            <dt>{{ 'agreements.signing.modal.document.signingAs' | translate }}</dt>
+            <dd data-testid="agreement-document-signing-as">{{ 'agreements.signing.modal.document.signingAsGuardian' | translate }}</dd>
+          </div>
+        }
+        @if (agreement.validityDays !== null) {
+          <div class="agreement-document-step__metadata-row">
+            <dt>{{ 'agreements.signing.modal.document.validity' | translate }}</dt>
+            <dd>{{ 'agreements.signing.modal.document.validityDays' | translate: { days: agreement.validityDays } }}</dd>
+          </div>
+        }
+      </dl>
+
+      <div class="agreement-document-step__body" data-testid="agreement-document-body">
+        <div
+          class="agreement-document-step__legal-text"
+          [class.agreement-document-step__legal-text--plain]="isPlainText()"
+          [innerHTML]="agreement.legalText"
+        ></div>
+      </div>
+
+      @if (isAlreadySigned()) {
+        <p class="agreement-document-step__state" data-testid="agreement-document-already-signed">
+          {{ 'agreements.signing.modal.document.alreadySigned' | translate }}
+        </p>
+        @if (signer(); as signer) {
+          <p class="agreement-document-step__state" data-testid="agreement-document-signed-by">
+            {{
+              (signer.minorName === null
+                ? 'agreements.signing.modal.document.signedBy'
+                : 'agreements.signing.modal.document.signedByForMinor'
+              ) | translate: { date: signer.acceptedAt | date: 'd MMM y', minor: signer.minorName, signer: signer.signerName }
+            }}
+          </p>
+        }
+      } @else {
+        <div class="agreement-document-step__acknowledgement">
+          <ignt-checkbox
+            dataTestId="agreement-document-acknowledgement"
+            [checked]="hasAcknowledged()"
+            [label]="'agreements.signing.modal.document.acknowledgementLabel' | translate"
+            (change)="hasAcknowledged.set($event)"
+          />
+          <p class="agreement-document-step__acknowledgement-detail">
+            {{ 'agreements.signing.modal.document.acknowledgementDetail' | translate }}
+          </p>
+        </div>
+      }
+
+      <span class="agreement-document-step__action">
+        <ignt-button
+          data-testid="agreement-document-continue-to-sign"
+          [disabled]="!hasAcknowledged() || isAlreadySigned()"
+          [label]="'agreements.signing.modal.document.continueToSign' | translate"
+          (click)="continueToSign()"
+        />
+      </span>
+    }
+  }
+</div>

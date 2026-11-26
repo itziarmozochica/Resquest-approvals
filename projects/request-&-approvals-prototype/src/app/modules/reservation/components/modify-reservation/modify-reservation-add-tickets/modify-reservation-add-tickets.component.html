@@ -1,0 +1,98 @@
+<div class="modify-reservation-add-tickets">
+  @if (!editorMode()) {
+    <div class="modify-reservation-add-tickets__header">
+      <button
+        ignt-icon-button
+        sentiment="secondary"
+        size="small"
+        [icon]="['far', 'chevron-left']"
+        class="modify-reservation-add-tickets__header__back"
+        data-testid="modify-reservation-add-tickets__back"
+        [attr.aria-label]="'reservations.modify.addTicketsBack' | translate"
+        (click)="onBack()"
+      ></button>
+      <h2 class="modify-reservation-add-tickets__header__title" data-testid="modify-reservation-add-tickets__title">
+        {{ (canAddNewDates() ? 'reservations.modify.addNewDatesOrTickets' : 'reservations.modify.addNewTicketTypes') | translate }}
+      </h2>
+    </div>
+  }
+  <div
+    class="box-office-content__content-card modify-reservation-add-tickets__selector-card"
+    [class.modify-reservation-add-tickets__selector-card--editor]="editorMode()"
+  >
+    <app-reservation-tabs [placeId]="placeId()" [channel]="channel()" [selectedDate]="selectedAvailabilityFromDate()" [locale]="locale()">
+      <ng-template #ticketsProjection>
+        @if (showDateSelectorComponent()) {
+          <app-date-selector-obo
+            data-testid="modify-reservation-add-tickets__date-selector"
+            [compact]="true"
+            [isMobile]="isMobile()"
+            [isTablet]="isTablet()"
+            [datesAvailability]="datesAvailability()"
+            [regularSessionAvailabilitySummaryByDate]="dateSelectorAvailabilitySummary()"
+            [selectedAvailabilityFromDate]="selectedAvailabilityFromDate()"
+            [selectedSession]="selectedSession()"
+            [selectedDateAvailability]="selectedDate()"
+            [ticketTypes]="noTicketTypes"
+            [timezone]="timezone()"
+            [locale]="locale()"
+            [loading]="loadingAvailability() || loadingSessions()"
+            [loadingAvailability]="loadingAvailability()"
+            [loadingSessions]="loadingSessions()"
+            [showLoadMoreButton]="false"
+            [shouldShowDateSelector]="shouldShowDateSelector()"
+            [isOneStepFlow]="false"
+            [sessionSelectorType]="sessionSelectorType()"
+            (handleShowAvailabilityFromDateChange)="onAvailabilityFromDateChange($event)"
+            (selectedDateChange)="onSelectedDateChange($event)"
+            (selectedSessionChange)="onSelectedSessionChange($event)"
+          ></app-date-selector-obo>
+        }
+
+        @if (loadingAvailability() || loadingSessions()) {
+          <div class="box-office-content__spinner" data-testid="modify-reservation-add-tickets__loading-spinner">
+            <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'3x'"></fa-icon>
+          </div>
+        }
+        @if (showNoSessionsAvailable()) {
+          <div class="modify-reservation-add-tickets__no-sessions" data-testid="modify-reservation-add-tickets__no-sessions">
+            <ignt-icon class="modify-reservation-add-tickets__no-sessions__icon" name="sensor-alert" variant="light" />
+            <p class="modify-reservation-add-tickets__no-sessions__text" translate>boxOffice.noSessionsAvailable</p>
+          </div>
+        }
+        @if (showTicketSelector()) {
+          <app-ticket-selector-obo
+            data-testid="modify-reservation-add-tickets__ticket-selector"
+            class="modify-reservation-add-tickets__ticket-selector"
+            [allowMultiSession]="true"
+            [allowMultiTimeSlot]="allowMultiTimeSlot()"
+            [hasExplodePipe]="hasExplodePipe()"
+            [isStepQuantityEnabled]="true"
+            [minLimitField]="MinLimitTicketFieldEnum.MINIMUM"
+            [hasSeatingEntryTicketsSelected]="false"
+            [locale]="locale()"
+            [showAddonsInASeparateSection]="true"
+            [showHiddenInASeparateSection]="false"
+            [showNewTicketTypeSelector]="true"
+            [showPrices]="true"
+            [showReservationRestriction]="true"
+            [showTicketAvailabilityInfo]="true"
+            [ticketTypeCounterBySessionId]="ticketTypeCounterBySessionId()"
+            [ticketTypeCounterBySessionType]="ticketTypeCounterBySessionType()"
+            [ticketTypes]="ticketTypes()"
+            [timezone]="timezone()"
+            (ticketTypeCounterChange)="onTicketTypeCounterChange($event)"
+          ></app-ticket-selector-obo>
+        }
+        @if (showNoTicketsWarning()) {
+          <ignt-alert
+            class="modify-reservation-add-tickets__no-tickets-warning"
+            sentiment="warning"
+            [description]="'reservations.modify.addTicketsNoSelectionWarning' | translate"
+            data-testid="modify-reservation-add-tickets__no-tickets-warning"
+          ></ignt-alert>
+        }
+      </ng-template>
+    </app-reservation-tabs>
+  </div>
+</div>

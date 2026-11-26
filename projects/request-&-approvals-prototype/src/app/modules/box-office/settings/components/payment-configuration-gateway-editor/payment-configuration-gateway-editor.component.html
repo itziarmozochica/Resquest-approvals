@@ -1,0 +1,362 @@
+<section
+  class="payment-configuration-gateway-editor"
+  [class.payment-configuration-gateway-editor--redesign]="redesign()"
+  data-testid="payment-configuration-gateway-editor"
+>
+  <section class="payment-configuration-gateway-editor__row">
+    <div class="payment-configuration-gateway-editor__row-main">
+      <div class="payment-configuration-gateway-editor__section-header">
+        @if (redesign()) {
+          <div class="payment-configuration-gateway-editor__title-row">
+            <h3 class="payment-configuration-gateway-editor__title">
+              {{ 'paymentConfig.editor.gateway.section.title' | translate }}
+            </h3>
+            <ng-content select="[sectionAction]" />
+          </div>
+        } @else {
+          <h3 class="payment-configuration-gateway-editor__title">
+            {{ 'paymentConfig.editor.gateway.section.title' | translate }}
+          </h3>
+        }
+        <p class="payment-configuration-gateway-editor__subtitle">
+          {{ 'paymentConfig.editor.gateway.section.subtitle' | translate }}
+        </p>
+      </div>
+
+      <label class="payment-configuration-gateway-editor__label" for="gateway-provider">
+        {{ 'paymentConfig.editor.gateway.provider.label' | translate }}
+      </label>
+      <ng-select
+        labelForId="gateway-provider"
+        class="payment-configuration-gateway-editor__provider"
+        data-testid="gateway-provider-select"
+        bindLabel="label"
+        bindValue="value"
+        [items]="providerItems()"
+        [clearable]="false"
+        [searchable]="false"
+        [readonly]="disabled()"
+        [ngModel]="provider() ?? ''"
+        (ngModelChange)="onProviderChange($event)"
+      />
+    </div>
+
+    @if (provider() !== null) {
+      <div
+        [class.payment-configuration-gateway-editor__panel]="!redesign()"
+        [class.payment-configuration-gateway-editor__panel--error]="!redesign() && methodsError()"
+        [class.payment-configuration-gateway-editor__methods]="redesign()"
+        data-testid="gateway-methods"
+      >
+        @if (redesign()) {
+          <app-method-switch-list
+            scope="gateway"
+            [methods]="availableMethods()"
+            [selectedMethodCodes]="selectedMethodCodes()"
+            [disabled]="disabled()"
+            [showError]="methodsError()"
+            (selectionChange)="onMethodsSelectionChange($event)"
+          />
+        } @else {
+          <span class="payment-configuration-gateway-editor__panel-title">
+            {{ 'paymentConfig.editor.gateway.methods.title' | translate }}
+          </span>
+          <app-method-checklist
+            scope="gateway"
+            [methods]="availableMethods()"
+            [selectedMethodCodes]="selectedMethodCodes()"
+            [disabled]="disabled()"
+            [showError]="methodsError()"
+            (selectionChange)="onMethodsSelectionChange($event)"
+          />
+        }
+      </div>
+    }
+  </section>
+
+  @if (provider() !== null) {
+    @if (showProviderConfig()) {
+      <section
+        class="payment-configuration-gateway-editor__row payment-configuration-gateway-editor__row--divided"
+        data-testid="gateway-provider-config"
+      >
+        <div class="payment-configuration-gateway-editor__row-main">
+          <span class="payment-configuration-gateway-editor__label">
+            {{ 'paymentConfig.editor.gateway.providerConfig.title' | translate }}
+          </span>
+          <p class="payment-configuration-gateway-editor__helper">
+            {{ 'paymentConfig.editor.gateway.providerConfig.helper' | translate }}
+          </p>
+          @if (provider() === 'square') {
+            <div class="payment-configuration-gateway-editor__field">
+              <ignt-input-field
+                type="text"
+                data-testid="gateway-square-location-id"
+                [label]="'paymentConfig.editor.gateway.providerConfig.square.squareLocationId' | translate"
+                [disabled]="disabled()"
+                [hideErrorLabels]="true"
+                [required]="showErrors()"
+                [ngModel]="squareLocationId()"
+                (ngModelChange)="onSquareLocationIdChange($event)"
+              />
+              <ignt-field-error [showError]="squareLocationIdError()" data-testid="gateway-square-location-id-error">
+                {{ 'paymentConfig.editor.gateway.providerConfig.requiredField' | translate }}
+              </ignt-field-error>
+            </div>
+            <div class="payment-configuration-gateway-editor__field">
+              <ignt-input-field
+                type="text"
+                data-testid="gateway-square-application-id"
+                [label]="'paymentConfig.editor.gateway.providerConfig.square.applicationId' | translate"
+                [disabled]="disabled()"
+                [hideErrorLabels]="true"
+                [required]="showErrors()"
+                [ngModel]="applicationId()"
+                (ngModelChange)="onApplicationIdChange($event)"
+              />
+              <ignt-field-error [showError]="squareApplicationIdError()" data-testid="gateway-square-application-id-error">
+                {{ 'paymentConfig.editor.gateway.providerConfig.requiredField' | translate }}
+              </ignt-field-error>
+            </div>
+          }
+          @if (provider() === 'payhere') {
+            <div class="payment-configuration-gateway-editor__field">
+              <ignt-input-field
+                type="text"
+                data-testid="gateway-payhere-merchant-id"
+                [label]="'paymentConfig.editor.gateway.providerConfig.payhere.merchantId' | translate"
+                [disabled]="disabled()"
+                [hideErrorLabels]="true"
+                [required]="showErrors()"
+                [ngModel]="merchantId()"
+                (ngModelChange)="onMerchantIdChange($event)"
+              />
+              <ignt-field-error [showError]="merchantIdError()" data-testid="gateway-payhere-merchant-id-error">
+                {{ 'paymentConfig.editor.gateway.providerConfig.requiredField' | translate }}
+              </ignt-field-error>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    @if (showTerminals()) {
+      <section
+        class="payment-configuration-gateway-editor__row payment-configuration-gateway-editor__row--divided"
+        data-testid="gateway-terminals"
+      >
+        <div class="payment-configuration-gateway-editor__row-main">
+          <span class="payment-configuration-gateway-editor__label">
+            {{ 'paymentConfig.editor.gateway.terminals.title' | translate }}
+          </span>
+          <p class="payment-configuration-gateway-editor__helper">
+            {{ 'paymentConfig.editor.gateway.terminals.helper' | translate }}
+          </p>
+          <div class="payment-configuration-gateway-editor__field">
+            <ignt-input-field
+              #terminalField
+              type="text"
+              data-testid="gateway-terminal-input"
+              [label]="'paymentConfig.editor.gateway.terminals.label' | translate"
+              [placeholder]="'paymentConfig.editor.gateway.terminals.placeholder' | translate"
+              [disabled]="disabled()"
+              [hideErrorLabels]="true"
+              [ngModel]="terminalInput()"
+              (ngModelChange)="onTerminalInputChange($event)"
+            />
+            <ignt-field-error [showError]="terminalInputError()" data-testid="gateway-terminal-input-error">
+              {{ 'paymentConfig.editor.gateway.terminals.invalidFormat' | translate }}
+            </ignt-field-error>
+          </div>
+        </div>
+
+        <div class="payment-configuration-gateway-editor__terminals" data-testid="gateway-connected-terminals">
+          <div
+            class="payment-configuration-gateway-editor__panel"
+            [class.payment-configuration-gateway-editor__panel--error]="terminalsError()"
+          >
+            <span class="payment-configuration-gateway-editor__panel-title">
+              {{ 'paymentConfig.editor.gateway.terminals.connectedTitle' | translate }}
+            </span>
+            <ignt-field-error [showError]="terminalsError()" data-testid="gateway-connected-terminals-error">
+              {{ 'paymentConfig.editor.gateway.terminals.requiredError' | translate }}
+            </ignt-field-error>
+            @if (terminals().length === 0) {
+              @if (!terminalsError()) {
+                <p class="payment-configuration-gateway-editor__panel-empty">
+                  {{ 'paymentConfig.editor.gateway.terminals.connectedEmpty' | translate }}
+                </p>
+              }
+            } @else {
+              <ignt-input-field
+                class="payment-configuration-gateway-editor__search"
+                data-testid="gateway-connected-terminals-search"
+                type="text"
+                [leadIcon]="['fal', 'search']"
+                [label]="'paymentConfig.editor.gateway.terminals.searchLabel' | translate"
+                [placeholder]="'paymentConfig.editor.gateway.terminals.searchPlaceholder' | translate"
+                [ngModel]="terminalSearch()"
+                (ngModelChange)="onTerminalSearch($event)"
+              />
+              <ul class="payment-configuration-gateway-editor__terminal-list">
+                @for (terminal of filteredTerminals(); track terminal.externalId) {
+                  <li [attr.data-testid]="'gateway-terminal-' + terminal.externalId">
+                    <ignt-pill
+                      type="secondary"
+                      [disabled]="disabled()"
+                      [label]="terminal.externalId"
+                      [attr.data-testid]="'gateway-terminal-remove-' + terminal.externalId"
+                      (clicked)="removeTerminal(terminal.externalId)"
+                    />
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+          <ng-container [ngTemplateOutlet]="terminalsChangedWarning" />
+        </div>
+      </section>
+    }
+
+    @if (showAdyenLocalTerminals()) {
+      <section
+        class="payment-configuration-gateway-editor__row payment-configuration-gateway-editor__row--divided"
+        data-testid="gateway-adyen-local-terminals"
+      >
+        <div class="payment-configuration-gateway-editor__row-main">
+          @if (showCardMode()) {
+            <span class="payment-configuration-gateway-editor__label">
+              {{ 'paymentConfig.editor.gateway.terminals.adyenLocal.mode.title' | translate }}
+            </span>
+            <p class="payment-configuration-gateway-editor__helper">
+              {{ 'paymentConfig.editor.gateway.terminals.adyenLocal.mode.helper' | translate }}
+            </p>
+            <div class="payment-configuration-gateway-editor__modes" role="radiogroup" data-testid="gateway-adyen-local-mode">
+              <ignt-radio
+                name="adyen-local-mode"
+                [value]="adyenLocalModes.Terminals"
+                [checked]="adyenLocalMode() === adyenLocalModes.Terminals"
+                [disabled]="disabled()"
+                [label]="'paymentConfig.editor.gateway.terminals.adyenLocal.mode.terminals.label' | translate"
+                (change)="onAdyenLocalModeChange(adyenLocalModes.Terminals)"
+                data-testid="gateway-adyen-local-mode-terminals"
+              />
+              <ignt-radio
+                name="adyen-local-mode"
+                [value]="adyenLocalModes.TapToPay"
+                [checked]="adyenLocalMode() === adyenLocalModes.TapToPay"
+                [disabled]="disabled()"
+                [label]="'paymentConfig.editor.gateway.terminals.adyenLocal.mode.tapToPay.label' | translate"
+                (change)="onAdyenLocalModeChange(adyenLocalModes.TapToPay)"
+                data-testid="gateway-adyen-local-mode-tap-to-pay"
+              />
+            </div>
+          } @else {
+            <span class="payment-configuration-gateway-editor__label">
+              {{ 'paymentConfig.editor.gateway.terminals.title' | translate }}
+            </span>
+            <p class="payment-configuration-gateway-editor__helper">
+              {{ 'paymentConfig.editor.gateway.terminals.adyenLocal.helper' | translate }}
+            </p>
+          }
+        </div>
+
+        <div class="payment-configuration-gateway-editor__terminals">
+          @if (adyenLocalMode() === adyenLocalModes.Terminals) {
+            @if (showCardMode()) {
+              <div class="payment-configuration-gateway-editor__heading">
+                <span class="payment-configuration-gateway-editor__label">
+                  {{ 'paymentConfig.editor.gateway.terminals.title' | translate }}
+                </span>
+                <p class="payment-configuration-gateway-editor__helper">
+                  {{ 'paymentConfig.editor.gateway.terminals.adyenLocal.mode.terminals.description' | translate }}
+                </p>
+              </div>
+            }
+          } @else {
+            <div class="payment-configuration-gateway-editor__heading">
+              <span class="payment-configuration-gateway-editor__label">
+                {{ 'paymentConfig.editor.gateway.terminals.adyenLocal.mode.tapToPay.label' | translate }}
+              </span>
+              <p class="payment-configuration-gateway-editor__helper">
+                {{ 'paymentConfig.editor.gateway.terminals.adyenLocal.mode.tapToPay.description' | translate }}
+              </p>
+            </div>
+            @if (showTerminalsRemovedWarning()) {
+              <ignt-alert
+                data-testid="gateway-adyen-local-terminals-removed-warning"
+                sentiment="warning"
+                [title]="'paymentConfig.editor.gateway.providerConfig.adyenLocal.cardMode.terminalsRemoved.title' | translate"
+              >
+                <ng-template #igntAlertContent>
+                  <p class="payment-configuration-gateway-editor__alert-text">
+                    {{ 'paymentConfig.editor.gateway.providerConfig.adyenLocal.cardMode.terminalsRemoved.message' | translate }}
+                  </p>
+                  @if (assignedOnsiteSetupNames().length > 0) {
+                    <p class="payment-configuration-gateway-editor__alert-text">
+                      {{ 'paymentConfig.editor.gateway.terminals.warning.boxOffices' | translate }}
+                    </p>
+                    <ul class="payment-configuration-gateway-editor__terminals-warning-list">
+                      @for (name of assignedOnsiteSetupNames(); track name) {
+                        <li data-testid="gateway-adyen-local-terminals-removed-box-office">{{ name }}</li>
+                      }
+                    </ul>
+                  }
+                </ng-template>
+              </ignt-alert>
+            }
+          }
+
+          <div class="payment-configuration-gateway-editor__key-config">
+            @if (adyenLocalMode() === adyenLocalModes.Terminals) {
+              <span class="payment-configuration-gateway-editor__label">
+                {{ 'paymentConfig.editor.gateway.providerConfig.title' | translate }}
+              </span>
+            }
+            <app-payment-configuration-adyen-local-key
+              [storedKey]="storedAdyenLocalKey()"
+              [disabled]="disabled()"
+              [tapToPayEnabled]="tapToPayEnabled()"
+              [showErrors]="showErrors()"
+              (keyChange)="onAdyenLocalKeyChange($event)"
+            />
+          </div>
+
+          @if (adyenLocalMode() === adyenLocalModes.Terminals) {
+            <app-payment-configuration-connect-device
+              [terminals]="terminals()"
+              [disabled]="disabled()"
+              [hasCredentials]="hasAdyenLocalCredentials()"
+              [saveBeforeConnect]="saveBeforeConnect()"
+              (connected)="onDeviceConnected($event)"
+              (removed)="removeTerminal($event)"
+            />
+
+            <ng-container [ngTemplateOutlet]="terminalsChangedWarning" />
+          }
+        </div>
+      </section>
+    }
+  }
+</section>
+
+<ng-template #terminalsChangedWarning>
+  @if (showTerminalsChangedWarning()) {
+    <ignt-alert
+      class="payment-configuration-gateway-editor__terminals-warning"
+      data-testid="gateway-terminals-warning"
+      sentiment="warning"
+      [title]="'paymentConfig.editor.gateway.terminals.warning.title' | translate"
+    >
+      <ng-template #igntAlertContent>
+        <p>{{ 'paymentConfig.editor.gateway.terminals.warning.message' | translate }}</p>
+        <p>{{ 'paymentConfig.editor.gateway.terminals.warning.boxOffices' | translate }}</p>
+        <ul class="payment-configuration-gateway-editor__terminals-warning-list">
+          @for (name of assignedOnsiteSetupNames(); track name) {
+            <li data-testid="gateway-terminals-warning-box-office">{{ name }}</li>
+          }
+        </ul>
+      </ng-template>
+    </ignt-alert>
+  }
+</ng-template>

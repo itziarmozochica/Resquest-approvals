@@ -1,0 +1,124 @@
+@use 'foundations' as foundations;
+
+// The trigger's chevron, block padding and border; every dropdown row takes the same height.
+$status-control-height: foundations.$size-6 + 2 * foundations.$space-1 + 2 * foundations.$size-px;
+
+:host {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: foundations.$space-1;
+}
+
+:host(.lead-status-tag--inline) {
+  flex-direction: row;
+  align-items: center;
+  gap: foundations.$space-2;
+}
+
+// The tag's own host is `inline-block`, which reserves a full line of the inherited line-height and sits
+// the tag on its baseline, a little below the status text beside it; a flex host is exactly the tag's height.
+:host(.lead-status-tag--inline) ignt-tag,
+.lead-status-tag__option ignt-tag {
+  display: flex;
+}
+
+.lead-status-tag__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: foundations.$space-2;
+  min-height: $status-control-height;
+  padding-block: foundations.$space-1;
+  padding-inline: foundations.$space-1 foundations.$space-3;
+  border: 1px solid foundations.$color-border-main;
+  border-radius: foundations.$radii-2;
+  background: foundations.$color-background-main;
+  cursor: pointer;
+
+  &:hover {
+    background: foundations.$color-background-primary-weak;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 foundations.$space-1 rgba(foundations.$color-action-background-primary, 0.32);
+  }
+
+  &[aria-disabled='true'] {
+    cursor: not-allowed;
+    background: foundations.$color-background-main;
+  }
+}
+
+.lead-status-tag__chevron {
+  color: foundations.$color-text-subtle;
+}
+
+// The menu renders in an overlay, but its elements are declared in this template, so these rules
+// reach them. A shared column grid lines every entry's status up, however wide the category tag before it.
+// The menu opens flush with the trigger and its rows repeat the trigger's padding, so the tags line up.
+.lead-status-tag__menu {
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
+  column-gap: foundations.$space-2;
+}
+
+.lead-status-tag__option {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: center;
+  column-gap: foundations.$space-2;
+  min-height: $status-control-height;
+  padding-block: foundations.$space-1;
+  padding-inline: foundations.$space-1 foundations.$space-3;
+
+  // Everything sits on the row's one grid row, so the copy overlaps the entry instead of adding a row.
+  // An entry has no chevron, so its status may run on into the chevron's column.
+  ignt-tag {
+    grid-area: 1 / 1;
+  }
+
+  .lead-status-tag__status {
+    grid-area: 1 / 2;
+  }
+
+  .lead-status-tag__status--entry {
+    grid-column: 2 / -1;
+  }
+
+  .lead-status-tag__chevron {
+    grid-area: 1 / 3;
+  }
+}
+
+// A hidden copy of the trigger's value and chevron in the first entry, so the dropdown is never narrower
+// than the trigger; it is wider when an entry needs more room.
+.lead-status-tag__copy {
+  display: contents;
+  visibility: hidden;
+}
+
+.lead-status-tag__status {
+  font: foundations.$font-caption-bold;
+
+  &--info {
+    color: foundations.$palette-primary-600;
+  }
+
+  &--warning {
+    color: foundations.$color-text-warning;
+  }
+
+  &--positive {
+    color: foundations.$color-text-positive;
+  }
+
+  &--danger {
+    color: foundations.$color-text-danger;
+  }
+
+  &--sharp {
+    color: foundations.$color-text-main;
+  }
+}

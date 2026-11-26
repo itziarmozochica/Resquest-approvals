@@ -1,0 +1,115 @@
+<div class="approval-ziflow-folder-picker" data-testid="approval-ziflow-folder-picker">
+  <p class="approval-ziflow-folder-picker__intro">{{ 'approvals.new.upload.ziflowIntro' | translate }}</p>
+
+  <div class="approval-ziflow-folder-picker__paste-row">
+    <ignt-input-field
+      class="approval-ziflow-folder-picker__paste-input"
+      [label]="'approvals.new.upload.ziflowPasteLabel' | translate"
+      [placeholder]="'approvals.new.upload.ziflowPastePlaceholder' | translate"
+      [formControl]="linkControl"
+      data-testid="approval-ziflow-paste-input"
+    ></ignt-input-field>
+    <ignt-button
+      variant="secondary"
+      sentiment="neutral"
+      [label]="'approvals.new.upload.ziflowLoadButton' | translate"
+      [disabled]="!linkControl.value.trim() || resolving() || loading()"
+      (click)="loadPastedLink()"
+      data-testid="approval-ziflow-load-link"
+    ></ignt-button>
+  </div>
+
+  @if (resolving()) {
+    <p class="approval-ziflow-folder-picker__hint" data-testid="approval-ziflow-resolving">
+      {{ 'approvals.new.upload.ziflowResolving' | translate }}
+    </p>
+  } @else {
+    @if (pasteError(); as errorKey) {
+      <p class="approval-ziflow-folder-picker__hint approval-ziflow-folder-picker__hint--error" data-testid="approval-ziflow-paste-error">
+        {{ 'approvals.new.upload.ziflowPasteErrors.' + errorKey | translate }}
+      </p>
+    }
+  }
+
+  @if (loading()) {
+    <p class="approval-ziflow-folder-picker__hint" data-testid="approval-ziflow-loading">
+      {{ 'approvals.new.upload.ziflowLoadingFolders' | translate }}
+    </p>
+  } @else if (loadError()) {
+    <p class="approval-ziflow-folder-picker__hint" data-testid="approval-ziflow-error">
+      {{ 'approvals.new.upload.ziflowError' | translate }}
+    </p>
+  } @else {
+    <div class="approval-ziflow-folder-picker__list-header">
+      <p class="approval-ziflow-folder-picker__list-title">{{ 'approvals.new.upload.ziflowSuggested' | translate }}</p>
+      @if (hasSelection()) {
+        <ignt-button
+          variant="ghost"
+          sentiment="neutral"
+          [label]="'approvals.new.upload.ziflowClear' | translate"
+          (click)="clearSelection()"
+          data-testid="approval-ziflow-clear"
+        ></ignt-button>
+      }
+    </div>
+    @if (restoreError()) {
+      <p class="approval-ziflow-folder-picker__hint approval-ziflow-folder-picker__hint--error" data-testid="approval-ziflow-restore-error">
+        {{ 'approvals.new.upload.ziflowRestoreError' | translate }}
+      </p>
+    }
+    @if (folders().length) {
+      <!-- ignt-radio-group cannot be deselected: writing null re-checks the previously selected radio and
+           restores its value, so deselecting bumps resetNonce() to rebuild the group from scratch instead. -->
+      @for (nonce of [resetNonce()]; track nonce) {
+        <ignt-radio-group [formControl]="folderControl" data-testid="approval-ziflow-folder-list">
+          @for (folder of folders(); track folder.folderId) {
+            <div class="approval-ziflow-folder-picker__folder-row">
+              @if (folder.thumbnailUrl) {
+                <img
+                  class="approval-ziflow-folder-picker__thumb"
+                  [src]="folder.thumbnailUrl"
+                  [alt]="folder.folderName"
+                  loading="lazy"
+                  width="40"
+                  height="40"
+                  [attr.data-testid]="'approval-ziflow-thumb-' + folder.folderId"
+                />
+              } @else {
+                <span
+                  class="approval-ziflow-folder-picker__thumb approval-ziflow-folder-picker__thumb--empty"
+                  [attr.data-testid]="'approval-ziflow-thumb-placeholder-' + folder.folderId"
+                >
+                  <ignt-icon aria-hidden="true" name="image" variant="light" size="sm" />
+                </span>
+              }
+              <ignt-radio
+                [value]="folder.folderId"
+                [label]="folder.folderName"
+                [description]="folderDescription(folder)"
+                [dataTestId]="'approval-ziflow-folder-' + folder.folderId"
+              ></ignt-radio>
+              @if (folder.folderUrl) {
+                <button
+                  type="button"
+                  ignt-icon-button
+                  class="approval-ziflow-folder-picker__open"
+                  [icon]="['far', 'arrow-up-right-from-square']"
+                  sentiment="tertiary"
+                  size="small"
+                  (click)="openFolder(folder)"
+                  [attr.aria-label]="'approvals.new.upload.ziflowOpenFolder' | translate"
+                  [attr.title]="'approvals.new.upload.ziflowOpenFolder' | translate"
+                  [attr.data-testid]="'approval-ziflow-open-' + folder.folderId"
+                ></button>
+              }
+            </div>
+          }
+        </ignt-radio-group>
+      }
+    } @else if (!restoreError()) {
+      <p class="approval-ziflow-folder-picker__hint" data-testid="approval-ziflow-empty">
+        {{ (hasLaunch() ? 'approvals.new.upload.ziflowEmpty' : 'approvals.new.upload.ziflowEmptyNoLaunch') | translate }}
+      </p>
+    }
+  }
+</div>

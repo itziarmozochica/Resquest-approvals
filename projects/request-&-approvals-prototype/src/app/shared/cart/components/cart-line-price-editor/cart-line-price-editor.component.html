@@ -1,0 +1,120 @@
+<form class="line-price-editor" data-testid="cart-line-price-editor" [formGroup]="form" (ngSubmit)="apply()">
+  <div class="line-price-editor__totals">
+    <div class="line-price-editor__total">
+      <span>{{ 'boxOffice.cart.linePrice.currentTotal' | translate }}</span>
+      <strong data-testid="cart-line-price-current-total">
+        {{ currentTotal().amount | currency: currentTotal().currency : 'symbol-narrow' : null : locale() }}
+      </strong>
+    </div>
+    <div class="line-price-editor__total">
+      <span>{{ 'boxOffice.cart.linePrice.newTotal' | translate }}</span>
+      <strong data-testid="cart-line-price-new-total">
+        @if (newTotal(); as total) {
+          {{ total.amount | currency: total.currency : 'symbol-narrow' : null : locale() }}
+        } @else {
+          —
+        }
+      </strong>
+    </div>
+    <p class="line-price-editor__totals-note">{{ 'boxOffice.cart.linePrice.totalsNote' | translate }}</p>
+  </div>
+
+  <div class="line-price-editor__group" role="radiogroup" [attr.aria-label]="'boxOffice.cart.linePrice.priceChangeType' | translate">
+    <span class="line-price-editor__label">{{ 'boxOffice.cart.linePrice.priceChangeType' | translate }}</span>
+    <ignt-list-item
+      data-testid="cart-line-price-fixed"
+      [title]="'boxOffice.cart.linePrice.fixedAmount' | translate"
+      [selected]="!isPercentage()"
+      [clickable]="true"
+      (click)="selectCalculation(calculations.FIXED)"
+    >
+      <ng-container leading-modifier>
+        <ignt-radio [checked]="!isPercentage()" (change)="selectCalculation(calculations.FIXED)"></ignt-radio>
+      </ng-container>
+    </ignt-list-item>
+    <ignt-list-item
+      data-testid="cart-line-price-percentage"
+      [title]="'boxOffice.cart.linePrice.percentage' | translate"
+      [selected]="isPercentage()"
+      [clickable]="true"
+      (click)="selectCalculation(calculations.PERCENTAGE)"
+    >
+      <ng-container leading-modifier>
+        <ignt-radio [checked]="isPercentage()" (change)="selectCalculation(calculations.PERCENTAGE)"></ignt-radio>
+      </ng-container>
+    </ignt-list-item>
+  </div>
+
+  <ignt-typeahead
+    id="cart-line-price-operation"
+    data-testid="cart-line-price-operation"
+    [fieldLabel]="'boxOffice.cart.linePrice.calculation' | translate"
+    [options]="operationOptions"
+    [selectedOption]="selectedOperation()"
+    [editable]="false"
+    (selected)="selectOperation($event)"
+  ></ignt-typeahead>
+
+  <div class="line-price-editor__amount">
+    <ignt-input-field
+      id="cart-line-price-amount"
+      type="number"
+      formControlName="amount"
+      data-testid="cart-line-price-amount"
+      [label]="
+        (isPercentage() ? 'boxOffice.cart.linePrice.percentagePerTicket' : 'boxOffice.cart.linePrice.amountPerTicket')
+          | translate: { currency: catalogUnitPrice().currency }
+      "
+      [minValue]="0"
+    ></ignt-input-field>
+    @if (errors().amount !== null && form.controls.amount.touched) {
+      <ignt-field-error data-testid="cart-line-price-amount-error" [showError]="true">
+        {{ 'boxOffice.cart.linePrice.errors.' + errors().amount | translate }}
+      </ignt-field-error>
+    } @else if (!isPercentage()) {
+      <span class="line-price-editor__hint" data-testid="cart-line-price-amount-hint">
+        {{ (isReduction() ? 'boxOffice.cart.linePrice.reduceHint' : 'boxOffice.cart.linePrice.addHint') | translate }}
+      </span>
+    }
+  </div>
+
+  <div>
+    <ignt-textarea-field
+      id="cart-line-price-concept"
+      formControlName="concept"
+      data-testid="cart-line-price-concept"
+      autocomplete="off"
+      [label]="'boxOffice.cart.linePrice.reason' | translate"
+      [placeholder]="'boxOffice.cart.linePrice.reasonPlaceholder' | translate"
+      [helperText]="'boxOffice.cart.linePrice.reasonHelper' | translate"
+      [rows]="2"
+    ></ignt-textarea-field>
+    @if (errors().concept !== null && form.controls.concept.touched) {
+      <ignt-field-error data-testid="cart-line-price-concept-error" [showError]="true">
+        {{ 'boxOffice.cart.linePrice.errors.' + errors().concept | translate }}
+      </ignt-field-error>
+    }
+  </div>
+
+  @if (refusal(); as refusalKey) {
+    <div role="alert">
+      <ignt-field-error data-testid="cart-line-price-refusal" [showError]="true">{{ refusalKey | translate }}</ignt-field-error>
+    </div>
+  }
+
+  <div class="line-price-editor__actions">
+    <ignt-button
+      variant="secondary"
+      data-testid="cart-line-price-cancel"
+      [label]="'boxOffice.cart.linePrice.cancel' | translate"
+      (click)="cancelled.emit()"
+    />
+    <ignt-button
+      variant="primary"
+      htmlType="submit"
+      data-testid="cart-line-price-apply"
+      [label]="'boxOffice.cart.linePrice.apply' | translate"
+      [disabled]="isApplyDisabled()"
+    />
+  </div>
+</form>

@@ -1,0 +1,63 @@
+<div class="cash-calculator">
+  @if (subtitleKey(); as subtitle) {
+    <p class="cash-calculator__subtitle" data-testid="calculator-subtitle">{{ subtitle | translate }}</p>
+  }
+
+  <div class="cash-calculator__fields">
+    <div
+      class="cash-calculator__field"
+      data-testid="calculator-total-to-pay"
+      [class.cash-calculator__field--readonly]="lockTotalToPay()"
+      [attr.role]="lockTotalToPay() ? null : 'button'"
+      [attr.tabindex]="lockTotalToPay() ? null : -1"
+      [class.cash-calculator__field--focused]="!lockTotalToPay() && focusedField() === 'totalToPay'"
+      (click)="focusField('totalToPay')"
+      (keydown.enter)="focusField('totalToPay')"
+      (keydown.space)="focusField('totalToPay'); $event.preventDefault()"
+    >
+      <span class="cash-calculator__field-label">{{ totalToPayLabelKey() | translate }}</span>
+      <span class="cash-calculator__field-value">
+        {{ editableTotalToPay() | currency: currency() : 'symbol-narrow' : undefined : locale() }}
+      </span>
+    </div>
+
+    <div
+      class="cash-calculator__field"
+      data-testid="calculator-received"
+      role="button"
+      tabindex="-1"
+      [class.cash-calculator__field--focused]="focusedField() === 'received'"
+      (click)="focusField('received')"
+      (keydown.enter)="focusField('received')"
+      (keydown.space)="focusField('received'); $event.preventDefault()"
+    >
+      <span class="cash-calculator__field-label">{{ receivedLabelKey() | translate }}</span>
+      <span class="cash-calculator__field-value">
+        @if (received() === 0) {
+          -
+        } @else {
+          {{ received() | currency: currency() : 'symbol-narrow' : undefined : locale() }}
+        }
+      </span>
+    </div>
+
+    <div class="cash-calculator__field cash-calculator__field--readonly" data-testid="calculator-change" aria-live="polite">
+      <span class="cash-calculator__field-label">{{ changeLabelKey() | translate }}</span>
+      <span class="cash-calculator__field-value cash-calculator__field-value--bold">
+        {{ change() | currency: currency() : 'symbol-narrow' : undefined : locale() }}
+      </span>
+    </div>
+  </div>
+
+  <div class="cash-calculator__keypad">
+    <app-numeric-keypad
+      appearance="calculator"
+      data-testid="checkout-calculator-keypad"
+      [showDisplay]="false"
+      [value]="keypadValue()"
+      [currency]="currency()"
+      [locale]="locale()"
+      (valueChange)="onKeypadValueChange($event)"
+    />
+  </div>
+</div>

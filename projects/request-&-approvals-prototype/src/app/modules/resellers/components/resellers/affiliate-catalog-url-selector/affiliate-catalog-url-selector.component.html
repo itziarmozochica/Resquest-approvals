@@ -1,0 +1,63 @@
+<div class="header">
+  <span class="header__title">{{ 'resellers.affiliateCatalogUrlSelector.title' | translate }}</span>
+  @if (cityOptions().length !== 0) {
+    <span class="header__subtitle">{{ 'resellers.affiliateCatalogUrlSelector.subtitle' | translate }}</span>
+  }
+</div>
+
+<div class="affiliate-catalog-url-selector" [class.affiliate-catalog-url-selector--fixed]="enableFixedLayout">
+  @if (isLoadingCities()) {
+    <ignt-skeleton type="item" [animation]="true" />
+  } @else if (cityOptions().length === 0) {
+    <ignt-alert
+      sentiment="info"
+      [description]="'resellers.affiliateCatalogUrlSelector.noEventsAssociatedAlert' | translate"
+      class="affiliate-catalog-url-selector__alert"
+    />
+  } @else {
+    @if (cityOptions().length > 1) {
+      <ignt-typeahead
+        [fieldLabel]="'resellers.affiliateCatalogUrlSelector.cityLabel' | translate"
+        [options]="cityOptions()"
+        (selected)="onCitySelected($event)"
+        [selectedOption]="selectedCityOption() ?? undefined"
+        [editable]="false"
+      />
+    } @else {
+      <ignt-input-field
+        [label]="'resellers.affiliateCatalogUrlSelector.cityLabel' | translate"
+        [readonly]="true"
+        [ngModel]="selectedCityOption()?.title"
+        type="text"
+      />
+    }
+
+    @if (isLoadingAffiliateCatalogUrl()) {
+      <ignt-skeleton type="item" [animation]="true" [height]="56" />
+    } @else {
+      <ignt-input-field
+        [label]="'resellers.affiliateCatalogUrlSelector.affiliateCatalogUrlLabel' | translate"
+        [readonly]="true"
+        [ngModel]="affiliateCatalogUrl()"
+        type="text"
+      />
+    }
+
+    <div>
+      <button
+        igntButton
+        sentiment="secondary"
+        [leadingIcon]="['fal', 'copy']"
+        class="affiliate-catalog-url-selector__copy-button"
+        [disabled]="!affiliateCatalogUrl() || isLoadingAffiliateCatalogUrl()"
+        (click)="onCopyUrl()"
+      >
+        {{
+          showCopiedUrlMessage()
+            ? ('resellers.affiliateCatalogUrlSelector.copiedUrlMessage' | translate)
+            : ('resellers.affiliateCatalogUrlSelector.copyUrlLabel' | translate)
+        }}
+      </button>
+    </div>
+  }
+</div>

@@ -1,0 +1,102 @@
+<app-table
+  [headers]="headers"
+  [type]="TableType.FZ_TABLE"
+  (updateOrderByEmit)="updateOrderBy($event)"
+  [orderBy]="orderBy"
+  class="tasks-table"
+  data-testid="tasks-table"
+  [scrollable]="true"
+>
+  <ng-container *ngIf="!loading; then resultsLoaded"></ng-container>
+</app-table>
+
+<ng-container *ngIf="loading">
+  <ng-container *ngTemplateOutlet="loadingResults"></ng-container>
+</ng-container>
+
+<ng-container *ngIf="!loading && jobRequestSummaries?.length === 0">
+  <ng-container *ngTemplateOutlet="noResults"></ng-container>
+</ng-container>
+
+<ng-template #loadingResults>
+  <div class="tasks-table__body__no-results" data-testid="tasks-table-loading-spinner">
+    <ignt-icon class="loader" name="spinner" variant="solid" [spin]="true" size="display"></ignt-icon>
+  </div>
+</ng-template>
+
+<ng-template #resultsLoaded>
+  <ng-container *ngIf="jobRequestSummaries?.length > 0">
+    <tr
+      *ngFor="let jobRequestSummary of jobRequestSummaries; trackBy: trackById"
+      class="tasks-table__row"
+      [class.tasks-table__row--failed]="jobRequestSummary.isFailed"
+      data-testid="tasks-table-row"
+    >
+      <ng-container
+        *ngTemplateOutlet="
+          jobRequestSummary.isPreparing ? jobRequestSummaryPreparing : jobRequestSummaryWithJobs;
+          context: { jobRequestSummary: jobRequestSummary }
+        "
+      ></ng-container>
+    </tr>
+  </ng-container>
+</ng-template>
+
+<ng-template #noResults>
+  <div class="tasks-table__body__no-results" data-testid="tasks-table-no-results">
+    <span>{{ 'tasks.messages.noTasks' | translate }}</span>
+  </div>
+</ng-template>
+
+<ng-template #jobRequestSummaryWithJobs let-jobRequestSummary="jobRequestSummary">
+  <ng-container *ngTemplateOutlet="jobRequestSummaryCommonInfo; context: { jobRequestSummary: jobRequestSummary }"></ng-container>
+  <ng-container *ngTemplateOutlet="jobsInfo; context: { jobs: jobRequestSummary.jobs }"></ng-container>
+  <td class="tasks-table__row__actions"></td>
+</ng-template>
+
+<ng-template #jobRequestSummaryCommonInfo let-jobRequestSummary="jobRequestSummary">
+  <td class="tasks-table__row__action" data-testid="tasks-table-row-action">
+    {{ 'tasks.taskAction.' + transformActionType(jobRequestSummary.requestType) | translate }}
+  </td>
+  <td>
+    <span class="tasks-table__row__user__fullname" data-testid="tasks-table-row-user-fullname">{{
+      jobRequestSummary.requesterFullName
+    }}</span>
+    <br />
+    <span class="tasks-table__row__user__email" data-testid="tasks-table-row-user-email">{{ jobRequestSummary.requesterEmail }}</span>
+  </td>
+  <td data-testid="tasks-table-row-created-at">{{ jobRequestSummary.createdAt | momentDate: 'yyyy-MM-dd HH:mm' : timezone }}</td>
+</ng-template>
+
+<ng-template #jobsInfo let-jobs="jobs">
+  <td>
+    <p class="tasks-table__row__jobs" data-testid="tasks-table-row-job-type" *ngFor="let job of jobs; trackBy: trackById">
+      <ng-container *ngIf="transformJobType(job.type) as jobTypeInfo">
+        {{ 'tasks.taskType.' + jobTypeInfo[0] | translate }}
+        <ng-container *ngIf="jobTypeInfo[1]"
+          ><small>(ID {{ jobTypeInfo[1] }})</small></ng-container
+        >
+      </ng-container>
+    </p>
+  </td>
+  <td>
+    <p class="tasks-table__row__jobs" data-testid="tasks-table-row-job-status" *ngFor="let job of jobs; trackBy: trackById">
+      {{ 'tasks.taskStatus.' + (job.status | lowercase) | translate }}
+    </p>
+  </td>
+  <td>
+    <div class="tasks-table__row__progress" data-testid="tasks-table-row-job-progress" *ngFor="let job of jobs; trackBy: trackById">
+      <app-progress-bar [percentage]="job.progressPercentage" [sentiment]="job.isFailed ? 'danger' : 'primary'"></app-progress-bar>
+    </div>
+  </td>
+</ng-template>
+
+<ng-template #jobRequestSummaryPreparing let-jobRequestSummary="jobRequestSummary">
+  <ng-container *ngTemplateOutlet="jobRequestSummaryCommonInfo; context: { jobRequestSummary: jobRequestSummary }"></ng-container>
+  <td>--</td>
+  <td data-testid="tasks-table-row-job-status">{{ 'tasks.taskStatus.preparing' | translate }}</td>
+  <td class="tasks-table__row__progress">
+    <app-progress-bar [percentage]="0"></app-progress-bar>
+  </td>
+  <td class="tasks-table__row__actions"></td>
+</ng-template>

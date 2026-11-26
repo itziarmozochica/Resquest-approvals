@@ -1,0 +1,371 @@
+<app-donation-form-layout
+  [ariaLabel]="'menu.fundraisingDonationPages' | translate"
+  [section]="'menu.fundraising' | translate"
+  [subsections]="[{ title: ('menu.fundraisingDonationPages' | translate), link: '/fundraising/donation-pages' }]"
+  [title]="(isEditMode() ? 'fundraising.donationPages.form.pageTitleEdit' : 'fundraising.donationPages.form.pageTitle') | translate"
+  [alertDescription]="'fundraising.donationPages.form.activeAlertMessage' | translate"
+  [isDisabled]="isSubmitting()"
+  [isEditMode]="isEditMode()"
+  [isSubmitting]="isSubmitting()"
+  (cancelAction)="onCancel()"
+  (submitAction)="onSubmit()"
+>
+  <ng-container ngProjectAs="[headerActions]">
+    @if (canViewOnFever()) {
+      <ignt-button
+        data-testid="donation-pages-form-view-on-fever"
+        variant="secondary"
+        sentiment="neutral"
+        [label]="'fundraising.donations.form.assignmentsSection.actions.viewInFever' | translate"
+        (click)="onViewOnFever()"
+      ></ignt-button>
+    }
+  </ng-container>
+  <div formContent class="donation-pages-form">
+    <div class="donation-pages-form__form-container">
+      <div class="donation-pages-form__section">
+        <h4 class="donation-pages-form__section-title">
+          {{ 'fundraising.donationPages.form.configurationTitle' | translate }}
+        </h4>
+        <ignt-tabs
+          class="donation-pages-form__tabs"
+          [hasExtraLine]="false"
+          [selectedIndex]="activeTab()"
+          [attr.aria-label]="'fundraising.donationPages.form.tabs.ariaLabel' | translate"
+          (selectedIndexChange)="setActiveTabByIndex($event)"
+        >
+          <ignt-tabs-item
+            [label]="'fundraising.donationPages.form.tabs.settings' | translate"
+            data-testid="donation-pages-form-tab-settings"
+          />
+          <ignt-tabs-item
+            [label]="'fundraising.donationPages.form.tabs.contentTranslations' | translate"
+            data-testid="donation-pages-form-tab-content-translations"
+          />
+        </ignt-tabs>
+      </div>
+
+      @if (activeTab() === donationPageFormTabs.SETTINGS) {
+        <form [formGroup]="form.controls.settings" class="donation-pages-form__form-body">
+          <div class="donation-pages-form__section">
+            <ignt-wrapper-card [title]="'fundraising.donationPages.form.settings.urlSlugCardTitle' | translate">
+              <ignt-input-field
+                id="donation-pages-form-url-slug"
+                data-testid="donation-pages-form-url-slug"
+                formControlName="urlSlug"
+                [label]="'fundraising.donationPages.form.settings.urlSlug' | translate"
+                type="text"
+                [customFormErrors]="[
+                  {
+                    type: 'required',
+                    message: ('form.error.required' | translate),
+                  },
+                  {
+                    type: 'pattern',
+                    message: ('fundraising.donationPages.form.settings.urlSlugError' | translate),
+                  },
+                ]"
+                class="donation-pages-form__input-field"
+              />
+              <p class="donation-pages-form__hint">
+                {{ 'fundraising.donationPages.form.settings.urlSlugHint' | translate }}
+              </p>
+            </ignt-wrapper-card>
+          </div>
+
+          <div class="donation-pages-form__section">
+            <ignt-wrapper-card [title]="'fundraising.donationPages.form.settings.channelCardTitle' | translate">
+              <app-multi-select
+                class="donation-pages-form__selector"
+                [options]="channelSelectOptions()"
+                [selectedOptions]="selectedChannelOptions()"
+                [placeholder]="'fundraising.donationPages.form.settings.channelPlaceholder' | translate"
+                [searchPlaceholder]="'fundraising.donationPages.form.settings.channelPlaceholder' | translate"
+                [displayInPlaceMaximum]="2"
+                (selected)="onChannelSelected($event)"
+                data-testid="donation-pages-form-channel"
+              />
+              @if (showChannelRequiredError()) {
+                <ignt-field-error
+                  class="donation-pages-form__error"
+                  errorName="required"
+                  data-testid="donation-pages-form-channel-error"
+                  role="alert"
+                  [showError]="true"
+                >
+                  {{ 'fundraising.donationPages.form.settings.channelRequiredError' | translate }}
+                </ignt-field-error>
+              }
+              <p class="donation-pages-form__hint">
+                {{ 'fundraising.donationPages.form.settings.channelHint' | translate }}
+              </p>
+              <app-multi-select
+                class="donation-pages-form__selector"
+                [options]="contractSelectOptions()"
+                [selectedOptions]="selectedContractOptions()"
+                [placeholder]="'fundraising.donationPages.form.settings.contractPlaceholder' | translate"
+                [searchPlaceholder]="'fundraising.donationPages.form.settings.contractPlaceholder' | translate"
+                [displayInPlaceMaximum]="2"
+                (selected)="onContractSelected($event)"
+                data-testid="donation-pages-form-contract"
+              />
+              <p class="donation-pages-form__hint">
+                {{ 'fundraising.donationPages.form.settings.contractHint' | translate }}
+              </p>
+            </ignt-wrapper-card>
+          </div>
+
+          <div class="donation-pages-form__section">
+            <ignt-wrapper-card [title]="'fundraising.donationPages.form.recurringGiving.cardTitle' | translate">
+              <div class="donation-pages-form__subsection">
+                <app-expandable-content
+                  [label]="'fundraising.donationPages.form.recurringGiving.allowRecurring' | translate"
+                  [description]="'fundraising.donationPages.form.recurringGiving.allowRecurringHelper' | translate"
+                  toggleId="donation-pages-form-allow-recurring"
+                  testId="donation-pages-form-allow-recurring"
+                  [isChecked]="settings().allowRecurringDonations"
+                  (checkedChange)="form.controls.settings.controls.allowRecurringDonations.setValue($event)"
+                >
+                  <div class="donation-pages-form__field-wrapper">
+                    <ignt-checkbox
+                      id="donation-pages-form-monthly-frequency"
+                      dataTestId="donation-pages-form-monthly-frequency"
+                      size="small"
+                      [label]="'fundraising.donationPages.form.recurringGiving.monthly' | translate"
+                      formControlName="isMonthlyEnabled"
+                    />
+                    <ignt-checkbox
+                      id="donation-pages-form-annually-frequency"
+                      dataTestId="donation-pages-form-annually-frequency"
+                      size="small"
+                      [label]="'fundraising.donationPages.form.recurringGiving.annual' | translate"
+                      formControlName="isAnnuallyEnabled"
+                    />
+                  </div>
+                  <div class="donation-pages-form__field-wrapper">
+                    <app-multi-select
+                      class="donation-pages-form__selector"
+                      [options]="cadenceOptions()"
+                      [selectedOptions]="defaultCadenceSelection()"
+                      [placeholder]="'fundraising.donationPages.form.recurringGiving.cadencePlaceholder' | translate"
+                      [searchPlaceholder]="'fundraising.donationPages.form.recurringGiving.cadenceByDefault' | translate"
+                      [maxSelectedOptions]="1"
+                      [displayInPlaceMaximum]="1"
+                      (selected)="onCadenceSelected($event)"
+                      data-testid="donation-pages-form-default-cadence"
+                    />
+                  </div>
+                </app-expandable-content>
+              </div>
+            </ignt-wrapper-card>
+          </div>
+
+          <div class="donation-pages-form__section">
+            <ignt-wrapper-card [title]="'fundraising.donationPages.form.presetAmounts.cardTitle' | translate">
+              <div>
+                @if (settings().allowRecurringDonations) {
+                  <ignt-tabs
+                    [hasExtraLine]="false"
+                    [selectedIndex]="activePresetAmountsTabIndex()"
+                    (selectedIndexChange)="onPresetAmountsTabChange($event)"
+                  >
+                    @for (frequency of enabledFrequencies(); track frequency) {
+                      <ignt-tabs-item [label]="donationPageFrequencyCadenceOptionTranslationKeys[frequency] | translate" />
+                    }
+                  </ignt-tabs>
+                  @for (frequency of enabledFrequencies(); track frequency; let index = $index) {
+                    @if (index === activePresetAmountsTabIndex()) {
+                      <app-values-range-inputs
+                        [formGroup]="form.controls.presetAmounts.controls[frequency]"
+                        [hintLabel]="
+                          showIncompletePresetAmountsError() ? '' : ('fundraising.donationPages.form.presetAmounts.hint' | translate)
+                        "
+                      />
+                    }
+                  }
+                  @if (showIncompletePresetAmountsError()) {
+                    <ignt-field-error
+                      class="donation-pages-form__error"
+                      errorName="presetAmountsRequired"
+                      data-testid="donation-pages-form-preset-amounts-error"
+                      role="alert"
+                      [showError]="true"
+                    >
+                      {{ 'fundraising.donationPages.form.presetAmounts.completeAllError' | translate }}
+                    </ignt-field-error>
+                  }
+                } @else {
+                  <app-values-range-inputs
+                    [formGroup]="form.controls.presetAmounts.controls[donationPageFrequencies.ONE_TIME]"
+                    [hintLabel]="'fundraising.donationPages.form.presetAmounts.hint' | translate"
+                  />
+                }
+              </div>
+            </ignt-wrapper-card>
+          </div>
+
+          <div class="donation-pages-form__section">
+            <ignt-wrapper-card [title]="'fundraising.donationPages.form.customAmount.cardTitle' | translate">
+              <div class="donation-pages-form__subsection">
+                <app-expandable-content
+                  [label]="'fundraising.donationPages.form.customAmount.allowCustomAmounts' | translate"
+                  [description]="'fundraising.donationPages.form.customAmount.allowCustomAmountsHelper' | translate"
+                  toggleId="donation-pages-form-allow-custom-amounts"
+                  testId="donation-pages-form-allow-custom-amounts"
+                  [isChecked]="settings().allowCustomAmounts"
+                  (checkedChange)="form.controls.settings.controls.allowCustomAmounts.setValue($event)"
+                >
+                  <div class="donation-pages-form__ranges-wrapper">
+                    <ignt-input-field
+                      appThousandsSeparator
+                      id="donation-pages-form-custom-amount-min-value"
+                      data-testid="donation-pages-form-custom-amount-min-value"
+                      formControlName="min"
+                      [label]="'fundraising.donationPages.form.customAmount.minValue' | translate"
+                      type="number"
+                      min="0"
+                      inputmode="decimal"
+                      [customFormErrors]="[
+                        {
+                          type: 'min',
+                          message: ('form.error.greaterThanZero' | translate),
+                        },
+                      ]"
+                      class="donation-pages-form__input-field"
+                    />
+                    <ignt-input-field
+                      appThousandsSeparator
+                      id="donation-pages-form-custom-amount-max-value"
+                      data-testid="donation-pages-form-custom-amount-max-value"
+                      formControlName="max"
+                      [label]="'fundraising.donationPages.form.customAmount.maxValue' | translate"
+                      type="number"
+                      min="0"
+                      inputmode="decimal"
+                      [customFormErrors]="[
+                        {
+                          type: 'lessOrEqual',
+                          message: ('form.error.lessOrEqual' | translate),
+                        },
+                        {
+                          type: 'min',
+                          message: ('form.error.greaterThanZero' | translate),
+                        },
+                      ]"
+                      class="donation-pages-form__input-field"
+                    />
+                  </div>
+                  <ignt-alert
+                    sentiment="neutral"
+                    [description]="'fundraising.donationPages.form.customAmount.contactInfoAlert' | translate"
+                    data-testid="donation-pages-form-custom-amount-info-alert"
+                  />
+                  <div class="donation-pages-form__ranges-wrapper">
+                    <ignt-input-field
+                      id="donation-pages-form-custom-amount-contact-email"
+                      data-testid="donation-pages-form-custom-amount-contact-email"
+                      formControlName="contactEmail"
+                      [label]="'fundraising.donationPages.form.customAmount.contactEmail' | translate"
+                      type="email"
+                      [customFormErrors]="[
+                        {
+                          type: 'email',
+                          message: ('form.error.invalidEmail' | translate),
+                        },
+                      ]"
+                      class="donation-pages-form__input-field"
+                    />
+                    <ignt-input-field
+                      id="donation-pages-form-custom-amount-contact-phone"
+                      data-testid="donation-pages-form-custom-amount-contact-phone"
+                      formControlName="contactPhone"
+                      [label]="'fundraising.donationPages.form.customAmount.contactPhone' | translate"
+                      type="tel"
+                      [customFormErrors]="[
+                        {
+                          type: 'pattern',
+                          message: ('form.error.invalidPhoneFormat' | translate),
+                        },
+                      ]"
+                      class="donation-pages-form__input-field"
+                    />
+                  </div>
+                  <p class="donation-pages-form__hint">
+                    {{ 'fundraising.donationPages.form.customAmount.contactHint' | translate }}
+                  </p>
+                </app-expandable-content>
+              </div>
+            </ignt-wrapper-card>
+          </div>
+
+          <div class="donation-pages-form__section">
+            <ignt-wrapper-card [title]="'fundraising.donationPages.form.whyDonate.title' | translate">
+              <div class="donation-pages-form__subsection">
+                <app-expandable-content
+                  [label]="'fundraising.donationPages.form.whyDonate.showImpactSection' | translate"
+                  [description]="'fundraising.donationPages.form.whyDonate.showImpactSectionHelper' | translate"
+                  toggleId="donation-pages-form-show-impact-section"
+                  testId="donation-pages-form-show-impact-section"
+                  [isChecked]="settings().showImpactSection"
+                  (checkedChange)="form.controls.settings.controls.showImpactSection.setValue($event)"
+                >
+                  <ignt-alert
+                    sentiment="neutral"
+                    [description]="'fundraising.donationPages.form.whyDonate.configureHint' | translate"
+                    data-testid="donation-pages-form-impact-section-hint"
+                  />
+                </app-expandable-content>
+              </div>
+            </ignt-wrapper-card>
+          </div>
+        </form>
+      }
+
+      @if (activeTab() === donationPageFormTabs.CONTENT_TRANSLATIONS) {
+        <app-donation-pages-form-content-translations
+          [activeLanguages]="activeLanguages()"
+          [contentForm]="form.controls.content"
+          [enabledFrequencies]="enabledFrequencies()"
+          [showImpactSection]="settings().showImpactSection"
+          [allowCustomAmounts]="settings().allowCustomAmounts"
+          [allowRecurringDonations]="settings().allowRecurringDonations"
+          [uploadImageCallback]="uploadImage"
+          (addLanguageClick)="onAddLanguageClick()"
+        />
+      }
+    </div>
+
+    <div class="donation-pages-form__preview-container">
+      <div class="donation-pages-form__preview-copy">
+        <h4 class="donation-pages-form__section-title">
+          {{ 'fundraising.donationPages.form.preview.title' | translate }}
+        </h4>
+        <p class="donation-pages-form__section-subtitle">
+          {{ 'fundraising.donationPages.form.preview.subtitle' | translate }}
+        </p>
+      </div>
+      <div class="donation-pages-form__preview-sticky">
+        <app-multi-select
+          class="donation-pages-form__preview-language-selector donation-pages-form__selector"
+          [options]="previewLanguageOptions()"
+          [selectedOptions]="selectedPreviewLanguageOption()"
+          [placeholder]="'fundraising.donationPages.form.preview.languagePlaceholder' | translate"
+          [searchPlaceholder]="'fundraising.donationPages.form.preview.languageLabel' | translate"
+          [maxSelectedOptions]="1"
+          [displayInPlaceMaximum]="1"
+          (selected)="onPreviewLanguageSelected($event)"
+        />
+        <div class="donation-pages-form__preview-frame">
+          <app-donation-pages-form-preview
+            [contentValue]="contentValue()"
+            [presetAmountsValue]="presetAmountsValue()"
+            [selectedLanguage]="selectedPreviewLanguage()"
+            [selectedPresetCadence]="selectedPresetCadence()"
+            [settings]="settings()"
+            [enabledFrequencies]="enabledFrequencies()"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</app-donation-form-layout>

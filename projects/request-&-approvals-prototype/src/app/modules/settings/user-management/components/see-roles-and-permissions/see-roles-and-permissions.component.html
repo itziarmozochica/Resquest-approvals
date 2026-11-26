@@ -1,0 +1,109 @@
+<span class="title" data-testid="see-roles-title" translate>userManagement.roles</span>
+<div class="outer">
+  <div>
+    <table>
+      <thead>
+        <th></th>
+      </thead>
+      <tbody>
+        <ng-container *ngFor="let permission of permissions">
+          <tr>
+            <th scope="row">{{ 'userManagement.rolesDescription.' + permission.name | translate }}</th>
+          </tr>
+          <ng-container *ngIf="permission.permissions">
+            <ng-container *ngFor="let subPermission of permission.permissions">
+              <tr>
+                <th scope="row" class="element">
+                  <li>{{ 'userManagement.rolesDescription.' + subPermission.name | translate }}</li>
+                </th>
+              </tr>
+            </ng-container>
+          </ng-container>
+        </ng-container>
+      </tbody>
+    </table>
+  </div>
+  <div class="table-desktop" data-testid="see-roles-table">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col" *ngFor="let role of roles">
+            {{ role.name | translate }}
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <ng-container *ngFor="let permission of permissions">
+          <tr>
+            <ng-container *ngFor="let role of roles">
+              <td *ngIf="rolesWithPermissions[role.roleId][permission.permissionId] as permissionInfo; else emptyCell">
+                <ng-container *ngIf="permissionInfo">
+                  <ng-container [ngSwitch]="permissionInfo.type">
+                    <ignt-icon *ngSwitchCase="'boolean'" name="check" variant="light" size="base"></ignt-icon>
+                    <span *ngSwitchCase="'string'">
+                      {{ 'userManagement.rolesDescription.' + permissionInfo.value | translate }}
+                    </span>
+                  </ng-container>
+                </ng-container>
+              </td>
+              <ng-template #emptyCell>
+                <td></td>
+              </ng-template>
+            </ng-container>
+          </tr>
+          <tr *ngFor="let sub of permission.permissions">
+            <ng-container *ngFor="let role of roles">
+              <td *ngIf="rolesWithPermissions[role.roleId][sub.permissionId] as subPermissionInfo; else emptyCell">
+                <ng-container *ngIf="subPermissionInfo">
+                  <ng-container [ngSwitch]="subPermissionInfo.type">
+                    <ignt-icon *ngSwitchCase="'boolean'" name="check" variant="light" size="base"></ignt-icon>
+                    <span *ngSwitchCase="'string'">
+                      {{ 'userManagement.rolesDescription.' + subPermissionInfo.value | translate }}
+                    </span>
+                  </ng-container>
+                </ng-container>
+              </td>
+              <ng-template #emptyCell>
+                <td></td>
+              </ng-template>
+            </ng-container>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
+  </div>
+</div>
+<div class="table-mobile" data-testid="see-roles-table">
+  <ng-container *ngFor="let role of roles">
+    <div class="card card--tablet">
+      <div class="user-role user-role--{{ role.roleId }}">
+        {{ role.name | translate }}
+      </div>
+      <ul>
+        <ng-container *ngFor="let permission of permissions">
+          <ng-container *ngIf="rolesWithPermissions[role.roleId][permission.permissionId] as permissionInfo">
+            <li *ngIf="permissionInfo">
+              {{ 'userManagement.rolesDescription.' + permission.name | translate }}
+              <span *ngIf="permissionInfo.type === 'string'" class="li_label">
+                ({{ 'userManagement.rolesDescription.' + permissionInfo.value | translate }})
+              </span>
+            </li>
+            <ul *ngIf="permissionInfo && permission.permissions?.length">
+              <ng-container *ngFor="let subPermission of permission.permissions">
+                <li
+                  *ngIf="rolesWithPermissions[role.roleId][subPermission.permissionId] as subPermissionInfo"
+                  [class.sub-permission]="subPermissionInfo"
+                >
+                  {{ 'userManagement.rolesDescription.' + subPermission.name | translate }}
+                  <span *ngIf="subPermissionInfo.type === 'string'" class="li_label">
+                    ({{ 'userManagement.rolesDescription.' + subPermissionInfo.value | translate }})
+                  </span>
+                </li>
+              </ng-container>
+            </ul>
+          </ng-container>
+        </ng-container>
+      </ul>
+    </div>
+  </ng-container>
+</div>

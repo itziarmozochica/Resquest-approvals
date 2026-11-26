@@ -1,0 +1,34 @@
+<div class="template-editor">
+  @if (!merged) {
+    <p class="template-editor__placeholder">{{ 'adminServiceCatalog.editor.loading' | translate }}</p>
+  } @else {
+    <div class="template-editor__toolbar">
+      <span class="template-editor__count"> {{ rows().length }} {{ 'adminServiceCatalog.editor.fields' | translate }} </span>
+      <button type="button" igntButton sentiment="tertiary" size="small" (click)="toggleLayout()">
+        {{ (showLayout() ? 'adminServiceCatalog.editor.layout.hide' : 'adminServiceCatalog.editor.layout.edit') | translate }}
+      </button>
+      <button type="button" igntButton sentiment="secondary" size="small" (click)="onAddField()">
+        + {{ 'adminServiceCatalog.editor.addField' | translate }}
+      </button>
+    </div>
+
+    @if (showLayout()) {
+      <app-layout-editor [layout]="effectiveLayout()" [fieldLabels]="fieldLabels()" (layoutChange)="onLayoutChange($event)" />
+    } @else {
+      <ul class="template-editor__rows" cdkDropList (cdkDropListDropped)="drop($event)">
+        @for (row of rows(); track trackRow($index, row)) {
+          <li class="template-editor__row" cdkDrag>
+            <button class="template-editor__handle" cdkDragHandle type="button" aria-label="reorder">⋮⋮</button>
+            <app-field-card
+              [row]="row"
+              [overrides]="overrides"
+              (overridePatch)="overridePatch.emit($event)"
+              (customFieldPatch)="customFieldPatch.emit($event)"
+              (removeField)="removeCustomField.emit($event)"
+            />
+          </li>
+        }
+      </ul>
+    }
+  }
+</div>

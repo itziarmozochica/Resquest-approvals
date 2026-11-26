@@ -1,0 +1,52 @@
+<div class="activities-tab">
+  @if (isLoading()) {
+    <div class="activities-tab__state" data-testid="activities-loading">
+      <ignt-icon name="spinner-third" variant="duotone" [spin]="true"></ignt-icon>
+    </div>
+  } @else if (hasError()) {
+    <div class="activities-tab__state" data-testid="activities-error">
+      <ignt-icon name="exclamation-circle" variant="light" class="activities-tab__state-icon"></ignt-icon>
+      <span>{{ 'bookedSlots.activitiesLoadFailed' | translate }}</span>
+    </div>
+  } @else if (activitySegments().length === 0 && removedBookedSlots().length === 0) {
+    <div class="activities-tab__state" data-testid="activities-empty">
+      <ignt-icon name="ticket" variant="light" class="activities-tab__state-icon"></ignt-icon>
+      <span>{{ 'bookedSlots.noTicketsSelected' | translate }}</span>
+    </div>
+  } @else {
+    @for (segment of activitySegments(); track segment.key) {
+      <app-activity-segment
+        [segment]="segment"
+        (locateAsset)="locateAsset.emit($event)"
+        (moveAsset)="moveAsset.emit($event)"
+      ></app-activity-segment>
+    }
+
+    @if (removedBookedSlots().length > 0) {
+      <section class="activities-tab__removed" data-testid="removed-booked-slots">
+        <h4 class="activities-tab__removed-title">{{ 'bookedSlots.removedBookedSlots.title' | translate }}</h4>
+        @for (removedSlot of removedBookedSlots(); track removedSlot.key) {
+          <div class="activities-tab__removed-row" data-testid="removed-booked-slot">
+            <ignt-icon name="trash-alt" variant="light" class="activities-tab__removed-icon"></ignt-icon>
+            <div class="activities-tab__removed-content">
+              <span class="activities-tab__removed-activity" data-testid="removed-booked-slot-activity">
+                {{ removedSlot.activityName }} · {{ removedSlot.assetName }}
+              </span>
+              <span class="activities-tab__removed-detail" data-testid="removed-booked-slot-time">{{ removedSlot.timeRange }}</span>
+              <span class="activities-tab__removed-detail" data-testid="removed-booked-slot-deletion">
+                @if (removedSlot.removedBy) {
+                  {{
+                    'bookedSlots.removedBookedSlots.deletedBy'
+                      | translate: { date: removedSlot.removedAtLabel, name: removedSlot.removedBy }
+                  }}
+                } @else {
+                  {{ 'bookedSlots.removedBookedSlots.deletedOn' | translate: { date: removedSlot.removedAtLabel } }}
+                }
+              </span>
+            </div>
+          </div>
+        }
+      </section>
+    }
+  }
+</div>

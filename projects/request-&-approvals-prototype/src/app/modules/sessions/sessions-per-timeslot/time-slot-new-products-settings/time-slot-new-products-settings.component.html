@@ -1,0 +1,193 @@
+<div class="time-slot-new-products-settings" [formGroup]="form()">
+  <div class="time-slot-new-products-settings__heading">
+    <h6 class="time-slot-new-products-settings__title">{{ i18nRoot + '.title' | translate }}</h6>
+    <div class="form-subtitle time-slot-new-products-settings__description">{{ i18nRoot + '.description' | translate }}</div>
+  </div>
+
+  <div class="time-slot-new-products-settings__section">
+    <ignt-input-field
+      id="new-products-duration"
+      data-testid="new-products-duration"
+      type="number"
+      [customFormErrors]="durationCustomErrors"
+      [label]="i18nRoot + '.duration.label' | translate"
+      [formControl]="form().controls.durationInMinutes"
+    ></ignt-input-field>
+  </div>
+
+  <div class="time-slot-new-products-settings__section" data-testid="sales-activation-start">
+    <h6 class="time-slot-new-products-settings__section-title">
+      <ignt-icon name="calendar" variant="light"></ignt-icon>
+      <span>{{ i18nRoot + '.salesActivation.startTitle' | translate }}</span>
+    </h6>
+
+    <ignt-radio-group [formControl]="form().controls.salesActivationStartType" class="time-slot-new-products-settings__radio-group">
+      @for (option of salesActivationTypes; track option) {
+        <ignt-radio
+          [label]="i18nRoot + '.salesActivation.type.' + option | translate"
+          [value]="option"
+          [attr.data-testid]="'sales-start-type-' + option"
+        />
+      }
+    </ignt-radio-group>
+
+    @if (isSalesStartFixedDate()) {
+      <ignt-native-date-input
+        type="datetime-local"
+        testId="sales-start-fixed-date"
+        [value]="dateToDateTimeLocalString(form().controls.salesActivationStartFixedDate.value)"
+        [disabled]="form().controls.salesActivationStartFixedDate.disabled"
+        (valueChange)="onFixedDateValueChange($event, form().controls.salesActivationStartFixedDate)"
+      />
+    } @else {
+      <div class="time-slot-new-products-settings__relative-row">
+        <ignt-input-field
+          id="new-products-sales-start-delta"
+          data-testid="sales-start-delta"
+          type="number"
+          [customFormErrors]="deltaCustomErrors"
+          [label]="i18nRoot + '.salesActivation.deltaLabel' | translate"
+          [formControl]="form().controls.salesActivationStartDelta"
+        ></ignt-input-field>
+        <ignt-typeahead
+          [editable]="false"
+          [fieldLabel]="i18nRoot + '.salesActivation.timeUnitLabel' | translate"
+          [options]="timeUnitOptions"
+          [selectedOption]="selectedSalesStartTimeUnit()"
+          [attr.data-testid]="'sales-start-time-unit'"
+          (selected)="onSalesActivationStartTimeUnitSelected($event)"
+        ></ignt-typeahead>
+        <ignt-typeahead
+          [editable]="false"
+          [fieldLabel]="i18nRoot + '.salesActivation.deltaReferenceLabel' | translate"
+          [options]="deltaReferenceOptions"
+          [selectedOption]="selectedSalesStartDeltaReference()"
+          [attr.data-testid]="'sales-start-delta-reference'"
+          (selected)="onSalesActivationStartDeltaReferenceSelected($event)"
+        ></ignt-typeahead>
+      </div>
+    }
+
+    <ng-container
+      *ngTemplateOutlet="
+        salesActivationErrors;
+        context: {
+          controls: [
+            form().controls.salesActivationStartFixedDate,
+            form().controls.salesActivationStartDeltaTimeUnit,
+            form().controls.salesActivationStartDeltaReference,
+          ],
+        }
+      "
+    ></ng-container>
+  </div>
+
+  <div class="time-slot-new-products-settings__section" data-testid="sales-activation-end">
+    <h6 class="time-slot-new-products-settings__section-title">
+      <ignt-icon name="calendar" variant="light"></ignt-icon>
+      <span>{{ i18nRoot + '.salesActivation.endTitle' | translate }}</span>
+    </h6>
+
+    <ignt-radio-group [formControl]="form().controls.salesActivationEndType" class="time-slot-new-products-settings__radio-group">
+      @for (option of salesActivationTypes; track option) {
+        <ignt-radio
+          [label]="i18nRoot + '.salesActivation.type.' + option | translate"
+          [value]="option"
+          [attr.data-testid]="'sales-end-type-' + option"
+        />
+      }
+    </ignt-radio-group>
+
+    @if (isSalesEndFixedDate()) {
+      <ignt-native-date-input
+        type="datetime-local"
+        testId="sales-end-fixed-date"
+        [value]="dateToDateTimeLocalString(form().controls.salesActivationEndFixedDate.value)"
+        [disabled]="form().controls.salesActivationEndFixedDate.disabled"
+        (valueChange)="onFixedDateValueChange($event, form().controls.salesActivationEndFixedDate)"
+      />
+    } @else {
+      <div class="time-slot-new-products-settings__relative-row">
+        <ignt-input-field
+          id="new-products-sales-end-delta"
+          data-testid="sales-end-delta"
+          type="number"
+          [customFormErrors]="deltaCustomErrors"
+          [label]="i18nRoot + '.salesActivation.deltaLabel' | translate"
+          [formControl]="form().controls.salesActivationEndDelta"
+        ></ignt-input-field>
+        <ignt-typeahead
+          [editable]="false"
+          [fieldLabel]="i18nRoot + '.salesActivation.timeUnitLabel' | translate"
+          [options]="timeUnitOptions"
+          [selectedOption]="selectedSalesEndTimeUnit()"
+          [attr.data-testid]="'sales-end-time-unit'"
+          (selected)="onSalesActivationEndTimeUnitSelected($event)"
+        ></ignt-typeahead>
+        <ignt-typeahead
+          [editable]="false"
+          [fieldLabel]="i18nRoot + '.salesActivation.deltaReferenceLabel' | translate"
+          [options]="deltaReferenceOptions"
+          [selectedOption]="selectedSalesEndDeltaReference()"
+          [attr.data-testid]="'sales-end-delta-reference'"
+          (selected)="onSalesActivationEndDeltaReferenceSelected($event)"
+        ></ignt-typeahead>
+      </div>
+    }
+
+    <ng-container
+      *ngTemplateOutlet="
+        salesActivationErrors;
+        context: {
+          controls: [
+            form().controls.salesActivationEndFixedDate,
+            form().controls.salesActivationEndDeltaTimeUnit,
+            form().controls.salesActivationEndDeltaReference,
+          ],
+        }
+      "
+    ></ng-container>
+  </div>
+
+  <div class="time-slot-new-products-settings__visibility" data-testid="new-products-visibility">
+    <span class="time-slot-new-products-settings__visibility-icon">
+      <ignt-icon name="eye-slash" variant="light" aria-hidden="true"></ignt-icon>
+    </span>
+
+    <div class="time-slot-new-products-settings__visibility-text">
+      <label for="new-products-visibility-toggle" class="time-slot-new-products-settings__visibility-title">
+        {{ 'sessions.sessionsPerTimeslot.edition.field.visibility' | translate }}
+      </label>
+      <span class="time-slot-new-products-settings__visibility-value" data-testid="new-products-visibility-value">
+        <span [class.time-slot-new-products-settings__visibility-value--active]="isHiddenControl.value">
+          {{ i18nRoot + '.visibility.hidden' | translate }}
+        </span>
+        /
+        <span [class.time-slot-new-products-settings__visibility-value--active]="!isHiddenControl.value">
+          {{ i18nRoot + '.visibility.visible' | translate }}
+        </span>
+      </span>
+    </div>
+
+    <ignt-toggle
+      id="new-products-visibility-toggle"
+      data-testid="new-products-visibility-toggle"
+      [checked]="!isHiddenControl.value"
+      (change)="onIsHiddenChange($event)"
+    ></ignt-toggle>
+  </div>
+</div>
+
+<ng-template #salesActivationErrors let-controls="controls">
+  <div class="time-slot-new-products-settings__errors">
+    @for (control of controls; track $index) {
+      @if (control.dirty && control.invalid) {
+        @for (errorType of errorTypes; track errorType) {
+          <ignt-field-error [formControlValue]="control" [errorName]="errorType">
+            {{ getFieldErrorMessage(errorType) }}
+          </ignt-field-error>
+        }
+      }
+    }
+  </div>
+</ng-template>

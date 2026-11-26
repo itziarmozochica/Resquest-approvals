@@ -1,0 +1,89 @@
+<main
+  [class.bl-main--dual-screen]="isDualScreen"
+  [class.bl-main--impersonating]="isImpersonating()"
+  [class.bl-main--kiosk-logged]="isOrganizationSelected() && isKiosk()"
+  [class.bl-main--logged]="isOrganizationSelected() && !isKiosk()"
+  [class.bl-main--mfa-setup-required]="showMfaSetupRequiredBanner()"
+  [class.bl-main--oss-mode]="isOneStopShopMode()"
+  [class.bl-main--sidebar-open]="isSidebarOpen && !isDualScreen"
+  [style.--mfa-setup-required-banner-height.px]="mfaSetupRequiredBannerHeightPx()"
+  class="bl-main"
+>
+  @if (!isKiosk()) {
+    @if (isImpersonating()) {
+      <app-impersonation-banner></app-impersonation-banner>
+    }
+    @if (showMfaSetupRequiredBanner()) {
+      <app-mfa-setup-required-banner (heightChange)="onMfaSetupRequiredBannerHeightChange($event)" />
+    }
+    <app-header [sidebar]="sidebar" [isOneStopShopMode]="isOneStopShopMode()"></app-header>
+    <ng-template #fzAssistantTopBarEntryTemplate>
+      <app-fz-assistant-top-bar-entry data-testid="fz-assistant-top-bar-entry-host" />
+    </ng-template>
+    <app-sidebar #sidebar (toggleSidebarEmitter)="toggleSidebarEvent($event)" (oneStopShopModeChange)="onOneStopShopModeChange($event)">
+      @if (showFzAssistantSidebarEntry()) {
+        <div top-actions class="sidebar__top-actions">
+          <app-fz-assistant-top-bar-entry [entryPoint]="'sidebar'" data-testid="sidebar-fz-assistant-entry" />
+        </div>
+      }
+    </app-sidebar>
+
+    @if (isMobile() || isTablet()) {
+      <app-menu-bottom-sheet>
+        <app-oss-mobile-shift *permissionBased="'can_view_box_office'"></app-oss-mobile-shift>
+      </app-menu-bottom-sheet>
+    }
+  }
+
+  <!--
+    The primary `<router-outlet>` must stay outside every conditional block. `isKiosk()` flips with the
+    URL (`isKioskEmulatedInFZ()` follows the router URL), so gating the outlet on it destroys and re-creates
+    the outlet mid-session. An outlet created *after* the router already activated a route replays that
+    activation from `RouterOutlet.ngOnInit`, which renders the wrong route's component on the current URL
+    (B2BO-8097). Kiosk vs. partner chrome is therefore switched through bindings, never by swapping outlets.
+  -->
+  <div
+    class="bl-main__content-with-dock"
+    [class.bl-main__content-with-dock--dock-open]="isFzAssistantDockVisible"
+    [class.bl-main__content-with-dock--kiosk]="isKiosk()"
+  >
+    <section
+      data-testid="layout-main-content"
+      [id]="isKiosk() ? 'main-content kiosk-layout' : 'main-content'"
+      [ngClass]="
+        isKiosk()
+          ? { 'no-pointer-events': isSidebarOpen }
+          : {
+              'sidebar-is-open': isSidebarOpen && !isDualScreen,
+              'no-sidebar': !isOrganizationSelected(),
+              'oss-mode': isOneStopShopMode(),
+            }
+      "
+      [ngStyle]="isKioskEmulatedInFZ() ? { height: '1920px', zoom: 0.5 } : {}"
+    >
+      @if (!isKiosk() && isOrganizationSelected()) {
+        <app-contact-support-banner />
+      }
+      <router-outlet></router-outlet>
+    </section>
+
+    @if (isFzAssistantDockVisible) {
+      <app-fz-assistant-dock-lazy-host />
+    }
+  </div>
+
+  @if (!isKiosk()) {
+    @if (isFooterActive()) {
+      <app-footer
+        [logged]="true"
+        [ngClass]="{
+          'no-pointer-events': isSidebarOpen,
+          'sidebar-is-open': isSidebarOpen && !isDualScreen,
+          'oss-mode': isOneStopShopMode(),
+        }"
+        class="footer"
+      ></app-footer>
+    }
+    <app-whatsapp-popup></app-whatsapp-popup>
+  }
+</main>

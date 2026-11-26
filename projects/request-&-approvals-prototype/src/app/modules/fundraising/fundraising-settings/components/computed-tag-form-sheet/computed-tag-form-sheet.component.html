@@ -1,0 +1,229 @@
+<ignt-dialog-header>{{ sheetTitle() }}</ignt-dialog-header>
+
+<ignt-dialog-content>
+  @if (isCatalogLoading()) {
+    <div class="computed-tag-form-sheet__loading">
+      <ignt-icon name="spinner" variant="solid" size="h1" [spin]="true" aria-hidden="true"></ignt-icon>
+    </div>
+  } @else if (form()) {
+    <form class="computed-tag-form-sheet" [formGroup]="form()!" (ngSubmit)="onSubmit()">
+      <div class="computed-tag-form-sheet__fields">
+        <div class="computed-tag-form-sheet__section">
+          <ignt-wrapper-card
+            class="computed-tag-form-sheet__wrapper-card"
+            [title]="'fundraising.settings.computedTags.form.description' | translate"
+          >
+            <div class="computed-tag-form-sheet__field">
+              <ignt-input-field
+                id="computedTagName"
+                formControlName="name"
+                [label]="'fundraising.settings.computedTags.form.tagName' | translate"
+                [customFormErrors]="nameFormErrors()"
+                data-testid="computed-tag-name-input"
+              ></ignt-input-field>
+            </div>
+
+            <div class="computed-tag-form-sheet__field">
+              <ignt-textarea-field
+                id="computedTagDescription"
+                formControlName="description"
+                [label]="descriptionLabel()"
+                [rows]="3"
+                data-testid="computed-tag-description-input"
+              ></ignt-textarea-field>
+            </div>
+          </ignt-wrapper-card>
+        </div>
+
+        <div class="computed-tag-form-sheet__section">
+          <ignt-wrapper-card
+            class="computed-tag-form-sheet__wrapper-card"
+            [title]="'fundraising.settings.computedTags.form.logic' | translate"
+          >
+            <div class="computed-tag-form-sheet__logic">
+              <div class="computed-tag-form-sheet__logic-header">
+                <app-multi-select
+                  class="computed-tag-form-sheet__match-logic-select"
+                  [options]="matchLogicOptions"
+                  [selectedOptions]="getMatchLogicSelectedOptions()"
+                  [placeholder]="'fundraising.settings.computedTags.form.applyWhen' | translate"
+                  [searchPlaceholder]="'fundraising.settings.computedTags.form.applyWhen' | translate"
+                  [displayInPlaceMaximum]="1"
+                  [maxSelectedOptions]="1"
+                  (selected)="onMatchLogicChange($event)"
+                  data-testid="computed-tag-match-logic-select"
+                ></app-multi-select>
+
+                <span class="computed-tag-form-sheet__match-text">
+                  {{ 'fundraising.settings.computedTags.form.matchText' | translate }}
+                </span>
+              </div>
+
+              <div class="computed-tag-form-sheet__conditions" formArrayName="conditions">
+                @for (condition of conditions.controls; track $index; let i = $index) {
+                  <div class="computed-tag-form-sheet__condition" [formGroupName]="i">
+                    <app-multi-select
+                      class="computed-tag-form-sheet__condition-field"
+                      [options]="fieldSelectOptions()"
+                      [selectedOptions]="getFieldSelectedOptions(i)"
+                      [placeholder]="'fundraising.settings.computedTags.form.field' | translate"
+                      [searchPlaceholder]="'fundraising.settings.computedTags.form.field' | translate"
+                      [displayInPlaceMaximum]="1"
+                      [maxSelectedOptions]="1"
+                      (selected)="onFieldChange(i, $event)"
+                      [attr.data-testid]="'computed-tag-field-select-' + i"
+                    ></app-multi-select>
+
+                    <app-multi-select
+                      class="computed-tag-form-sheet__condition-operator"
+                      [options]="getOperatorOptions(i)"
+                      [selectedOptions]="getOperatorSelectedOptions(i)"
+                      [placeholder]="'fundraising.settings.computedTags.form.operator' | translate"
+                      [searchPlaceholder]="'fundraising.settings.computedTags.form.operator' | translate"
+                      [displayInPlaceMaximum]="1"
+                      [maxSelectedOptions]="1"
+                      (selected)="onOperatorChange(i, $event)"
+                      [attr.data-testid]="'computed-tag-operator-select-' + i"
+                    ></app-multi-select>
+
+                    @if (!hasStringField(i)) {
+                      <div class="computed-tag-form-sheet__condition-value-row">
+                        <div
+                          class="computed-tag-form-sheet__value-wrapper"
+                          [class.computed-tag-form-sheet__value-wrapper--with-prefix]="hasMonetaryField(i)"
+                        >
+                          @if (hasMonetaryField(i)) {
+                            <span class="computed-tag-form-sheet__currency-prefix" aria-hidden="true">{{
+                              organizationCurrencySymbol()
+                            }}</span>
+                          }
+                          <ignt-input-field
+                            [id]="'computedTagValue-' + i"
+                            formControlName="value"
+                            [label]="'fundraising.settings.computedTags.form.value' | translate"
+                            type="number"
+                            [attr.data-testid]="'computed-tag-value-input-' + i"
+                          ></ignt-input-field>
+                        </div>
+                      </div>
+                    }
+
+                    @if (hasDateField(i)) {
+                      <app-multi-select
+                        class="computed-tag-form-sheet__condition-time-unit"
+                        [options]="getTimeUnitOptions()"
+                        [selectedOptions]="getTimeUnitSelectedOptions(i)"
+                        [placeholder]="'fundraising.settings.computedTags.form.unit' | translate"
+                        [searchPlaceholder]="'fundraising.settings.computedTags.form.unit' | translate"
+                        [displayInPlaceMaximum]="1"
+                        [maxSelectedOptions]="1"
+                        (selected)="onTimeUnitChange(i, $event)"
+                        [attr.data-testid]="'computed-tag-time-unit-select-' + i"
+                      ></app-multi-select>
+                    }
+
+                    @if (hasStringField(i)) {
+                      <ignt-input-field
+                        [id]="'computedTagValue-' + i"
+                        formControlName="value"
+                        [label]="'fundraising.settings.computedTags.form.value' | translate"
+                        type="text"
+                        [attr.data-testid]="'computed-tag-value-input-' + i"
+                      ></ignt-input-field>
+                    }
+
+                    @if ($index !== conditions.length - 1) {
+                      <button
+                        igntButton
+                        type="button"
+                        [variant]="'danger'"
+                        [sentiment]="'tertiary'"
+                        [size]="'small'"
+                        [fill]="false"
+                        (click)="onRemoveCondition(i)"
+                        class="computed-tag-form-sheet__remove-condition"
+                        [attr.data-testid]="'computed-tag-remove-condition-' + i"
+                      >
+                        {{ 'fundraising.settings.computedTags.form.removeCondition' | translate }}
+                      </button>
+                    }
+
+                    @if ($index !== conditions.length - 1) {
+                      <ignt-divider [margin]="false"></ignt-divider>
+                    }
+                  </div>
+                }
+              </div>
+
+              <button
+                igntButton
+                type="button"
+                [sentiment]="'tertiary'"
+                [size]="'small'"
+                [fill]="false"
+                (click)="onAddCondition()"
+                class="computed-tag-form-sheet__add-condition"
+                data-testid="computed-tag-add-condition"
+              >
+                {{ 'fundraising.settings.computedTags.form.addCondition' | translate }}
+              </button>
+            </div>
+          </ignt-wrapper-card>
+        </div>
+      </div>
+    </form>
+  }
+</ignt-dialog-content>
+
+@if (form()) {
+  <ignt-dialog-footer hideCancelButton>
+    @if (isEditMode()) {
+      <button
+        igntButton
+        type="button"
+        [variant]="'danger'"
+        [sentiment]="'tertiary'"
+        [size]="'large'"
+        [fill]="true"
+        (click)="onDelete()"
+        data-testid="delete-computed-tag-button"
+      >
+        {{ 'fundraising.settings.computedTags.form.deleteTag' | translate }}
+      </button>
+      <button
+        igntButton
+        type="button"
+        [sentiment]="'primary'"
+        [size]="'large'"
+        [fill]="true"
+        (click)="onSubmit()"
+        data-testid="save-computed-tag-button"
+      >
+        {{ 'fundraising.settings.computedTags.form.saveChanges' | translate }}
+      </button>
+    } @else {
+      <button
+        igntButton
+        type="button"
+        [sentiment]="'tertiary'"
+        [size]="'large'"
+        [fill]="true"
+        (click)="onCancel()"
+        data-testid="cancel-computed-tag-button"
+      >
+        {{ 'common.cancel' | translate }}
+      </button>
+      <button
+        igntButton
+        type="button"
+        [sentiment]="'primary'"
+        [size]="'large'"
+        [fill]="true"
+        (click)="onSubmit()"
+        data-testid="create-computed-tag-button"
+      >
+        {{ 'fundraising.settings.computedTags.form.createTag' | translate }}
+      </button>
+    }
+  </ignt-dialog-footer>
+}

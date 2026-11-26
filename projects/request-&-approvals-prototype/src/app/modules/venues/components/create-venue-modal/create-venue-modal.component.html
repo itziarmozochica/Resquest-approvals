@@ -1,0 +1,78 @@
+<app-lateral-slider
+  [showDetails]="isOpen()"
+  [title]="modalTitle()"
+  [closeOnBackdropClick]="!isLoading()"
+  [disableCloseButton]="isLoading()"
+  (closeSlider)="onClose()"
+>
+  <div class="create-venue-modal">
+    <div class="create-venue-modal__body" [class.loading-overlay]="isLoadingData()">
+      <div *ngIf="isLoadingData()" class="loading-spinner-container">
+        <div class="spinner">
+          <ignt-icon name="spinner" variant="solid" [spin]="true" size="display" class="loader"></ignt-icon>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="google-places-search-container">
+          <input
+            #googlePlacesSearch
+            type="text"
+            id="google-places-search"
+            class="form-control"
+            data-testid="google-places-search"
+            [placeholder]="'venues.createModal.googlePlaceSearchPlaceholder' | translate"
+          />
+        </div>
+        <small class="form-text text-muted" translate>venues.createModal.googlePlaceSearchHelp</small>
+      </div>
+
+      <div *ngIf="canManagePublicVenues || isSuperuser()" class="form-group">
+        <div class="dynamic-form__input-wrapper">
+          <select
+            id="venue-visibility"
+            class="form-select dynamic-form__form-select"
+            data-testid="venue-visibility-select"
+            [disabled]="isEditing"
+            [value]="isPublic() ? 'public' : 'private'"
+            [class.dynamic-form__form-input--has-value]="isPublic() !== null"
+            [class.dynamic-form__form-input--focused]="isVisibilityFocused()"
+            (change)="onVisibilityChange($event)"
+            (focus)="onVisibilityFocus()"
+            (blur)="onVisibilityBlur()"
+          >
+            <option value="private" translate>venues.createModal.private</option>
+            <option value="public" translate>venues.createModal.public</option>
+          </select>
+          <label for="venue-visibility" class="dynamic-form__form-label" [class.dynamic-form__form-label--floating]="true">
+            <span translate>venues.createModal.visibility</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="dynamic-form__input-wrapper typeahead-wrapper" [class.typeahead-wrapper--has-value]="selectedCity() !== null">
+          <app-typeahead
+            data-testid="create-venue-city-typeahead"
+            [options]="cityOptions()"
+            [emptyLabel]="'venues.createModal.chooseCity' | translate"
+            [selectedOption]="selectedCity() || undefined"
+            (selected)="onCitySelected($event)"
+            (inputInteraction)="onCityUserInteraction($event)"
+          ></app-typeahead>
+          <label class="dynamic-form__form-label typeahead-label" [class.dynamic-form__form-label--floating]="selectedCity() !== null">
+            <span translate>venues.createModal.selectCity</span>
+          </label>
+        </div>
+      </div>
+
+      <app-dynamic-form
+        *ngIf="venueFormConfig()"
+        [config]="venueFormConfig()!"
+        [isLoading]="isLoading()"
+        (formSubmit)="onVenueFormSubmit($event)"
+        (formCancel)="onVenueFormCancel()"
+      ></app-dynamic-form>
+    </div>
+  </div>
+</app-lateral-slider>

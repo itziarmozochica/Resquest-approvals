@@ -1,0 +1,333 @@
+@if (hasError()) {
+  <div class="marketplace-groups__message" data-testid="marketplace-groups-error">
+    {{ 'marketplaceEvents.groupsView.loadError' | translate }}
+    <ignt-button
+      class="marketplace-groups__retry"
+      size="small"
+      variant="secondary"
+      data-testid="marketplace-groups-retry"
+      [label]="'marketplaceEvents.retry' | translate"
+      (click)="retry()"
+    />
+  </div>
+} @else {
+  <ignt-table
+    class="marketplace-groups"
+    layout="table"
+    [data]="rows()"
+    [filterConfig]="filterConfig()"
+    [hasServerSidePagination]="true"
+    [isLoading]="isLoading()"
+    [pageIndex]="pageIndex()"
+    [pageSize]="pageSize"
+    [searchConfig]="searchConfig()"
+    [getRowCanExpand]="canExpandGroup"
+    [getRowId]="rowId"
+    [interactiveRows]="canManage"
+    [subRows]="'subRows'"
+    [totalRowCount]="total()"
+    [expandedRowIds]="expandedGroupIds()"
+    (expandedRowIdsChange)="onExpandedGroupsChange($event)"
+    (filterClearAll)="filterClearAll.emit()"
+    (filterClosed)="filterClosed.emit($event)"
+    (filterPillRemoved)="filterPillRemoved.emit($event)"
+    (paginationChange)="paginationChange.emit($event)"
+    (rowInteraction)="onRowActivated($event)"
+    (searchChanged)="searchChanged.emit($event)"
+  >
+    <ignt-table-parent-row>
+      <ng-template [igntTableParentRowTemplateType]="rowSample" let-isExpanded="isExpanded" let-item="item">
+        <span class="marketplace-groups__group">
+          <span class="marketplace-groups__toggle" aria-hidden="true">
+            <ignt-icon data-testid="marketplace-group-toggle" variant="light" [name]="isExpanded ? 'chevron-down' : 'chevron-right'" />
+          </span>
+          <ignt-icon class="marketplace-groups__group-icon" name="users" size="sm" variant="light" aria-hidden="true" />
+          <span class="marketplace-groups__group-name" data-testid="marketplace-group-name">{{ item.group.name }}</span>
+          @if (item.group.isDefault) {
+            <span class="marketplace-groups__default" data-testid="marketplace-group-default">{{
+              'marketplaceEvents.groups.default' | translate
+            }}</span>
+          }
+        </span>
+      </ng-template>
+
+      <ignt-table-parent-cell key="distributors">
+        <ng-template [igntTableParentRowTemplateType]="rowSample" let-item="item">
+          <span
+            class="marketplace-groups__counter"
+            data-testid="marketplace-group-distributors"
+            [class.marketplace-groups__counter--empty]="!item.group.isDefault && item.group.distributorsCount === 0"
+          >
+            @if (item.group.isDefault) {
+              {{ 'marketplaceEvents.groupsView.allDistributors' | translate }}
+            } @else {
+              <span class="marketplace-groups__count">{{ item.group.distributorsCount }}</span>
+              @if (item.group.distributorsCount === 0) {
+                <ignt-icon
+                  class="marketplace-groups__warning"
+                  data-testid="marketplace-group-distributors-warning"
+                  igntTooltip
+                  name="triangle-exclamation"
+                  role="img"
+                  size="sm"
+                  tabindex="0"
+                  tooltipPlacement="top"
+                  variant="solid"
+                  [attr.aria-label]="'marketplaceEvents.groupsView.warnings.noDistributors' | translate"
+                  [tooltipLabel]="'marketplaceEvents.groupsView.warnings.noDistributors' | translate"
+                  (click)="$event.stopPropagation()"
+                  (keydown)="$event.stopPropagation()"
+                />
+              }
+            }
+          </span>
+        </ng-template>
+      </ignt-table-parent-cell>
+
+      <ignt-table-parent-cell key="events">
+        <ng-template [igntTableParentRowTemplateType]="rowSample" let-item="item">
+          <span class="marketplace-groups__counter" [class.marketplace-groups__counter--empty]="item.group.eventsCount === 0">
+            <span class="marketplace-groups__count" data-testid="marketplace-group-events">{{ item.group.eventsCount }}</span>
+            @if (item.group.eventsCount === 0) {
+              <ignt-icon
+                class="marketplace-groups__warning"
+                data-testid="marketplace-group-events-warning"
+                igntTooltip
+                name="triangle-exclamation"
+                role="img"
+                size="sm"
+                tabindex="0"
+                tooltipPlacement="top"
+                variant="solid"
+                [attr.aria-label]="'marketplaceEvents.groupsView.warnings.noEvents' | translate"
+                [tooltipLabel]="'marketplaceEvents.groupsView.warnings.noEvents' | translate"
+                (click)="$event.stopPropagation()"
+                (keydown)="$event.stopPropagation()"
+              />
+            }
+          </span>
+        </ng-template>
+      </ignt-table-parent-cell>
+
+      <ignt-table-parent-cell key="status">
+        <ng-template [igntTableParentRowTemplateType]="rowSample" let-item="item">
+          @let publication = item.group.lastPublication;
+          <span class="marketplace-groups__status">
+            @if (publication?.status === publicationStatusEnum.RUNNING) {
+              <ignt-tag data-testid="marketplace-group-publishing" sentiment="info">
+                <span class="marketplace-groups__publishing">
+                  <ignt-icon name="spinner" size="caption" variant="solid" aria-hidden="true" [spin]="true" />
+                  {{ 'marketplaceEvents.groupsView.publication.publishing' | translate }}
+                </span>
+              </ignt-tag>
+            } @else {
+              @let status = sellingStatus(item.group);
+              <ignt-tag data-testid="marketplace-group-status" [bullet]="statusBullet" [sentiment]="sellingStatusSentiments[status]">
+                {{ sellingStatusLabelKeys[status] | translate }}
+              </ignt-tag>
+              @if (publication && publication.failedCount > 0) {
+                <ignt-button
+                  class="marketplace-groups__failed"
+                  data-testid="marketplace-group-failed"
+                  sentiment="danger"
+                  size="small"
+                  variant="tertiary"
+                  [ariaLabel]="
+                    (publication.failedCount === 1
+                      ? 'marketplaceEvents.groupsView.publication.viewFailedInOne'
+                      : 'marketplaceEvents.groupsView.publication.viewFailedIn'
+                    ) | translate: { count: publication.failedCount, group: item.group.name }
+                  "
+                  [label]="
+                    (publication.failedCount === 1
+                      ? 'marketplaceEvents.groupsView.publication.viewFailedOne'
+                      : 'marketplaceEvents.groupsView.publication.viewFailed'
+                    ) | translate: { count: publication.failedCount }
+                  "
+                  (click)="onViewFailures($event, item.group)"
+                  (keydown)="$event.stopPropagation()"
+                />
+              }
+            }
+          </span>
+        </ng-template>
+      </ignt-table-parent-cell>
+
+      <ignt-table-parent-cell columnType="action">
+        <ng-template [igntTableParentRowTemplateType]="rowSample" let-item="item">
+          <ignt-button
+            size="small"
+            variant="secondary"
+            data-testid="marketplace-group-settings"
+            igntTooltip
+            tooltipPlacement="top"
+            [label]="'marketplaceEvents.groupsView.settings' | translate"
+            [tooltipLabel]="'marketplaceEvents.groupsView.settingsTooltip' | translate"
+            (click)="onGroupSettings($event, item.group)"
+            (keydown)="$event.stopPropagation()"
+          />
+        </ng-template>
+      </ignt-table-parent-cell>
+    </ignt-table-parent-row>
+
+    <ignt-table-column key="name" columnType="primary" [header]="'marketplaceEvents.groupsView.columns.group' | translate">
+      <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+        @switch (item.kind) {
+          @case ('event') {
+            <span class="marketplace-groups__event">
+              <span class="marketplace-groups__event-name">
+                <span data-testid="marketplace-group-event-name">{{ item.event.name }}</span>
+                <span class="marketplace-groups__event-id">· {{ item.event.id }}</span>
+              </span>
+              <span class="marketplace-groups__event-tickets" data-testid="marketplace-group-event-tickets">
+                @if (item.event.ticketTypesCount === null) {
+                  —
+                } @else {
+                  {{
+                    (item.event.ticketTypesCount === 1
+                      ? 'marketplaceEvents.groupsView.ticketType'
+                      : 'marketplaceEvents.groupsView.ticketTypes'
+                    ) | translate: { count: item.event.ticketTypesCount }
+                  }}
+                }
+              </span>
+            </span>
+          }
+          @case ('loading') {
+            <span class="marketplace-groups__skeleton" data-testid="marketplace-group-loading">
+              <ignt-skeleton-base [animation]="true" [height]="16" [width]="'60%'" />
+              <ignt-skeleton-base [animation]="true" [height]="12" [width]="'30%'" />
+            </span>
+          }
+          @case ('error') {
+            <span class="marketplace-groups__note" data-testid="marketplace-group-events-error">
+              {{ 'marketplaceEvents.groupsView.eventsLoadError' | translate }}
+              <ignt-button
+                size="small"
+                variant="tertiary"
+                data-testid="marketplace-group-events-retry"
+                [label]="'marketplaceEvents.retry' | translate"
+                (click)="onRetryGroup(item.group)"
+                (keydown)="$event.stopPropagation()"
+              />
+            </span>
+          }
+          @case ('empty') {
+            <span class="marketplace-groups__note" data-testid="marketplace-group-events-empty">
+              {{
+                (filters().onlyPublishedGroups ? 'marketplaceEvents.groupsView.noPublishedEvents' : 'marketplaceEvents.groupsView.noEvents')
+                  | translate
+              }}
+            </span>
+          }
+          @case ('loadMore') {
+            <span class="marketplace-groups__note" data-testid="marketplace-group-load-more-row">
+              @if (item.hasError) {
+                <span data-testid="marketplace-group-load-more-error">{{
+                  'marketplaceEvents.groupsView.eventsLoadError' | translate
+                }}</span>
+              } @else {
+                {{ 'marketplaceEvents.groupsView.showing' | translate: { loaded: item.loadedCount, total: item.totalCount } }}
+              }
+              <ignt-button
+                size="small"
+                variant="tertiary"
+                data-testid="marketplace-group-load-more"
+                [label]="(item.hasError ? 'marketplaceEvents.retry' : 'marketplaceEvents.groupsView.loadMore') | translate"
+                (click)="onLoadMore(item.group)"
+                (keydown)="$event.stopPropagation()"
+              />
+            </span>
+          }
+          @case ('notPublishedToggle') {
+            <span class="marketplace-groups__note">
+              @if (item.hasError) {
+                <span data-testid="marketplace-group-not-published-toggle-error">{{
+                  'marketplaceEvents.groupsView.eventsLoadError' | translate
+                }}</span>
+              }
+              <ignt-button
+                size="small"
+                variant="tertiary"
+                data-testid="marketplace-group-not-published-toggle"
+                [label]="item.hiddenCount | notPublishedToggleLabel: item.isShowingHidden | translate: { count: item.hiddenCount }"
+                [loading]="item.isLoading"
+                (click)="onToggleNotPublished($event, item.group)"
+                (keydown)="$event.stopPropagation()"
+              />
+            </span>
+          }
+        }
+      </ng-template>
+    </ignt-table-column>
+    <ignt-table-column
+      align="right"
+      key="distributors"
+      columnType="secondary"
+      [header]="'marketplaceEvents.columns.distributors' | translate"
+      [width]="150"
+    >
+      <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+        @if (item.kind === 'loading') {
+          <ignt-skeleton-base [animation]="true" [height]="16" [width]="'40%'" />
+        }
+      </ng-template>
+    </ignt-table-column>
+    <ignt-table-column
+      align="right"
+      key="events"
+      columnType="secondary"
+      [header]="'marketplaceEvents.groupsView.columns.events' | translate"
+      [width]="90"
+    >
+      <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+        @if (item.kind === 'loading') {
+          <ignt-skeleton-base [animation]="true" [height]="16" [width]="'60%'" />
+        }
+      </ng-template>
+    </ignt-table-column>
+    <ignt-table-column
+      key="status"
+      columnType="secondary"
+      [header]="'marketplaceEvents.groupsView.columns.status' | translate"
+      [width]="150"
+    >
+      <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+        @if (item.kind === 'event') {
+          <ignt-tag
+            data-testid="marketplace-group-event-status"
+            [bullet]="statusBullet"
+            [sentiment]="publicationStatusSentiments[item.event.status]"
+          >
+            {{ publicationStatusLabelKeys[item.event.status] | translate }}
+          </ignt-tag>
+        } @else if (item.kind === 'loading') {
+          <ignt-skeleton-base [animation]="true" [height]="24" [width]="'70%'" />
+        }
+      </ng-template>
+    </ignt-table-column>
+    <ignt-table-column align="right" columnType="action" [header]="''" [width]="160">
+      <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+        @if (item.kind === 'event') {
+          <ignt-button
+            size="small"
+            variant="tertiary"
+            data-testid="marketplace-group-event-details"
+            igntTooltip
+            [ariaLabel]="
+              canManage
+                ? ('marketplaceEvents.actions.seeDetailsOf' | translate: { group: item.group.name, event: item.event.name })
+                : ('marketplaceEvents.actions.seeDetailsDisabledReason' | translate)
+            "
+            [disabled]="!canManage"
+            [label]="'marketplaceEvents.actions.seeDetails' | translate"
+            [tooltipDisabled]="canManage"
+            [tooltipLabel]="'marketplaceEvents.actions.seeDetailsDisabledReason' | translate"
+            (click)="onSeeEventDetails($event, item.group, item.event)"
+            (keydown)="$event.stopPropagation()"
+          />
+        }
+      </ng-template>
+    </ignt-table-column>
+  </ignt-table>
+}

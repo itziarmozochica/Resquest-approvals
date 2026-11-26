@@ -1,0 +1,142 @@
+<section class="alerting-form" [formGroup]="form()">
+  <header class="alerting-form__header">
+    <h3 class="alerting-form__title">{{ i18nBase + '.title' | translate }}</h3>
+    <p class="alerting-form__subtitle">{{ i18nBase + '.subtitle' | translate }}</p>
+  </header>
+
+  <div class="alerting-form__slack-webhook-urls" [attr.data-testid]="testId('destinations-list')">
+    <div class="alerting-form__slack-webhook-urls-head">
+      <span class="alerting-form__slack-webhook-urls-label">
+        {{ i18nBase + '.destinationsLabel' | translate }}
+        <span class="alerting-form__slack-webhook-urls-tooltip" tabindex="0" [appTemplatedTooltip]="destinationInfoTooltip">
+          <ignt-icon name="info-circle" variant="regular" size="caption" aria-hidden="true" />
+        </span>
+      </span>
+      <span class="alerting-form__slack-webhook-urls-counter">
+        {{ i18nBase + '.destinationsCounter' | translate: { count: destinationsCount() } }}
+      </span>
+    </div>
+
+    @if (destinationsInputDisabled() && !disabled()) {
+      <span class="alerting-form__chips-field-wrapper" [appTemplatedTooltip]="maxDestinationsTooltip">
+        <ng-container [ngTemplateOutlet]="chipsField" />
+      </span>
+    } @else {
+      <ng-container [ngTemplateOutlet]="chipsField" />
+    }
+
+    @if (draftErrors(); as errors) {
+      <small class="alerting-form__row-error" aria-live="polite" [attr.data-testid]="testId('destination-input-error')">
+        @if (errors['maxlength']) {
+          {{ i18nBase + '.errors.maxLength' | translate }}
+        } @else if (errors['invalidFormat']) {
+          {{ i18nBase + '.errors.invalidFormat' | translate }}
+        }
+      </small>
+    }
+
+    @if (groupServerError()) {
+      <small class="alerting-form__group-error" aria-live="polite" [attr.data-testid]="testId('destinations-error')">
+        {{ groupServerError() }}
+      </small>
+    }
+  </div>
+
+  <div class="alerting-form__recovery">
+    <label class="alerting-form__switch">
+      <input
+        type="checkbox"
+        role="switch"
+        class="alerting-form__switch-input"
+        formControlName="notifyOnRecovery"
+        [attr.data-testid]="testId('recovery-switch')"
+      />
+      <span class="alerting-form__switch-label">{{ i18nBase + '.recoveryLabel' | translate }}</span>
+    </label>
+    <p class="alerting-form__recovery-helper">{{ i18nBase + '.recoveryHelper' | translate }}</p>
+
+    @if (notifyOnRecoveryServerError()) {
+      <small class="alerting-form__row-error" aria-live="polite" [attr.data-testid]="testId('recovery-error')">
+        {{ notifyOnRecoveryServerError() }}
+      </small>
+    }
+
+    @if (recoveryRequiresWebhookError()) {
+      <small class="alerting-form__row-error" aria-live="polite" [attr.data-testid]="testId('recovery-requires-webhook-error')">
+        {{ i18nBase + '.errors.recoveryRequiresWebhook' | translate }}
+      </small>
+    }
+  </div>
+</section>
+
+<ng-template #chipsField>
+  <div
+    class="alerting-form__chips-field"
+    [class.alerting-form__chips-field--disabled]="disabled()"
+    [attr.data-testid]="testId('destinations-chips-field')"
+  >
+    @for (destination of slackWebhookUrls(); track destination; let index = $index) {
+      <div class="alerting-form__chip-group" [attr.data-testid]="indexedTestId('destination-row', index)">
+        <span
+          class="alerting-form__chip"
+          [class.alerting-form__chip--invalid]="destinationChipError(destination)"
+          [class.alerting-form__chip--selected]="lastChipSelected() && index === destinationsCount() - 1"
+          [attr.data-testid]="indexedTestId('destination-chip', index)"
+        >
+          <span class="alerting-form__chip-label">{{ destination.controls.value.value }}</span>
+          @if (!disabled()) {
+            <button
+              type="button"
+              class="alerting-form__chip-remove"
+              [attr.aria-label]="i18nBase + '.removeDestination' | translate"
+              [attr.data-testid]="indexedTestId('destination-remove', index)"
+              (click)="onRemoveDestination(index)"
+            >
+              ×
+            </button>
+          }
+        </span>
+
+        @if (destinationChipError(destination); as errors) {
+          <small class="alerting-form__chip-error" aria-live="polite" [attr.data-testid]="indexedTestId('destination-error', index)">
+            @if (errors['maxlength']) {
+              {{ i18nBase + '.errors.maxLength' | translate }}
+            } @else if (errors['invalidFormat']) {
+              {{ i18nBase + '.errors.invalidFormat' | translate }}
+            } @else if (errors['serverError']) {
+              {{ errors['serverError'] }}
+            }
+          </small>
+        }
+      </div>
+    }
+
+    @if (!disabled()) {
+      <input
+        type="text"
+        class="alerting-form__chips-input"
+        [value]="draftInput()"
+        [placeholder]="i18nBase + '.destinationPlaceholder' | translate"
+        [attr.aria-label]="i18nBase + '.destinationsInputLabel' | translate"
+        [attr.data-testid]="testId('destination-input')"
+        [disabled]="destinationsInputDisabled()"
+        (input)="onDraftInput($event)"
+        (keydown)="onDraftKeyDown($event)"
+        (blur)="onDraftBlur($event)"
+        (paste)="onDraftPaste($event)"
+      />
+    }
+  </div>
+</ng-template>
+
+<ng-template #destinationInfoTooltip>
+  <div class="alerting-form__tooltip">
+    {{ i18nBase + '.destinationTooltip' | translate }}
+  </div>
+</ng-template>
+
+<ng-template #maxDestinationsTooltip>
+  <div class="alerting-form__tooltip">
+    {{ i18nBase + '.addDestinationDisabledTooltip' | translate }}
+  </div>
+</ng-template>

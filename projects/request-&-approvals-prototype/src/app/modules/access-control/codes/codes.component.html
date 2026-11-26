@@ -1,0 +1,154 @@
+<app-event-selection-band
+  data-testid="codes-selectors"
+  [summary]="selectedPlanTitle() || ('accessControl.codes.searchFilters' | translate)"
+>
+  <app-search-bar
+    data-testid="codes-search-bar"
+    [mandatoryFilters]="mandatoryFilters"
+    [searchOnChange]="true"
+    [showVenue]="true"
+    (searchEmitter)="loadNewSearch($event)"
+  ></app-search-bar>
+</app-event-selection-band>
+
+<div class="codes-page__title">
+  <span class="codes-page__section">{{ 'menu.orders' | translate }}</span>
+  <h1 class="codes-page__heading" data-testid="page-title">{{ 'accessControl.codes.pageTitle' | translate }}</h1>
+</div>
+
+<div>
+  <div>
+    <div *ngIf="currentPlanId" class="codes-header">
+      <div class="codes-header__filters">
+        <app-date-range
+          [queryDateRange]="dateRange"
+          [allowClearDate]="true"
+          [maxDateRange]="31"
+          [showNewCalendarOnReservations]="true"
+          (selected)="onDateRangeChange($event)"
+        ></app-date-range>
+        @if (sessionTypeOptions().length > 0) {
+          <app-multi-select
+            class="codes-header__session-types"
+            [fieldLabel]="'accessControl.codes.sessionTypeFilter.label' | translate"
+            [options]="sessionTypeOptions()"
+            [selectedOptions]="selectedSessionTypeOptions()"
+            [placeholder]="'accessControl.codes.sessionTypeFilter.placeholder' | translate"
+            [displayInPlaceMaximum]="2"
+            [maxSelectedOptions]="maxSessionTypes"
+            [blockAtMax]="true"
+            (selected)="onSessionTypesSelected($event)"
+            data-testid="codes-session-type-filter"
+          />
+        }
+      </div>
+      <div class="codes-header__actions">
+        <button
+          *ngIf="codes.length > 0"
+          type="button"
+          class="upload-codes-button"
+          [disabled]="isDownloadingCodes"
+          (click)="downloadCodes()"
+          data-testid="download-codes-button"
+        >
+          <ignt-icon
+            [name]="isDownloadingCodes ? 'spinner-third' : 'cloud-download'"
+            [variant]="isDownloadingCodes ? 'duotone' : 'light'"
+            [spin]="isDownloadingCodes"
+          />
+          {{ 'accessControl.codes.downloadCodes' | translate }}
+        </button>
+        <button
+          *ngIf="canUploadCodes"
+          type="button"
+          class="upload-codes-button"
+          (click)="navigateToUploadCodes()"
+          data-testid="upload-codes-button"
+        >
+          <ignt-icon name="upload" variant="light" />
+          {{ 'accessControl.codes.uploadCodes' | translate }}
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="!isLoading && !hasError && !currentPlanId" class="codes-list__no-results" data-testid="codes-empty">
+      <h3 class="no-results-title">{{ 'planDetail.noDataSelected' | translate }}</h3>
+      <p class="no-results-subtitle">{{ 'accessControl.codes.noResultsSubtitle' | translate }}</p>
+      <img src="assets/images/shared/plan-searching.svg" alt="No plans found" class="no-results-image" />
+    </div>
+
+    <div *ngIf="currentPlanId" class="codes-list">
+      <div class="codes-list">
+        <div *ngIf="codesSummary && dateRange && !hasNoSessions && !hasError" class="codes-summary" data-testid="codes-summary">
+          <div class="codes-summary__item">
+            <span class="codes-summary__label">{{ 'accessControl.codes.summary.total' | translate }}</span>
+            <span class="codes-summary__value">{{ codesSummary.totalCount }}</span>
+          </div>
+          <div class="codes-summary__item">
+            <span class="codes-summary__label">{{ 'accessControl.codes.summary.validated' | translate }}</span>
+            <span class="codes-summary__value">{{ codesSummary.validatedCount }}</span>
+          </div>
+          <div class="codes-summary__item">
+            <span class="codes-summary__label">{{ 'accessControl.codes.summary.available' | translate }}</span>
+            <span class="codes-summary__value">{{ codesSummary.availableCount }}</span>
+          </div>
+        </div>
+        <div
+          *ngIf="showScrollContainer"
+          appInfiniteScrollLoader
+          [pageRequestCallback]="pageRequestCallback"
+          [active]="activatePagination"
+          data-testid="codes-scroll-container"
+          class="codes-list__scroll-container"
+        >
+          <app-codes-table
+            *ngIf="codes?.length > 0"
+            [codes]="codes"
+            [timezone]="planTimezone"
+            class="codes-list__table"
+            data-testid="codes-list-table"
+          ></app-codes-table>
+        </div>
+
+        <div *ngIf="isLoading" class="codes-list__spinner" data-testid="codes-loading">
+          <ignt-icon name="spinner" variant="solid" size="display" class="loader" />
+        </div>
+
+        <div *ngIf="!hasMorePages && codes?.length > 0 && !isLoading" class="codes-list__end-results">
+          <span class="end-result-line"></span>
+          <ignt-icon name="circle" variant="solid" class="end-result-icon" />
+          <span class="end-result-text">{{ 'reviews.endResults' | translate }}</span>
+          <ignt-icon name="circle" variant="solid" class="end-result-icon" />
+          <span class="end-result-line"></span>
+        </div>
+
+        <div
+          *ngIf="codes?.length === 0 && !isLoading && !hasError && !hasNoSessions && dateRange"
+          class="codes-list__no-results"
+          data-testid="codes-no-results"
+        >
+          <h3 class="no-results-title">{{ 'accessControl.codes.noResultsTitle' | translate }}</h3>
+          <p class="no-results-subtitle">{{ 'accessControl.codes.noResultsSubtitle' | translate }}</p>
+          <img src="assets/images/shared/code-searching.svg" alt="No codes found" class="no-results-image" />
+        </div>
+
+        <div *ngIf="hasNoSessions && dateRange" class="codes-list__no-results" data-testid="codes-no-sessions">
+          <h3 class="no-results-title">{{ 'accessControl.codes.noSessions' | translate }}</h3>
+          <p class="no-results-subtitle">{{ 'accessControl.codes.noResultsSubtitle' | translate }}</p>
+          <img src="assets/images/shared/session-searching.svg" alt="No sessions found" class="no-results-image" />
+        </div>
+
+        <div *ngIf="hasError && dateRange" class="codes-list__error" data-testid="codes-error">
+          <span class="codes-list__error-text">
+            <ignt-icon name="exclamation-triangle" variant="light" class="codes-list__error-icon" />
+            {{ 'errors.generic' | translate }}
+          </span>
+          <button (click)="retrySearch()" class="codes-list__repeat-button" data-testid="codes-retry">
+            <ignt-icon name="repeat" variant="solid" />
+            {{ 'accessControl.codes.retryButton' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

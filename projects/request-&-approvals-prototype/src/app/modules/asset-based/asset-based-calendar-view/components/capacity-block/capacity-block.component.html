@@ -1,0 +1,65 @@
+@let blockLayout = layout();
+@let blockFit = fit();
+<div
+  class="capacity-block"
+  data-testid="capacity-block"
+  [attr.data-level]="level()"
+  [attr.data-width-tier]="blockLayout.widthTier"
+  [attr.data-height-tier]="blockLayout.heightTier"
+  [class.capacity-block--colour-only]="blockFit.isColourOnly"
+  [class.capacity-block--compact-padding]="hasCompactPadding()"
+  [class.capacity-block--one-row]="blockLayout.isOneRow || blockFit.isSideBySide"
+  [class.capacity-block--thin]="blockLayout.isThin"
+  [class.capacity-block--two-lines]="blockFit.isTwoLines"
+>
+  @if (blockLayout.counts !== 'none') {
+    <div
+      class="capacity-block__counts"
+      [class.capacity-block__counts--columns]="blockLayout.counts === 'columns' || blockFit.isSideBySide"
+      [class.capacity-block__counts--primary-only]="blockLayout.counts === 'primaryOnly'"
+      [class.capacity-block__counts--stack]="blockLayout.counts === 'stack' && !blockFit.isSideBySide"
+    >
+      @if (isGuestsCountShown()) {
+        <span class="capacity-block__group" data-testid="capacity-block-guests">
+          @if (blockLayout.hasGlyphs && !blockFit.isGlyphHidden) {
+            <span class="capacity-block__glyph">
+              <ignt-icon aria-hidden="true" name="user" size="caption" variant="light" />
+            </span>
+          }
+          <span
+            class="capacity-block__count"
+            data-testid="capacity-block-guests-count"
+            [class.capacity-block__count--primary]="isGuestsCountPrimary()"
+            >{{ guestsText() }}</span
+          >
+        </span>
+      }
+      @if (isGroupsCountShown()) {
+        <span class="capacity-block__group" data-testid="capacity-block-groups">
+          @if (blockLayout.hasGlyphs && !blockFit.isGlyphHidden) {
+            <span class="capacity-block__glyph">
+              <ignt-icon aria-hidden="true" name="users" size="caption" variant="light" />
+            </span>
+          }
+          <span
+            class="capacity-block__count"
+            data-testid="capacity-block-groups-count"
+            [class.capacity-block__count--primary]="!isGuestsCountPrimary()"
+            >{{ groupsText() }}</span
+          >
+        </span>
+      }
+    </div>
+  }
+  @if (blockLayout.isBarShown && !blockFit.isBarHidden && !isPooledRange()) {
+    <div class="capacity-block__bar" data-testid="capacity-block-bar">
+      @for (segment of segments(); track $index) {
+        <span
+          class="capacity-block__segment"
+          data-testid="capacity-block-segment"
+          [style.inline-size]="'calc(' + segment.widthPercent + '% - 2px)'"
+        ></span>
+      }
+    </div>
+  }
+</div>

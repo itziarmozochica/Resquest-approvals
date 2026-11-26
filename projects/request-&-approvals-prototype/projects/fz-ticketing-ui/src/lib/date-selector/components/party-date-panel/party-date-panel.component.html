@@ -1,0 +1,71 @@
+<div class="party-date-panel" data-testid="party-date-panel">
+  <section class="party-date-panel__section" data-testid="party-date-section">
+    <h3 class="party-date-panel__title">{{ translations().selectTheDateLabel }}</h3>
+
+    @if (vm().skeleton.availability) {
+      <ignt-skeleton-base width="100%" [animation]="true" [height]="56" [white]="true" />
+    } @else {
+      <ignt-date-picker-input
+        class="party-date-panel__date-picker"
+        data-testid="date-selector-invitation"
+        [isOneStopShop]="true"
+        [label]="translations().showAvailabilityFromLabel"
+        [minDate]="vm().datePicker.minDate"
+        [startDate]="vm().datePicker.startDate"
+        [timezone]="vm().datePicker.timezone"
+        (changeDate)="fromDateChanged.emit($event)"
+      />
+    }
+
+    @if (vm().skeleton.dates) {
+      <div class="party-date-panel__skeleton-row" data-testid="party-dates-skeleton">
+        @for (tile of skeletonTiles; track tile) {
+          <ignt-skeleton-base [animation]="true" [height]="56" [white]="true" />
+        }
+      </div>
+    } @else {
+      <fzt-date-pills-row
+        [translations]="translations()"
+        [vm]="vm()"
+        (dateSelected)="dateSelected.emit($event)"
+        (loadMoreClicked)="loadMoreClicked.emit()"
+      />
+    }
+
+    @if (vm().skeleton.sessions) {
+      <ignt-skeleton-base width="100%" data-testid="party-hours-skeleton" [animation]="true" [height]="48" [white]="true" />
+    } @else {
+      <fzt-time-pills-row [nowLabel]="translations().now" [vm]="vm().hourPills" (hourSelected)="hourSelected.emit($event)" />
+    }
+  </section>
+
+  <section class="party-date-panel__section party-date-panel__section--members" data-testid="party-members-section">
+    <div class="party-date-panel__members-header">
+      <h3 class="party-date-panel__title">{{ translations().selectPartyMembersLabel }}</h3>
+      <ignt-button
+        data-testid="party-members-clear-button"
+        size="small"
+        variant="tertiary"
+        [disabled]="!hasPartySelection()"
+        [hidden]="!showClearButton()"
+        [label]="translations().clearPartyMembersLabel"
+        (click)="clearRequested.emit()"
+      />
+    </div>
+    <div class="party-date-panel__members">
+      <div class="party-date-panel__members" data-testid="party-members-skeleton" [hidden]="!vm().skeleton.members">
+        <ignt-skeleton-base width="100%" [animation]="true" [height]="48" [white]="true" />
+        <ignt-skeleton-base width="100%" [animation]="true" [height]="48" [white]="true" />
+        <ignt-skeleton-base width="100%" [animation]="true" [height]="48" [white]="true" />
+      </div>
+      @for (member of vm().members; track member.key) {
+        <fzt-party-member-counter
+          [decreaseAriaLabel]="translations().decreasePartyMemberAriaLabel"
+          [increaseAriaLabel]="translations().increasePartyMemberAriaLabel"
+          [member]="member"
+          (quantityChanged)="memberQuantityChanged.emit($event)"
+        />
+      }
+    </div>
+  </section>
+</div>

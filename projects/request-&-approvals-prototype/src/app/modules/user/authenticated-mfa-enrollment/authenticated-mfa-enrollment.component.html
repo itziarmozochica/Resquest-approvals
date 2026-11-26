@@ -1,0 +1,219 @@
+<div class="authenticated-mfa-enrollment" data-testid="authenticated-mfa-enrollment">
+  @if (error() !== null) {
+    <ignt-alert
+      class="authenticated-mfa-enrollment__banner"
+      [description]="error()! | translate"
+      sentiment="danger"
+      data-testid="authenticated-mfa-enrollment-error"
+    />
+  }
+
+  @if (error() !== null && currentStep() === null && !isLoading()) {
+    <ignt-button
+      variant="secondary"
+      [label]="'common.retry' | translate"
+      data-testid="authenticated-mfa-enrollment-retry"
+      (click)="retryEnrollment()"
+    />
+  }
+
+  @if (isLoading() && currentStep() === null) {
+    <div class="authenticated-mfa-enrollment__loading" data-testid="authenticated-mfa-enrollment-loading" role="status" aria-live="polite">
+      <ignt-icon
+        class="authenticated-mfa-enrollment__loading-spinner"
+        name="spinner"
+        variant="solid"
+        size="display"
+        [spin]="true"
+        aria-hidden="true"
+        data-testid="authenticated-mfa-enrollment-loading-spinner"
+      />
+      <p class="authenticated-mfa-enrollment__loading-text" translate>mfa.enrollment.loading</p>
+    </div>
+  }
+
+  @if (currentStep() === AuthenticatedMfaEnrollmentStep.QrDisplay) {
+    <div class="authenticated-mfa-enrollment__content" data-testid="authenticated-mfa-enrollment-qr-step">
+      <h2 class="authenticated-mfa-enrollment__subtitle" translate>mfa.enrollment.qrTitle</h2>
+      <ol class="authenticated-mfa-enrollment__list">
+        <li class="authenticated-mfa-enrollment__body" translate>mfa.enrollment.instructions</li>
+      </ol>
+
+      <div class="authenticated-mfa-enrollment__qr-block">
+        @if (qrCodeDataUrl()) {
+          <div class="authenticated-mfa-enrollment__qr-container">
+            <img
+              [src]="qrCodeDataUrl()"
+              [attr.alt]="'mfa.enrollment.qrAlt' | translate"
+              class="authenticated-mfa-enrollment__qr-code"
+              data-testid="authenticated-mfa-enrollment-qr-code"
+            />
+          </div>
+        }
+
+        <ignt-button
+          class="authenticated-mfa-enrollment__link"
+          size="small"
+          variant="tertiary"
+          [label]="'mfa.enrollment.cantScan' | translate"
+          [attr.aria-label]="'mfa.enrollment.cantScan' | translate"
+          (click)="openSetupKey()"
+          data-testid="authenticated-mfa-enrollment-setup-key-link"
+        />
+      </div>
+
+      <ol class="authenticated-mfa-enrollment__list authenticated-mfa-enrollment__list--second" start="2">
+        <li class="authenticated-mfa-enrollment__body authenticated-mfa-enrollment__code-heading" translate>mfa.enrollment.codeHeading</li>
+      </ol>
+
+      <form [formGroup]="verificationForm" (ngSubmit)="onConfirmCode()" class="authenticated-mfa-enrollment__verify-form">
+        <div class="authenticated-mfa-enrollment__code-group">
+          <app-digit-input
+            class="authenticated-mfa-enrollment__digits"
+            [digitLength]="codeDigitLength"
+            (valueChange)="onCodeValueChange($event)"
+            data-testid="authenticated-mfa-enrollment-code-input"
+          />
+        </div>
+
+        <ignt-checkbox
+          class="authenticated-mfa-enrollment__remember-device"
+          [checked]="rememberDevice()"
+          [label]="'mfa.rememberDevice' | translate"
+          dataTestId="authenticated-mfa-enrollment-remember-device-checkbox"
+          (change)="onRememberDeviceChange($event)"
+        />
+
+        <ignt-button
+          class="authenticated-mfa-enrollment__confirm"
+          htmlType="submit"
+          size="large"
+          variant="primary"
+          [fill]="true"
+          [label]="'mfa.enrollment.confirm' | translate"
+          [loading]="isLoading()"
+          [disabled]="verificationForm.invalid || isLoading()"
+          data-testid="authenticated-mfa-enrollment-confirm-button"
+        />
+      </form>
+    </div>
+  }
+
+  @if (currentStep() === AuthenticatedMfaEnrollmentStep.RecoveryCodes) {
+    <div class="authenticated-mfa-enrollment__content" data-testid="authenticated-mfa-enrollment-recovery-step">
+      <h2 class="authenticated-mfa-enrollment__subtitle" translate>mfa.enrollment.recoveryCodes.title</h2>
+      <p class="authenticated-mfa-enrollment__body" translate>mfa.enrollment.recoveryCodes.description</p>
+
+      <div class="authenticated-mfa-enrollment__recovery-codes-container">
+        <div class="authenticated-mfa-enrollment__recovery-codes-grid">
+          @for (column of recoveryCodesColumns(); track $index; let last = $last) {
+            <div class="authenticated-mfa-enrollment__recovery-codes-column">
+              @for (code of column; track code) {
+                <div class="authenticated-mfa-enrollment__recovery-code">
+                  {{ code }}
+                </div>
+              }
+            </div>
+            @if (!last) {
+              <div class="authenticated-mfa-enrollment__recovery-codes-divider"></div>
+            }
+          }
+        </div>
+
+        <div class="authenticated-mfa-enrollment__recovery-codes-actions">
+          <button
+            type="button"
+            ignt-icon-button
+            class="authenticated-mfa-enrollment__recovery-codes-action"
+            size="small"
+            sentiment="tertiary"
+            [icon]="['fal', 'cloud-download']"
+            [attr.aria-label]="'mfa.enrollment.recoveryCodes.download' | translate"
+            (click)="downloadRecoveryCodes()"
+            data-testid="authenticated-mfa-enrollment-recovery-download"
+          ></button>
+          <button
+            type="button"
+            ignt-icon-button
+            class="authenticated-mfa-enrollment__recovery-codes-action"
+            size="small"
+            sentiment="tertiary"
+            [icon]="['fal', 'copy']"
+            [attr.aria-label]="'mfa.enrollment.recoveryCodes.copy' | translate"
+            (click)="copyRecoveryCodes()"
+            data-testid="authenticated-mfa-enrollment-recovery-copy"
+          ></button>
+        </div>
+      </div>
+
+      <ignt-button
+        class="authenticated-mfa-enrollment__recovery-codes-done"
+        size="large"
+        variant="primary"
+        [fill]="true"
+        [label]="'mfa.enrollment.recoveryCodes.done' | translate"
+        (click)="onRecoveryCodesDone()"
+        data-testid="authenticated-mfa-enrollment-recovery-done"
+      />
+    </div>
+  }
+</div>
+
+@if (isSetupKeyOpen()) {
+  <div
+    class="authenticated-mfa-setup-key-overlay"
+    (click)="closeSetupKey()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="'mfa.enrollment.setupKey.title' | translate"
+    data-testid="authenticated-mfa-enrollment-setup-key-overlay"
+  >
+    <div
+      class="authenticated-mfa-setup-key-dialog"
+      (click)="$event.stopPropagation()"
+      data-testid="authenticated-mfa-enrollment-setup-key-dialog"
+    >
+      <div class="authenticated-mfa-setup-key-header">
+        <h2 class="authenticated-mfa-setup-key__title" translate data-testid="authenticated-mfa-enrollment-setup-key-title">
+          mfa.enrollment.setupKey.title
+        </h2>
+        <button
+          type="button"
+          ignt-icon-button
+          class="authenticated-mfa-setup-key-close"
+          size="small"
+          sentiment="tertiary"
+          [icon]="['fas', 'times']"
+          [attr.aria-label]="'mfa.enrollment.setupKey.close' | translate"
+          (click)="closeSetupKey()"
+          data-testid="authenticated-mfa-enrollment-setup-key-close"
+        ></button>
+      </div>
+      <div class="authenticated-mfa-setup-key-body">
+        <p class="authenticated-mfa-setup-key__intro" translate>mfa.enrollment.setupKey.intro</p>
+        <ol class="authenticated-mfa-setup-key__list" start="1">
+          <li class="authenticated-mfa-setup-key__item" translate>mfa.enrollment.setupKey.step1</li>
+        </ol>
+        <ol class="authenticated-mfa-setup-key__list" start="2">
+          <li class="authenticated-mfa-setup-key__item" [innerHTML]="'mfa.enrollment.setupKey.step2' | translate | sanitize"></li>
+        </ol>
+        <ol class="authenticated-mfa-setup-key__list" start="3">
+          <li class="authenticated-mfa-setup-key__item" [innerHTML]="'mfa.enrollment.setupKey.step3' | translate | sanitize"></li>
+        </ol>
+        <ol class="authenticated-mfa-setup-key__list" start="4">
+          <li class="authenticated-mfa-setup-key__item" [innerHTML]="'mfa.enrollment.setupKey.step4' | translate | sanitize"></li>
+        </ol>
+        @if (enrollmentData()?.secret) {
+          <div class="authenticated-mfa-setup-key__secret">
+            <p class="authenticated-mfa-setup-key__secret-value" data-testid="authenticated-mfa-enrollment-setup-key-secret">
+              {{ enrollmentData()?.secret }}
+            </p>
+          </div>
+        }
+        <ol class="authenticated-mfa-setup-key__list" start="5">
+          <li class="authenticated-mfa-setup-key__item" [innerHTML]="'mfa.enrollment.setupKey.step5' | translate | sanitize"></li>
+        </ol>
+      </div>
+    </div>
+  </div>
+}

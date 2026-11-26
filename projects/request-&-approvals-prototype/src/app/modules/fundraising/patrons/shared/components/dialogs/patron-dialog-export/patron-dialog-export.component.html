@@ -1,0 +1,95 @@
+<ignt-dialog-header>
+  {{ 'fundraising.patrons.exportDialog.title' | translate }}
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <form [formGroup]="exportForm" class="export-dialog" (ngSubmit)="submit()">
+    <div class="export-dialog__section">
+      <label class="export-dialog__label">
+        {{ 'fundraising.patrons.exportDialog.fileFormatLabel' | translate }}
+      </label>
+      <div class="export-dialog__format-group">
+        <label
+          class="export-dialog__format-option"
+          [class.export-dialog__format-option--selected]="exportForm.get('fileFormat')?.value === exportFormats.csv"
+        >
+          <input type="radio" formControlName="fileFormat" [value]="exportFormats.csv" />
+          <span class="export-dialog__format-option__title">
+            {{ 'fundraising.patrons.exportDialog.csvTitle' | translate }}
+          </span>
+          <span class="export-dialog__format-option__description">
+            {{ 'fundraising.patrons.exportDialog.csvDescription' | translate }}
+          </span>
+        </label>
+        <label
+          class="export-dialog__format-option"
+          [class.export-dialog__format-option--selected]="exportForm.get('fileFormat')?.value === exportFormats.excel"
+          [class.export-dialog__format-option--disabled]="isExcelDisabled()"
+        >
+          <input type="radio" formControlName="fileFormat" [value]="exportFormats.excel" [attr.disabled]="isExcelDisabled() ? '' : null" />
+          <span class="export-dialog__format-option__title">
+            {{ 'fundraising.patrons.exportDialog.excelTitle' | translate }}
+          </span>
+          <span class="export-dialog__format-option__description">
+            {{ 'fundraising.patrons.exportDialog.excelDescription' | translate }}
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <div class="export-dialog__section" formGroupName="fields">
+      <label class="export-dialog__label">
+        {{ 'fundraising.patrons.exportDialog.fieldsLabel' | translate }}
+      </label>
+      <div class="export-dialog__fields-group">
+        @for (field of exportFields; track field.formControlName) {
+          <label class="export-dialog__field-option">
+            <span class="export-dialog__field-option__text">{{ field.labelKey | translateTerminology }}</span>
+            <input type="checkbox" [formControlName]="field.formControlName" />
+          </label>
+        }
+      </div>
+    </div>
+
+    @if (previewColumns().length) {
+      <div class="export-dialog__section">
+        <label class="export-dialog__label">
+          {{ 'fundraising.patrons.exportDialog.previewLabel' | translate }}
+        </label>
+        <div class="export-dialog__preview-wrapper">
+          <table class="export-dialog__preview">
+            <thead>
+              <tr>
+                <th class="export-dialog__preview__corner"></th>
+                @for (col of previewColumns(); track col.backendKey; let i = $index) {
+                  <th class="export-dialog__preview__col-letter">{{ columnLetter(i) }}</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="export-dialog__preview__row-number">1</td>
+                @for (col of previewColumns(); track col.backendKey) {
+                  <td class="export-dialog__preview__header-cell">{{ col.header }}</td>
+                }
+              </tr>
+              @for (rowIndex of [0, 1]; track rowIndex) {
+                <tr>
+                  <td class="export-dialog__preview__row-number">{{ rowIndex + 2 }}</td>
+                  @for (col of previewColumns(); track col.backendKey) {
+                    <td class="export-dialog__preview__data-cell">{{ col.rows[rowIndex] }}</td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+  </form>
+</ignt-dialog-content>
+
+<ignt-dialog-footer [hideCancelButton]="true">
+  <ignt-button variant="tertiary" [label]="'common.cancel' | translate" (click)="dismiss()" />
+  <ignt-button variant="primary" [label]="submitLabel" [disabled]="exportForm.invalid || isLoadingExport" (click)="submit()" />
+</ignt-dialog-footer>

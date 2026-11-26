@@ -1,0 +1,46 @@
+<div class="inventory-schedule-list">
+  <div class="inventory-schedule-list__header" data-testid="schedule-list-header">
+    <p class="inventory-schedule-list__description" data-testid="schedule-list-description">
+      {{ 'inventory.schedule.list.selectCalendarDescription' | translate }}
+    </p>
+    @if (isStaff && selectedPlanId()) {
+      <span class="inventory-schedule-list__infer" data-testid="schedule-list-infer">
+        <ignt-button
+          class="inventory-schedule-list__infer-button"
+          [fill]="isMobile()"
+          size="small"
+          variant="secondary"
+          [label]="'inventory.schedule.list.inferSchedule' | translate"
+          (click)="onInferScheduleClick()"
+          data-testid="schedule-list-infer-button"
+        />
+        <app-fever-only-marker />
+      </span>
+    }
+    @if (canModifySchedule() && selectedPlanId()) {
+      <ignt-button
+        class="inventory-schedule-list__add"
+        [class.inventory-schedule-list__add-link--locked]="!inventoryEditingService.canEditInventory()"
+        [disabled]="!inventoryEditingService.canEditInventory()"
+        [fill]="isMobile()"
+        [label]="'inventory.schedule.list.addSchedule' | translate"
+        [leadingIcon]="{ name: 'plus', variant: 'light' }"
+        size="small"
+        variant="primary"
+        (click)="onAddScheduleClick()"
+        data-testid="schedule-list-add-button"
+      />
+    }
+  </div>
+
+  @if (scheduleCalendars$ | async; as scheduleCalendars) {
+    @for (calendar of scheduleCalendars; track calendar.id) {
+      <app-inventory-schedule-calendar-item
+        [calendar]="calendar"
+        [canDelete]="canDeleteCalendars()"
+        data-testid="schedule-list-calendar-item"
+        (deleteRequested)="onDeleteCalendar($event)"
+      ></app-inventory-schedule-calendar-item>
+    }
+  }
+</div>

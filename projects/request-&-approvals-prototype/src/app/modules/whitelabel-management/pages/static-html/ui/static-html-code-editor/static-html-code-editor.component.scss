@@ -1,0 +1,92 @@
+@use 'foundations' as foundations;
+
+/**
+ * The card fills the tab panel rather than sitting in the top of it.
+ *
+ * There was no `:host` rule here at all, and that was the one broken link in the chain: an unstyled
+ * host is `display: inline`, blockified into a flex item that is sized to what it holds, so the
+ * `flex: 1 1 auto` below had nothing to grow inside and the editor's height came from its own
+ * `min-height` rather than from the panel around it. Everything above hands a height down; this is
+ * what receives it.
+ */
+:host {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.static-html-code-editor {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: foundations.$space-2;
+  min-height: 0;
+  min-width: 0;
+
+  &__toolbar {
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: foundations.$space-2;
+    justify-content: space-between;
+  }
+
+  &__stats {
+    color: foundations.$color-text-subtle;
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+    font-size: foundations.$size-caption;
+    white-space: nowrap;
+  }
+
+  &__actions {
+    display: flex;
+    gap: foundations.$space-2;
+  }
+
+  /**
+   * The editor is exactly as tall as the card has left for it, and the document scrolls inside that.
+   *
+   * `height: 100%` is both the floor and the ceiling, and it is the same declaration in either
+   * layout. Given a card with a definite height — every width where the preview beside it sets the
+   * row — it resolves to the space left under the toolbar and CodeMirror takes the document from
+   * there, so 6000 lines are 6000 lines behind an inner scrollbar rather than 6000 lines of page.
+   * Given an indefinite one, below the three-column width, the same percentage comes out `auto` and
+   * the editor grows with its document as it always did.
+   *
+   * That is also why the old 20rem floor is gone rather than kept beside it: a rem constant under a
+   * bounded card is not a floor, it is an overflow, and a card that cannot grow can only clip it. The
+   * card's own height is the floor now, and it is a viewport-derived one — see the `min-height` on
+   * `.static-html` in `static-html.component.scss`.
+   *
+   * `overflow: hidden` is the radius, not a bound: it clips CodeMirror's square corners to the
+   * rounded border this element draws. It also makes this a scroll-clipping box, which is why the
+   * `min-height: 0` every link above carries stops here — its automatic minimum size is already zero.
+   */
+  &__surface {
+    border: foundations.$size-px solid foundations.$color-border-main;
+    border-radius: foundations.$radii-2;
+    flex: 1 1 auto;
+    overflow: hidden;
+
+    ::ng-deep .cm-editor {
+      height: 100%;
+    }
+
+    // The inner scrollbar the bounded card depends on. CodeMirror's base theme already sets
+    // `overflow-x: auto` here, which computes the block axis to `auto` with it, so this says what the
+    // layout is relying on instead of leaving it to a side effect of the other axis.
+    ::ng-deep .cm-scroller {
+      font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+      font-size: foundations.$size-caption;
+      line-height: 1.5;
+      overflow: auto;
+    }
+
+    ::ng-deep .cm-editor.cm-focused {
+      outline: none;
+    }
+  }
+}

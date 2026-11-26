@@ -1,0 +1,609 @@
+@use 'abstracts/variables/variables' as vars;
+@use 'foundations' as foundations;
+@import 'abstracts/all';
+
+// General colors
+$border-color: $color-border-main;
+$row-bg: $palette-neutral-white;
+$row-hover-bg: darken($row-bg, 1%);
+$muted-text: foundations.$color-text-subtle;
+
+// Capacity Group & Session colors
+$capacity-group-bg: $palette-neutral-white;
+$capacity-group-hover-bg: darken($capacity-group-bg, 1%);
+$session-bg: $palette-neutral-white;
+$session-hover-bg: $palette-neutral-white;
+
+// Free Capacity colors
+$free-capacity-bg: $row-bg;
+$free-capacity-hover-bg: $row-hover-bg;
+
+// Quota colors by type
+// Exclusive quota
+$quota-exclusive-border-color: $color-border-accent-medium;
+$quota-exclusive-bg: foundations.$palette-accent-100;
+$quota-exclusive-hover-bg: darken($quota-exclusive-bg, 2%);
+
+// Shared quota (currently same colors as exclusive, but independent variables for future changes)
+$quota-shared-border-color: $quota-exclusive-border-color;
+$quota-shared-bg: $quota-exclusive-bg;
+$quota-shared-hover-bg: $quota-exclusive-hover-bg;
+
+// Blocked quota
+$quota-blocked-border-color: $color-border-main;
+$quota-blocked-bg: foundations.$palette-neutral-100;
+$quota-blocked-hover-bg: darken($quota-blocked-bg, 2%);
+
+$border-radius-small: 4px;
+$border-radius: 8px;
+
+// ========================================
+// Abstract classes (placeholders) for composition
+// ========================================
+
+%borderless {
+  border: 0;
+}
+
+%has-border-first {
+  border-block: 1px solid $border-color;
+  border-inline-start: 1px solid $border-color;
+}
+
+%has-border-middle {
+  border-block: 1px solid $border-color;
+}
+
+%has-border-last {
+  border-block: 1px solid $border-color;
+  border-inline-end: 1px solid $border-color;
+}
+
+%border-radius-small-left {
+  border-start-start-radius: $border-radius-small;
+  border-end-start-radius: $border-radius-small;
+}
+
+%border-radius-small-right {
+  border-start-end-radius: $border-radius-small;
+  border-end-end-radius: $border-radius-small;
+}
+
+%border-radius-large-left {
+  border-start-start-radius: $border-radius;
+  border-end-start-radius: $border-radius;
+}
+
+%border-radius-large-right {
+  border-start-end-radius: $border-radius;
+  border-end-end-radius: $border-radius;
+}
+
+%muted-text {
+  color: $muted-text;
+}
+
+%indented-right {
+  margin-inline-end: 24px;
+}
+
+%separator-line {
+  content: ' ';
+  position: absolute;
+  bottom: -1px;
+  inset-inline-start: 10px;
+  width: calc(100% - 20px);
+  border-block-end: 1px solid $border-color;
+}
+
+// ========================================
+// Host styles based on row type
+// ========================================
+
+:host {
+  --row-height-large: 85px;
+  --row-height-medium: 70px;
+  --row-height-small: 50px;
+
+  // Capacity Group Row
+  &.quota-management-list-table__row--capacity-group {
+    position: relative;
+
+    .quota-management-list-table-row__cell {
+      height: var(--row-height-large);
+    }
+
+    .quota-management-list-table-row__cell-content {
+      background-color: $capacity-group-bg;
+      transition: background-color 0.15s ease;
+
+      &--first {
+        @extend %borderless;
+        @extend %border-radius-large-left;
+      }
+
+      &--middle {
+        @extend %borderless;
+      }
+
+      &--last {
+        @extend %borderless;
+        @extend %border-radius-large-right;
+      }
+
+      &--numeric {
+        font-size: vars.$font-size-sm;
+      }
+    }
+
+    .quota-management-list-table-row__name {
+      font-size: vars.$font-size-base;
+      font-weight: $font-weight-bold;
+    }
+
+    &:hover .quota-management-list-table-row__cell-content {
+      background-color: $capacity-group-hover-bg;
+    }
+
+    &::after {
+      @extend %separator-line;
+    }
+  }
+
+  // Ungrouped Tickets Row
+  &.quota-management-list-table__row--ungrouped-tickets {
+    position: relative;
+
+    .quota-management-list-table-row__cell {
+      height: var(--row-height-large);
+    }
+
+    .quota-management-list-table-row__cell-content {
+      background-color: $session-bg;
+      transition: background-color 0.15s ease;
+
+      &--first {
+        @extend %borderless;
+        @extend %border-radius-large-left;
+      }
+
+      &--middle {
+        @extend %borderless;
+      }
+
+      &--last {
+        @extend %borderless;
+        @extend %border-radius-large-right;
+      }
+
+      &--numeric {
+        font-size: vars.$font-size-sm;
+      }
+    }
+
+    &:hover .quota-management-list-table-row__cell-content {
+      background-color: $session-hover-bg;
+    }
+
+    &::after {
+      @extend %separator-line;
+    }
+  }
+
+  // Session Row
+  &.quota-management-list-table__row--session {
+    .quota-management-list-table-row__cell {
+      height: var(--row-height-medium);
+    }
+
+    .quota-management-list-table-row__cell-content {
+      background-color: $session-bg;
+      transition: background-color 0.15s ease;
+
+      &--first,
+      &--middle,
+      &--last {
+        @extend %borderless;
+      }
+
+      &--numeric {
+        font-size: vars.$font-size-sm;
+      }
+    }
+
+    .quota-management-list-table-row__name {
+      font-weight: $font-weight-base;
+    }
+
+    &:hover .quota-management-list-table-row__cell-content {
+      background-color: $session-hover-bg;
+    }
+  }
+
+  // Free Capacity Row
+  &.quota-management-list-table__row--free-capacity {
+    .quota-management-list-table-row__cell {
+      height: var(--row-height-small);
+    }
+
+    .quota-management-list-table-row__cell-content {
+      background-color: $free-capacity-bg;
+      transition: background-color 0.15s ease;
+
+      &--first {
+        @extend %border-radius-small-left;
+      }
+
+      &--last {
+        @extend %border-radius-small-right;
+        @extend %indented-right;
+      }
+
+      &--numeric {
+        font-size: vars.$font-size-sm;
+      }
+    }
+
+    .quota-management-list-table-row__name {
+      font-weight: $font-weight-bold;
+    }
+
+    &:hover .quota-management-list-table-row__cell-content {
+      background-color: $free-capacity-hover-bg;
+    }
+  }
+
+  // Quota Row (default: exclusive)
+  &.quota-management-list-table__row--quota {
+    .quota-management-list-table-row__cell {
+      height: var(--row-height-small);
+    }
+
+    .quota-management-list-table-row__cell-content {
+      background-color: $quota-exclusive-bg;
+      transition: background-color 0.15s ease;
+
+      &--first {
+        @extend %border-radius-small-left;
+      }
+
+      &--last {
+        @extend %border-radius-small-right;
+        @extend %indented-right;
+      }
+
+      &--numeric {
+        font-size: vars.$font-size-sm;
+      }
+
+      &--exclusive {
+        background-color: $quota-exclusive-bg;
+      }
+
+      &--shared {
+        background-color: $quota-shared-bg;
+      }
+
+      &--blocked {
+        background-color: $quota-blocked-bg;
+        border-color: $quota-blocked-border-color;
+      }
+    }
+
+    &:hover .quota-management-list-table-row__cell-content {
+      background-color: $quota-exclusive-hover-bg;
+
+      &--exclusive {
+        background-color: $quota-exclusive-hover-bg;
+      }
+
+      &--shared {
+        background-color: $quota-shared-hover-bg;
+      }
+
+      &--blocked {
+        background-color: $quota-blocked-hover-bg;
+      }
+    }
+  }
+
+  // Top-level (timeslot) free-capacity / quota: flush sides; 4px end-cap radius on cell content.
+  &.quota-management-list-table__row--top-level {
+    &.quota-management-list-table__row--free-capacity,
+    &.quota-management-list-table__row--quota {
+      .quota-management-list-table-row__cell-content--first {
+        border-inline-start: 0;
+        border-start-start-radius: $border-radius-small;
+        border-end-start-radius: $border-radius-small;
+      }
+
+      .quota-management-list-table-row__cell-content--last {
+        margin-inline-end: 0;
+        border-inline-end: 0;
+        border-start-end-radius: $border-radius-small;
+        border-end-end-radius: $border-radius-small;
+      }
+    }
+  }
+}
+
+// ========================================
+// Base cell styles (not row-type specific)
+// ========================================
+
+.quota-management-list-table-row {
+  &__cell {
+    padding: 0;
+    vertical-align: middle;
+
+    &--reduced-opacity {
+      opacity: 0.5;
+      transition: opacity 0.2s ease;
+    }
+
+    &--actions-disabled {
+      cursor: not-allowed;
+    }
+  }
+
+  &__cell-content {
+    padding: vars.$spacing-3;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    font-size: vars.$font-size-sm;
+
+    &--first {
+      @extend %has-border-first;
+      font: foundations.$font-h6;
+    }
+
+    &--middle {
+      @extend %has-border-middle;
+    }
+
+    &--last {
+      @extend %has-border-last;
+      justify-content: center;
+    }
+
+    &--numeric {
+      justify-content: flex-end;
+      font-weight: $font-weight-bold;
+      color: foundations.$color-text-main;
+    }
+
+    &--centered {
+      justify-content: center;
+    }
+
+    &--with-separator {
+      position: relative;
+
+      &::after {
+        content: '';
+        position: absolute;
+        inset-inline-end: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 1px;
+        height: 24px;
+        background-color: $border-color;
+      }
+    }
+  }
+
+  &__name-wrapper {
+    display: flex;
+    align-items: center;
+    gap: vars.$spacing-2;
+    width: 100%;
+
+    :host(.quota-management-list-table__row--session) & {
+      align-items: flex-start;
+    }
+  }
+
+  &__quota-wrapper {
+    display: flex;
+    align-items: center;
+    gap: vars.$spacing-2;
+    width: 100%;
+  }
+
+  &__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    background: 0;
+    border: 0;
+    cursor: pointer;
+    color: foundations.$palette-neutral-500;
+    padding: 0;
+    flex-shrink: 0;
+    transition: color 0.15s ease;
+
+    &:hover {
+      color: foundations.$color-text-main;
+    }
+
+    &--hidden {
+      visibility: hidden;
+      cursor: default;
+      pointer-events: none;
+    }
+
+    :host-context([dir='rtl']) & fa-icon {
+      transform: scaleX(-1);
+    }
+  }
+
+  &__name-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  &__label {
+    color: $muted-text;
+    font-size: vars.$font-size-xs;
+  }
+
+  &__name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: foundations.$color-text-main;
+
+    &--muted {
+      color: foundations.$color-text-subtle;
+      font-weight: $font-weight-base;
+    }
+  }
+
+  &__cannot-have-quotas {
+    color: foundations.$color-action-text-disable;
+    font-size: vars.$font-size-xs;
+    font-style: italic;
+    font-weight: $font-weight-base;
+    padding: 0;
+    text-align: start;
+  }
+
+  &__session-icon {
+    color: $muted-text;
+    font-size: vars.$font-size-base;
+    flex-shrink: 0;
+  }
+
+  &__chart-pie-icon {
+    color: foundations.$color-text-main;
+    font-size: vars.$font-size-sm;
+    flex-shrink: 0;
+  }
+
+  &__buttons-container {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+
+    &__add-quota,
+    &__live-editor {
+      background: 0;
+      border: 0;
+      color: $color-action-text-primary;
+      cursor: pointer;
+      font-size: vars.$font-size-xs;
+      padding: 0;
+      text-align: start;
+      font-weight: $font-weight-bold;
+      transition: color 0.15s ease;
+
+      &:hover:not(:disabled) {
+        color: darken(vars.$primary-color, 10%);
+        text-decoration: underline;
+      }
+
+      &:disabled {
+        color: foundations.$color-action-text-disable;
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+    }
+  }
+
+  &__capacity-input-wrapper {
+    width: 80px;
+    height: 40px;
+    background: transparent;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    transition: background-color 0.15s ease;
+
+    &--error {
+      outline-color: foundations.$palette-danger-500;
+    }
+
+    &--exclusive {
+      background-color: $quota-exclusive-bg;
+    }
+
+    &--shared {
+      background-color: $quota-shared-bg;
+    }
+
+    &--blocked {
+      background-color: $quota-blocked-bg;
+    }
+  }
+
+  &__capacity-input-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+  }
+
+  &__capacity-input {
+    width: 100%;
+    height: 100%;
+    font-size: 1rem;
+    text-align: end;
+    outline: none;
+    border: 1px solid $border-color;
+    border-radius: $border-radius;
+    background-color: $palette-neutral-white;
+    padding: 0 vars.$spacing-3;
+
+    &:focus {
+      outline: none;
+    }
+
+    &--error {
+      border-color: foundations.$palette-danger-500;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+  }
+
+  &__cell-content--disabled {
+    cursor: not-allowed;
+  }
+
+  &__disabled-actions-icon {
+    opacity: 0.6;
+    pointer-events: none;
+    color: vars.$gray-400;
+  }
+
+  &__actions-menu {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+
+    &--disabled {
+      opacity: 0.5;
+      pointer-events: none;
+      cursor: not-allowed;
+
+      ::ng-deep app-quota-actions-menu {
+        opacity: 0.5;
+        pointer-events: none;
+      }
+    }
+  }
+
+  &__actions-placeholder {
+    opacity: 0;
+    pointer-events: none;
+    font-size: vars.$font-size-sm;
+  }
+}

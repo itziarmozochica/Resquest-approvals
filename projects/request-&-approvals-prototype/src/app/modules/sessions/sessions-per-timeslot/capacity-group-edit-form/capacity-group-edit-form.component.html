@@ -1,0 +1,157 @@
+<div class="common-session-edit lateral-slider-body__wrapper">
+  <div class="common-session-edit__header">
+    <div
+      class="common-session-edit__header-description"
+      [innerHTML]="'sessions.sessionsPerTimeslot.edition.description.codePool' | translate"
+    ></div>
+  </div>
+
+  <ignt-alert
+    class="common-session-edit__message-banner"
+    [description]="'sessions.sessionsPerTimeslot.edition.capacityGroupBannerMessage' | translate"
+  ></ignt-alert>
+  <ng-container *ngIf="formLoaded">
+    <form [formGroup]="formGroup" class="common-session-edit__form">
+      <ng-container
+        *ngTemplateOutlet="inputTemplate; context: { fieldName: 'codePoolName', fieldType: 'text', readonly: true }"
+      ></ng-container>
+      <ng-container
+        *ngTemplateOutlet="inputTemplate; context: { fieldName: 'maxQty', fieldType: 'number', readonly: isAssetBasedCapacityGroup }"
+      ></ng-container>
+
+      <div class="input-inline">
+        <div class="mixed-status-switch-container" *ngIf="formGroup.get('status') as control">
+          <app-mixed-status-switch
+            *ngIf="sessionsStatus"
+            class="mixed-status-switch"
+            [fieldName]="'status'"
+            [icon]="['fal', 'chart-line']"
+            [isMixed]="sessionsStatus === sessionsStatusEnum.MIXED"
+            [mixedLabel]="'sessions.sessionsPerTimeslot.visibility.mixed'"
+            [checkedLabel]="'sessions.sessionsPerTimeslot.status.purchasable'"
+            [uncheckedLabel]="'sessions.sessionsPerTimeslot.forcedSaleClosure'"
+            [control]="control"
+            [enableBulkEdition]="statusEnableSwitch.checked"
+          ></app-mixed-status-switch>
+
+          <label class="custom-switch__enabler" [class.custom-switch__enabler--hidden]="sessionsStatus !== sessionsStatusEnum.MIXED">
+            <input
+              #statusEnableSwitch
+              data-testid="custom-switch-capacity-group-status-enabler"
+              (change)="updateSwitchStatusOnBulkEditCheckboxChange(control, statusEnableSwitch.checked)"
+              type="checkbox"
+            />
+            <span>{{ 'sessions.sessionsPerTimeslot.enableBulkEditWhenMixedStatus' | translate }}</span>
+          </label>
+        </div>
+
+        <div class="mixed-status-switch-container" *ngIf="formGroup.get('visibility') as control">
+          <app-mixed-status-switch
+            *ngIf="sessionsVisibility"
+            [fieldName]="'visibility'"
+            class="mixed-status-switch"
+            [icon]="['fal', 'eye-slash']"
+            [isMixed]="sessionsVisibility === sessionsVisibilityEnum.MIXED"
+            [mixedLabel]="'sessions.sessionsPerTimeslot.visibility.mixed'"
+            [checkedLabel]="'sessions.sessionsPerTimeslot.visibility.visible'"
+            [uncheckedLabel]="'sessions.sessionsPerTimeslot.visibility.hidden'"
+            [control]="control"
+            [enableBulkEdition]="visibilityEnableSwitch.checked"
+          ></app-mixed-status-switch>
+
+          <label
+            class="custom-switch__enabler"
+            [class.custom-switch__enabler--hidden]="sessionsVisibility !== sessionsVisibilityEnum.MIXED"
+          >
+            <input
+              #visibilityEnableSwitch
+              data-testid="custom-switch-capacity-group-visibility-enabler"
+              (change)="updateSwitchStatusOnBulkEditCheckboxChange(control, visibilityEnableSwitch.checked)"
+              type="checkbox"
+            />
+            <span>{{ 'sessions.sessionsPerTimeslot.enableBulkEditWhenMixedStatus' | translate }}</span>
+          </label>
+        </div>
+      </div>
+
+      <ignt-alert
+        class="bulk-edit-warning"
+        *ngIf="
+          (formGroup.get('status').dirty && sessionsStatus === sessionsStatusEnum.MIXED) ||
+          (formGroup.get('visibility').dirty && sessionsVisibility === sessionsStatusEnum.MIXED)
+        "
+        sentiment="warning"
+        [description]="'sessions.sessionsPerTimeslot.bulkEditCapacityGroupWarningMessage' | translate"
+      ></ignt-alert>
+
+      <ng-template #inputTemplate let-fieldName="fieldName" let-fieldType="fieldType" let-readonly="readonly">
+        <div>
+          <div
+            class="form-group"
+            [class.form-group--error]="getControlError(formGroup.get(fieldName))"
+            [class.form-group--readonly]="readonly"
+          >
+            <label [for]="fieldName" class="form-label" translate>{{ 'sessions.sessionsPerTimeslot.edition.field.' + fieldName }} </label>
+            <input
+              [id]="fieldName"
+              [attr.data-testid]="'session-' + fieldName"
+              class="form-input"
+              [type]="fieldType"
+              [formControlName]="fieldName"
+              [min]="0"
+              [readonly]="readonly"
+              autocomplete="off"
+            />
+          </div>
+          <ignt-alert
+            *ngIf="fieldName === 'maxQty' && isAssetBasedCapacityGroup"
+            class="common-session-edit__message-banner"
+            data-testid="asset-based-capacity-group-banner"
+            sentiment="warning"
+            [description]="'sessions.sessionsPerTimeslot.edition.error.assetBasedCapacityGroupCapacityUpdateNotAllowed' | translate"
+          ></ignt-alert>
+          <ignt-alert
+            *ngIf="fieldName === 'maxQty' && shouldShowSharedCapacityWarning"
+            class="common-session-edit__message-banner"
+            data-testid="shared-capacity-group-banner"
+            sentiment="warning"
+            [description]="'sessions.sessionsPerTimeslot.edition.sharedCapacityGroupCapacityWarningMessage' | translate"
+          ></ignt-alert>
+          <ng-container
+            *ngTemplateOutlet="
+              validationErrors;
+              context: { error: getControlError(formGroup.get(fieldName)), control: formGroup.get(fieldName) }
+            "
+          ></ng-container>
+        </div>
+      </ng-template>
+    </form>
+  </ng-container>
+</div>
+<div class="lateral-slider-body__footer">
+  <ignt-button variant="tertiary" [label]="'sessions.sessionsPerTimeslot.edition.button.discard' | translate" (click)="cancel()" />
+
+  <ignt-button
+    [label]="'sessions.sessionsPerTimeslot.edition.button.save' | translate"
+    data-testid="session-save-button"
+    [disabled]="isSaveButtonDisabled()"
+    (click)="save()"
+  />
+</div>
+
+<ng-template #validationErrors let-error="error" let-control="control">
+  <ng-container *ngIf="error">
+    <div class="form-error" [ngSwitch]="error">
+      <fa-icon class="form-error--icon" [icon]="['fas', 'exclamation-circle']"></fa-icon>
+      <span class="form-error--message" *ngSwitchCase="'required'" data-testid="error-mandatory-field">
+        {{ 'form.error.mandatoryField' | translate }}
+      </span>
+      <span class="form-error--message" *ngSwitchCase="'min'" data-testid="error-min-value-field">
+        {{ 'form.error.greaterThanZero' | translate }}
+      </span>
+      <span class="form-error--message" *ngSwitchCase="'max'" data-testid="error-max-value-field">
+        {{ 'form.error.maxValue' | translate: { value: control?.errors?.['max']?.max } }}
+      </span>
+    </div>
+  </ng-container>
+</ng-template>

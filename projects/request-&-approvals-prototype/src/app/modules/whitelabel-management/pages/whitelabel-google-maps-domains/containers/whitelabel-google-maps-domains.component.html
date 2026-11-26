@@ -1,0 +1,60 @@
+<app-go-back [goBackTitle]="i18n + '.goBack' | translate" [urlGoBack]="goBackUrl"></app-go-back>
+
+<app-page-title
+  class="new-design"
+  [description]="hasWhitelabelName() ? (i18n + '.header.subtitle' | translate: subtitleParams()) : ''"
+  [title]="i18n + '.pageTitle' | translate"
+/>
+
+<div class="whitelabel-google-maps-domains">
+  @if (store.loadError(); as loadError) {
+    <ignt-alert
+      sentiment="danger"
+      data-testid="google-maps-domains-load-error"
+      [description]="i18n + '.loadError.message' | translate: { detail: loadError.detail }"
+      [showCloseButton]="false"
+      [title]="i18n + '.loadError.title' | translate"
+    >
+      <ng-template #igntAlertActions>
+        <ignt-button
+          size="small"
+          data-testid="google-maps-domains-retry"
+          [label]="i18n + '.loadError.retry' | translate"
+          (click)="store.recheckStatus()"
+        />
+        @if (loadError.detail) {
+          <ignt-button
+            size="small"
+            variant="secondary"
+            data-testid="google-maps-domains-copy-error"
+            [label]="(isErrorDetailCopied() ? i18n + '.loadError.copied' : i18n + '.loadError.copy') | translate"
+            (click)="onCopyErrorDetails()"
+          />
+        }
+      </ng-template>
+    </ignt-alert>
+  } @else if (store.isKeyNotConfigured()) {
+    <app-google-maps-domains-empty-state [variant]="emptyStateVariants.notConfigured" />
+  } @else if (!store.isLoading() && !store.hasHosts()) {
+    <app-google-maps-domains-empty-state [updatePagePath]="updatePagePath()" [variant]="emptyStateVariants.noHosts" />
+  } @else {
+    <app-google-maps-domains-header
+      [attentionCount]="attentionCount()"
+      [checkedAt]="store.checkedAt()"
+      [hostCount]="hostCount()"
+      [isLoading]="store.isLoading()"
+      [isReadOnly]="store.isReadOnly()"
+      (recheckRequested)="store.recheckStatus()"
+    />
+
+    <app-google-maps-domains-table
+      [isLoading]="store.isLoading()"
+      [isReadOnly]="store.isReadOnly()"
+      [rows]="tableRows()"
+      (detailsRequested)="onDetailsRequested($event)"
+      (registerRequested)="onRegisterRequested($event)"
+    />
+
+    <app-google-maps-domains-key-note />
+  }
+</div>

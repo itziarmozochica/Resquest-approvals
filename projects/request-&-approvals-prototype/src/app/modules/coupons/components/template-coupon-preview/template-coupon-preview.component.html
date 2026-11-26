@@ -1,0 +1,153 @@
+<div class="lateral-slider-body__wrapper template-coupon-preview">
+  <div class="template-coupon-preview" *ngIf="templateCouponPreview">
+    <div class="wrapper wrapper-card">
+      <div class="label-value-tuple">
+        <span class="cell cell--fill">
+          <b>{{ 'coupons.list.preview.promoCodeStatus' | translate }}</b>
+          <br />
+          <small>{{ 'coupons.list.preview.inactiveActive' | translate }}</small>
+        </span>
+        <span class="cell cell--hug">
+          <ignt-toggle
+            *ngIf="templateCouponPreview.templateCouponDetail.status !== 'in_progress'"
+            (click)="$event.stopPropagation()"
+            id="status-template-coupon-preview-{{ templateCouponPreview.templateCouponDetail.id }}"
+            [checked]="templateCouponPreview.templateCouponDetail.isActive"
+            [disabled]="templateCouponPreview.templateCouponDetail.status === 'updating'"
+            (change)="emitTemplateCouponUpdate(templateCouponPreview, $event)"
+          ></ignt-toggle>
+        </span>
+      </div>
+    </div>
+
+    <app-coupon-preview
+      class="template-coupon-preview__coupon-preview"
+      [couponPreview]="templateCouponPreview.couponPreview"
+    ></app-coupon-preview>
+
+    <fieldset class="fieldset">
+      <div class="wrapper wrapper-card">
+        <div class="label-value-tuple">
+          <span class="cell cell--fill">
+            <b>{{ 'coupons.form.attributes.fields.code.label' | translate }}</b>
+            <ng-container *ngIf="isUniqueCoupon()">
+              <br />
+              <span class="badge unique-badge">
+                {{ 'coupons.form.attributes.fields.couponType.tags.unique' | translate }}
+              </span>
+            </ng-container>
+          </span>
+          <span>
+            <span class="badge">{{ templateCouponPreview.templateCouponDetail.code }}</span>
+          </span>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="fieldset">
+      <legend class="fieldset__legend">{{ 'coupons.form.attributes.fields.discountType.label' | translate }}</legend>
+      <div class="wrapper wrapper-card">
+        <div class="label-value-tuple">
+          <b>{{ 'coupons.list.fields.kind.' + templateCouponPreview.templateCouponDetail.discountType | translate }}</b>
+          <span>{{ getDiscountQuantityWithFormat() }}</span>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="fieldset">
+      <legend class="fieldset__legend">{{ 'coupons.form.attributes.fieldsetsHelpTexts.limits' | translate }}</legend>
+      <div class="wrapper wrapper-card split-wrapper">
+        <div class="label-value-tuple">
+          <b>{{ 'coupons.form.attributes.fields.availableUsages.label' | translate }}</b>
+          <span>{{ getAvailableRedeems() ?? '∞' }}</span>
+        </div>
+        <div class="label-value-tuple">
+          <b>{{ 'coupons.form.attributes.fields.maxUsesPerUser.label' | translate }}</b>
+          <span>{{ templateCouponPreview.templateCouponDetail.maxUsesPerUser ?? '∞' }}</span>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="fieldset">
+      <legend class="fieldset__legend">{{ 'coupons.list.preview.details.title' | translate }}</legend>
+      <div class="wrapper wrapper-card split-wrapper">
+        <div class="label-value-tuple">
+          <b>{{ 'coupons.list.preview.details.codesAddedWallet' | translate }}</b>
+          <span>
+            <b>{{ templateCouponPreview.templateCouponDetail.currentUsages }}</b>
+            / {{ templateCouponPreview.templateCouponDetail.totalAvailableUsages ?? '∞' }}</span
+          >
+        </div>
+        <div class="label-value-tuple">
+          <b>{{ 'coupons.list.preview.details.codesUsed' | translate }}</b>
+          <span>{{ templateCouponPreview.templateCouponDetail.currentConsumptions }}</span>
+        </div>
+        <ng-container *ngIf="isMoneyCoupon()">
+          <div class="label-value-tuple">
+            <b>{{ 'coupons.list.preview.details.totalBudgetSpent' | translate }}</b>
+            <span>
+              <b>{{ getSpentBudget() }}</b>
+              / {{ getTotalBudget() }}
+            </span>
+          </div>
+        </ng-container>
+      </div>
+    </fieldset>
+
+    <fieldset class="fieldset">
+      <legend class="fieldset__legend">{{ 'coupons.form.attributes.fieldsetsHelpTexts.activationPeriod' | translate }}</legend>
+      <div class="wrapper wrapper-card split-wrapper">
+        <div class="label-value-tuple">
+          <b>{{ 'coupons.form.attributes.fields.startDate.label' | translate }}</b>
+          <span>{{ (templateCouponPreview.templateCouponDetail.startDate | date: 'MMM d, y, h:mm a') || '-' }}</span>
+        </div>
+        <div class="label-value-tuple">
+          <b>{{ 'coupons.form.attributes.fields.endDate.label' | translate }}</b>
+          <span>{{ templateCouponPreview.templateCouponDetail.expirationDate | date: 'MMM d, y, h:mm a' }}</span>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="fieldset" *ngIf="templateCouponPreview.planPreviews.length > 0">
+      <legend class="fieldset__legend">{{ 'coupons.list.preview.events' | translate }}</legend>
+      <div class="wrapper wrapper-card split-wrapper">
+        <div class="event-preview-wrapper" *ngFor="let planPreview of templateCouponPreview.planPreviews">
+          <img ngSrc="{{ planPreview.imageUrl }}" width="48" height="48" [alt]="'plan-id-' + planPreview.id" />
+          <div class="cell--fill">
+            <div class="fw-bold">{{ planPreview.name }}</div>
+            <div class="font-caption-regular">
+              <b>{{ 'coupons.list.preview.eventId' | translate }}:</b> {{ planPreview.id }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </fieldset>
+  </div>
+  <div class="lateral-slider-body__footer" *ngIf="templateCouponPreview">
+    <ignt-button
+      fill
+      [leadingIcon]="{ name: 'edit', variant: 'regular' }"
+      [label]="'coupons.list.preview.goToEdit' | translate"
+      (click)="goToDetail()"
+      data-testid="edit-coupon-button"
+    ></ignt-button>
+
+    <ng-container *ngIf="isUniqueCoupon()">
+      <ignt-button
+        variant="secondary"
+        [leadingIcon]="{ name: 'eye', variant: 'solid' }"
+        fill
+        [label]="'coupons.list.preview.goToCodesList' | translate"
+        (click)="goToCodeList()"
+        data-testid="unique-coupon-list"
+      ></ignt-button>
+    </ng-container>
+  </div>
+
+  <div class="empty-template-coupon-preview" *ngIf="!templateCouponPreview">
+    <ng-container *ngIf="!isEmpty">
+      <h3 class="font-h3">{{ 'coupons.list.preview.emptyPreview' | translate }}</h3>
+      <img src="assets/images/coupons/coupon-preview-empty.svg" alt="coupon-preview-empty" />
+    </ng-container>
+  </div>
+</div>

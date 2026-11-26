@@ -1,0 +1,47 @@
+<div class="plan-creation" [class.plan-creation--white-background]="currentView() !== PlanCreationView.SETUP">
+  @if (showDashboardBreadcrumb() || headerTitle()) {
+    <app-plan-creation-header
+      [showBreadcrumb]="showDashboardBreadcrumb()"
+      [title]="headerTitle()"
+      (breadcrumbClick)="navigateToView(PlanCreationView.SETUP)"
+    ></app-plan-creation-header>
+  }
+
+  <div *ngIf="isLoading()" class="plan-creation__loading">
+    <ignt-icon name="spinner" variant="solid" size="display" [spin]="true" aria-hidden="true"></ignt-icon>
+  </div>
+
+  <app-plan-error *ngIf="error()" (retry)="retryLoadPlan(planId())"></app-plan-error>
+
+  <div *ngIf="planDetail() && !isLoading() && !error()" class="plan-creation__content plan-creation__content--with-lock-overlay">
+    <app-plan-setup
+      *ngIf="currentView() === PlanCreationView.SETUP"
+      [capacityTemplates]="capacityTemplates()"
+      [inventoryData]="inventoryData()"
+      [isInventoryProvisioning]="isInventoryProvisioning()"
+      [planDetail]="planDetail()"
+      (navigateToContent)="navigateToView(PlanCreationView.CONTENT)"
+      (navigateToInventory)="navigateToInventory()"
+      (navigateToSettings)="navigateToView(PlanCreationView.SETTINGS)"
+    ></app-plan-setup>
+
+    <app-plan-content-edit
+      *ngIf="currentView() === PlanCreationView.CONTENT"
+      [planId]="planId()"
+      (navigateToSettings)="navigateToView(PlanCreationView.SETTINGS)"
+      (navigateToSetup)="navigateToView(PlanCreationView.SETUP)"
+    ></app-plan-content-edit>
+
+    <app-plan-settings-edit
+      *ngIf="currentView() === PlanCreationView.SETTINGS"
+      [planId]="planId()"
+      [planCreationStatus]="planDetail()"
+    ></app-plan-settings-edit>
+
+    @if (!planEditionLockResolved()) {
+      <div class="plan-creation__lock-loading plan-creation__lock-loading--overlay" data-testid="plan-creation-lock-loading">
+        <ignt-icon name="spinner" variant="solid" size="display" [spin]="true" aria-hidden="true"></ignt-icon>
+      </div>
+    }
+  </div>
+</div>

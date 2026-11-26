@@ -1,0 +1,151 @@
+<footer class="immersive-actions-bar" data-testid="immersive-actions-bar">
+  <p class="immersive-actions-bar__state" data-testid="immersive-actions-bar-state">
+    @if (isDraftLayout()) {
+      {{ 'planEdition.immersiveContentPlan.statusDraft' | translate }}
+    } @else {
+      {{ 'planEdition.immersiveContentPlan.statusPublished' | translate }}
+    }
+    ·
+    @if (hasUnsavedChanges()) {
+      <span [innerHTML]="'planEdition.immersiveContentPlan.unsavedChanges' | translate: { count: draftCount() }"></span>
+    } @else {
+      {{ 'planEdition.immersiveContentPlan.noUnsavedChanges' | translate }}
+    }
+    @if (layout()?.updated_at; as updatedAt) {
+      · {{ 'planEdition.immersiveContentPlan.generatedAt' | translate: { date: (updatedAt | date: 'medium') } }}
+    }
+    @if (publishBlockedReasonKey(); as reasonKey) {
+      ·
+      <span data-testid="immersive-publish-blocked-reason">
+        {{ reasonKey | translate: { count: publishability().errors.length } }}
+        @for (fragment of blockedFragments(); track fragment.key) {
+          · <span data-testid="immersive-publish-blocked-fragment">{{ fragment.key | translate: { count: fragment.count } }}</span>
+        }
+      </span>
+    }
+    @if (revertBlockedReasonKey(); as reasonKey) {
+      ·
+      <span data-testid="immersive-revert-blocked-reason">{{ reasonKey | translate: { count: revertability().errors.length } }}</span>
+    }
+  </p>
+
+  <div class="immersive-actions-bar__actions">
+    <ignt-button
+      data-testid="immersive-discard-button"
+      fill
+      htmlType="button"
+      sentiment="brand"
+      variant="tertiary"
+      [disabled]="!hasUnsavedChanges() || isPersisting()"
+      [label]="'common.discard' | translate"
+      (click)="discard()"
+    ></ignt-button>
+    @if (showActions()) {
+      @if (isDraftLayout()) {
+        <ignt-button
+          data-testid="immersive-save-button"
+          fill
+          htmlType="button"
+          sentiment="brand"
+          variant="secondary"
+          [disabled]="saveBlocked()"
+          [label]="'planEdition.saveDraft' | translate"
+          [loading]="pendingIntent() === 'save-draft'"
+          (click)="openConfirmDialog('save-draft')"
+        ></ignt-button>
+      } @else {
+        <ignt-button
+          data-testid="immersive-revert-button"
+          fill
+          htmlType="button"
+          sentiment="brand"
+          variant="tertiary"
+          [disabled]="revertBlocked()"
+          [label]="'planEdition.immersiveContentPlan.revertCta' | translate"
+          [loading]="pendingIntent() === 'revert-to-draft'"
+          (click)="openConfirmDialog('revert-to-draft')"
+        ></ignt-button>
+      }
+      <ignt-button
+        data-testid="immersive-publish-button"
+        fill
+        htmlType="button"
+        sentiment="brand"
+        variant="primary"
+        [disabled]="publishBlocked()"
+        [label]="'planEdition.immersiveContentPlan.publishCta' | translate"
+        [loading]="pendingIntent() === 'publish'"
+        (click)="openConfirmDialog('publish')"
+      ></ignt-button>
+    }
+  </div>
+</footer>
+
+<ng-template #confirmDialog>
+  <!-- Ignite only turns the shell into a header/content/footer grid (scrolling content, pinned
+       footer) when those three sit under a single wrapper it can flatten with `display: contents`.
+       A template portal projects its root nodes directly, so this wrapper is what keeps the
+       confirm button visible instead of scrolling away with the diff list. -->
+  <div class="immersive-confirm-dialog">
+    <ignt-dialog-header data-testid="immersive-confirm-dialog">
+      {{ dialogCopy().titleKey | translate: { count: draftCount() } }}
+    </ignt-dialog-header>
+    <ignt-dialog-content>
+      <p class="immersive-confirm-dialog__subtitle" data-testid="immersive-confirm-dialog-subtitle">
+        {{ dialogCopy().subtitleKey | translate }}
+      </p>
+      @if (showDiffList()) {
+        @for (diff of dialogDiffs(); track $index) {
+          <div class="immersive-confirm-dialog__diff" data-testid="immersive-confirm-dialog-diff">
+            <div class="immersive-confirm-dialog__diff-head" data-testid="immersive-confirm-dialog-diff-head">{{ diff.headerText }}</div>
+            @if (diff.change.kind === 'array') {
+              <div class="immersive-confirm-dialog__diff-old">
+                {{ 'planEdition.immersiveContentPlan.itemCount' | translate: { count: diff.change.oldValue } }}
+              </div>
+              <div class="immersive-confirm-dialog__diff-new">
+                {{ 'planEdition.immersiveContentPlan.itemCount' | translate: { count: diff.change.newValue } }}
+              </div>
+            } @else if (diff.change.kind === 'reorder') {
+              <!-- A positionless reorder has no attributable from/to, so the header alone is the whole story. -->
+              @if (diff.positions; as positions) {
+                <div class="immersive-confirm-dialog__diff-old" data-testid="immersive-confirm-dialog-diff-old-position">
+                  {{ 'planEdition.immersiveContentPlan.itemHeading' | translate: { index: positions.old } }}
+                </div>
+                <div class="immersive-confirm-dialog__diff-new" data-testid="immersive-confirm-dialog-diff-new-position">
+                  {{ 'planEdition.immersiveContentPlan.itemHeading' | translate: { index: positions.new } }}
+                </div>
+              }
+            } @else {
+              <div class="immersive-confirm-dialog__diff-old">{{ diff.oldText || '—' }}</div>
+              <div class="immersive-confirm-dialog__diff-new">{{ diff.newText || '—' }}</div>
+            }
+          </div>
+        }
+      }
+      @if (dialogCopy().cacheNoteKey; as cacheNoteKey) {
+        <p class="immersive-confirm-dialog__cache-note" data-testid="immersive-confirm-dialog-cache-note" role="note">
+          {{ cacheNoteKey | translate }}
+        </p>
+      }
+      @if (canOfferReplication()) {
+        <ignt-checkbox
+          data-testid="immersive-replicate-after-save-checkbox"
+          [checked]="replicateAfterSave()"
+          [label]="offerCheckboxKey() | translate"
+          (change)="toggleReplicateAfterSave($event)"
+        ></ignt-checkbox>
+      }
+    </ignt-dialog-content>
+    <ignt-dialog-footer>
+      <ignt-button
+        data-testid="immersive-confirm-dialog-confirm"
+        htmlType="button"
+        [igntDialogClose]="true"
+        sentiment="brand"
+        variant="primary"
+        [disabled]="!canConfirm()"
+        [label]="confirmLabelKey() | translate"
+      ></ignt-button>
+    </ignt-dialog-footer>
+  </div>
+</ng-template>

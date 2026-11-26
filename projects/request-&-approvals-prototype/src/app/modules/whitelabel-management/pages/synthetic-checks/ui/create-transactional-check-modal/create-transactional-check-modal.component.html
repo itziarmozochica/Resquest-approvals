@@ -1,0 +1,461 @@
+<ignt-dialog-header data-testid="create-transactional-check-modal-title">
+  <div class="create-transactional-check-modal__header">
+    <button
+      type="button"
+      class="create-transactional-check-modal__back-button"
+      data-testid="create-transactional-check-back-button"
+      [disabled]="submitting()"
+      (click)="onBack()"
+    >
+      &larr; {{ settingsI18n + '.back' | translate }}
+    </button>
+    <span class="create-transactional-check-modal__title">{{ modalTitle | translate }}</span>
+    <span class="create-transactional-check-modal__header-spacer" aria-hidden="true"></span>
+  </div>
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="create-transactional-check-modal">
+    @if (!isView && genericErrors().length > 0) {
+      <ignt-alert sentiment="danger" [showCloseButton]="false" data-testid="create-transactional-check-generic-errors">
+        @for (error of genericErrors(); track error) {
+          <p>{{ error }}</p>
+        }
+      </ignt-alert>
+    }
+
+    <form [formGroup]="form" class="create-transactional-check-modal__form" (ngSubmit)="onSubmit()">
+      <!-- Name -->
+      <div class="create-transactional-check-modal__field">
+        <label class="create-transactional-check-modal__label" for="tc-name">{{ settingsI18n + '.nameLabel' | translate }}</label>
+        <input
+          #checkNameInput
+          id="tc-name"
+          type="text"
+          class="create-transactional-check-modal__input"
+          formControlName="name"
+          [placeholder]="settingsI18n + '.namePlaceholder' | translate"
+          data-testid="create-transactional-check-name-input"
+        />
+        @if (form.controls.name.touched && form.controls.name.errors) {
+          <small class="create-transactional-check-modal__error" data-testid="create-transactional-check-name-error">
+            @if (form.controls.name.errors['required']) {
+              {{ settingsI18n + '.nameRequired' | translate }}
+            } @else if (form.controls.name.errors['maxlength']) {
+              {{ settingsI18n + '.nameMaxLength' | translate }}
+            } @else if (form.controls.name.errors['serverError']) {
+              {{ form.controls.name.errors['serverError'] }}
+            }
+          </small>
+        }
+      </div>
+
+      <!-- Host + Path on a single row -->
+      <div class="create-transactional-check-modal__host-path-row" data-testid="create-transactional-check-host-path-row">
+        <!-- Host -->
+        <div class="create-transactional-check-modal__field">
+          <label class="create-transactional-check-modal__label" for="tc-host">{{ settingsI18n + '.hostLabel' | translate }}</label>
+
+          @if (hostsLoading()) {
+            <ignt-skeleton
+              type="paragraph"
+              [numElements]="1"
+              [animation]="true"
+              data-testid="create-transactional-check-host-skeleton"
+            ></ignt-skeleton>
+          } @else if (hostsFetchError()) {
+            <ignt-alert sentiment="danger" [showCloseButton]="false" data-testid="create-transactional-check-host-fetch-error">
+              <span>{{ settingsI18n + '.hostFetchError' | translate }}</span>
+              <button
+                type="button"
+                igntButton
+                sentiment="tertiary"
+                data-testid="create-transactional-check-retry-hosts-button"
+                (click)="onRetryFetchHosts()"
+              >
+                {{ settingsI18n + '.retry' | translate }}
+              </button>
+            </ignt-alert>
+          } @else if (hosts().length === 0) {
+            <small class="create-transactional-check-modal__error" data-testid="create-transactional-check-no-hosts-error">
+              {{ settingsI18n + '.noHostsError' | translate }}
+            </small>
+          } @else if (hosts().length === 1) {
+            <span class="create-transactional-check-modal__host-label" data-testid="create-transactional-check-host-single">{{
+              hosts()[0].host
+            }}</span>
+          } @else {
+            <select
+              id="tc-host"
+              class="create-transactional-check-modal__select"
+              formControlName="host"
+              [placeholder]="settingsI18n + '.hostPlaceholder' | translate"
+              data-testid="create-transactional-check-host-select"
+            >
+              <option value="" disabled>{{ settingsI18n + '.hostPlaceholder' | translate }}</option>
+              @for (host of hosts(); track host.id) {
+                <option [value]="host.id">{{ host.host }}</option>
+              }
+            </select>
+          }
+        </div>
+
+        <!-- Path -->
+        <div class="create-transactional-check-modal__field">
+          <label class="create-transactional-check-modal__label" for="tc-path">{{ settingsI18n + '.pathLabel' | translate }}</label>
+          <input
+            id="tc-path"
+            type="text"
+            class="create-transactional-check-modal__input"
+            formControlName="path"
+            [placeholder]="settingsI18n + '.pathPlaceholder' | translate"
+            data-testid="create-transactional-check-path-input"
+          />
+          @if (form.controls.path.touched && form.controls.path.errors?.['serverError']) {
+            <small class="create-transactional-check-modal__error" data-testid="create-transactional-check-path-error">
+              {{ form.controls.path.errors!['serverError'] }}
+            </small>
+          }
+        </div>
+      </div>
+
+      <!-- URL Preview -->
+      @if (urlPreview()) {
+        <div class="create-transactional-check-modal__url-preview" data-testid="create-transactional-check-url-preview">
+          <label class="create-transactional-check-modal__label">{{ settingsI18n + '.urlPreviewLabel' | translate }}</label>
+          <span class="create-transactional-check-modal__url-value">{{ urlPreview() }}</span>
+        </div>
+      }
+
+      <!-- Settings: flat layout, 2-column where it fits, always visible -->
+      <div class="create-transactional-check-modal__settings" data-testid="create-transactional-check-settings">
+        <div class="create-transactional-check-modal__settings-grid">
+          <div class="create-transactional-check-modal__field">
+            <label class="create-transactional-check-modal__label" for="tc-interval">{{
+              settingsI18n + '.intervalLabel' | translate
+            }}</label>
+            <select
+              id="tc-interval"
+              class="create-transactional-check-modal__select"
+              formControlName="intervalSeconds"
+              data-testid="create-transactional-check-interval-select"
+            >
+              @for (opt of intervalOptions; track opt.value) {
+                <option [value]="opt.value">{{ settingsI18n + '.intervals.' + opt.labelKey | translate: opt.labelParams }}</option>
+              }
+            </select>
+          </div>
+          <div class="create-transactional-check-modal__field">
+            <label class="create-transactional-check-modal__label" for="tc-timeout">{{ settingsI18n + '.timeoutLabel' | translate }}</label>
+            <select
+              id="tc-timeout"
+              class="create-transactional-check-modal__select"
+              formControlName="timeoutMs"
+              data-testid="create-transactional-check-timeout-select"
+            >
+              @for (opt of timeoutOptions; track opt.value) {
+                <option [value]="opt.value">{{ settingsI18n + '.timeouts.' + opt.labelKey | translate: opt.labelParams }}</option>
+              }
+            </select>
+          </div>
+          <div class="create-transactional-check-modal__field">
+            <label class="create-transactional-check-modal__label" for="tc-viewport-w">{{
+              settingsI18n + '.viewportWidthLabel' | translate
+            }}</label>
+            <input
+              id="tc-viewport-w"
+              type="number"
+              class="create-transactional-check-modal__input"
+              formControlName="viewportWidth"
+              [min]="320"
+              data-testid="create-transactional-check-viewport-width-input"
+            />
+          </div>
+          <div class="create-transactional-check-modal__field">
+            <label class="create-transactional-check-modal__label" for="tc-viewport-h">{{
+              settingsI18n + '.viewportHeightLabel' | translate
+            }}</label>
+            <input
+              id="tc-viewport-h"
+              type="number"
+              class="create-transactional-check-modal__input"
+              formControlName="viewportHeight"
+              [min]="240"
+              data-testid="create-transactional-check-viewport-height-input"
+            />
+          </div>
+        </div>
+
+        <div class="create-transactional-check-modal__field create-transactional-check-modal__field--checkbox">
+          <label class="create-transactional-check-modal__checkbox-label">
+            <input type="checkbox" formControlName="enabled" data-testid="create-transactional-check-enabled-checkbox" />
+            <span>{{ settingsI18n + '.enabledLabel' | translate }}</span>
+          </label>
+        </div>
+      </div>
+
+      <app-synthetic-check-alerting-form #alertingForm [form]="form.controls.alerting" prefix="create-transactional-check-alerting" />
+
+      <!-- Step list -->
+      <div
+        class="create-transactional-check-modal__step-list"
+        cdkDropList
+        data-testid="create-transactional-check-step-list"
+        [cdkDropListDisabled]="isView"
+        (cdkDropListDropped)="dropAssertion($event)"
+      >
+        @for (group of assertions.controls; track $index; let i = $index) {
+          <div
+            class="create-transactional-check-modal__step"
+            cdkDrag
+            [cdkDragDisabled]="isView"
+            [class.create-transactional-check-modal__step--expanded]="expandedAssertionIndex() === i"
+            [attr.data-testid]="'create-transactional-check-step-' + i"
+          >
+            <div class="create-transactional-check-modal__step-row">
+              <span class="create-transactional-check-modal__step-number">{{ i + 1 }}</span>
+              <span class="create-transactional-check-modal__step-type">
+                {{ i18n + '.' + getStepMeta(i).labelKey | translate }}
+              </span>
+              <span class="create-transactional-check-modal__step-summary">
+                {{ getAssertionGroup(i).controls.selector.value || getAssertionGroup(i).controls.expectedValue.value || '' }}
+              </span>
+              <div class="create-transactional-check-modal__step-actions">
+                <button
+                  type="button"
+                  igntButton
+                  sentiment="tertiary"
+                  [attr.data-testid]="'create-transactional-check-step-expand-' + i"
+                  [attr.aria-expanded]="expandedAssertionIndex() === i"
+                  (click)="toggleExpand(i)"
+                >
+                  {{ (expandedAssertionIndex() === i ? i18n + '.collapseStep' : i18n + '.expandStep') | translate }}
+                </button>
+                @if (!isView) {
+                  <button
+                    type="button"
+                    igntButton
+                    sentiment="tertiary"
+                    [attr.data-testid]="'create-transactional-check-step-delete-' + i"
+                    [title]="i18n + '.deleteStep' | translate"
+                    (click)="removeAssertion(i)"
+                  >
+                    {{ i18n + '.deleteStep' | translate }}
+                  </button>
+                }
+              </div>
+            </div>
+
+            @if (expandedAssertionIndex() === i) {
+              <div
+                class="create-transactional-check-modal__step-detail"
+                [formGroup]="getAssertionGroup(i)"
+                [attr.data-testid]="'create-transactional-check-step-detail-' + i"
+              >
+                <div class="create-transactional-check-modal__field">
+                  <label class="create-transactional-check-modal__label">{{ i18n + '.fields.type' | translate }}</label>
+                  <select
+                    class="create-transactional-check-modal__input"
+                    formControlName="type"
+                    [attr.data-testid]="'create-transactional-check-step-type-' + i"
+                    (change)="onTypeChange(i)"
+                  >
+                    @for (t of stepTypes; track t.value) {
+                      <option [value]="t.value">{{ i18n + '.' + t.labelKey | translate }}</option>
+                    }
+                  </select>
+                </div>
+
+                @if (getFieldConfig(i).source) {
+                  <div class="create-transactional-check-modal__field">
+                    <label class="create-transactional-check-modal__label">{{ i18n + '.fields.source' | translate }}</label>
+                    <select
+                      class="create-transactional-check-modal__input"
+                      formControlName="source"
+                      [attr.data-testid]="'create-transactional-check-step-source-' + i"
+                    >
+                      @for (s of sourceOptions; track s) {
+                        <option [value]="s">{{ i18n + '.sources.' + s | translate }}</option>
+                      }
+                    </select>
+                  </div>
+                }
+
+                @if (getFieldConfig(i).selector) {
+                  <div class="create-transactional-check-modal__field">
+                    <label class="create-transactional-check-modal__label">{{ i18n + '.fields.cssSelector' | translate }}</label>
+                    <input
+                      type="text"
+                      class="create-transactional-check-modal__input"
+                      formControlName="selector"
+                      [placeholder]="i18n + '.fields.cssSelectorPlaceholder' | translate"
+                      [attr.data-testid]="'create-transactional-check-step-selector-' + i"
+                    />
+                    @if (getAssertionGroup(i).controls.selector.touched && getAssertionGroup(i).controls.selector.errors?.['required']) {
+                      <small
+                        class="create-transactional-check-modal__error"
+                        [attr.data-testid]="'create-transactional-check-step-selector-error-' + i"
+                      >
+                        {{ i18n + '.selectorRequired' | translate }}
+                      </small>
+                    }
+                  </div>
+                }
+
+                @if (getFieldConfig(i).operator) {
+                  <div class="create-transactional-check-modal__field">
+                    <label class="create-transactional-check-modal__label">{{ i18n + '.fields.operator' | translate }}</label>
+                    <select
+                      class="create-transactional-check-modal__input"
+                      formControlName="operator"
+                      [attr.data-testid]="'create-transactional-check-step-operator-' + i"
+                    >
+                      @for (o of getFieldConfig(i).operatorOptions; track o) {
+                        <option [value]="o">{{ i18n + '.operators.' + o | translate }}</option>
+                      }
+                    </select>
+                  </div>
+                }
+
+                @if (getFieldConfig(i).property) {
+                  <div class="create-transactional-check-modal__field">
+                    <label class="create-transactional-check-modal__label">{{
+                      i18n + '.' + getFieldConfig(i).propertyLabelKey | translate
+                    }}</label>
+                    <input
+                      type="text"
+                      class="create-transactional-check-modal__input"
+                      formControlName="property"
+                      [attr.data-testid]="'create-transactional-check-step-property-' + i"
+                    />
+                  </div>
+                }
+
+                @if (getFieldConfig(i).expectedValue) {
+                  <div class="create-transactional-check-modal__field">
+                    <label class="create-transactional-check-modal__label">{{
+                      i18n + '.' + getFieldConfig(i).expectedLabelKey | translate
+                    }}</label>
+                    <input
+                      type="text"
+                      class="create-transactional-check-modal__input"
+                      formControlName="expectedValue"
+                      [attr.data-testid]="'create-transactional-check-step-expected-' + i"
+                    />
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        @if (!isView) {
+          <!-- "Add Step" button, always rendered at the bottom of the list (also the only element when empty). -->
+          <div class="create-transactional-check-modal__add-step">
+            <div class="create-transactional-check-modal__menu-wrapper">
+              <button
+                type="button"
+                igntButton
+                sentiment="tertiary"
+                data-testid="create-transactional-check-add-step-trigger"
+                [attr.aria-expanded]="addStepMenuOpen()"
+                (click)="toggleAddStepMenu()"
+              >
+                {{ i18n + '.addStep' | translate }}
+              </button>
+              @if (addStepMenuOpen()) {
+                <div class="create-transactional-check-modal__menu" data-testid="create-transactional-check-add-step-menu">
+                  @for (category of categoryOrder; track category) {
+                    <div
+                      class="create-transactional-check-modal__menu-section"
+                      [attr.data-testid]="'create-transactional-check-menu-section-' + category"
+                    >
+                      <div
+                        class="create-transactional-check-modal__menu-heading"
+                        [attr.data-testid]="'create-transactional-check-menu-heading-' + category"
+                      >
+                        {{ i18n + '.' + categoryLabelKeys[category] | translate }}
+                      </div>
+                      <ul class="create-transactional-check-modal__menu-list">
+                        @for (t of typesByCategory(category); track t.value) {
+                          <li>
+                            <button
+                              type="button"
+                              class="create-transactional-check-modal__menu-item"
+                              [attr.data-testid]="'create-transactional-check-add-' + t.value"
+                              (click)="addStepFromMenu(t.value)"
+                            >
+                              {{ i18n + '.' + t.labelKey | translate }}
+                            </button>
+                          </li>
+                        }
+                      </ul>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </form>
+
+    @if (isView) {
+      <app-synthetic-check-latest-result
+        [latestResult]="latestResult()"
+        [latestResultUnavailable]="latestResultUnavailable()"
+        [retryingLatestResult]="retryingLatestResult()"
+        (retryLatestResult)="onRetryLatestResult()"
+      />
+    }
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer [hideCancelButton]="true">
+  @if (isView) {
+    @if (canEdit) {
+      <button type="button" igntButton sentiment="tertiary" data-testid="create-transactional-check-edit-button" (click)="onStartEdit()">
+        {{ detailsI18n + '.edit' | translate }}
+      </button>
+    }
+    <button type="button" igntButton sentiment="primary" data-testid="create-transactional-check-close-button" (click)="onClose()">
+      {{ detailsI18n + '.close' | translate }}
+    </button>
+  } @else if (isEdit) {
+    <button type="button" igntButton sentiment="tertiary" data-testid="create-transactional-check-cancel-button" (click)="onCancel()">
+      {{ settingsI18n + '.cancel' | translate }}
+    </button>
+    <button
+      type="button"
+      igntButton
+      sentiment="primary"
+      data-testid="create-transactional-check-submit-button"
+      [disabled]="submitting() || form.invalid || hosts().length === 0 || hostsLoading() || hostsFetchError()"
+      (click)="onSubmit()"
+    >
+      @if (submitting()) {
+        …
+      } @else {
+        {{ settingsI18n + '.save' | translate }}
+      }
+    </button>
+  } @else {
+    <button type="button" igntButton sentiment="tertiary" data-testid="create-transactional-check-cancel-button" (click)="onCancel()">
+      {{ settingsI18n + '.cancel' | translate }}
+    </button>
+    <button
+      type="button"
+      igntButton
+      sentiment="primary"
+      data-testid="create-transactional-check-submit-button"
+      [disabled]="submitting() || form.invalid || hosts().length === 0 || hostsLoading() || hostsFetchError()"
+      (click)="onSubmit()"
+    >
+      @if (submitting()) {
+        …
+      } @else {
+        {{ settingsI18n + '.create' | translate }}
+      }
+    </button>
+  }
+</ignt-dialog-footer>

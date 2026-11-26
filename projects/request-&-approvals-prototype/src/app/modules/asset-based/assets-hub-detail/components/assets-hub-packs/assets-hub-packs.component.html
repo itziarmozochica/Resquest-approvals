@@ -1,0 +1,129 @@
+@if (!isLoading() && packs().length === 0) {
+  <div class="packs-tab__empty-page">
+    <div class="packs-tab__empty-page__content">
+      <h1 class="packs-tab__empty-page__title">{{ 'assetsHubs.detail.packs.emptyPage.title' | translate }}</h1>
+      <p class="packs-tab__empty-page__definition">{{ 'assetsHubs.detail.packs.emptyPage.definition' | translate }}</p>
+      @if (canManageHub() && !canAddPack()) {
+        <p class="packs-tab__empty-page__hint">{{ 'assetsHubs.detail.packs.emptyPage.notEnoughActivitiesHint' | translate }}</p>
+      }
+    </div>
+    @if (canManageHub()) {
+      @if (canAddPack()) {
+        <ignt-button
+          variant="primary"
+          size="large"
+          data-testid="add-pack-button"
+          [label]="'assetsHubs.detail.packs.emptyPage.addPack' | translate"
+          (click)="onAddPack()"
+        />
+      } @else {
+        <ignt-button
+          variant="primary"
+          size="large"
+          data-testid="go-to-activities-button"
+          [label]="'assetsHubs.detail.packs.emptyPage.goToActivities' | translate"
+          (click)="tabRequested.emit(AssetsHubDetailTab.activities)"
+        />
+      }
+    }
+  </div>
+} @else {
+  <div class="packs-tab__header">
+    <p class="hub-tab__description" translate>assetsHubs.detail.packs.description</p>
+    @if (canManageHub()) {
+      <ignt-button
+        igntTooltip
+        variant="primary"
+        size="large"
+        data-testid="add-pack-button"
+        [label]="'assetsHubs.detail.actions.addActivityPack' | translate"
+        [disabled]="!canAddPack()"
+        [tooltipDisabled]="canAddPack()"
+        [tooltipLabel]="'assetsHubs.detail.packs.emptyPage.notEnoughActivitiesHint' | translate"
+        (click)="onAddPack()"
+      />
+    }
+  </div>
+  <ignt-table
+    data-testid="packs-table"
+    [data]="packs()"
+    [hasServerSideSorting]="true"
+    [interactiveRows]="canManageHub()"
+    [isLoading]="isLoading()"
+    [sorting]="sorting()"
+    (rowInteraction)="onPackRowInteraction($event)"
+    (sortingChange)="onSortingChange($event)"
+  >
+    <ignt-table-column key="name" columnType="primary" [header]="'assetsHubs.detail.packs.name' | translate" [sortable]="true">
+      <ng-template [igntTableColumnTemplateType]="packs()[0]" let-item="item">
+        <div class="packs-tab__cell-name">
+          <span class="packs-tab__pack-name">{{ item.name }}</span>
+          @if (item.description) {
+            <span class="packs-tab__pack-description">{{ item.description }}</span>
+          }
+        </div>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column columnType="secondary" [header]="'assetsHubs.detail.packs.steps' | translate">
+      <ng-template [igntTableColumnTemplateType]="packs()[0]" let-item="item">
+        <span data-testid="pack-steps">{{ getStepCountLabel(item) }}</span>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column columnType="secondary" [header]="'assetsHubs.detail.packs.anyOrder' | translate">
+      <ng-template [igntTableColumnTemplateType]="packs()[0]" let-item="item">
+        <span data-testid="pack-any-order">{{ getAnyOrderLabel(item) | translate }}</span>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column
+      key="activitiesCount"
+      columnType="secondary"
+      [header]="'assetsHubs.detail.packs.activities' | translate"
+      [sortable]="true"
+    ></ignt-table-column>
+
+    @if (canManageHub()) {
+      <ignt-table-column columnType="action" [header]="'assetsHubs.detail.packs.actions' | translate">
+        <ng-template [igntTableColumnTemplateType]="packs()[0]" let-item="item">
+          <button
+            ignt-icon-button
+            type="button"
+            sentiment="tertiary"
+            size="small"
+            [icon]="['fas', 'ellipsis-v']"
+            [attr.aria-label]="'assetsHubs.detail.packs.actions' | translate"
+            [igntMenuTriggerFor]="packActionsMenu"
+            (click)="$event.stopPropagation()"
+            (keydown)="$event.stopPropagation()"
+            data-testid="pack-actions-dropdown"
+          ></button>
+
+          <ng-template #packActionsMenu>
+            <ignt-menu>
+              <ignt-menu-item value="edit" [label]="'assetsHubs.detail.actionsEdit' | translate" (triggered)="onPackAction('edit', item)">
+                <ignt-icon name="pen" variant="light"></ignt-icon>
+              </ignt-menu-item>
+              <ignt-menu-item
+                value="duplicate"
+                [label]="'assetsHubs.detail.actionsDuplicate' | translate"
+                (triggered)="onPackAction('duplicate', item)"
+              >
+                <ignt-icon name="clone" variant="light"></ignt-icon>
+              </ignt-menu-item>
+              <ignt-menu-item
+                value="delete"
+                sentiment="danger"
+                [label]="'assetsHubs.detail.actionsDelete' | translate"
+                (triggered)="onPackAction('delete', item)"
+              >
+                <ignt-icon name="trash-alt" variant="light"></ignt-icon>
+              </ignt-menu-item>
+            </ignt-menu>
+          </ng-template>
+        </ng-template>
+      </ignt-table-column>
+    }
+  </ignt-table>
+}

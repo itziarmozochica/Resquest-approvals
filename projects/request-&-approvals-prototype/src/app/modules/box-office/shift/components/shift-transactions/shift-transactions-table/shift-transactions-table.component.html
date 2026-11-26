@@ -1,0 +1,211 @@
+<div class="shift-transactions-scroll-container">
+  <table class="shift-transactions-table">
+    <thead class="shift-transactions-table__header">
+      <tr class="shift-transactions-table__row">
+        <th class="shift-transactions-table__header-cell shift-transactions-table__header-cell--toggle"></th>
+        <th class="shift-transactions-table__header-cell">
+          {{ 'boxOffice.shiftDetail.transactions.transactionDate' | translate }}
+        </th>
+        <th class="shift-transactions-table__header-cell">
+          {{ 'boxOffice.shiftDetail.transactions.orderId' | translate }}
+        </th>
+        <th class="shift-transactions-table__header-cell">
+          {{ 'boxOffice.shiftDetail.transactions.action.title' | translate }}
+        </th>
+        <th class="shift-transactions-table__header-cell">
+          {{ 'boxOffice.shiftDetail.transactions.paymentMethod' | translate }}
+        </th>
+        <th class="shift-transactions-table__header-cell">
+          {{ 'boxOffice.shiftDetail.transactions.fullName' | translate }}
+        </th>
+        <th class="shift-transactions-table__header-cell">
+          {{ 'boxOffice.shiftDetail.transactions.eventName' | translate }}
+        </th>
+        <th class="shift-transactions-table__header-cell">
+          {{ 'boxOffice.shiftDetail.transactions.eventDate' | translate }}
+        </th>
+        <th
+          *ngIf="showsTicketCount"
+          data-testid="shift-transactions-table-tickets-header"
+          class="shift-transactions-table__header-cell number-cell"
+        >
+          {{ 'boxOffice.shiftDetail.transactions.tickets' | translate }}
+        </th>
+        <th class="shift-transactions-table__header-cell number-cell">
+          {{ 'boxOffice.shiftDetail.transactions.amount' | translate }}
+        </th>
+      </tr>
+    </thead>
+
+    <tbody class="shift-transactions-table__body shift-transactions-table__body--spacing">
+      <ng-container *ngFor="let transaction of transactions; let i = index; trackBy: trackByFn">
+        <tr
+          (click)="onRowClick(transaction, i)"
+          [class.shift-transactions-table__row--expandable]="hasMultipleOrders(transaction)"
+          [class.shift-transactions-table__row--expanded]="isExpanded(i)"
+          data-testid="shift-transactions-table-row"
+          class="shift-transactions-table__row"
+        >
+          <ng-container *ngTemplateOutlet="tableRow; context: { transaction, index: i }"></ng-container>
+        </tr>
+
+        <ng-container *ngIf="hasMultipleOrders(transaction) && isExpanded(i)">
+          <tr
+            *ngFor="let order of transaction.orders; trackBy: trackByOrderFn"
+            (click)="onOrderRowClick(order.orderId, $event)"
+            data-testid="shift-transactions-table-sub-row"
+            class="shift-transactions-table__row shift-transactions-table__row--sub-row"
+          >
+            <td class="shift-transactions-table__row-cell shift-transactions-table__row-cell--toggle"></td>
+            <td class="shift-transactions-table__row-cell">
+              <span class="shift-transactions-table__placeholder">—</span>
+            </td>
+            <td class="shift-transactions-table__row-cell">
+              <span class="shift-transactions-table__order-id">R{{ order.orderId }}</span>
+            </td>
+            <td class="shift-transactions-table__row-cell">
+              <span class="shift-transactions-table__placeholder">—</span>
+            </td>
+            <td class="shift-transactions-table__row-cell">
+              <span class="shift-transactions-table__placeholder">—</span>
+            </td>
+            <td class="shift-transactions-table__row-cell">
+              <span class="shift-transactions-table__placeholder">—</span>
+            </td>
+            <td class="shift-transactions-table__row-cell">{{ order.planName }}</td>
+            <td class="shift-transactions-table__row-cell">
+              <ng-container
+                [ngTemplateOutlet]="formatDate"
+                [ngTemplateOutletContext]="{
+                  date: order.planDate,
+                  timezone: transaction.placeTimezone,
+                }"
+              >
+              </ng-container>
+            </td>
+            <td
+              *ngIf="showsTicketCount"
+              data-testid="shift-transactions-table-sub-row-ticket-count"
+              class="shift-transactions-table__row-cell number-cell"
+            >
+              {{ order.ticketCount }}
+            </td>
+            <td class="shift-transactions-table__row-cell number-cell">
+              <span
+                class="shift-transactions-table__amount"
+                [class.shift-transactions-table__amount--positive]="order.total.amount > 0"
+                [class.shift-transactions-table__amount--negative]="order.total.amount < 0"
+              >
+                <ng-container [ngTemplateOutlet]="formatMoney" [ngTemplateOutletContext]="{ money: order.total }"></ng-container>
+              </span>
+            </td>
+          </tr>
+        </ng-container>
+      </ng-container>
+    </tbody>
+  </table>
+</div>
+
+<ng-template #tableRow let-transaction="transaction" let-index="index">
+  <td class="shift-transactions-table__row-cell shift-transactions-table__row-cell--toggle">
+    <fa-icon
+      *ngIf="hasMultipleOrders(transaction)"
+      [icon]="['fas', isExpanded(index) ? 'chevron-down' : 'chevron-right']"
+      (click)="toggleRow(index, $event)"
+      class="shift-transactions-table__toggle-icon"
+      data-testid="shift-transactions-table-toggle"
+    ></fa-icon>
+  </td>
+
+  <td data-testid="shift-transactions-table-transaction-date" class="shift-transactions-table__row-cell">
+    <ng-container
+      [ngTemplateOutlet]="formatDate"
+      [ngTemplateOutletContext]="{
+        date: transaction.transactionDate,
+        timezone: transaction.placeTimezone,
+      }"
+    >
+    </ng-container>
+  </td>
+
+  <td data-testid="shift-transactions-table-order-id" class="shift-transactions-table__row-cell">
+    <ng-container *ngIf="!hasMultipleOrders(transaction)">
+      <span class="shift-transactions-table__order-id">R{{ transaction.orders[0].orderId }}</span>
+    </ng-container>
+    <ng-container *ngIf="hasMultipleOrders(transaction)">
+      <span class="shift-transactions-table__several-label">
+        {{ 'boxOffice.shiftDetail.transactions.severalOrders' | translate }}
+      </span>
+    </ng-container>
+  </td>
+
+  <td data-testid="shift-transactions-table-action" class="shift-transactions-table__row-cell">
+    <span class="shift-transactions-table__action">
+      {{ 'boxOffice.shiftDetail.transactions.action.' + transaction.action | translate }}
+    </span>
+  </td>
+
+  <td data-testid="shift-transactions-table-payment-method" class="shift-transactions-table__row-cell">
+    {{ transaction.paymentMethod | orderPaymentMethodLabel: 'box-office' : transaction.paymentMethodName }}
+  </td>
+
+  <td data-testid="shift-transactions-table-full-name" class="shift-transactions-table__row-cell">
+    {{ transaction.fullName }}
+  </td>
+
+  <td data-testid="shift-transactions-table-plan-name" class="shift-transactions-table__row-cell">
+    <ng-container *ngIf="!hasMultipleOrders(transaction)">
+      {{ transaction.orders[0].planName }}
+    </ng-container>
+    <ng-container *ngIf="hasMultipleOrders(transaction)">
+      <span class="shift-transactions-table__several-label">
+        {{ 'boxOffice.shiftDetail.transactions.severalPlans' | translate }}
+      </span>
+    </ng-container>
+  </td>
+
+  <td data-testid="shift-transactions-table-plan-date" class="shift-transactions-table__row-cell">
+    <ng-container *ngIf="!hasMultipleOrders(transaction)">
+      <ng-container
+        [ngTemplateOutlet]="formatDate"
+        [ngTemplateOutletContext]="{
+          date: transaction.orders[0].planDate,
+          timezone: transaction.placeTimezone,
+        }"
+      >
+      </ng-container>
+    </ng-container>
+    <ng-container *ngIf="hasMultipleOrders(transaction)">
+      <span class="shift-transactions-table__several-label">
+        {{ 'boxOffice.shiftDetail.transactions.severalDates' | translate }}
+      </span>
+    </ng-container>
+  </td>
+
+  <td *ngIf="showsTicketCount" data-testid="shift-transactions-table-ticket-count" class="shift-transactions-table__row-cell number-cell">
+    {{ transaction.ticketCount }}
+  </td>
+
+  <td data-testid="shift-transactions-table-total" class="shift-transactions-table__row-cell number-cell">
+    <span
+      class="shift-transactions-table__amount"
+      [class.shift-transactions-table__amount--positive]="transaction.total.amount > 0"
+      [class.shift-transactions-table__amount--negative]="transaction.total.amount < 0"
+    >
+      <ng-container [ngTemplateOutlet]="formatMoney" [ngTemplateOutletContext]="{ money: transaction.total }"></ng-container>
+    </span>
+  </td>
+</ng-template>
+
+<ng-template #formatMoney let-money="money">
+  {{ money ? (money.amount | currency: money.currency : 'symbol-narrow' : null : locale) : '-' }}
+</ng-template>
+
+<ng-template #formatDate let-date="date" let-timezone="timezone">
+  <div>{{ date | momentDate: 'yyyy-MM-dd' : timezone }}</div>
+  <div>{{ date | momentDate: 'HH:mm' : timezone }}</div>
+</ng-template>
+
+<ng-template #emptyColumn>
+  <div class="empty-cell">--</div>
+</ng-template>

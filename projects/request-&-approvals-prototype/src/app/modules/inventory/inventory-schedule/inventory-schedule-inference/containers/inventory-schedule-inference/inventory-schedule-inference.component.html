@@ -1,0 +1,91 @@
+<div class="inventory-schedule-inference">
+  <a
+    class="inventory-schedule-inference__back-link"
+    data-testid="inference-back-link"
+    [routerLink]="['/inventory/schedule/list']"
+    queryParamsHandling="preserve"
+  >
+    <ignt-icon name="angle-left" variant="light" [fixedWidth]="true" />
+    {{ 'inventory.schedule.scheduleForm.backLink' | translate }}
+  </a>
+
+  <header class="inventory-schedule-inference__header">
+    <h2 class="inventory-schedule-inference__title font-h4" data-testid="inference-title">
+      {{ 'inventory.schedule.inference.title' | translate }}
+      <app-fever-only-marker />
+    </h2>
+    <p class="inventory-schedule-inference__description">{{ 'inventory.schedule.inference.description' | translate }}</p>
+  </header>
+
+  <app-schedule-inference-parameters
+    [defaultFromDate]="defaultFromDate"
+    [loading]="loading()"
+    [singlePlaceError]="singlePlaceError()"
+    (run)="runInference($event)"
+  />
+
+  @if (inference(); as inference) {
+    <ignt-tabs [selectedIndex]="selectedTabIndex()" (selectedIndexChange)="selectedTabIndex.set($event)" data-testid="inference-tabs">
+      <ignt-tabs-item [label]="'inventory.schedule.inference.tabs.summary' | translate">
+        <div class="inventory-schedule-inference__tab">
+          @if (proposalValidated()) {
+            <ignt-alert
+              sentiment="positive"
+              [description]="'inventory.schedule.inference.proposal.validated' | translate"
+              data-testid="inference-proposal-validated"
+            />
+          }
+          <app-schedule-inference-preview [inference]="inference" [sessionTypeGroupIds]="sessionTypeGroupIds()" />
+          @if (proposalErrors().length > 0) {
+            <ignt-alert
+              sentiment="danger"
+              [title]="'inventory.schedule.inference.proposal.rejected' | translate"
+              data-testid="inference-summary-errors"
+            >
+              <ng-template #igntAlertContent>
+                <ul class="inventory-schedule-inference__errors">
+                  @for (error of proposalErrors(); track $index) {
+                    <li data-testid="inference-summary-error">{{ error }}</li>
+                  }
+                </ul>
+              </ng-template>
+            </ignt-alert>
+          }
+          <footer class="inventory-schedule-inference__actions wrapper-card" data-testid="inference-summary-actions">
+            <p class="inventory-schedule-inference__actions-hint">
+              {{
+                (proposalEdited()
+                  ? 'inventory.schedule.inference.proposal.createFromSummaryEdited'
+                  : 'inventory.schedule.inference.proposal.createFromSummary'
+                ) | translate
+              }}
+            </p>
+            <ignt-button
+              size="small"
+              [label]="'inventory.schedule.inference.proposal.create' | translate"
+              [loading]="isCreating()"
+              [disabled]="!canCreate()"
+              data-testid="inference-summary-create-button"
+              (click)="createProposal()"
+            />
+          </footer>
+        </div>
+      </ignt-tabs-item>
+      <ignt-tabs-item [label]="'inventory.schedule.inference.tabs.proposalJson' | translate">
+        <div class="inventory-schedule-inference__tab">
+          <app-schedule-inference-proposal-editor
+            [value]="proposalJson()"
+            [errors]="proposalErrors()"
+            [isCreating]="isCreating()"
+            [resettable]="proposalEdited()"
+            [validating]="validating()"
+            (valueChange)="proposalJson.set($event)"
+            (createRequested)="createProposal()"
+            (validateRequested)="validateProposal()"
+            (resetRequested)="resetProposal()"
+          />
+        </div>
+      </ignt-tabs-item>
+    </ignt-tabs>
+  }
+</div>

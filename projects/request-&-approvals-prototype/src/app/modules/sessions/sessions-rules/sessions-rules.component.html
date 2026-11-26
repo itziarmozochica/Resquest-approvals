@@ -1,0 +1,131 @@
+<header class="header-card">
+  <ng-container *ngIf="checkHasMandatoryFilters(rulesFilters) && !isRulesListEmpty">
+    <h2 class="header-card__title">{{ 'sessions.rules.title' | translate }}</h2>
+    @if (canEditSessionActionRules) {
+      <ignt-button
+        [fill]="isMobile()"
+        size="small"
+        [label]="'sessions.rules.topRightCreateButton' | translate"
+        (click)="onClickNewRule()"
+        data-testid="new-action-rule-button-when-list"
+      />
+    }
+  </ng-container>
+</header>
+
+<app-paginated-table-container
+  (searchResults)="setActionRulesList($event)"
+  [checkHasMandatoryFilters]="checkHasMandatoryFilters"
+  [errorMessage]="'sessions.rules.rulesList.table.error' | translate"
+  [filters]="rulesFilters"
+  [noFiltersTemplate]="noFiltersTemplate"
+  [noResultsTemplate]="noResultsTemplate"
+  [requestPage]="requestRulesPage"
+  data-testid="action-rules-paginated-table"
+>
+  <app-session-rules-list-table
+    (itemClicked)="onItemSelected($event)"
+    [canEditSessionActionRules]="canEditSessionActionRules"
+    [listItems]="rulesList"
+    [timezone]="filters?.timezone || ''"
+  ></app-session-rules-list-table>
+</app-paginated-table-container>
+
+<ng-container *ngIf="isRuleWithErrorBannerVisible" [ngTemplateOutlet]="ruleHasErrorAlert"></ng-container>
+
+<app-lateral-slider
+  (closeSlider)="closeSliderAndResetSelectedRuleAndLists()"
+  [contentTemplate]="createRuleForm"
+  [showDetails]="isRuleEditFormOpen"
+  [title]="(itemToEdit ? 'sessions.rules.newRuleForm.titleEdit' : 'sessions.rules.newRuleForm.titleCreate') | translate"
+></app-lateral-slider>
+
+<ng-template #createRuleForm>
+  <app-session-rule-edit-form
+    (createClicked)="createSessionActionRule($event)"
+    (deleteConfirmed)="deleteSessionActionRule()"
+    (discardClicked)="closeSliderAndResetSelectedRuleAndLists()"
+    (timeslotDateChange)="loadTimeSlots($event)"
+    (timeslotTimeSelected)="loadSessionTypes($event)"
+    (updateClicked)="updateSessionActionRule($event)"
+    *ngIf="isRuleEditFormOpen"
+    [maxDate]="filters.selectedPlan.lastSessionDateRegardlessOfExpirationAndAttendance"
+    [minDate]="filters.selectedPlan.nextSessionDateRegardlessOfAttendance"
+    [ruleToEdit]="itemToEdit"
+    [sessionsAvailabilities]="sessionsAvailabilityList"
+    [timeslots]="timeslots"
+    [timezone]="filters.timezone"
+  ></app-session-rule-edit-form>
+</ng-template>
+
+<ng-template #noResultsTemplate>
+  <ng-container
+    *ngTemplateOutlet="
+      emptyNoFiltersCommonTemplate;
+      context: {
+        title: 'sessions.rules.noRulesMessage',
+        subtitle: 'sessions.rules.noRulesMessageSubtitle',
+        isButtonDisabled: false,
+        showCreateButton: canEditSessionActionRules,
+        dataTestId: 'sessions-rules-table-no-results-layout',
+      }
+    "
+  ></ng-container>
+</ng-template>
+
+<ng-template #noFiltersTemplate>
+  <ng-container
+    *ngTemplateOutlet="
+      emptyNoFiltersCommonTemplate;
+      context: {
+        title: 'sessions.rules.unselectedFiltersMessage',
+        isButtonDisabled: true,
+        showCreateButton: canEditSessionActionRules,
+        dataTestId: 'sessions-rules-table-no-filters-layout',
+      }
+    "
+  ></ng-container>
+</ng-template>
+
+<ng-template
+  #emptyNoFiltersCommonTemplate
+  let-dataTestId="dataTestId"
+  let-isButtonDisabled="isButtonDisabled"
+  let-showCreateButton="showCreateButton"
+  let-subtitle="subtitle"
+  let-title="title"
+>
+  <div [attr.data-testid]="dataTestId" class="empty-case">
+    <h3 class="empty-case__message" data-testid="rules-list-empty-case-title">
+      {{ title | translate }}
+    </h3>
+    <span *ngIf="subtitle" class="empty-case__message__subtitle" data-testid="rules-list-empty-case-subtitle">
+      {{ subtitle | translate }}
+    </span>
+    @if (showCreateButton) {
+      <ignt-button
+        [fill]="isMobile()"
+        [label]="'sessions.rules.createButton' | translate"
+        (click)="onClickNewRule()"
+        [disabled]="isButtonDisabled"
+        data-testid="new-action-rule-button-when-empty"
+      />
+    }
+    <img class="empty-case__image" height="420" src="assets/images/sessions-rules/empty-case-01-default.svg" width="251" />
+  </div>
+</ng-template>
+
+<ng-template #ruleHasErrorAlert>
+  <ignt-alert
+    class="error-message-banner"
+    data-testid="rule-has-error-banner"
+    sentiment="danger"
+    showCloseButton
+    [title]="'sessions.rules.ruleWithErrorAlert.title' | translate"
+    (closeAlert)="isRuleWithErrorBannerVisible = false"
+  >
+    <ng-template #igntAlertContent>
+      <span class="error-message" [innerHTML]="'sessions.rules.ruleWithErrorAlert.message' | translate"></span>
+    </ng-template>
+  </ignt-alert>
+</ng-template>

@@ -1,0 +1,108 @@
+<table class="fz-table fz-table--striped">
+  <header class="fz-table__header">
+    <div class="fz-table__row">
+      <div class="fz-table__cell">
+        {{ 'sessions.sessionTypes.sessionTypeSettings.ticketType' | translate }}
+        <ng-container *ngTemplateOutlet="sortingControl; context: { column: 'ticketType' }"></ng-container>
+      </div>
+      <div class="fz-table__cell">
+        {{ 'sessions.sessionTypes.sessionTypeSettings.group' | translate }}
+      </div>
+      <div class="fz-table__cell">
+        {{ 'sessions.sessionTypes.sessionTypeSettings.minimumTickets' | translate }}
+      </div>
+      <div class="fz-table__cell">
+        {{ 'sessions.sessionTypes.sessionTypeSettings.maximumTickets' | translate }}
+      </div>
+      <div class="fz-table__cell">
+        {{ 'sessions.sessionTypes.sessionTypeSettings.hasInstructions' | translate }}
+      </div>
+      <div class="fz-table__cell">
+        {{ 'sessions.sessionTypes.sessionTypeSettings.hasDetails' | translate }}
+      </div>
+      <div class="fz-table__cell fz-table__cell--icon">
+        {{ 'sessions.sessionTypes.sessionTypeSettings.ticketEdit' | translate }}
+      </div>
+    </div>
+  </header>
+  <div class="fz-table__body">
+    <div class="fz-table__row" *ngFor="let sessionType of listToDisplay; trackBy: trackByFn" data-testid="session-types-table-row">
+      <div class="fz-table__cell">
+        <div class="table-cell-ticket-type">
+          <span data-testid="session-types-table-label">
+            {{ sessionType.label }}
+          </span>
+          <ignt-tag *ngIf="sessionType.isAddOn" data-testid="session-types-table-addon" [sentiment]="'accent'" [variant]="'outline'">
+            {{ 'sessions.sessionTypes.sessionTypeSettings.addOn' | translate }}
+          </ignt-tag>
+        </div>
+      </div>
+      <div class="fz-table__cell">
+        <span data-testid="session-types-table-group">
+          {{ sessionType.groups?.length > 0 ? (sessionType.groups | pluck: 'name').join(', ') : '--' }}
+        </span>
+      </div>
+      <div class="fz-table__cell">
+        <span data-testid="session-types-table-minimum-tickets">
+          {{ sessionType.minimumTickets !== null ? sessionType.minimumTickets : '-' }}
+        </span>
+      </div>
+      <div class="fz-table__cell">
+        <span data-testid="session-types-table-maximum-tickets">
+          {{ sessionType.maximumTickets !== null ? sessionType.maximumTickets : '-' }}
+        </span>
+      </div>
+      <div class="fz-table__cell">
+        <span data-testid="session-types-table-has-instructions">
+          {{
+            sessionType.hasInstructions
+              ? ('sessions.sessionTypes.sessionTypeSettings.hasValue' | translate)
+              : ('sessions.sessionTypes.sessionTypeSettings.noValue' | translate)
+          }}
+        </span>
+      </div>
+      <div class="fz-table__cell">
+        <span data-testid="session-types-table-has-details">
+          {{
+            sessionType.hasDetails
+              ? ('sessions.sessionTypes.sessionTypeSettings.hasValue' | translate)
+              : ('sessions.sessionTypes.sessionTypeSettings.noValue' | translate)
+          }}
+        </span>
+      </div>
+      <div class="fz-table__cell fz-table__cell--icon">
+        <ng-container *ngTemplateOutlet="editTemplate; context: { sessionType: sessionType }"></ng-container>
+      </div>
+    </div>
+  </div>
+</table>
+
+<ng-template #editTemplate let-sessionType="sessionType">
+  <fa-icon
+    data-testid="session-types-table-edit-button"
+    (click)="editSessionType.emit(sessionType)"
+    class="table-cell-action"
+    [icon]="['far', 'edit']"
+  >
+  </fa-icon>
+</ng-template>
+
+<ng-template #sortingControl let-column="column">
+  <button
+    (click)="onClickSorting(column)"
+    [attr.data-testid]="'session-types-table-' + column + '-sort-control'"
+    class="fz-table__header-sort"
+    [class.fz-table__header-sort--disabled]="!sessionTypeList?.length"
+  >
+    <fa-icon
+      [fixedWidth]="true"
+      [icon]="
+        !currentSorting || currentSorting.column !== column || !currentSorting.direction
+          ? ['far', 'sort-alt']
+          : currentSorting.direction === SortingDirection.asc
+            ? ['far', 'sort-amount-down-alt']
+            : ['far', 'sort-amount-up-alt']
+      "
+    ></fa-icon>
+  </button>
+</ng-template>

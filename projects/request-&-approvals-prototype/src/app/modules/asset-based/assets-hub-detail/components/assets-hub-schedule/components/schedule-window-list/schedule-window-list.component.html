@@ -1,0 +1,72 @@
+<div class="schedule-window-list">
+  @for (windowForm of windowForms(); track windowForm) {
+    <div class="schedule-window" [formGroup]="windowForm">
+      <div class="schedule-window__times">
+        <ignt-input-field
+          class="schedule-window__time"
+          formControlName="start"
+          type="time"
+          appNativePicker
+          [trailIcon]="['fal', 'clock']"
+          [trailIconAriaLabel]="'common.openTimePicker' | translate"
+          [id]="testIdPrefix() + '-start-' + $index"
+          [readonly]="!canManage()"
+          [label]="'assetsHubs.detail.schedule.windowStart' | translate"
+        />
+        <span class="schedule-window__separator" aria-hidden="true">—</span>
+        <ignt-input-field
+          class="schedule-window__time"
+          formControlName="end"
+          type="time"
+          appNativePicker
+          [trailIcon]="['fal', 'clock']"
+          [trailIconAriaLabel]="'common.openTimePicker' | translate"
+          [id]="testIdPrefix() + '-end-' + $index"
+          [readonly]="!canManage()"
+          [label]="'assetsHubs.detail.schedule.windowEnd' | translate"
+        />
+        @if (canManage()) {
+          <ignt-button
+            class="schedule-window__remove"
+            sentiment="danger"
+            variant="tertiary"
+            size="small"
+            [label]="'assetsHubs.detail.schedule.removeWindow' | translate"
+            [disabled]="isDisabled()"
+            (click)="windowRemoved.emit($index)"
+          ></ignt-button>
+        }
+      </div>
+
+      @if (crossesMidnight(windowForm)) {
+        <p class="schedule-window__note">
+          <ignt-icon aria-hidden="true" name="clock" size="small" variant="light"></ignt-icon>
+          <span translate>assetsHubs.detail.schedule.crossesMidnight</span>
+        </p>
+      }
+
+      @if (windowErrorKey(windowForm); as errorKey) {
+        <p class="schedule-window__error" [attr.data-testid]="testIdPrefix() + '-error-' + $index">{{ errorKey | translate }}</p>
+      }
+
+      @if (isOverlapping($index)) {
+        <p class="schedule-window__error" [attr.data-testid]="testIdPrefix() + '-overlap-' + $index" translate>
+          assetsHubs.detail.schedule.errors.overlappingWindow
+        </p>
+      }
+    </div>
+  }
+
+  @if (canManage()) {
+    <ignt-button
+      class="schedule-window-list__add"
+      sentiment="brand"
+      variant="tertiary"
+      size="small"
+      [label]="'assetsHubs.detail.schedule.addWindow' | translate"
+      [disabled]="isDisabled()"
+      [attr.data-testid]="testIdPrefix() + '-add'"
+      (click)="windowAdded.emit()"
+    ></ignt-button>
+  }
+</div>

@@ -1,0 +1,81 @@
+<ignt-dialog-header>{{ 'whitelabelAssetUpload.title' | translate }}</ignt-dialog-header>
+<ignt-dialog-content>
+  <div class="whitelabel-asset-upload">
+    @if (showItemTypeSelect) {
+      <div class="whitelabel-asset-upload__field">
+        <label class="whitelabel-asset-upload__label" for="whitelabel-asset-upload-item-type">
+          {{ 'whitelabelAssetUpload.itemType.label' | translate }}
+        </label>
+        <select
+          id="whitelabel-asset-upload-item-type"
+          class="whitelabel-asset-upload__select"
+          [value]="itemType() ?? ''"
+          (change)="onItemTypeChange($event)"
+          data-testid="whitelabel-asset-upload-item-type"
+        >
+          <option value="" disabled>{{ 'whitelabelAssetUpload.itemType.placeholder' | translate }}</option>
+          @for (type of itemTypeOptions; track type) {
+            <option [value]="type">{{ 'whitelabelAssetUpload.itemType.' + type | translate }}</option>
+          }
+        </select>
+      </div>
+    }
+
+    <fieldset class="whitelabel-asset-upload__field whitelabel-asset-upload__fieldset">
+      <legend class="whitelabel-asset-upload__label">{{ 'whitelabelAssetUpload.scope.label' | translate }}</legend>
+      @for (option of scopeOptions; track option.value) {
+        <label class="whitelabel-asset-upload__radio">
+          <input
+            type="radio"
+            name="whitelabel-asset-upload-scope"
+            [value]="option.value"
+            [checked]="scope() === option.value"
+            (change)="onScopeChange(option.value)"
+            [attr.data-testid]="'whitelabel-asset-upload-scope-' + option.value"
+          />
+          <span>{{ option.labelKey | translate }}</span>
+        </label>
+      }
+    </fieldset>
+
+    <div class="whitelabel-asset-upload__field">
+      <label class="whitelabel-asset-upload__label" for="whitelabel-asset-upload-file">
+        {{ 'whitelabelAssetUpload.file.label' | translate }}
+      </label>
+      <input
+        id="whitelabel-asset-upload-file"
+        class="whitelabel-asset-upload__file"
+        type="file"
+        [attr.accept]="accept()"
+        [disabled]="!itemType()"
+        (change)="onFileChange($event)"
+        data-testid="whitelabel-asset-upload-file"
+      />
+      @if (file(); as selectedFile) {
+        <p class="whitelabel-asset-upload__filename" [title]="selectedFile.name">{{ selectedFile.name }}</p>
+      }
+    </div>
+
+    @if (fileError(); as error) {
+      <p class="whitelabel-asset-upload__error" role="alert" data-testid="whitelabel-asset-upload-error">
+        {{ error | translate: fileErrorParams() }}
+      </p>
+    }
+  </div>
+</ignt-dialog-content>
+<ignt-dialog-footer hideCancelButton>
+  <button type="button" igntButton sentiment="secondary" [disabled]="uploading()" (click)="onCancel()">
+    {{ 'common.cancel' | translate }}
+  </button>
+  <button
+    type="button"
+    igntButton
+    sentiment="primary"
+    [loading]="uploading()"
+    [disabled]="!canSubmit()"
+    (click)="onSubmit()"
+    data-testid="whitelabel-asset-upload-submit"
+  >
+    {{ 'common.upload' | translate }}
+  </button>
+</ignt-dialog-footer>

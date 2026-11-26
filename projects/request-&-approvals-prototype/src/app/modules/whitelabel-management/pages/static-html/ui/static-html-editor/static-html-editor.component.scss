@@ -1,0 +1,166 @@
+@use 'foundations' as foundations;
+
+/**
+ * The editor's half of the shared panel: a grid item with no height of its own, stretched to the row.
+ *
+ * The row is the preview's height, and `contain: size` on the panel's side of this border is what
+ * keeps the document below from having a say in it — see the note beside `&__rail, &__editor` in
+ * `static-html.component.scss`. What that leaves for this file is the other half of the bargain: a
+ * definite height arrives here and has to reach CodeMirror, and every link in the chain between them
+ * is a flex item whose automatic minimum size is its own content. So each one below carries
+ * `min-height: 0`, and dropping any single one of them puts the whole document back on the page —
+ * 100002px of panel, measured. This element needs none: a size-contained grid item has no
+ * content-based minimum left to be floored by.
+ */
+:host {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.static-html-editor {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+
+  &__meta {
+    align-items: flex-end;
+    border-bottom: foundations.$size-px solid foundations.$color-border-main;
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: foundations.$space-3;
+    padding: foundations.$space-3;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-1;
+    min-width: 0;
+
+    &--grow {
+      flex: 1 1 15rem;
+    }
+  }
+
+  &__label {
+    color: foundations.$color-text-subtle;
+    font: foundations.$font-caption-bold;
+  }
+
+  &__select {
+    min-width: 11rem;
+  }
+
+  // The fixed locale segment, the slug, and the address the two of them make, on one line.
+  &__slug {
+    align-items: center;
+    display: flex;
+    gap: foundations.$space-2;
+    min-width: 0;
+  }
+
+  &__slug-prefix {
+    color: foundations.$color-text-subtle;
+    flex: 0 0 auto;
+    font: foundations.$font-caption-regular;
+  }
+
+  &__slug-input {
+    flex: 1 1 auto;
+    min-width: 6rem;
+  }
+
+  &__open {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  // The tabs component lays its strip and its panel out as plain siblings, so the panel is told here
+  // to take the rest of the card and, wherever the card has a definite height, to work inside it
+  // rather than through it. The strip keeps `flex: 0 0 auto` so a long panel cannot squeeze the tabs
+  // themselves.
+  &__tabs {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+
+    ::ng-deep .tabs__header {
+      flex: 0 0 auto;
+      padding-inline: foundations.$space-3;
+    }
+
+    // The design system spells this one with an underscore; matching it is not optional. No `overflow`
+    // on the wrapper: the panel it holds is the scroll container, and a second clip out here could
+    // only hide what that one is scrolling.
+    /* stylelint-disable-next-line selector-class-pattern */
+    ::ng-deep .tabs_content {
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    // The panel is where the bound stops being handed down and starts being used. `overflow-y` is for
+    // the assets tab, whose list is projected in from the page and has no ceiling of its own — with
+    // the card bounded, that list would otherwise run past the panel and be cut off by the border.
+    // The document tab never reaches for it: the code editor below fills the panel exactly.
+    ::ng-deep ignt-tabs-content {
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      min-height: 0;
+      overflow-y: auto;
+      padding: foundations.$space-3;
+    }
+
+    // `keepAlive` hides the inactive panel with the `hidden` attribute, which `display: flex` beats.
+    ::ng-deep ignt-tabs-content[hidden] {
+      display: none;
+    }
+  }
+
+  &__document {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: foundations.$space-3;
+    min-height: 0;
+  }
+
+  // One quiet line per issue rather than a stack of alert blocks: these sit directly above the code
+  // editor and appear and clear while the author types, so the taller the block the worse the jitter.
+  &__issues {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: foundations.$space-1;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  &__issue {
+    // A rule in the sentiment colour, so a glance separates them from the document below.
+    border-inline-start: foundations.$size-px2 solid;
+    font: foundations.$font-caption-regular;
+    margin: 0;
+    max-width: 46ch;
+    padding: foundations.$space-1 foundations.$space-2;
+
+    &--error {
+      border-color: foundations.$color-border-danger-base;
+      color: foundations.$color-text-danger;
+    }
+
+    &--warning {
+      border-color: foundations.$color-border-warning-base;
+      color: foundations.$color-text-warning;
+    }
+  }
+}

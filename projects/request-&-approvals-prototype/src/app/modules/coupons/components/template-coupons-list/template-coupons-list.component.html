@@ -1,0 +1,119 @@
+<div class="promo-codes-page">
+  <div class="template-coupons-list">
+    <div class="template-coupons-list__main">
+      <div class="template-coupons-header">
+        <div class="template-coupons-header__top">
+          <div class="template-coupons-header__heading">
+            <span class="template-coupons-header__section">{{ 'menu.marketing' | translate }}</span>
+            <h1 class="template-coupons-header__title" data-testid="page-title">{{ 'menu.promoCodes' | translate }}</h1>
+          </div>
+          @if (!isEmpty()) {
+            <div class="template-coupons-header__button">
+              <ignt-button
+                [label]="'coupons.list.buttonLabel' | translate"
+                [size]="isMobile() ? 'small' : 'large'"
+                (click)="goToCreateView()"
+                data-testid="create-coupon-button"
+              />
+            </div>
+          }
+        </div>
+        <div class="template-coupons-header__filters">
+          <app-template-coupons-filters (searchEmitter)="getSearchParams($event)" />
+        </div>
+      </div>
+      <app-paginated-table-container
+        [filters]="filters()"
+        [errorMessage]="'coupons.list.messages.error' | translate"
+        [requestPage]="requestPage"
+        (searchResults)="setTemplateCouponsList($event)"
+        data-testid="template-coupons-paginated-table"
+      >
+        @if (!isEmpty()) {
+          <app-template-coupons-table
+            data-testid="template-coupons-table"
+            [pendingStatusChanges]="pendingStatusChanges()"
+            [tableRows]="tableRows()"
+            (updateRequestEmitter)="updateTemplateCoupon($event)"
+            (selectTemplateCoupon)="loadTemplateCouponPreview($event)"
+          >
+          </app-template-coupons-table>
+        }
+      </app-paginated-table-container>
+      @if (isEmpty()) {
+        <div class="template-coupons-table__four_hundred_four" data-testid="template-coupons-empty-state">
+          <span class="template-coupons-table__four_hundred_four--text">{{ 'coupons.list.errors.404' | translate }}</span>
+          <button
+            class="button button--large button--primary cell cell--hug-md"
+            (click)="goToCreateView()"
+            data-testid="empty-state-create-coupon-button"
+          >
+            {{ 'coupons.list.buttonLabel' | translate }}
+          </button>
+          <div class="img-responsive image"><img src="assets/images/coupons/coupons-not-found.svg" /></div>
+        </div>
+      }
+    </div>
+    @let showPreview = showPreview$ | async;
+    <app-lateral-slider
+      class="template-coupons-list__aside"
+      [class.template-coupons-list__aside--open]="showPreview"
+      [showDetails]="showPreview"
+      [title]="templateCouponPreviewTitle() | translate"
+      [contentTemplate]="previewTemplate"
+      [hideCloseButton]="hideCloseButton()"
+      (closeSlider)="closePreview()"
+    />
+  </div>
+
+  <div class="template-coupons-list__help-topic" appHideWrapperOnHelpTopicClose>
+    <app-help-topic-banner
+      [message]="'helpTopics.promoCodes.message' | translate"
+      [ctaLabel]="'helpTopics.generic.cta.label' | translate"
+      [ctaLink]="'helpTopics.promoCodes.cta.href' | translate"
+    ></app-help-topic-banner>
+  </div>
+</div>
+
+<ng-template #previewTemplate>
+  @if (showCouponsList()) {
+    <app-unique-coupons-list (backButtonClick)="onBackButtonClicked()" [templateCouponPreview]="templateCouponPreview$ | async" />
+  } @else {
+    @let templateCouponPreview = templateCouponPreview$ | async;
+
+    @if (templateCouponPreview && isActivityHistoryEnabled()) {
+      <ignt-tabs
+        class="template-coupons-list__preview-tabs"
+        [selectedIndex]="templateCouponDetailsPanelStore.activeTabIndex()"
+        (selectedIndexChange)="templateCouponDetailsPanelStore.changeTab($event)"
+        data-testid="template-coupon-preview-tabs"
+      >
+        <ignt-tabs-item [label]="'coupons.list.tabs.details' | translate" data-testid="template-coupon-details-tab">
+          <app-template-coupon-preview
+            class="template-coupons-list__preview-wrapper__content"
+            [isEmpty]="isEmpty()"
+            [templateCouponPreview]="templateCouponPreview"
+            (clickOnCodeListButton)="onCodeListButtonClicked()"
+            (updateRequestEmitter)="updateTemplateCoupon($event)"
+          />
+        </ignt-tabs-item>
+
+        <ignt-tabs-item [label]="'coupons.list.tabs.activityHistory' | translate" data-testid="template-coupon-activity-history-tab">
+          <app-template-coupon-activity-history
+            [entries]="templateCouponDetailsPanelStore.historyEntries()"
+            [state]="templateCouponDetailsPanelStore.historyState()"
+            (retry)="templateCouponDetailsPanelStore.retryHistory()"
+          />
+        </ignt-tabs-item>
+      </ignt-tabs>
+    } @else {
+      <app-template-coupon-preview
+        class="template-coupons-list__preview-wrapper__content"
+        [isEmpty]="isEmpty()"
+        [templateCouponPreview]="templateCouponPreview"
+        (clickOnCodeListButton)="onCodeListButtonClicked()"
+        (updateRequestEmitter)="updateTemplateCoupon($event)"
+      />
+    }
+  }
+</ng-template>

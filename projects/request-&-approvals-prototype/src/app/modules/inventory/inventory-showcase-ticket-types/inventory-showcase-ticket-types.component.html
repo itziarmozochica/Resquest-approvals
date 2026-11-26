@@ -1,0 +1,66 @@
+<app-unpaginated-table-container
+  [filters]="searchQuery()"
+  [checkHasMandatoryFilters]="checkHasMandatoryFilters"
+  [checkIsEmpty]="checkIsEmpty"
+  [request]="loadData"
+  [noFiltersMessage]="'sessions.sessionTypes.sessionTypeSettings.noFilterSelected' | translate"
+  [noFiltersIcon]="['far', 'sort-alt']"
+  [noResultMessage]="'sessions.sessionTypes.sessionTypeSettings.noResults' | translate"
+  [noResultIcon]="['far', 'receipt']"
+  (searchResults)="onSearchResults($event)"
+>
+  @if (isPlanContextResolved()) {
+    <div class="showcase-ticket-types" data-testid="showcase-ticket-types">
+      <header class="showcase-ticket-types__header">
+        <div class="showcase-ticket-types__header-content">
+          <h2 class="showcase-ticket-types__title" data-testid="showcase-table-title">
+            {{ 'inventory.ticketTypes.showcase.table.header.title' | translate }}
+          </h2>
+          <p class="showcase-ticket-types__description">
+            {{ 'inventory.ticketTypes.showcase.table.header.description' | translate }}
+          </p>
+          @if (showcaseCatalogPlanLink(); as link) {
+            <a class="showcase-ticket-types__catalog-plan-link" data-testid="showcase-catalog-plan-link" [href]="catalogPlanHref()!">
+              {{ 'inventory.ticketTypes.showcase.table.header.catalogPlanLink' | translate: { catalogPlanName: link.planName } }}
+              <ignt-icon
+                aria-hidden="true"
+                class="showcase-ticket-types__catalog-plan-link-icon"
+                name="external-link"
+                size="sm"
+                variant="light"
+              />
+            </a>
+          }
+        </div>
+        <button
+          data-testid="showcase-add-products-button"
+          igntButton
+          sentiment="primary"
+          size="small"
+          type="button"
+          [disabled]="isDisabled()"
+          (click)="openCatalogPanel()"
+        >
+          {{ 'inventory.ticketTypes.showcase.actions.addProducts' | translate }}
+        </button>
+      </header>
+
+      <app-inventory-showcase-ticket-types-table
+        [disabled]="isDisabled()"
+        [rows]="selectedRows()"
+        (deselect)="onDeselectFromTable($event)"
+      />
+
+      <app-inventory-showcase-ticket-types-catalog-panel
+        [disabled]="isDisabled()"
+        [groupOptions]="sessionTypeGroups()"
+        [isOpen]="isCatalogPanelOpen()"
+        [isSaveInProgress]="isShowcaseSaveInProgress()"
+        [sessionTypes]="sessionTypes()"
+        (catalogCancel)="dismissCatalogPanel()"
+        (closePanel)="dismissCatalogPanel()"
+        (save)="onShowcaseSaveSelection($event)"
+      />
+    </div>
+  }
+</app-unpaginated-table-container>

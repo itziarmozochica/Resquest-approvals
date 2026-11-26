@@ -1,0 +1,172 @@
+<div class="ir-catalog-grid" [attr.data-testid]="testId">
+  <div class="ir-catalog-grid__panels">
+    <aside class="ir-catalog-grid__rows" [attr.data-testid]="testId + '-rows'">
+      <header class="ir-catalog-grid__panel-header">
+        <h4>{{ 'informationRequests.question.catalogGrid.rowsTitle' | translate }}</h4>
+        <button
+          igntButton
+          sentiment="secondary"
+          size="small"
+          type="button"
+          [disabled]="readOnly"
+          (click)="addRow()"
+          [attr.data-testid]="testId + '-add'"
+        >
+          {{ 'informationRequests.question.catalogGrid.addRow' | translate }}
+        </button>
+      </header>
+      @if (rows.length === 0) {
+        <p class="ir-catalog-grid__empty">{{ 'informationRequests.question.catalogGrid.empty' | translate }}</p>
+      } @else {
+        <ul class="ir-catalog-grid__row-list">
+          @for (row of rows; track trackRow($index, row); let i = $index) {
+            <li>
+              <button
+                type="button"
+                class="ir-catalog-grid__row-btn"
+                [class.is-selected]="i === selectedIndex"
+                (click)="selectRow(i)"
+                [attr.data-testid]="testId + '-row-' + i"
+              >
+                <span>{{ rowSummary(i) }}</span>
+                <span
+                  class="ir-catalog-grid__row-remove"
+                  role="button"
+                  tabindex="0"
+                  (click)="removeRow(i); $event.stopPropagation()"
+                  (keydown.enter)="removeRow(i); $event.stopPropagation()"
+                  [attr.aria-disabled]="readOnly || rows.length <= minRows"
+                  [attr.data-testid]="testId + '-remove-' + i"
+                >
+                  ×
+                </span>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </aside>
+
+    <section class="ir-catalog-grid__editor" [attr.data-testid]="testId + '-editor'">
+      <header class="ir-catalog-grid__panel-header">
+        <h4>{{ 'informationRequests.question.catalogGrid.editorTitle' | translate }}</h4>
+      </header>
+      @if (rows[selectedIndex]) {
+        <div class="ir-catalog-grid__fields">
+          @for (col of columns; track trackColumn($index, col)) {
+            <label class="ir-catalog-grid__field">
+              <span class="ir-catalog-grid__field-label">
+                {{ col.label | irCatalogKey | translate }}
+                @if (col.defaultRequired) {
+                  <span aria-hidden="true">*</span>
+                }
+              </span>
+              @switch (col.type) {
+                @case ('textarea') {
+                  <textarea
+                    class="form-control"
+                    rows="2"
+                    [disabled]="readOnly"
+                    [value]="cellValue(col.id)"
+                    (input)="onFieldChange(col, $any($event.target).value)"
+                    [attr.data-testid]="testId + '-field-' + col.id"
+                  ></textarea>
+                }
+                @case ('picklist') {
+                  <select
+                    class="form-select"
+                    [disabled]="readOnly"
+                    [value]="cellValue(col.id)"
+                    (change)="onFieldChange(col, $any($event.target).value)"
+                    [attr.data-testid]="testId + '-field-' + col.id"
+                  >
+                    @for (opt of col.options ?? []; track opt) {
+                      <option [value]="opt">
+                        {{ (opt | irCatalogKey | translate) || ('informationRequests.question.tableRepeater.blankOption' | translate) }}
+                      </option>
+                    }
+                  </select>
+                }
+                @case ('date') {
+                  <input
+                    type="date"
+                    class="form-control"
+                    [disabled]="readOnly"
+                    [value]="cellValue(col.id)"
+                    (input)="onFieldChange(col, $any($event.target).value)"
+                    [attr.data-testid]="testId + '-field-' + col.id"
+                  />
+                }
+                @case ('time') {
+                  <input
+                    type="time"
+                    class="form-control"
+                    [disabled]="readOnly"
+                    [value]="cellValue(col.id)"
+                    (input)="onFieldChange(col, $any($event.target).value)"
+                    [attr.data-testid]="testId + '-field-' + col.id"
+                  />
+                }
+                @case ('number') {
+                  <input
+                    type="number"
+                    class="form-control"
+                    [disabled]="readOnly"
+                    [value]="cellValue(col.id)"
+                    (input)="onFieldChange(col, $any($event.target).value)"
+                    [attr.data-testid]="testId + '-field-' + col.id"
+                  />
+                }
+                @default {
+                  <input
+                    type="text"
+                    class="form-control"
+                    [disabled]="readOnly"
+                    [value]="cellValue(col.id)"
+                    (input)="onFieldChange(col, $any($event.target).value)"
+                    [attr.data-testid]="testId + '-field-' + col.id"
+                  />
+                }
+              }
+              @if (col.helpText) {
+                <small class="ir-catalog-grid__field-help">{{ col.helpText | irCatalogKey | translate }}</small>
+              }
+            </label>
+          }
+        </div>
+      } @else {
+        <p class="ir-catalog-grid__empty">{{ 'informationRequests.question.catalogGrid.selectRow' | translate }}</p>
+      }
+    </section>
+
+    <section class="ir-catalog-grid__preview" [attr.data-testid]="testId + '-preview'">
+      <header class="ir-catalog-grid__panel-header">
+        <h4>{{ 'informationRequests.question.catalogGrid.previewTitle' | translate }}</h4>
+      </header>
+      @if (rows.length > 0) {
+        <div class="ir-catalog-grid__preview-scroll">
+          <table class="ir-catalog-grid__preview-table">
+            <thead>
+              <tr>
+                @for (col of columns; track trackColumn($index, col)) {
+                  <th scope="col">{{ col.label | irCatalogKey | translate }}</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of rows; track trackRow($index, row); let i = $index) {
+                <tr [class.is-selected]="i === selectedIndex">
+                  @for (col of columns; track trackColumn($index, col)) {
+                    <td>{{ previewCell(i, col.id) | irCatalogKey | translate }}</td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p class="ir-catalog-grid__empty">{{ 'informationRequests.question.catalogGrid.empty' | translate }}</p>
+      }
+    </section>
+  </div>
+</div>

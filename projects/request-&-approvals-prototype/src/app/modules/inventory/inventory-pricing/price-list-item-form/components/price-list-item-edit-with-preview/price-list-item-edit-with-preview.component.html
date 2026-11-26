@@ -1,0 +1,163 @@
+<div class="edit-with-preview-container">
+  @if (isLoading()) {
+    <div class="spinner-container">
+      <app-form-loading-spinner data-testid="loading-spinner"></app-form-loading-spinner>
+    </div>
+  } @else {
+    @if (!previewData()) {
+      <!-- Edit Step -->
+      <app-price-list-item-edit
+        data-testid="price-list-item-edit"
+        [currency]="currency()"
+        [item]="initialRule()!"
+        [isArchived]="isArchived()"
+        [isPriceValueReadOnly]="isPriceValueReadOnly()"
+        [hasPromotions]="false"
+        [allowVariableSurcharge]="true"
+      >
+        <ng-container priceDetailsAdditionalFields>
+          <!-- Pack total message: thumbtack icon, accent color -->
+          @if (isPack()) {
+            <div data-testid="pack-total-message" class="breakdown-total-message">
+              <ignt-icon class="breakdown-total-message__icon" name="thumbtack" variant="solid" />
+              {{
+                'sessions.pricing.priceList.priceEditForm.packsBreakdown.separateItemsPriceMessage'
+                  | translate: { totalPrice: (packBreakdownItemsSeparatedSum() | currency: currency()) }
+              }}
+            </div>
+          }
+
+          <!-- Reference price message: shows which parent list the price is inherited from -->
+          @if (isIdpEditorEnabled) {
+            <app-price-source-notice
+              [currency]="currency()"
+              [priceSource]="priceSource()"
+              [baseItemLabel]="baseItemLabel()"
+              [dependents]="dependentItems()"
+              [referencePrice]="referencePrice()"
+              [referencePriceListName]="referencePriceListName()"
+            ></app-price-source-notice>
+          } @else if (referencePriceBannerContext(); as price) {
+            <ignt-alert class="zero-days-before-event-info">
+              <ng-template #igntAlertContent>
+                <span
+                  [innerHTML]="
+                    'sessions.pricing.priceList.priceEditForm.referencePriceMessage'
+                      | translate
+                        : {
+                            priceList: price.priceList?.name,
+                            price: (mustUseTaxBase() ? price.ticketPriceTaxBase.amount : price.ticketPrice.amount) | currency: currency(),
+                          }
+                  "
+                ></span>
+              </ng-template>
+            </ignt-alert>
+          }
+
+          <!-- Currency mismatch warning -->
+          @if (currencyMismatchInfo()) {
+            <ignt-alert
+              data-testid="currency-mismatch-warning"
+              class="currency-mismatch-warning"
+              sentiment="warning"
+              [description]="
+                'sessions.pricing.priceList.priceEditForm.currencyMismatchWarning'
+                  | translate
+                    : {
+                        oldCurrency: currencyMismatchInfo()!.oldCurrency,
+                        newCurrency: currency(),
+                      }
+              "
+            />
+          }
+        </ng-container>
+
+        @if (isPack()) {
+          <ng-container extraContentUnderPriceDetails>
+            <app-price-list-item-pack-breakdown
+              data-testid="price-list-item-pack-breakdown"
+              [sessionTypeId]="sessionTypeId()"
+              [planSessionTypes]="planSessionTypes() ?? []"
+              [priceRuleType]="currentPricingType()"
+              [currency]="currency()"
+              (itemsSeparatelyPriceSummed)="packBreakdownItemsSeparatedSum.set($event)"
+            ></app-price-list-item-pack-breakdown>
+          </ng-container>
+        }
+      </app-price-list-item-edit>
+    } @else {
+      <!-- Preview Step -->
+      <div class="preview-ticket-outer">
+        <div class="preview-ticket">
+          <app-price-list-item-preview
+            data-testid="price-list-item-preview"
+            [currency]="currency()"
+            [isApiDiscount]="isIdpEditorEnabled"
+            [previewData]="previewData()!"
+          ></app-price-list-item-preview>
+        </div>
+      </div>
+      @if (isIdpEditorEnabled && mlScaledPreviewRange(); as range) {
+        <app-ml-scaled-preview-range
+          [currency]="currency()"
+          [range]="range"
+          [mustUseTaxBase]="mustUseTaxBase()"
+        ></app-ml-scaled-preview-range>
+      }
+      @if (isIdpEditorEnabled && dependentItems().length > 0) {
+        <app-dependents-impact-notice [dependents]="dependentItems()" />
+      }
+      @if (showWholesalePreview()) {
+        <app-b2b-wholesale-preview
+          data-testid="b2b-wholesale-preview-card"
+          class="b2b-wholesale-preview-card"
+          [discountPercentage]="wholesaleDiscountPercentage()!"
+          [originalPrice]="wholesaleOriginalPrice()"
+          [discountedPrice]="wholesaleDiscountedPrice()"
+          [surcharge]="wholesaleSurcharge()"
+          [taxRows]="wholesaleTaxRows()"
+          [calculatedTax]="wholesaleCalculatedTax()"
+          [currency]="currency()"
+        ></app-b2b-wholesale-preview>
+      }
+      @if (!isArchived()) {
+        <ignt-alert data-testid="save-reminder-banner" class="save-reminder-banner" sentiment="accent">
+          <ng-template #igntAlertContent>
+            <span [innerHTML]="'sessions.pricing.priceList.priceEditForm.saveReminderMessage' | translate"></span>
+          </ng-template>
+        </ignt-alert>
+      }
+    }
+
+    <!-- Footer with navigation buttons -->
+    <div class="edit-preview-footer lateral-slider-body__footer">
+      @if (!previewData()) {
+        <!-- Edit step buttons -->
+        <button
+          data-testid="see-preview-button"
+          class="button button--large button--primary button--fill"
+          [disabled]="!isSeePreviewEnabled()"
+          (click)="onSeePreview()"
+        >
+          {{ 'sessions.pricing.priceList.priceEditForm.seePreviewButton' | translate }}
+        </button>
+        <button data-testid="cancel-button" class="button button--large button--fill button--tertiary cancel-button" (click)="onCancel()">
+          {{ 'sessions.pricing.priceList.priceEditForm.cancelButton' | translate }}
+        </button>
+      } @else {
+        <!-- Preview step buttons: stacked -->
+        <button
+          data-testid="save-price-button"
+          class="button button--large button--primary button--fill"
+          [disabled]="!isSaveEnabled()"
+          (click)="onSavePrice()"
+        >
+          {{ 'sessions.pricing.priceList.priceEditForm.setPriceButton' | translate }}
+        </button>
+        <button data-testid="back-to-edit-button" class="button button--large button--fill button--tertiary" (click)="goBackToEdit()">
+          {{ 'sessions.pricing.priceList.priceEditForm.backButton' | translate }}
+        </button>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,246 @@
+@if (hasAdaptivePricing()) {
+  <ignt-alert
+    class="message-banner"
+    sentiment="danger"
+    data-testid="price-list-adaptive-pricing-banner"
+    [title]="'sessions.dynamicPricing.disabledPriceEditingWarningTitle' | translate"
+    [description]="'sessions.dynamicPricing.disabledPriceEditingWarningDescription' | translate"
+  ></ignt-alert>
+}
+
+<div class="header">
+  <a [routerLink]="['../../']" queryParamsHandling="preserve" data-testid="back-button-header" class="back-button">
+    <ignt-icon class="back-button__icon" name="chevron-left" variant="regular" [fixedWidth]="true" />
+    <span class="header__text">{{ 'sessions.pricing.priceListsOverview.title' | translate }}</span>
+  </a>
+  @if (canModifyPriceLists()) {
+    <div class="header__actions">
+      <ignt-button
+        data-testid="live-editor-button"
+        igntTooltip
+        size="small"
+        tooltipPlacement="bottom"
+        variant="secondary"
+        [disabled]="isLiveEditorToggleDisabled()"
+        [label]="
+          (isLiveEditorActive() ? 'sessions.pricing.priceList.exitLiveEditorButton' : 'sessions.pricing.priceList.liveEditorButton')
+            | translate
+        "
+        [tooltipLabel]="liveEditorButtonTooltip"
+        (click)="toggleLiveEditor()"
+      />
+      <ignt-button
+        data-testid="save-list-button"
+        size="small"
+        variant="primary"
+        [disabled]="isSaveButtonDisabled()"
+        [label]="'sessions.pricing.priceList.saveButton' | translate"
+        (click)="savePriceList()"
+      />
+    </div>
+  }
+</div>
+
+<div class="price-list-filters">
+  <app-multi-select
+    [defaultOrdering]="false"
+    [maxSelectedOptions]="1"
+    [options]="sessionTypeCategoryOptions"
+    [selectedOptions]="selectedSessionTypeCategoryOptions()"
+    [placeholder]="'sessions.pricing.priceListsOverview.sessionTypeCategoryFilter' | translate"
+    [displayInPlaceMaximum]="2"
+    (selected)="onSessionTypeCategoryFilterChange($event)"
+    data-testid="price-list-multi-select-session-type-category"
+  ></app-multi-select>
+  <ignt-checkbox
+    dataTestId="price-list-show-archived-ticket-types-checkbox"
+    [checked]="areArchivedTicketTypesVisible()"
+    [disabled]="isArchivedTicketTypesFilterDisabled()"
+    [label]="'sessions.pricing.priceList.showArchivedTicketTypes' | translate"
+    size="small"
+    (change)="onIncludeArchivedTicketTypesChange($event)"
+  ></ignt-checkbox>
+</div>
+
+<div class="table-container" [class.blue-container-layout]="!isIdpTableEnabled" [class.table-container--plain]="isIdpTableEnabled">
+  @if (priceList()) {
+    <div class="table-container__main-header">
+      @if (!priceList()?.parentPriceListId) {
+        <app-base-price-list-header
+          [initialName]="priceList()?.name ?? ''"
+          [isLoading]="isChangingNameLoading"
+          (nameChanged)="updatePriceListName($event)"
+        ></app-base-price-list-header>
+      } @else {
+        <div class="list-title-container">
+          <span class="list-title">{{ priceList()?.name ?? '' }}</span>
+          @if (priceList()?.archivedAt) {
+            <ignt-tag sentiment="sharp" variant="outline" data-testid="archived-price-list-badge">
+              {{ 'sessions.pricing.archivedTag' | translate }}
+            </ignt-tag>
+          }
+        </div>
+        <div class="header-buttons-container">
+          @if (canModifyPriceLists()) {
+            <ng-container
+              *ngTemplateOutlet="
+                headerButton;
+                context: {
+                  dataTestId: 'select-tickets-button',
+                  translationKeySuffix: 'selectTicketsButton',
+                  iconName: 'ticket',
+                  iconVariant: 'solid',
+                  onClick: onClickSelectTicketsButton,
+                  isDisabled: !!priceList()?.archivedAt || isLiveEditorActive(),
+                }
+              "
+            ></ng-container>
+            <ng-container
+              *ngTemplateOutlet="
+                headerButton;
+                context: {
+                  dataTestId: 'settings-button',
+                  translationKeySuffix: 'settingsButton',
+                  iconName: 'cog',
+                  iconVariant: 'solid',
+                  onClick: onClickSettingsButton,
+                  isDisabled: !!priceList()?.archivedAt || isLiveEditorActive(),
+                }
+              "
+            ></ng-container>
+          }
+        </div>
+      }
+    </div>
+  } @else {
+    <div data-testid="price-list-loading" class="header-skeleton"></div>
+  }
+
+  <app-search-results
+    #tableWrapper
+    (searchResults)="updateResults($event)"
+    [areResultsEmpty]="areResultsEmpty"
+    [checkHasMandatoryFilters]="hasMandatoryParams"
+    [errorMessage]="errorMessage() | translate"
+    [filters]="searchResultFilters()"
+    [noFiltersIcon]="['far', 'sort-alt']"
+    [noFiltersMessage]="'sessions.pricing.priceList.table.noFilterSelected' | translate"
+    [noResultIcon]="['far', 'receipt']"
+    [noResultMessage]="'sessions.pricing.priceList.table.noResults' | translate"
+    [request]="request"
+    [displayContentWithNoResults]="true"
+    class="price-list-item-search-results"
+  >
+    <app-price-list-table
+      (priceListItemSelected)="setSelectedItem($event)"
+      [planSessionTypes]="planSessionTypes()"
+      [currency]="priceList()?.currency ?? ''"
+      [pendingToSaveItemsMap]="visiblePendingToSaveItemsMap()"
+      [priceListItems]="visiblePriceListItems()"
+      [allPriceListItems]="priceListItems()"
+      [parentPriceListName]="priceList()?.parentPriceListName ?? null"
+      [currencyMode]="currencyMode()"
+      [pointsPriceBySessionTypeId]="pointsPriceBySessionTypeId()"
+    >
+    </app-price-list-table>
+  </app-search-results>
+  <ng-container
+    *ngIf="!isLoading() && !errorMessage() && priceListItems() !== null && !visiblePriceListItems().length"
+    [ngTemplateOutlet]="noResults"
+  >
+  </ng-container>
+</div>
+
+<ng-template #noResults>
+  <div data-testid="search-results-no-results" class="search-no-results">
+    <ignt-icon class="search-no-results__icon" name="sort-alt" variant="regular" />
+    <div>
+      {{ 'sessions.pricing.priceList.table.noResults' | translate }}
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #sliderTitleTemplate>
+  <span class="price-list-item-slider-title">
+    {{ sliderTitle }} <span *ngIf="sliderSubtitle" class="price-list-item-slider-title__group">({{ sliderSubtitle }})</span>
+  </span>
+</ng-template>
+
+<ng-template
+  #headerButton
+  let-translationKeySuffix="translationKeySuffix"
+  let-dataTestId="dataTestId"
+  let-iconName="iconName"
+  let-iconVariant="iconVariant"
+  let-onClick="onClick"
+  let-isDisabled="isDisabled"
+>
+  <ignt-button
+    size="small"
+    variant="secondary"
+    [attr.data-testid]="dataTestId"
+    [disabled]="isDisabled"
+    [label]="'sessions.pricing.priceList.' + translationKeySuffix | translate"
+    [leadingIcon]="{ name: iconName, variant: iconVariant }"
+    (click)="onClick()"
+  />
+</ng-template>
+
+@if (canModifyPriceLists()) {
+  <app-lateral-slider
+    (closeSlider)="closeSidePlanel()"
+    [contentTemplate]="sidePlanelContentTemplate() ?? emptyTemplate"
+    [showDetails]="sidePlanelContentTemplate() !== null"
+    [title]="sidePanelTitle()"
+    [titleTemplate]="sidePanelTitleTemplate() ?? undefined"
+  >
+  </app-lateral-slider>
+}
+
+<ng-template #emptyTemplate></ng-template>
+
+<ng-template #editSessionTypesFormTemplate>
+  <app-add-price-list-item-form
+    (selectedItemSummary)="selectedPriceListItemsChanged($event)"
+    [priceListItems]="priceListItems()"
+    [planSessionTypes]="visiblePlanSessionTypes()"
+    [planId]="planId()"
+  ></app-add-price-list-item-form>
+</ng-template>
+
+<ng-template #editListFormTemplate>
+  <app-new-price-list-form
+    *ngIf="priceList() as priceListToEdit"
+    [priceListToEdit]="priceListToEdit"
+    [isDerivedFamilyLevel]="isDerivedFamilyLevel()"
+    [isFamilyRoot]="isFamilyRoot()"
+    [timezone]="timezone()"
+    [channelOptions]="channelOptions()"
+    [timeSlotTiers]="timeSlotTiers()"
+    (updateClicked)="updatePriceList($event)"
+    (discardClicked)="closeSidePlanel()"
+  ></app-new-price-list-form>
+</ng-template>
+
+<ng-template #editPriceListItemForm>
+  <app-price-list-item-form
+    *ngIf="selectedSessionTypeId() && priceList() && planId()"
+    [currency]="priceList()!.currency"
+    [currencyMode]="currencyMode()"
+    [initialPointsPrice]="initialPointsPriceForSelectedItem()"
+    [isBasePriceList]="!priceList()?.parentPriceListId"
+    [isDynamicPricingFamilyMember]="isDynamicPricingFamilyMember()"
+    [restrictShopProductPriceEditing]="!priceList()?.parentPriceListId"
+    [isArchived]="!!priceList()!.archivedAt"
+    [isPriceListItemDirtyFromOutside]="isSelectedPriceListItemDirtyFromOutside()"
+    [parentPriceListId]="priceList()!.parentPriceListId ?? null"
+    [planId]="planId()!"
+    [planSessionTypes]="planSessionTypes()"
+    [priceListId]="priceList()!.id"
+    [priceListItems]="priceListItems()"
+    [sessionTypeId]="selectedSessionTypeId()!"
+    (cancelClicked)="closeSidePlanel()"
+    (setPriceClicked)="onItemSaved($event)"
+  >
+  </app-price-list-item-form>
+</ng-template>

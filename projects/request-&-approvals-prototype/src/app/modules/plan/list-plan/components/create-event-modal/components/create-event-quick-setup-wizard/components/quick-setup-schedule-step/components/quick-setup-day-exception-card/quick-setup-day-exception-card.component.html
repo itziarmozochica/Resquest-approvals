@@ -1,0 +1,98 @@
+<div class="quick-setup-day-exception-card" [attr.data-testid]="'create-event-quick-setup-day-exception-' + exceptionIndex()">
+  <div class="quick-setup-day-exception-card__header">
+    <p class="quick-setup-day-exception-card__title">
+      {{ 'createEvent.quickSetupWizard.step3.exceptionLabel' | translate: { number: exceptionIndex() + 1 } }}
+    </p>
+    <button
+      type="button"
+      ignt-icon-button
+      sentiment="tertiary"
+      size="medium"
+      class="quick-setup-day-exception-card__delete-button"
+      [icon]="['fas', 'trash']"
+      [attr.data-testid]="'create-event-quick-setup-day-exception-delete-' + exceptionIndex()"
+      (click)="remove.emit()"
+    ></button>
+  </div>
+
+  <div class="quick-setup-day-exception-card__rows">
+    @for (dateRow of dateRows(); track dateRow.rowKey) {
+      <div
+        class="quick-setup-day-exception-card__row"
+        [attr.data-testid]="'create-event-quick-setup-day-exception-date-row-' + exceptionIndex() + '-' + dateRow.index"
+      >
+        <ignt-input-field
+          #exceptionDatePickerRef
+          class="quick-setup-day-exception-card__picker-field"
+          [customFormErrors]="exceptionDateInputFormErrors"
+          [formControl]="dateRow.control"
+          [id]="'create-event-quick-setup-day-exception-date-' + exceptionIndex() + '-' + dateRow.index"
+          [label]="'createEvent.quickSetupWizard.step3.dateLabel' | translate"
+          type="date"
+          [trailIcon]="['fal', 'calendar']"
+          [trailIconAriaLabel]="'createEvent.quickSetupWizard.step3.openDatePicker' | translate"
+          [attr.data-testid]="'create-event-quick-setup-day-exception-date-input-' + exceptionIndex() + '-' + dateRow.index"
+          (focusout)="onValidationRefresh()"
+          (trailIconClicked)="openNativePicker(exceptionDatePickerRef)"
+        />
+        <div class="quick-setup-day-exception-card__row-actions">
+          <button
+            type="button"
+            ignt-icon-button
+            sentiment="tertiary"
+            size="medium"
+            class="quick-setup-day-exception-card__delete-button"
+            [icon]="['fas', 'trash']"
+            [attr.data-testid]="'create-event-quick-setup-day-exception-date-delete-' + exceptionIndex() + '-' + dateRow.index"
+            [disabled]="!canDeleteDate()"
+            (click)="removeDate(dateRow.index)"
+          ></button>
+          @if ($last) {
+            <ignt-button
+              class="quick-setup-day-exception-card__add-link"
+              [attr.data-testid]="'create-event-quick-setup-day-exception-add-date-' + exceptionIndex()"
+              [label]="'createEvent.quickSetupWizard.step3.addDate' | translate"
+              size="small"
+              variant="tertiary"
+              [leadingIcon]="{ name: 'plus', variant: 'regular' }"
+              (click)="addDate()"
+            />
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  @if (showTierCalendar()) {
+    <app-schedule-tier-calendar
+      [days]="calendarDays()"
+      [duration]="calendarGridParams().duration"
+      [endTime]="calendarGridParams().endTime"
+      [fixedTimeSlots]="calendarGridParams().fixedTimeSlots"
+      [fluidColumns]="true"
+      [headerDateFormat]="'EEE, d MMM.'"
+      [hideCapacityTemplate]="true"
+      [scrollableColumnThreshold]="1"
+      [showDragHint]="false"
+      [startTime]="calendarGridParams().startTime"
+      [tierOptions]="tierOptions()"
+      [timeLabels]="timeLabels()"
+      [timezone]="timezone()"
+      [tableTestId]="'create-event-quick-setup-day-exception-tier-calendar-' + exceptionIndex()"
+      (dayChange)="onDayChange($event)"
+      (dragPaint)="onDragPaint($event)"
+    />
+  }
+
+  <app-multi-select
+    class="quick-setup-day-exception-card__products-select"
+    [attr.data-testid]="'create-event-quick-setup-day-exception-products-select-' + exceptionIndex()"
+    [displayInPlaceMaximum]="2"
+    [errorMessage]="sessionTypesRequiredErrorMessage()"
+    [isSelectAllVisible]="true"
+    [options]="productOptions()"
+    [placeholder]="'createEvent.quickSetupWizard.step3.productsLabel' | translate"
+    [selectedOptions]="selectedProductOptions()"
+    (selected)="onProductsSelected($event)"
+  />
+</div>

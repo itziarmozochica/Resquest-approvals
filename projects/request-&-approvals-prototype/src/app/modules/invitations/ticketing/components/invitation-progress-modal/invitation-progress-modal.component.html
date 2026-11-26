@@ -1,0 +1,77 @@
+<app-modal-content [title]="'invitations.bulkGuestDetails.modal.title' | translate" [hasCloseButton]="false">
+  <div class="modal-body invitation-progress-modal">
+    <div class="invitation-progress-modal__progress">
+      <div class="invitation-progress-modal__progress-header">
+        <span class="invitation-progress-modal__progress-text">{{ progressPercentage }}%</span>
+      </div>
+      <div class="invitation-progress-modal__progress-bar">
+        <div class="invitation-progress-modal__progress-fill" [style.width.%]="progressPercentage"></div>
+      </div>
+    </div>
+
+    <div class="invitation-progress-modal__current-guest" *ngIf="!isProcessCompleted">
+      <p class="invitation-progress-modal__counter-text">
+        {{
+          'invitations.bulkGuestDetails.modal.progress'
+            | translate
+              : {
+                  completed: processedInvitations,
+                  total: totalInvitations,
+                  remaining: remainingInvitations,
+                }
+        }}
+      </p>
+      <p class="invitation-progress-modal__current-guest-text" *ngIf="currentGuestName">
+        {{ 'invitations.bulkGuestDetails.modal.currentGuest' | translate: { name: currentGuestName } }}
+      </p>
+    </div>
+
+    <div class="invitation-progress-modal__summary" *ngIf="isProcessCompleted">
+      <div class="invitation-progress-modal__summary-item invitation-progress-modal__summary-item--success">
+        <span class="invitation-progress-modal__summary-count" data-testid="invitation-progress-successful-count">
+          {{ completedInvitations }}
+        </span>
+        <span class="invitation-progress-modal__summary-label">
+          {{ 'invitations.bulkGuestDetails.modal.successfulInvitations' | translate }}
+        </span>
+      </div>
+
+      <div class="invitation-progress-modal__summary-item invitation-progress-modal__summary-item--error" *ngIf="hasErrors">
+        <span class="invitation-progress-modal__summary-count">{{ failedInvitations }}</span>
+        <span class="invitation-progress-modal__summary-label">
+          {{ 'invitations.bulkGuestDetails.modal.failedInvitations' | translate }}
+        </span>
+      </div>
+
+      @if (stoppedAtGuestName) {
+        <p class="invitation-progress-modal__summary-text" data-testid="invitation-progress-stopped-at-guest">
+          {{ 'invitations.bulkGuestDetails.modal.stoppedAtGuest' | translate: { name: stoppedAtGuestName } }}
+        </p>
+      }
+
+      <div class="invitation-progress-modal__summary-message" *ngIf="hasErrors">
+        <p class="invitation-progress-modal__summary-text">
+          {{ 'invitations.bulkGuestDetails.modal.partialSuccessMessage' | translate }}
+        </p>
+        @if (failedGuestDetails.length > 0) {
+          <ul class="invitation-progress-modal__failed-list">
+            @for (guest of failedGuestDetails; track $index) {
+              <li class="invitation-progress-modal__failed-item">
+                <strong>{{ guest.name }}</strong>
+                @if (guest.reasonKey) {
+                  <span>: {{ guest.reasonKey | translate }}</span>
+                }
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </div>
+
+    <div class="invitation-progress-modal__actions">
+      <ignt-button *ngIf="!isProcessCompleted" [label]="'common.cancel' | translate" variant="secondary" (click)="clickOnCancel()" />
+
+      <ignt-button *ngIf="isProcessCompleted" [label]="'common.accept' | translate" variant="primary" (click)="clickOnAccept()" />
+    </div>
+  </div>
+</app-modal-content>

@@ -1,0 +1,178 @@
+<div class="calendar-view-header">
+  <app-time-slots-calendar-filters
+    data-testid="attendees-calendar-filters"
+    class="calendar-view-header__filters"
+    [isDisabled]="!filters?.selectedPlace || !filters?.selectedPlan"
+    [timezone]="filters?.timezone"
+    [(dateSelected)]="calendarSelectedDate"
+    (dateRangeSelectedChange)="updateFilterSelectedRange($event)"
+  >
+    <div class="calendar-view-header__extra">
+      <div class="calendar-view-header__extra-group">
+        @if (!hideFilterControls) {
+          <label class="calendar-view-header__extra-filters-attendance-percentage">
+            <span class="calendar-view-header__extra-filters-attendance-percentage-label">
+              {{ 'attendees.viewDataInPercentages' | translate }}
+            </span>
+            <ignt-toggle
+              data-testid="attendees-filter-attendance-percentage"
+              [checked]="showAttendancePercentage"
+              (change)="updateShowAttendancePercentage($event.target.checked)"
+            ></ignt-toggle>
+          </label>
+          <div class="calendar-view-header__extra-filters">
+            <label class="calendar-view-header__extra-filters-addons">
+              <input
+                [checked]="shouldIncludeAddons"
+                data-testid="attendees-filter-addons"
+                (change)="updateShouldIncludeAddons($event.target.checked)"
+                type="checkbox"
+              />
+              {{ 'attendees.includeAddOns' | translate }}
+            </label>
+            <label class="calendar-view-header__extra-filters-empty-time-slots">
+              <input
+                [checked]="showTimeSlotsWithNoSales"
+                data-testid="attendees-filter-empty-time-slots"
+                (change)="updateShowTimeSlotsWithNoSales($event.target.checked)"
+                type="checkbox"
+              />
+              {{ 'attendees.showTimeSlotsWithNoSales' | translate }}
+            </label>
+          </div>
+        }
+        <ng-content select="[attendeesCalendarExtra]" />
+      </div>
+      <app-percentage-color-legend-tooltip
+        class="calendar-view-header__colors-explanation"
+        colorScheme="attendees"
+      ></app-percentage-color-legend-tooltip>
+      <div class="calendar-view-header__download">
+        <app-attendees-download-document-dropdown
+          [isDisabled]="!filters?.selectedPlan?.id || !filters?.selectedPlace?.id"
+          [timezone]="filters?.timezone"
+          [enableDateRangeSelector]="true"
+          [selectedDateRange]="selectedDateRange"
+          [downloadType]="downloadType"
+          data-testid="all-attendees-document-download-selector"
+        >
+        </app-attendees-download-document-dropdown>
+      </div>
+      @if (showPrintFolioZero && filters?.selectedPlan?.id && filters?.selectedPlace?.id) {
+        <ignt-button
+          [label]="'attendees.folioZero.printButton' | translate"
+          variant="secondary"
+          size="small"
+          class="calendar-view-header__folio-zero"
+          data-testid="attendees-print-folio-zero"
+          (click)="onPrintFolioZeroClick()"
+        />
+      }
+    </div>
+  </app-time-slots-calendar-filters>
+</div>
+
+<ng-template #daySummatory let-props let-day="day">
+  <div
+    [class.calendar-item--empty]="totals.regularValidated.ticketCount === 0 && totals.addonsValidated.ticketCount === 0"
+    class="calendar-item-header"
+    *ngIf="getDayTotalsCached(day, props) as totals"
+  >
+    <ng-container
+      [ngTemplateOutlet]="countDisplay"
+      [ngTemplateOutletContext]="{
+        regularValidated: totals.regularValidated.validatedCount,
+        regularSold: totals.regularValidated.ticketCount,
+        addonsValidated: totals.addonsValidated.validatedCount,
+        addonsSold: totals.addonsValidated.ticketCount,
+        percentage:
+          totals.regularValidated.ticketCount > 0 ? totals.regularValidated.validatedCount / totals.regularValidated.ticketCount : null,
+        addonsPercentage:
+          totals.addonsValidated.ticketCount > 0 ? totals.addonsValidated.validatedCount / totals.addonsValidated.ticketCount : null,
+      }"
+    >
+    </ng-container>
+  </div>
+</ng-template>
+
+<ng-template #calendarItem let-props let-isClamped="isClamped">
+  <a
+    data-testid="calendar-view-item-link"
+    class="calendar-item-container"
+    [class.calendar-item-container--clamped]="isClamped"
+    routerLink="/attendees"
+    [queryParams]="{
+      timeslot: props.id,
+    }"
+    queryParamsHandling="merge"
+  >
+    <app-calendar-time-slot
+      data-testid="calendar-view-item"
+      class="calendar-item-container__timeslot"
+      ratioRangeColorScheme="attendees"
+      [class.calendar-item-container__timeslot--selected]="props.id === selectedTimeSlotId"
+      [ratio]="props.regularValidated?.ticketCount > 0 ? props.regularValidated.validatedCount / props.regularValidated.ticketCount : 0"
+    >
+      <ng-container
+        [ngTemplateOutlet]="countDisplay"
+        [ngTemplateOutletContext]="{
+          regularValidated: props.regularValidated.validatedCount,
+          regularSold: props.regularValidated.ticketCount,
+          addonsValidated: props.addonsValidated.validatedCount,
+          addonsSold: props.addonsValidated.ticketCount,
+          percentage:
+            props.regularValidated.ticketCount > 0 ? props.regularValidated.validatedCount / props.regularValidated.ticketCount : null,
+          addonsPercentage:
+            props.addonsValidated.ticketCount > 0 ? props.addonsValidated.validatedCount / props.addonsValidated.ticketCount : null,
+        }"
+        *ngIf="props.validated"
+      >
+      </ng-container>
+    </app-calendar-time-slot>
+  </a>
+</ng-template>
+
+<app-attendees-calendar-week
+  data-testid="attendees-calendar-timeslots-calendar"
+  class="attendees-calendar"
+  [slotTemplate]="calendarItem"
+  [headerTemplate]="daySummatory"
+  [timezone]="filters?.timezone"
+  [scrollToSlot]="calendarWeekScrollToSlot"
+  [selectedDateRange]="calendarDateRange"
+  [request]="timeSlotsRequest"
+>
+</app-attendees-calendar-week>
+
+<ng-template
+  #countDisplay
+  let-regularValidated="regularValidated"
+  let-regularSold="regularSold"
+  let-addonsValidated="addonsValidated"
+  let-addonsSold="addonsSold"
+  let-percentage="percentage"
+  let-addonsPercentage="addonsPercentage"
+>
+  <div class="calendar-item">
+    <div class="calendar-item__line">
+      <ignt-icon name="ticket-alt" variant="light" aria-hidden="true"></ignt-icon>
+      @if (showAttendancePercentage) {
+        <span class="calendar-item__validated-count">{{
+          percentage !== null ? (percentage | percent: '1.1-1') : (0 | percent: '1.1-1')
+        }}</span>
+      } @else {
+        <span class="calendar-item__validated-count">{{ regularValidated ?? '-' }}</span> / <span>{{ regularSold ?? '-' }}</span>
+      }
+    </div>
+    <div *ngIf="shouldIncludeAddons" class="calendar-item__line">
+      <ignt-icon name="cart-plus" variant="light" aria-hidden="true"></ignt-icon>
+      @if (showAttendancePercentage) {
+        <span class="calendar-item__validated-count">{{
+          addonsPercentage !== null ? (addonsPercentage | percent: '1.1-1') : (0 | percent: '1.1-1')
+        }}</span>
+      } @else {
+        <span class="calendar-item__validated-count">{{ addonsValidated ?? '-' }}</span> / <span>{{ addonsSold ?? '-' }}</span>
+      }
+    </div>
+  </div>
+</ng-template>

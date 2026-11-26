@@ -1,0 +1,93 @@
+<!-- The ng-container (zero DOM) keeps the root close-tag indented: Angular's
+     whitespace collapse leaves SINGLE-char runs untouched, so a column-0 close
+     tag would ship a literal "\n" into the export instead of the historical " ". -->
+<ng-container>
+  @let b = block();
+  @if (hasMultipleInfoCards()) {
+    <!--
+      Multi-card layout. The track relies entirely on native scroll
+      (`overflow-x: auto` + `scroll-snap-type: x mandatory` from the SCSS)
+      with a visible thin scrollbar as the affordance. No prev/next
+      buttons and no pointer listeners on purpose — they only worked
+      because of JS that we removed from the published HTML, so the
+      editor mirrors what the partner's audience will see in production.
+      The `data-info-cards-block` / `data-info-cards-track` markers
+      survive so a consumer-side enhancer (in webclient3) could later
+      wire mouse-drag and arrows without us touching this template.
+    -->
+    <div class="block-info-cards block-info-cards--carousel" data-info-cards-block>
+      <div class="block-info-cards-track" data-info-cards-track>
+        @for (card of b.props.cards; track $index) {
+          <ng-container *ngTemplateOutlet="infoCardTile; context: { $implicit: card }"></ng-container>
+        }
+      </div>
+    </div>
+  } @else {
+    <div class="block-info-cards">
+      @for (card of b.props.cards; track $index) {
+        <ng-container *ngTemplateOutlet="infoCardTile; context: { $implicit: card }"></ng-container>
+      }
+    </div>
+  }
+</ng-container>
+
+<ng-template #infoCardTile let-card>
+  @let accent = resolveAccent(card);
+  @let fg = ctaFg(accent);
+  @let readable = readableAccent(accent);
+  <div
+    class="block-info-card"
+    [class.block-info-card--highlight]="card.highlighted"
+    [style.--ic-accent]="accent"
+    [style.--ic-cta-fg]="fg"
+    [style.--ic-readable-accent]="readable"
+  >
+    <div class="block-info-card-top">
+      @if (card.imageSrc) {
+        <img class="block-info-card-image" [src]="card.imageSrc" alt="" />
+        @if (card.badge) {
+          <span class="block-info-card-badge">{{ card.badge }}</span>
+        }
+      } @else {
+        <div class="block-info-card-header">
+          @if (card.badge) {
+            <span class="block-info-card-badge">{{ card.badge }}</span>
+          }
+        </div>
+      }
+    </div>
+    <div class="block-info-card-main">
+      <div class="block-info-card-heading" [class.block-text-placeholder]="showPlaceholders() && !card.heading">
+        {{ card.heading || placeholderFor(KEYS.headingPlaceholder) }}
+      </div>
+      <div
+        class="block-info-card-price"
+        [class.block-text-placeholder]="showPlaceholders() && !card.price"
+        [style.color]="showPlaceholders() && !card.price ? null : readable"
+      >
+        {{ card.price || placeholderFor(KEYS.pricePlaceholder) }}
+      </div>
+      <ul class="block-info-card-features">
+        @for (line of bulletLines(card); track $index) {
+          <li>
+            <span class="ms material-symbols-outlined block-info-card-check">check</span>
+            <span class="block-info-card-feature-text">{{ line }}</span>
+          </li>
+        } @empty {
+          @for (line of bulletPlaceholderLines(); track $index) {
+            <li class="block-text-placeholder">
+              <span class="ms material-symbols-outlined block-info-card-check">check</span>
+              <span class="block-info-card-feature-text">{{ line }}</span>
+            </li>
+          }
+        }
+      </ul>
+      <div class="block-info-card-cta">
+        <span [class.block-text-placeholder]="showPlaceholders() && !card.ctaLabel">
+          {{ card.ctaLabel || placeholderFor(KEYS.buttonLabelPlaceholder) }}
+        </span>
+        <span class="ms material-symbols-outlined">arrow_forward</span>
+      </div>
+    </div>
+  </div>
+</ng-template>

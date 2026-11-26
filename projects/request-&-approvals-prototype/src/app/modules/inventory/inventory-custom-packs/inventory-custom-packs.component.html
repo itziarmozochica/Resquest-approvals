@@ -1,0 +1,57 @@
+<div class="icp-view-header">
+  <div class="icp-view-header__left-side">
+    <span>{{ 'inventory.customPacks.description' | translate }}</span>
+  </div>
+
+  <div class="icp-view-header__right-side">
+    <div class="icp-view-header__action-button-wrapper">
+      <ignt-button
+        data-testid="icp-new-custom-pack-button"
+        variant="primary"
+        [disabled]="searchQuery() === null || !inventoryEditingService.canEditInventory()"
+        [fill]="isMobile()"
+        [label]="'inventory.customPacks.actions.addCustomPack' | translate"
+        (click)="openCustomPackForm()"
+      />
+    </div>
+  </div>
+</div>
+
+<app-unpaginated-table-container
+  [filters]="filtersForTable()"
+  [checkHasMandatoryFilters]="checkHasMandatoryFilters"
+  [checkIsEmpty]="checkIsEmptyCustomPacks"
+  [request]="loadCustomPacksData"
+  [noFiltersMessage]="'sessions.customPacks.customPacksSettings.noFilterSelected' | translate"
+  [noFiltersIcon]="['far', 'sort-alt']"
+  [noResultMessage]="'sessions.customPacks.customPacksSettings.noResults' | translate"
+  [noResultIcon]="['far', 'receipt']"
+  (searchResults)="onCustomPacksResults($event)"
+>
+  <div class="icp-table__wrapper">
+    <app-inventory-custom-packs-table data-testid="icp-table-component" [customPacks]="customPacks()" [timezone]="timezone()">
+    </app-inventory-custom-packs-table>
+  </div>
+</app-unpaginated-table-container>
+
+<app-lateral-slider
+  [showDetails]="displayCustomPackForm()"
+  [title]="'inventory.customPacks.actions.addCustomPack' | translate"
+  [contentTemplate]="customPackTemplate"
+  (closeSlider)="closeCustomPackForm()"
+>
+</app-lateral-slider>
+
+<ng-template #customPackTemplate>
+  @if (searchQuery(); as query) {
+    <app-inventory-custom-packs-form
+      [packSessions]="packSessions()"
+      [planId]="query.planId"
+      [placeId]="query.placeId"
+      [eventTimezone]="timezone()"
+      (formChanges)="processFormChanges($event)"
+      [saveInProgress]="isFormSaving()"
+    >
+    </app-inventory-custom-packs-form>
+  }
+</ng-template>

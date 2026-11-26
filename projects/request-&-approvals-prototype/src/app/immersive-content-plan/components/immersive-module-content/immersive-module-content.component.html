@@ -1,0 +1,166 @@
+@if (layout()) {
+  <ignt-wrapper-card class="immersive-module-content__card">
+    <section
+      class="immersive-module-content"
+      [attr.data-testid]="isGeneralSettings() ? 'immersive-general-settings' : 'immersive-module-content'"
+    >
+      <header class="immersive-module-content__header">
+        <h3 class="immersive-module-content__name">{{ panelTitle() }}</h3>
+        @if (isUnsupportedModule()) {
+          <ignt-tag
+            class="immersive-module-content__unsupported-tag"
+            data-testid="immersive-module-content-not-supported-tag"
+            sentiment="neutral"
+            variant="solid"
+          >
+            {{ 'planEdition.immersiveContentPlan.notSupportedTag' | translate }}
+          </ignt-tag>
+        }
+        @if (canDeleteModule()) {
+          <button
+            ignt-icon-button
+            class="immersive-module-content__actions"
+            data-testid="immersive-module-content-module-actions"
+            sentiment="tertiary"
+            size="small"
+            [attr.aria-label]="'planEdition.immersiveContentPlan.moduleActionsAriaLabel' | translate: { module: panelTitle() }"
+            [icon]="['fas', 'ellipsis-v']"
+            [igntMenuTriggerFor]="moduleActionsMenu"
+          ></button>
+          <ng-template #moduleActionsMenu>
+            <ignt-menu>
+              <ignt-menu-item
+                data-testid="immersive-module-content-delete-module"
+                sentiment="danger"
+                value="delete"
+                [label]="'common.delete' | translate"
+                (triggered)="onDeleteModule()"
+              >
+                <ignt-icon name="trash-can" variant="light" />
+              </ignt-menu-item>
+            </ignt-menu>
+          </ng-template>
+        }
+      </header>
+
+      @if (isGeneralSettings()) {
+        <div class="immersive-module-content__base-locale">
+          <span class="immersive-module-content__base-locale-label" data-testid="immersive-module-content-base-locale-label">{{
+            'planEdition.immersiveContentPlan.fields.base_locale' | translate
+          }}</span>
+          <ignt-button-dropdown
+            #baseLocaleDropdown
+            align="left"
+            data-testid="immersive-module-content-base-locale-dropdown"
+            [autoWidth]="true"
+            [options]="baseLocaleOptions()"
+            sentiment="secondary"
+            size="small"
+            (optionClick)="onBaseLocaleOption($event); baseLocaleDropdown.close()"
+          >
+            {{ baseLocaleLabel() }}
+          </ignt-button-dropdown>
+        </div>
+      }
+
+      @if (channelControls()) {
+        <div class="immersive-module-content__channels">
+          <span class="immersive-module-content__channels-label" data-testid="immersive-module-content-channel-label">{{
+            'common.channel' | translate
+          }}</span>
+          <ignt-button-dropdown
+            #channelDropdown
+            align="right"
+            data-testid="immersive-module-content-channel-dropdown"
+            [autoWidth]="true"
+            [options]="channelOptions()"
+            sentiment="secondary"
+            size="small"
+            (optionClick)="onChannelOption($event); channelDropdown.close()"
+          >
+            {{ selectedChannelLabel() }}
+          </ignt-button-dropdown>
+          @if (selectedChannel() !== null) {
+            <ignt-button
+              data-testid="immersive-module-content-remove-variant"
+              [label]="'planEdition.immersiveContentPlan.channelVariants.remove' | translate"
+              sentiment="danger"
+              size="small"
+              variant="secondary"
+              (click)="onRemoveVariant()"
+            />
+          }
+        </div>
+      }
+
+      @if (previewImageUrl(); as previewImage) {
+        <ignt-accordion variant="list">
+          <ignt-accordion-item
+            data-testid="immersive-module-content-preview"
+            [expanded]="previewExpanded()"
+            [label]="'planEdition.preview' | translate"
+            (expandedChange)="onPreviewExpandedChange($event)"
+          >
+            <!-- Deferred body: the capture is only requested while the section is open. -->
+            <ng-template igntAccordionBody>
+              <app-immersive-module-preview
+                [alt]="'planEdition.immersiveContentPlan.previewAlt' | translate: { module: panelTitle() }"
+                [src]="previewImage"
+              />
+            </ng-template>
+          </ignt-accordion-item>
+        </ignt-accordion>
+      }
+
+      @if (isUnsupportedModule()) {
+        <p class="immersive-module-content__note" data-testid="immersive-module-content-not-supported">
+          {{ 'planEdition.immersiveContentPlan.notSupportedBody' | translate }}
+        </p>
+      } @else {
+        @if (siblingTabShortcut(); as shortcut) {
+          <p class="immersive-module-content__note" data-testid="immersive-module-content-sibling-tab-note">
+            {{ shortcut.messageKey | translate }}
+            @if (siblingTabLink(); as link) {
+              <ignt-button
+                data-testid="immersive-module-content-sibling-tab-link"
+                [label]="link.labelKey | translate"
+                size="small"
+                variant="tertiary"
+                (click)="onOpenSiblingTab()"
+              />
+            }
+          </p>
+        }
+
+        @if (contentView().moduleLevelFields.length > 0) {
+          <div class="immersive-module-content__fields">
+            @for (view of contentView().moduleLevelFields; track view.inputId) {
+              <app-immersive-field
+                [view]="view"
+                (openMediaPreview)="onOpenMediaPreview($event)"
+                (openTranslations)="onOpenTranslations($event)"
+                (valueChange)="onFieldChange(view, $event)"
+              />
+            }
+          </div>
+        }
+
+        @for (arrayGroup of contentView().arrayGroups; track arrayGroup.groupPath) {
+          <app-immersive-array-group
+            [group]="arrayGroup"
+            (addItem)="onAddItem($event)"
+            (itemDropped)="onItemDropped($event.group, $event.event)"
+            (openMediaPreview)="onOpenMediaPreview($event)"
+            (openTranslations)="onOpenTranslations($event)"
+            (removeItem)="onRemoveItem($event.group, $event.itemIndex)"
+            (valueChange)="onFieldChange($event.view, $event.input)"
+          />
+        }
+
+        @if (contentView().moduleLevelFields.length === 0 && contentView().arrayGroups.length === 0) {
+          <p class="immersive-module-content__note">{{ 'planEdition.immersiveContentPlan.noEditableFields' | translate }}</p>
+        }
+      }
+    </section>
+  </ignt-wrapper-card>
+}

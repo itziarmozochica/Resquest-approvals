@@ -1,0 +1,318 @@
+<form [formGroup]="form" (ngSubmit)="submit()" class="create-export-form" data-testid="create-export-form">
+  <div class="create-export-form__intro">
+    <p class="create-export-form__subtitle">
+      {{ 'analytics.dashboardBuilder.exportsForm.createExportSubtitle' | translate }}
+    </p>
+  </div>
+
+  <div class="create-export-form__section">
+    <h3 class="create-export-form__section-title">
+      {{ 'analytics.dashboardBuilder.exportsForm.reportDetailsSection' | translate }}
+    </h3>
+    <div class="create-export-form__fields">
+      <ignt-input-field
+        id="exportName"
+        [formControl]="form.controls.exportName"
+        [label]="('analytics.dashboardBuilder.exportsForm.exportNameLabel' | translate) + ' *'"
+        [placeholder]="'analytics.dashboardBuilder.exportsForm.exportNamePlaceholder' | translate"
+        type="text"
+        [customFormErrors]="[
+          {
+            type: 'required',
+            message: 'analytics.dashboardBuilder.exportsForm.exportNameRequired' | translate,
+          },
+        ]"
+        data-testid="create-export-form-export-name-input"
+      />
+      <p class="create-export-form__helper">
+        {{ 'analytics.dashboardBuilder.exportsForm.chartSourceHelper' | translate }}
+      </p>
+      <ignt-typeahead
+        [fieldLabel]="('analytics.dashboardBuilder.exportsForm.chartSelectLabel' | translate) + ' *'"
+        [options]="chartOptions()"
+        [selectedOption]="selectedChartOption()"
+        [editable]="true"
+        (selected)="onChartSelected($event)"
+        data-testid="create-export-form-chart-select"
+      />
+    </div>
+  </div>
+
+  <div class="create-export-form__section">
+    <h3 class="create-export-form__section-title">
+      {{ 'analytics.dashboardBuilder.exportsForm.deliveryOptionsSection' | translate }}
+    </h3>
+    @if (usesSavedMethodsOnly()) {
+      <div class="create-export-form__fields create-export-form__saved-method" data-testid="saved-delivery-method">
+        <p class="create-export-form__helper">
+          {{ 'analytics.dashboardBuilder.exportsForm.savedDeliveryMethod.helper' | translate }}
+        </p>
+        @if (isLoadingChannels()) {
+          <p class="create-export-form__helper">{{ 'analytics.dashboardBuilder.exportsForm.loadingChannels' | translate }}</p>
+        } @else if (hasChannelsLoadError()) {
+          <p class="create-export-form__submit-error" role="alert" data-testid="create-export-form-delivery-methods-load-error">
+            {{ 'analytics.dashboardBuilder.deliveryMethods.loadError' | translate }}
+          </p>
+        } @else if (noSavedMethodReason(); as reason) {
+          <div class="create-export-form__no-method" data-testid="create-export-form-no-method">
+            <p class="create-export-form__no-method-text" role="status">
+              @if (reason === 'noMethods') {
+                {{ 'analytics.dashboardBuilder.exportsForm.savedDeliveryMethod.noMethods' | translate }}
+              } @else {
+                {{ 'analytics.dashboardBuilder.exportsForm.savedDeliveryMethod.noMethodForChart' | translate }}
+              }
+            </p>
+            <ignt-button
+              variant="tertiary"
+              size="small"
+              [label]="'analytics.dashboardBuilder.exportsForm.savedDeliveryMethod.noMethodLink' | translate"
+              (click)="goToDeliveryMethods.emit()"
+              data-testid="create-export-form-go-to-delivery-methods"
+            />
+          </div>
+        } @else {
+          <ignt-typeahead
+            [fieldLabel]="('analytics.dashboardBuilder.exportsForm.savedDeliveryMethod.label' | translate) + ' *'"
+            [options]="savedMethodOptions()"
+            [selectedOption]="selectedSavedMethodOption()"
+            [editable]="false"
+            (selected)="onSavedMethodSelected($event)"
+            data-testid="create-export-form-delivery-method-select"
+          />
+          @if (isSavedMethodCleared()) {
+            <p class="create-export-form__submit-error" role="alert" data-testid="create-export-form-delivery-method-cleared">
+              {{ 'analytics.dashboardBuilder.exportsForm.savedDeliveryMethod.selectionCleared' | translate }}
+            </p>
+          }
+          @if (selectedDeliveryMethod() === 'email') {
+            <div class="create-export-form__email-subject-field">
+              <ignt-input-field
+                type="text"
+                [formControl]="form.controls.emailSubject"
+                id="export-email-subject-saved"
+                [label]="'analytics.dashboardBuilder.exportsForm.emailDelivery.subjectLabel' | translate"
+                [placeholder]="'analytics.dashboardBuilder.exportsForm.emailDelivery.subjectPlaceholder' | translate"
+                [customFormErrors]="[]"
+                data-testid="create-export-form-email-subject"
+              />
+            </div>
+          }
+        }
+      </div>
+    } @else if (allowsFullExportOptions()) {
+      <ignt-tabs
+        [selectedIndex]="selectedDeliveryMethod() === 'email' ? 0 : 1"
+        (selectedIndexChange)="onDeliveryMethodTabIndexChange($event)"
+        data-testid="delivery-method-tabs"
+      >
+        <ignt-tabs-item [label]="'analytics.dashboardBuilder.exportsForm.emailTab' | translate" data-testid="email-tab">
+          <app-delivery-channel-picker
+            type="email"
+            [channels]="emailChannels()"
+            [channelIdControl]="form.controls.channelId"
+            [isLoading]="isLoadingChannels()"
+            newChannelLabelKey="analytics.dashboardBuilder.exportsForm.newChannelOption"
+          >
+            @if (!isLoadingChannels()) {
+              @if (isNewChannel()) {
+                <app-email-delivery-form [emailForm]="emailForm" />
+              }
+              <div class="create-export-form__email-subject-field">
+                <ignt-input-field
+                  type="text"
+                  [formControl]="form.controls.emailSubject"
+                  id="export-email-subject"
+                  [label]="'analytics.dashboardBuilder.exportsForm.emailDelivery.subjectLabel' | translate"
+                  [placeholder]="'analytics.dashboardBuilder.exportsForm.emailDelivery.subjectPlaceholder' | translate"
+                  [customFormErrors]="[]"
+                  data-testid="create-export-form-email-subject"
+                />
+              </div>
+            }
+          </app-delivery-channel-picker>
+        </ignt-tabs-item>
+        <ignt-tabs-item [label]="'analytics.dashboardBuilder.exportsForm.sftpTab' | translate" data-testid="sftp-tab">
+          <app-delivery-channel-picker
+            type="sftp"
+            [channels]="sftpChannels()"
+            [channelIdControl]="form.controls.channelId"
+            [isLoading]="isLoadingChannels()"
+            newChannelLabelKey="analytics.dashboardBuilder.exportsForm.newSftpConfig.title"
+          >
+            @if (!isLoadingChannels() && isNewChannel()) {
+              <app-sftp-credentials-form [sftpForm]="sftpForm" />
+            }
+          </app-delivery-channel-picker>
+        </ignt-tabs-item>
+      </ignt-tabs>
+    } @else {
+      <div class="create-export-form__delivery-email-only">
+        <app-delivery-channel-picker
+          type="email"
+          [channels]="emailChannels()"
+          [channelIdControl]="form.controls.channelId"
+          [isLoading]="isLoadingChannels()"
+          newChannelLabelKey="analytics.dashboardBuilder.exportsForm.newChannelOption"
+          data-testid="delivery-method-email-only"
+        >
+          @if (!isLoadingChannels() && isNewChannel()) {
+            <app-email-delivery-form [emailForm]="emailForm" />
+          }
+        </app-delivery-channel-picker>
+        @if (!isLoadingChannels()) {
+          <div class="create-export-form__email-subject-field">
+            <ignt-input-field
+              type="text"
+              [formControl]="form.controls.emailSubject"
+              id="export-email-subject-restricted"
+              [label]="'analytics.dashboardBuilder.exportsForm.emailDelivery.subjectLabel' | translate"
+              [placeholder]="'analytics.dashboardBuilder.exportsForm.emailDelivery.subjectPlaceholder' | translate"
+              [customFormErrors]="[]"
+              data-testid="create-export-form-email-subject"
+            />
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="create-export-form__section create-export-form__section--frequency">
+    <h3 class="create-export-form__section-title">
+      {{ 'analytics.dashboardBuilder.exportsForm.frequencySection' | translate }}
+    </h3>
+    <div class="create-export-form__fields">
+      <ignt-typeahead
+        [fieldLabel]="('analytics.dashboardBuilder.exportsForm.frequencyLabel' | translate) + ' *'"
+        [options]="frequencyOptions()"
+        [selectedOption]="selectedFrequencyOption()"
+        [editable]="false"
+        (selected)="onFrequencySelected($event)"
+        data-testid="create-export-form-frequency-select"
+      />
+      @if (isWeekly()) {
+        <ignt-typeahead
+          [fieldLabel]="('analytics.dashboardBuilder.exportsForm.weekDayLabel' | translate) + ' *'"
+          [options]="weekDayOptions()"
+          [selectedOption]="selectedWeekDayOption()"
+          [editable]="false"
+          (selected)="onWeekDaySelected($event)"
+          data-testid="create-export-form-week-day-select"
+        />
+      }
+      @if (showDayOfMonth()) {
+        <ignt-typeahead
+          [fieldLabel]="('analytics.dashboardBuilder.exportsForm.dayOfMonthLabel' | translate) + ' *'"
+          [options]="dayOfMonthOptions()"
+          [selectedOption]="selectedDayOfMonthOption()"
+          [editable]="false"
+          (selected)="onDayOfMonthSelected($event)"
+          data-testid="create-export-form-day-of-month-select"
+        />
+      }
+      @if (showMonth()) {
+        <ignt-typeahead
+          [fieldLabel]="('analytics.dashboardBuilder.exportsForm.monthLabel' | translate) + ' *'"
+          [options]="monthOptions()"
+          [selectedOption]="selectedMonthOption()"
+          [editable]="false"
+          (selected)="onMonthSelected($event)"
+          data-testid="create-export-form-month-select"
+        />
+      }
+      <div class="create-export-form__time-field">
+        @if (showTime()) {
+          <ignt-input-field
+            type="time"
+            [formControl]="form.controls.time"
+            id="export-time"
+            [label]="('analytics.dashboardBuilder.exportsForm.timeLabel' | translate) + ' *'"
+            [customFormErrors]="[
+              {
+                type: 'required',
+                message: 'analytics.dashboardBuilder.exportsForm.timeRequired' | translate,
+              },
+            ]"
+            data-testid="create-export-form-time-input"
+          />
+          @if (timeHelperText(); as amPmHelper) {
+            <p class="create-export-form__time-ampm-helper" data-testid="create-export-form-time-ampm-helper">
+              {{ amPmHelper }}
+            </p>
+          }
+        }
+        @if (showValidityRange()) {
+          <div class="create-export-form__validity-range" data-testid="create-export-form-validity-range-row">
+            <div class="create-export-form__validity-date">
+              <label class="create-export-form__validity-label" for="export-valid-from">
+                {{ 'analytics.dashboardBuilder.exportsForm.validFromLabel' | translate }}
+              </label>
+              <ignt-native-date-input
+                type="date"
+                inputId="export-valid-from"
+                [value]="validFromDate()"
+                [min]="validFromDateMin()"
+                [hasError]="hasValidFromError()"
+                [errorMessage]="validFromErrorMessageKey() | translate"
+                testId="create-export-form-valid-from-input"
+                (valueChange)="onValidFromChange($event)"
+                (blurred)="onValidFromBlur()"
+              />
+            </div>
+            <div class="create-export-form__validity-date">
+              <label class="create-export-form__validity-label" for="export-valid-to">
+                {{ 'analytics.dashboardBuilder.exportsForm.validToLabel' | translate }}
+              </label>
+              <ignt-native-date-input
+                type="date"
+                inputId="export-valid-to"
+                [value]="validToDate()"
+                [min]="validToDateMin()"
+                [hasError]="hasValidToError()"
+                [errorMessage]="validToErrorMessageKey() | translate"
+                testId="create-export-form-valid-to-input"
+                (valueChange)="onValidToChange($event)"
+                (blurred)="onValidToBlur()"
+              />
+            </div>
+          </div>
+        }
+      </div>
+      <div class="create-export-form__format" data-testid="create-export-form-format-row">
+        <ignt-typeahead
+          [fieldLabel]="'analytics.dashboardBuilder.exportsForm.formatLabel' | translate"
+          [options]="fileTypeOptions()"
+          [selectedOption]="selectedFileTypeOption()"
+          [editable]="false"
+          [disabled]="isFormatDisabled()"
+          (selected)="onFileTypeSelected($event)"
+          data-testid="create-export-form-format-select"
+        />
+      </div>
+    </div>
+  </div>
+
+  @if (submitErrorMessage(); as errorMessage) {
+    <p class="create-export-form__submit-error" data-testid="create-export-form-submit-error" role="alert">
+      {{ errorMessage }}
+    </p>
+  }
+
+  <p class="create-export-form__delivery-disclaimer" data-testid="create-export-form-scheduled-delivery-disclaimer">
+    {{ 'analytics.dashboardBuilder.exportsForm.scheduledExportDeliveryDisclaimer' | translate }}
+  </p>
+
+  <div class="create-export-form__actions">
+    <button type="button" class="button button--large button--tertiary button--fill" (click)="cancel()" data-testid="cancel-button">
+      {{ 'analytics.dashboardBuilder.exportsForm.buttons.discard' | translate }}
+    </button>
+
+    <button
+      type="submit"
+      class="button button--large button--primary button--fill"
+      [disabled]="isSubmitDisabled()"
+      data-testid="submit-button"
+    >
+      {{ 'analytics.dashboardBuilder.exportsForm.buttons.saveReport' | translate }}
+    </button>
+  </div>
+</form>

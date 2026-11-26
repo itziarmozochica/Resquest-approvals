@@ -1,0 +1,66 @@
+<div class="vertical-draggable-list" [style.--placeholder-height]="placeholderHeight()">
+  <div class="vertical-draggable-list__list" cdkDropList (cdkDropListDropped)="onDrop($event)">
+    <ng-template #handleContent let-element>
+      @if (handleTemplate() && !isItemDisabled()(element)) {
+        <ng-container *ngTemplateOutlet="handleTemplate()"></ng-container>
+      } @else {
+        <fa-icon
+          size="sm"
+          class="vertical-draggable-list__item-handle-icon"
+          [icon]="isItemDisabled()(element) ? ['fas', 'lock-alt'] : dragHandleIcon()"
+        ></fa-icon>
+      }
+    </ng-template>
+    @for (element of items(); track $index) {
+      <div
+        class="vertical-draggable-list__item-wrapper"
+        [class.vertical-draggable-list__item-wrapper--whole-draggable]="wholeItemDraggable()"
+        [class.vertical-draggable-list__item-wrapper--disabled]="isItemDisabled()(element)"
+        [style.--placeholder-height]="placeholderHeight()"
+        cdkDrag
+        [cdkDragBoundary]="boundarySelector()"
+        [cdkDragDisabled]="!reorderable() || disabled() || items().length < 2 || isItemDisabled()(element)"
+      >
+        @if (showItemOrder()) {
+          <span class="vertical-draggable-list__item-order">{{ $index + 1 }}</span>
+        }
+        <div class="vertical-draggable-list__item-placeholder" *cdkDragPlaceholder></div>
+        @if (reorderable()) {
+          @if (showReorderButtons()) {
+            <div class="vertical-draggable-list__item-reorder">
+              <button
+                type="button"
+                class="vertical-draggable-list__reorder-button"
+                [attr.aria-label]="moveUpLabel()"
+                [disabled]="disabled() || $index === 0 || isItemDisabled()(element)"
+                (click)="moveUp($index)"
+              >
+                <fa-icon size="sm" [icon]="['fas', 'chevron-up']"></fa-icon>
+              </button>
+              <button
+                type="button"
+                class="vertical-draggable-list__reorder-button"
+                [attr.aria-label]="moveDownLabel()"
+                [disabled]="disabled() || $index === items().length - 1 || isItemDisabled()(element)"
+                (click)="moveDown($index)"
+              >
+                <fa-icon size="sm" [icon]="['fas', 'chevron-down']"></fa-icon>
+              </button>
+            </div>
+          } @else if (wholeItemDraggable()) {
+            <div class="vertical-draggable-list__item-handle">
+              <ng-container *ngTemplateOutlet="handleContent; context: { $implicit: element }"></ng-container>
+            </div>
+          } @else {
+            <div class="vertical-draggable-list__item-handle" cdkDragHandle>
+              <ng-container *ngTemplateOutlet="handleContent; context: { $implicit: element }"></ng-container>
+            </div>
+          }
+        }
+        <div class="vertical-draggable-list__item-content">
+          <ng-container *ngTemplateOutlet="itemTemplate(); context: { $implicit: element, index: $index }"></ng-container>
+        </div>
+      </div>
+    }
+  </div>
+</div>

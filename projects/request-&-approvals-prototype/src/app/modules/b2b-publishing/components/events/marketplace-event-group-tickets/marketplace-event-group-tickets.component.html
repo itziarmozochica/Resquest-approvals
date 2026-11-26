@@ -1,0 +1,79 @@
+<div class="group-tickets" data-testid="group-tickets">
+  @switch (state()) {
+    @case ('error') {
+      <div class="group-tickets__failure" role="alert" data-testid="group-tickets-error">
+        <p class="group-tickets__message">{{ 'marketplaceEvents.details.tickets.loadError' | translate }}</p>
+        <ignt-button
+          data-testid="group-tickets-retry"
+          size="small"
+          variant="secondary"
+          [label]="'marketplaceEvents.retry' | translate"
+          (click)="load()"
+        />
+      </div>
+    }
+    @default {
+      <ignt-table
+        data-testid="group-tickets-list"
+        layout="table"
+        [attr.aria-busy]="isLoading()"
+        [data]="visibleRows()"
+        [hasFullWidthSearch]="true"
+        [hasPagination]="true"
+        [isLoading]="isLoading()"
+        [pageSize]="pageSize"
+        [searchConfig]="searchConfig()"
+        (searchChanged)="onSearchChanged($event)"
+      >
+        <ignt-table-column key="name" columnType="primary" [header]="'marketplaceEvents.details.tickets.columns.ticketType' | translate">
+          <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+            <span class="group-tickets__text" [attr.data-testid]="'group-ticket-' + item.id">
+              <span class="group-tickets__name" [class.group-tickets__name--not-sold]="item.status !== published">{{ item.name }}</span>
+              @if (item.category) {
+                <span class="group-tickets__category">{{ item.category }}</span>
+              }
+              @if (isMobile() && showsRetailPrices()) {
+                <span class="group-tickets__inline-price" [attr.data-testid]="'group-ticket-inline-retail-' + item.id">
+                  {{ 'marketplaceEvents.details.tickets.columns.retail' | translate }}
+                  <span class="group-tickets__price">
+                    @if (item.retailPrice; as retailPrice) {
+                      {{ retailPrice.amount | currency: retailPrice.currency }}
+                    } @else {
+                      —
+                    }
+                  </span>
+                </span>
+              }
+            </span>
+          </ng-template>
+        </ignt-table-column>
+
+        @if (!isMobile() && showsRetailPrices()) {
+          <ignt-table-column key="retailPrice" [header]="'marketplaceEvents.details.tickets.columns.retail' | translate" [width]="120">
+            <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+              <span class="group-tickets__price" [attr.data-testid]="'group-ticket-retail-' + item.id">
+                @if (item.retailPrice; as retailPrice) {
+                  {{ retailPrice.amount | currency: retailPrice.currency }}
+                } @else {
+                  —
+                }
+              </span>
+            </ng-template>
+          </ignt-table-column>
+        }
+
+        <ignt-table-column key="status" [header]="'marketplaceEvents.details.tickets.columns.status' | translate" [width]="140">
+          <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+            <ignt-tag
+              [attr.data-testid]="'group-ticket-status-' + item.id"
+              [bullet]="statusBullet"
+              [sentiment]="statusSentiments[item.status]"
+            >
+              {{ statusLabelKeys[item.status] | translate }}
+            </ignt-tag>
+          </ng-template>
+        </ignt-table-column>
+      </ignt-table>
+    }
+  }
+</div>

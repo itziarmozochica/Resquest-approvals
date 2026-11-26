@@ -1,0 +1,206 @@
+<label
+  class="field"
+  ngbDropdown
+  data-testid="multiselect"
+  [autoClose]="'outside'"
+  #multiSelectDropdown="ngbDropdown"
+  (openChange)="onDropdownOpenChange($event)"
+  [class.field--danger]="errorMessage"
+  [class.field--readonly]="readonly()"
+  [container]="container"
+  [display]="container === 'body' ? 'dynamic' : 'static'"
+  [open]="defaultOpening"
+>
+  <input
+    class="field__select"
+    [attr.aria-label]="fieldLabel() || 'multiselect-search'"
+    [placeholder]="searchPlaceholder || ('common.search' | translate)"
+    [(ngModel)]="model"
+    [ngModelOptions]="{ standalone: true }"
+    (ngModelChange)="onSearchInputChange()"
+    [disabled]="disabled"
+    [readonly]="readonly()"
+    ngbDropdownToggle
+    data-testid="multiselect-by-button"
+  />
+  <span [ngClass]="{ field__label: true, 'field__label--bold': selectedOptions.length > 0 }"
+    ><span *ngIf="displayInPlaceMaximum && selectedOptions.length === 0">{{
+      placeholder ? placeholder : ('common.noSelection' | translate)
+    }}</span>
+
+    <span *ngIf="selectedSummaryText && selectedOptions.length > 0">{{ selectedSummaryText }}</span>
+
+    <ng-container *ngIf="!selectedSummaryText">
+      <ng-container *ngIf="!showAllSelectedOnFeatureToggle; else allSelected">
+        <span *ngIf="displayInPlaceMaximum && selectedOptions.length > 0">
+          <ng-container *ngFor="let option of selectedOptions; index as i">
+            <ng-container *ngIf="option">
+              <span *ngIf="i < displayInPlaceMaximum">{{ formatter(option) }}</span>
+              <span *ngIf="i + 1 < selectedOptions.length && i + 1 < displayInPlaceMaximum">, </span>
+              <span *ngIf="i === displayInPlaceMaximum">&nbsp;</span>
+              <span
+                *ngIf="i === displayInPlaceMaximum"
+                [innerHTML]="'multiSelect.andXMore' | translate: { remaining: selectedOptions.length - i }"
+              ></span>
+            </ng-container>
+          </ng-container>
+        </span>
+      </ng-container>
+    </ng-container>
+  </span>
+  @if (fieldLabel(); as title) {
+    <span class="field__title" data-testid="multi-select-field-title">{{ title }}</span>
+  }
+  @if (!readonly()) {
+    <fa-icon class="field__icon field__icon--trail" [icon]="['fal', 'chevron-down']"></fa-icon>
+  }
+  <div class="field-dropdown" ngbDropdownMenu (click)="onMenuClick($event)">
+    @if (headerTemplate(); as headerTpl) {
+      <div class="field-dropdown__header">
+        <ng-container *ngTemplateOutlet="headerTpl"></ng-container>
+      </div>
+    }
+    <div class="field-dropdown__scroll-wrapper" #scrollWrapper>
+      <ng-container *ngIf="isSelectAllVisible" [ngTemplateOutlet]="selectAllButton"></ng-container>
+      <ng-container *ngIf="allowCustomOption">
+        <button
+          *ngIf="!isAddingCustomOption"
+          class="field-dropdown__custom-option-btn"
+          igntButton
+          [fill]="false"
+          sentiment="tertiary"
+          [leadingIcon]="['fal', 'plus']"
+          (mousedown)="startAddingCustomOption(); $event.preventDefault(); $event.stopPropagation()"
+          data-testid="dropdown-item-add-custom"
+          size="small"
+        >
+          {{ (customOptionI18n?.baseKey ? customOptionI18n?.baseKey + '.label' : 'multiSelect.customOptionLabel') | translate }}
+        </button>
+        <div
+          *ngIf="isAddingCustomOption"
+          class="field-dropdown__custom-input-container"
+          (mousedown)="$event.preventDefault(); $event.stopPropagation()"
+        >
+          <input
+            #customOptionInputRef
+            type="text"
+            class="custom-option-input"
+            [(ngModel)]="customOptionInput"
+            [ngModelOptions]="{ standalone: true }"
+            [placeholder]="
+              (customOptionI18n?.baseKey ? customOptionI18n?.baseKey + '.placeholder' : 'multiSelect.customOptionPlaceholder') | translate
+            "
+            [disabled]="customOptionAsync?.pending"
+            (keydown.enter)="confirmCustomOption()"
+            (keydown.escape)="cancelCustomOption()"
+            data-testid="custom-option-input"
+          />
+          <button
+            sentiment="tertiary"
+            ignt-icon-button
+            [icon]="customOptionAsync?.pending ? ['fas', 'spinner'] : ['fas', 'check']"
+            [class.fa-spin]="customOptionAsync?.pending"
+            (mousedown)="confirmCustomOption(); $event.preventDefault(); $event.stopPropagation()"
+            [disabled]="!customOptionInput.trim() || !!customOptionAsync?.pending"
+            data-testid="custom-option-confirm"
+          ></button>
+        </div>
+        <div *ngIf="customOptionAsync?.errorMessage" class="field-dropdown__custom-option-error" data-testid="custom-option-resolve-error">
+          {{ customOptionAsync?.errorMessage }}
+        </div>
+      </ng-container>
+      <ng-container *ngFor="let option of displayedOptions">
+        <ng-container *ngIf="option">
+          <button
+            type="button"
+            class="field-dropdown-item"
+            (click)="selectOption(option)"
+            data-testid="dropdown-item"
+            [class]="getOptionClass(option)"
+            [class.field-dropdown-item--selected]="isSelectedOption(option)"
+            [disabled]="isOptionDisabled(option)"
+          >
+            <ng-container
+              [ngTemplateOutlet]="optionTemplate() ?? defaultOption"
+              [ngTemplateOutletContext]="{ $implicit: option, isSelected: isSelectedOption(option), disabled: isOptionDisabled(option) }"
+            ></ng-container>
+          </button>
+        </ng-container>
+      </ng-container>
+    </div>
+    @if (footerTemplate(); as footerTpl) {
+      <div class="field-dropdown__footer">
+        <ng-container *ngTemplateOutlet="footerTpl"></ng-container>
+      </div>
+    }
+  </div>
+  <span class="field__helper" *ngIf="errorMessage" [class.field--danger]="errorMessage">
+    <fa-icon class="unselect-chip-button" [icon]="['fas', 'exclamation-circle']" aria-label="Close"></fa-icon>
+    {{ errorMessage }}</span
+  >
+  <span class="field__helper" *ngIf="helpText">{{ helpText }}</span>
+</label>
+
+<ng-template #defaultOption let-option let-isSelected="isSelected">
+  <span class="dropdown-item-checkbox__icon" [class.dropdown-item-checkbox__icon--unchecked]="!isSelected" *ngIf="shouldRenderOptionIcon()">
+    <fa-icon [icon]="['fas', 'check']"></fa-icon>
+  </span>
+  <div class="field-dropdown-item__content">
+    <span class="field-dropdown-item__label field-dropdown-item__label--multi-line">{{ formatter(option) }}</span>
+    <span class="field-dropdown-item__place-name" *ngIf="option.placeName"
+      ><br /><fa-icon [icon]="['fal', 'map-marker-alt']" class="place-name-icon"></fa-icon>{{ option.placeName }}</span
+    >
+    <span class="field-dropdown-item__description" *ngIf="showItemsDescriptions && option.description">{{ option.description }}</span>
+  </div>
+  @if (optionBadgeTemplate(); as badgeTpl) {
+    <div class="status-container" data-testid="multiselect-option-status">
+      <ng-container *ngTemplateOutlet="badgeTpl; context: { $implicit: option }"></ng-container>
+    </div>
+  } @else if (option.status && option.status !== 'active') {
+    <div class="status-container" data-testid="multiselect-option-status">
+      <app-plan-status-tag [status]="option.status" [style]="option.status === 'off_sale' ? 'solid' : 'outline'"></app-plan-status-tag>
+    </div>
+  }
+</ng-template>
+
+<ng-template #selectAllButton>
+  <button
+    type="button"
+    class="field-dropdown-item"
+    data-testid="dropdown-item-select-all"
+    (click)="isAllItemsSelected() ? unselectAll() : selectAll()"
+    [ngClass]="{
+      'dropdown-item--active': isAllItemsSelected(),
+      'field-dropdown-item--fix-height': isSelectAllFixHeight,
+    }"
+    [class.field-dropdown-item--selected]="isAllItemsSelected()"
+  >
+    <span class="dropdown-item-checkbox__icon" [class.dropdown-item-checkbox__icon--unchecked]="!isAllItemsSelected()">
+      <fa-icon [icon]="['fas', 'check']"></fa-icon>
+    </span>
+    <div class="field-dropdown-item__content">
+      <span class="field-dropdown-item__label field-dropdown-item__label--multi-line field-dropdown-item__label--select-all">{{
+        'filters.selectAll' | translate
+      }}</span>
+    </div>
+  </button>
+</ng-template>
+
+<ng-template #allSelected>
+  <span *ngIf="displayInPlaceMaximum && selectedOptions.length > 0 && !isAllItemsSelected()">
+    <ng-container *ngFor="let option of selectedOptions; index as i">
+      <ng-container *ngIf="option">
+        <span *ngIf="i < displayInPlaceMaximum">{{ formatter(option) }}</span>
+        <span *ngIf="i + 1 < selectedOptions.length && i + 1 < displayInPlaceMaximum">, </span>
+        <span *ngIf="i === displayInPlaceMaximum">&nbsp;</span>
+        <span
+          *ngIf="i === displayInPlaceMaximum"
+          [innerHTML]="'multiSelect.andXMore' | translate: { remaining: selectedOptions.length - i }"
+        ></span>
+      </ng-container>
+    </ng-container>
+  </span>
+  <ng-container *ngIf="isAllItemsSelected()">
+    <span class="field__label--all-selected">{{ 'multiSelect.allSelected' | translate }}</span>
+  </ng-container>
+</ng-template>

@@ -1,0 +1,239 @@
+<div class="patron-details-header wrapper-card" [class.patron-details-header--with-membership]="!!patronDetails()?.membership">
+  <ng-container *ngTemplateOutlet="basicInfoSection"></ng-container>
+  <ng-container *ngTemplateOutlet="contactInfoSection"></ng-container>
+  @if (patronDetails()?.membership) {
+    <ng-container *ngTemplateOutlet="membershipSection"></ng-container>
+  }
+  <div class="patron-details-header__link-container">
+    @if (patronDetails()?.id) {
+      <div class="patron-details-header__link-container__id" data-testid="patron-details-header-id">
+        <app-copy-to-clipboard
+          [label]="'fundraising.patronDetails.header.feverAccountId' | translate: { id: patronDetails()!.id }"
+          [copyValue]="patronDetails()!.id"
+        />
+        @if (hasImportedHistory()) {
+          <ignt-tag sentiment="sharp" [variant]="'outline'" data-testid="patron-details-header-history-imported-pill">
+            {{ 'fundraising.patronDetails.header.historyImportedPill' | translate }}
+          </ignt-tag>
+        }
+      </div>
+    }
+    @if (patronDetails()?.userAssociationId) {
+      <div class="patron-details-header__link-container__id" data-testid="patron-details-header-patron-profile-id">
+        <app-copy-to-clipboard
+          class="patron-details-header__link-container__guest-id"
+          [label]="'fundraising.patronDetails.header.patronId' | translateTerminology: { id: patronDetails()!.userAssociationId }"
+          [copyValue]="patronDetails()!.userAssociationId"
+          (copied)="onPatronIdCopied()"
+        />
+      </div>
+    }
+    @if (patronDetails()?.managedBy) {
+      <div class="patron-details-header__link-container__link">
+        <span class="patron-details-header__link-container__link-disclaimer"
+          >{{ 'fundraising.patronDetails.giftOfficer' | translate }}:</span
+        >
+        <a
+          igntLink
+          size="caption"
+          sentiment="primary"
+          [trailingIcon]="['fal', 'external-link']"
+          [routerLink]="['/guest-profiles/profiles/list']"
+          [queryParams]="{ giftOfficers: patronDetails()?.managedBy?.id }"
+          queryParamsHandling="merge"
+          (click)="onGiftOfficerClick()"
+        >
+          {{ patronDetails()?.managedBy?.name }}
+        </a>
+      </div>
+    }
+  </div>
+</div>
+
+<ng-template #basicInfoSection>
+  <div class="patron-details-header__basic-info" data-testid="patron-details-header-basic-info">
+    <app-avatar-initials
+      [avatarUrl]="patronDetails()?.imageUrl"
+      [name]="patronDetails()?.name"
+      [size]="72"
+      class="patron-details-header__basic-info__avatar"
+      data-testid="patron-details-header-avatar"
+    ></app-avatar-initials>
+    <div class="patron-details-header__basic-info__content">
+      <div class="patron-details-header__basic-info__content__name" data-testid="patron-details-header-name">
+        {{ patronDetails()?.name }}
+      </div>
+      @if (householdName()) {
+        <a
+          igntLink
+          size="small"
+          sentiment="primary"
+          class="patron-details-header__basic-info__content__relationship"
+          [routerLink]="[]"
+          [queryParams]="relationshipsTabQueryParams"
+          [state]="relationshipsTabNavigationState"
+          queryParamsHandling="merge"
+          data-testid="patron-details-header-household"
+        >
+          {{ householdName() }}
+          @if (isHeadOfHousehold()) {
+            <ignt-icon
+              name="badge-check"
+              variant="solid"
+              size="caption"
+              aria-hidden="true"
+              data-testid="patron-details-header-head-of-household-icon"
+            />
+          }
+        </a>
+      } @else if (!hasNoRelationships()) {
+        <a
+          igntLink
+          size="small"
+          sentiment="primary"
+          class="patron-details-header__basic-info__content__relationship"
+          [routerLink]="[]"
+          [queryParams]="relationshipsTabQueryParams"
+          [state]="relationshipsTabNavigationState"
+          queryParamsHandling="merge"
+          data-testid="patron-details-header-see-relationships"
+        >
+          {{ 'fundraising.patronDetails.header.seeRelationships' | translate }}
+        </a>
+      } @else {
+        <div class="patron-details-header__basic-info__content__no-relationship" data-testid="patron-details-header-no-relationship">
+          {{ 'fundraising.patronDetails.header.noRelationshipsFound' | translate }}
+        </div>
+      }
+      <div class="patron-details-header__basic-info__content__tags" data-testid="patron-details-header-tags">
+        @for (tag of visibleTags(); track tag) {
+          <ignt-tag sentiment="sharp" [variant]="'outline'" data-testid="patron-details-header-tag">{{ tag }}</ignt-tag>
+        }
+        @if (overflowCount() > 0) {
+          <div
+            igntTooltip
+            [tooltipLabel]="tooltipText()"
+            tooltipPlacement="bottom"
+            class="patron-details-header__basic-info__content__tags__overflow"
+            data-testid="patron-details-header-tags-overflow"
+          >
+            {{ overflowCount() }}
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #contactInfoSection>
+  <div class="patron-details-header__contact-info" data-testid="patron-details-header-contact-info">
+    <div class="patron-details-header__data_icon_display" data-testid="patron-details-header-email-row">
+      <ignt-icon name="envelope" variant="light" size="base" aria-hidden="true" />
+      <span data-testid="patron-details-header-email">{{ patronDetails()?.contactInfo?.email }}</span>
+      @if (patronDetails()?.contactInfo?.preferredContactMethod === 'email') {
+        <span
+          igntTooltip
+          [tooltipLabel]="'fundraising.patronDetails.header.preferredContactMethod' | translate"
+          tooltipPlacement="bottom"
+          data-testid="patron-details-header-email-preferred-icon"
+        >
+          <ignt-icon
+            name="star"
+            variant="solid"
+            size="caption"
+            class="patron-details-header__data_icon_display__tooltip-icon"
+            aria-hidden="true"
+          />
+        </span>
+      }
+    </div>
+    <div class="patron-details-header__data_icon_display" data-testid="patron-details-header-phone-row">
+      <ignt-icon name="phone" variant="light" size="base" aria-hidden="true" />
+      @if (patronDetails()?.contactInfo?.phone) {
+        <span data-testid="patron-details-header-phone">{{ patronDetails()?.contactInfo?.phone }}</span>
+      } @else {
+        <span class="patron-details-header__data_icon_display__no-data" data-testid="patron-details-header-no-phone">{{
+          'fundraising.patronDetails.header.noPhoneNumber' | translate
+        }}</span>
+      }
+      @if (patronDetails()?.contactInfo?.preferredContactMethod === 'phone') {
+        <span
+          igntTooltip
+          [tooltipLabel]="'fundraising.patronDetails.header.preferredContactMethod' | translate"
+          tooltipPlacement="bottom"
+          data-testid="patron-details-header-phone-preferred-icon"
+        >
+          <ignt-icon
+            name="star"
+            variant="solid"
+            size="caption"
+            class="patron-details-header__data_icon_display__tooltip-icon"
+            aria-hidden="true"
+          />
+        </span>
+      }
+    </div>
+    <div class="patron-details-header__data_icon_display" data-testid="patron-details-header-address-row">
+      <ignt-icon name="map-marker-alt" variant="light" size="base" aria-hidden="true" />
+      @if (buildedAddress()) {
+        <span data-testid="patron-details-header-address">{{ buildedAddress() }}</span>
+      } @else {
+        <span class="patron-details-header__data_icon_display__no-data" data-testid="patron-details-header-no-address">{{
+          'fundraising.patronDetails.header.noAddress' | translate
+        }}</span>
+      }
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #membershipSection>
+  <div class="patron-details-header__membership" data-testid="patron-details-header-membership">
+    @if (patronDetails()?.membership?.name) {
+      <div class="patron-details-header__data_icon_display" data-testid="patron-details-header-membership-name-row">
+        <ignt-icon name="address-card" variant="light" size="base" aria-hidden="true" />
+        <span data-testid="patron-details-header-membership-name">{{ patronDetails()?.membership?.name }}</span>
+      </div>
+    }
+    @if (patronDetails()?.membership?.initialDate) {
+      <div class="patron-details-header__data_icon_display" data-testid="patron-details-header-membership-since-row">
+        <ignt-icon name="calendar-day" variant="light" size="base" aria-hidden="true" />
+        <span data-testid="patron-details-header-membership-since">{{
+          ('fundraising.patronDetails.header.membership.memberSince' | translate) +
+            ' ' +
+            (patronDetails()!.membership!.initialDate! | momentDate: 'MM/dd/yyyy')
+        }}</span>
+      </div>
+    }
+    @if (daysToRenewal() > 0) {
+      <div class="patron-details-header__data_icon_display" data-testid="patron-details-header-membership-renewal-row">
+        <ignt-icon name="history" variant="light" size="base" aria-hidden="true" />
+        <span data-testid="patron-details-header-membership-renewal">{{
+          'fundraising.patronDetails.header.membership.daysToRenewal' | translate: { days: daysToRenewal() }
+        }}</span>
+        @if (daysToRenewal() <= daysToRenewalWarningThreshold) {
+          <span
+            igntTooltip
+            [tooltipLabel]="'fundraising.patronDetails.header.renewalDateSoon' | translate"
+            tooltipPlacement="bottom"
+            data-testid="patron-details-header-membership-renewal-warning"
+          >
+            <ignt-icon
+              name="exclamation-triangle"
+              variant="solid"
+              size="caption"
+              class="patron-details-header__data_icon_display__tooltip-icon-warning"
+              aria-hidden="true"
+            />
+          </span>
+        }
+      </div>
+    } @else {
+      <div class="patron-details-header__data_icon_display" data-testid="patron-details-header-membership-expired-row">
+        <ignt-icon name="clock" variant="light" size="base" aria-hidden="true" />
+        <span data-testid="patron-details-header-membership-expired">{{
+          'fundraising.patronDetails.header.membership.expired' | translate
+        }}</span>
+      </div>
+    }
+  </div>
+</ng-template>

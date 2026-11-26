@@ -1,0 +1,193 @@
+<form class="signer-info-step" [formGroup]="signerForm" (ngSubmit)="acceptAndSign()">
+  @if (isAgeBased()) {
+    <fieldset class="signer-info-step__signing-for" data-testid="signing-for">
+      <legend class="signer-info-step__signing-for-legend">{{ 'agreements.signing.modal.signer.signingForTitle' | translate }}</legend>
+      <ignt-option-tile
+        data-testid="signing-for-self"
+        [disabled]="isSigning()"
+        [selected]="store.answeredSignerRole() === signerRole.self"
+        [title]="'agreements.signing.modal.signer.signingForSelf' | translate"
+        (tileClick)="store.answerSignerRole(signerRole.self)"
+      />
+      <ignt-option-tile
+        data-testid="signing-for-guardian"
+        [disabled]="isSigning()"
+        [selected]="store.answeredSignerRole() === signerRole.guardian"
+        [title]="'agreements.signing.modal.signer.signingForGuardian' | translate"
+        (tileClick)="store.answerSignerRole(signerRole.guardian)"
+      />
+    </fieldset>
+  }
+
+  @if (isGuardianSigned()) {
+    @if (coveredParticipant(); as coveredParticipant) {
+      <section class="signer-info-step__section">
+        <h3 class="signer-info-step__section-title">{{ 'agreements.signing.modal.signer.minorSectionTitle' | translate }}</h3>
+        <fieldset class="signer-info-step__minor-fields" formGroupName="minorName">
+          @if (coveredParticipant.label) {
+            <legend class="signer-info-step__minor-legend" data-testid="minor-label">{{ coveredParticipant.label }}</legend>
+          }
+          <ignt-input-field
+            formControlName="firstName"
+            type="text"
+            autocomplete="off"
+            [maxlength]="maxNameLength"
+            data-testid="minor-first-name"
+            [label]="'agreements.signing.modal.signer.minorFirstName' | translate"
+            [customFormErrors]="[
+              { type: 'required', message: 'agreements.signing.modal.signer.minorNameError' | translate },
+              { type: 'maxlength', message: 'agreements.signing.modal.signer.minorNameError' | translate },
+            ]"
+          />
+          <ignt-input-field
+            formControlName="lastName"
+            type="text"
+            autocomplete="off"
+            [maxlength]="maxNameLength"
+            data-testid="minor-last-name"
+            [label]="'agreements.signing.modal.signer.minorLastName' | translate"
+            [customFormErrors]="[
+              { type: 'required', message: 'agreements.signing.modal.signer.minorNameError' | translate },
+              { type: 'maxlength', message: 'agreements.signing.modal.signer.minorNameError' | translate },
+            ]"
+          />
+        </fieldset>
+      </section>
+    }
+  }
+
+  @if (!isAwaitingAnswer()) {
+    <section class="signer-info-step__section">
+      @if (isGuardianSigned() && coveredParticipant()) {
+        <h3 class="signer-info-step__section-title" data-testid="signer-section-title">
+          {{ 'agreements.signing.modal.signer.signerSectionTitle' | translate }}
+        </h3>
+      }
+
+      <ignt-input-field
+        formControlName="firstName"
+        type="text"
+        autocomplete="off"
+        data-testid="signer-first-name"
+        [maxlength]="maxNameLength"
+        [label]="'agreements.signing.modal.signer.firstName' | translate"
+        [customFormErrors]="[
+          { type: 'required', message: 'agreements.signing.modal.signer.firstNameError' | translate },
+          { type: 'maxlength', message: 'agreements.signing.modal.signer.firstNameError' | translate },
+        ]"
+      />
+
+      <ignt-input-field
+        formControlName="lastName"
+        type="text"
+        autocomplete="off"
+        data-testid="signer-last-name"
+        [maxlength]="maxNameLength"
+        [label]="'agreements.signing.modal.signer.lastName' | translate"
+        [customFormErrors]="[
+          { type: 'required', message: 'agreements.signing.modal.signer.lastNameError' | translate },
+          { type: 'maxlength', message: 'agreements.signing.modal.signer.lastNameError' | translate },
+        ]"
+      />
+
+      <ignt-input-field
+        formControlName="email"
+        type="email"
+        autocomplete="off"
+        data-testid="signer-email"
+        [label]="'agreements.signing.modal.signer.email' | translate"
+        [customFormErrors]="[
+          { type: 'required', message: 'agreements.signing.modal.signer.emailError' | translate },
+          { type: 'email', message: 'agreements.signing.modal.signer.emailError' | translate },
+        ]"
+      />
+
+      <app-contact-phone
+        id="signer-phone-number"
+        data-testid="signer-phone"
+        formControlName="phoneNumber"
+        [defaultCountry]="defaultCountry"
+        [error]="phoneError"
+        [isOptional]="true"
+      />
+    </section>
+
+    <div class="signer-info-step__checkboxes">
+      <div class="signer-info-step__checkbox">
+        @if (isGuardianSigned()) {
+          <ignt-checkbox
+            dataTestId="signer-guardian-checkbox"
+            [checked]="signerForm.controls.hasConfirmedDeclaration.value"
+            [label]="'agreements.signing.modal.signer.guardianLabel' | translate"
+            (change)="toggleControl(signerForm.controls.hasConfirmedDeclaration, $event)"
+          />
+          <p class="signer-info-step__checkbox-description">
+            {{ 'agreements.signing.modal.signer.guardianDescription' | translate }}
+          </p>
+        } @else {
+          <ignt-checkbox
+            dataTestId="signer-age-checkbox"
+            [checked]="signerForm.controls.hasConfirmedDeclaration.value"
+            [label]="'agreements.signing.modal.signer.ageLabel' | translate"
+            (change)="toggleControl(signerForm.controls.hasConfirmedDeclaration, $event)"
+          />
+          <p class="signer-info-step__checkbox-description">
+            {{ 'agreements.signing.modal.signer.ageDescription' | translate }}
+          </p>
+        }
+        @if (showCheckboxError(signerForm.controls.hasConfirmedDeclaration)) {
+          <p class="signer-info-step__checkbox-error" role="alert" data-testid="signer-declaration-error">
+            {{ 'agreements.signing.modal.signer.checkboxError' | translate }}
+          </p>
+        }
+      </div>
+
+      <div class="signer-info-step__checkbox">
+        <ignt-checkbox
+          dataTestId="signer-acceptance-checkbox"
+          [checked]="signerForm.controls.hasAcceptedAgreement.value"
+          [label]="'agreements.signing.modal.signer.acceptanceLabel' | translate"
+          (change)="toggleControl(signerForm.controls.hasAcceptedAgreement, $event)"
+        />
+        <p class="signer-info-step__checkbox-description">
+          {{
+            (isGuardianSigned()
+              ? 'agreements.signing.modal.signer.guardianAcceptanceDescription'
+              : 'agreements.signing.modal.signer.acceptanceDescription'
+            ) | translate
+          }}
+        </p>
+        @if (showCheckboxError(signerForm.controls.hasAcceptedAgreement)) {
+          <p class="signer-info-step__checkbox-error" role="alert" data-testid="signer-acceptance-error">
+            {{ 'agreements.signing.modal.signer.checkboxError' | translate }}
+          </p>
+        }
+      </div>
+    </div>
+  }
+
+  @if (store.signError() !== null) {
+    <p class="signer-info-step__error" role="alert" data-testid="signer-error">
+      {{ 'agreements.signing.modal.signer.error' | translate }}
+    </p>
+  }
+
+  <div class="signer-info-step__actions">
+    <ignt-button
+      htmlType="button"
+      variant="tertiary"
+      data-testid="signer-cancel"
+      [disabled]="isSigning()"
+      [label]="'agreements.signing.modal.signer.cancel' | translate"
+      (click)="cancel()"
+    />
+    <ignt-button
+      htmlType="submit"
+      variant="primary"
+      data-testid="signer-accept-and-sign"
+      [disabled]="signerForm.invalid || isAwaitingAnswer()"
+      [loading]="isSigning()"
+      [label]="'agreements.signing.modal.signer.acceptAndSign' | translate"
+    />
+  </div>
+</form>

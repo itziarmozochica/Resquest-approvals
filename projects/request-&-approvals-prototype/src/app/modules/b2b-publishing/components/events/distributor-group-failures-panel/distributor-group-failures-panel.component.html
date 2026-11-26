@@ -1,0 +1,90 @@
+<ignt-dialog-header class="group-failures__header">
+  <span class="group-failures__title" data-testid="group-failures-title">{{ 'marketplaceEvents.failuresPanel.heading' | translate }}</span>
+  <span class="group-failures__subtitle" data-testid="group-failures-group">{{
+    'marketplaceEvents.failuresPanel.group' | translate: { name: group.name }
+  }}</span>
+</ignt-dialog-header>
+
+<ignt-dialog-content class="group-failures__content">
+  @if (isLoading()) {
+    <div aria-busy="true" aria-live="polite" data-testid="group-failures-loading">
+      <ignt-skeleton type="list" [animation]="true" [numElements]="3" />
+    </div>
+  } @else if (loadError()) {
+    <div class="group-failures__message" role="alert" data-testid="group-failures-load-error">
+      <p>{{ 'marketplaceEvents.failuresPanel.loadError' | translate }}</p>
+      <ignt-button
+        data-testid="group-failures-reload"
+        variant="secondary"
+        [label]="'marketplaceEvents.failuresPanel.reload' | translate"
+        (click)="reload()"
+      />
+    </div>
+  } @else if (failures().length === 0) {
+    <p class="group-failures__message" data-testid="group-failures-empty">{{ 'marketplaceEvents.failuresPanel.empty' | translate }}</p>
+  } @else {
+    @if (retryError()) {
+      <ignt-alert
+        data-testid="group-failures-retry-error"
+        sentiment="danger"
+        [description]="'marketplaceEvents.failuresPanel.retryError' | translate"
+      />
+    }
+    <p class="group-failures__message" data-testid="group-failures-intro">{{ introKey() | translate: { count: failures().length } }}</p>
+    <ignt-table
+      data-testid="group-failures-list"
+      hasFullWidthSearch
+      layout="table"
+      [data]="visibleFailures()"
+      [hasPagination]="true"
+      [pageIndex]="pageIndex()"
+      [pageSize]="pageSize"
+      [searchConfig]="searchConfig()"
+      (pageIndexChange)="onPageIndexChange($event)"
+      (searchChanged)="onSearchChanged($event)"
+    >
+      <ignt-table-column key="eventName" columnType="primary" [header]="'marketplaceEvents.failuresPanel.columns.event' | translate">
+        <ng-template [igntTableColumnTemplateType]="failedEventSample" let-item="item">
+          <span class="group-failures__event" [attr.data-testid]="'group-failures-event-' + item.eventId">
+            <span class="group-failures__heading">
+              <span class="group-failures__name">{{ item.eventName ?? ('marketplaceEvents.failuresPanel.unknownEvent' | translate) }}</span>
+              <span class="group-failures__id">· {{ item.eventId }}</span>
+            </span>
+            <span class="group-failures__reason">
+              <ignt-icon class="group-failures__reason-icon" name="exclamation-circle" size="sm" variant="solid" aria-hidden="true" />
+              <span class="visually-hidden">{{ 'marketplaceEvents.failuresPanel.whyItFailed' | translate }}</span>
+              <span [attr.data-testid]="'group-failures-reason-' + item.eventId">{{
+                reasonKeyById().get(item.eventId) ?? '' | translate
+              }}</span>
+            </span>
+          </span>
+        </ng-template>
+      </ignt-table-column>
+      <ignt-table-column
+        key="publish"
+        columnType="secondary"
+        [header]="'marketplaceEvents.failuresPanel.columns.publish' | translate"
+        [width]="120"
+      >
+        <ng-template [igntTableColumnTemplateType]="failedEventSample">
+          <ignt-tag data-testid="group-failures-status" sentiment="danger" variant="solid">{{
+            'marketplaceEvents.failuresPanel.failed' | translate
+          }}</ignt-tag>
+        </ng-template>
+      </ignt-table-column>
+    </ignt-table>
+  }
+</ignt-dialog-content>
+
+<ignt-dialog-footer class="group-failures__footer" hideCancelButton>
+  @if (failures().length > 0) {
+    <ignt-button
+      data-testid="group-failures-try-again"
+      variant="primary"
+      [fill]="isMobile()"
+      [label]="'marketplaceEvents.failuresPanel.tryAgain' | translate: { count: failures().length }"
+      [loading]="isRetrying()"
+      (click)="tryAgain()"
+    />
+  }
+</ignt-dialog-footer>

@@ -1,0 +1,204 @@
+<article class="audit-change-row" [class]="toneClass()" data-testid="audit-change-row">
+  <div class="audit-change-row__head">
+    <p class="audit-change-row__who">
+      <strong class="audit-change-row__scope" data-testid="audit-change-row-scope">
+        {{ scopeText() || (allScopesLabelKey() | translate) }}
+      </strong>
+      <span class="audit-change-row__author" data-testid="audit-change-row-author">
+        @if (authorLabelKey(); as authorKey) {
+          · {{ authorKey | translate }}
+        } @else {
+          · {{ row().change.updatedBy }}
+        }
+      </span>
+    </p>
+    <div class="audit-change-row__when">
+      <time class="audit-change-row__time" [attr.datetime]="moment()" data-testid="audit-change-row-time">{{
+        moment() | date: 'HH:mm'
+      }}</time>
+      @if (!menuHidden() && hasMenuItems()) {
+        <button
+          ignt-icon-button
+          size="small"
+          sentiment="tertiary"
+          [icon]="menuIcon"
+          [igntMenuTriggerFor]="actionsMenu"
+          [attr.aria-label]="'audit.changeLog.row.actions' | translate"
+          data-testid="audit-change-row-menu"
+        ></button>
+      }
+    </div>
+  </div>
+
+  <p class="audit-change-row__kind" data-testid="audit-change-row-kind">
+    <span class="audit-change-row__type">{{ row().changeTypeLabelKey | translate }}</span>
+    @if (row().row.origin; as origin) {
+      &ngsp;<span class="audit-change-row__separator" aria-hidden="true">·</span>&ngsp;
+      <code class="audit-change-row__origin">{{ origin }}</code>
+    } @else if (row().row.originKey; as originKey) {
+      &ngsp;<span class="audit-change-row__separator" aria-hidden="true">·</span>&ngsp;
+      <span class="audit-change-row__origin">{{ originKey | translate }}</span>
+    } @else if (row().row.moment; as rowMoment) {
+      &ngsp;<span class="audit-change-row__separator" aria-hidden="true">·</span>&ngsp;
+      <time class="audit-change-row__origin" [attr.datetime]="rowMoment">{{ rowMoment | date: 'd MMM y, HH:mm' }}</time>
+    }
+    @if (row().row.locale; as locale) {
+      &ngsp;<span class="audit-change-row__separator" aria-hidden="true">·</span>&ngsp;
+      <span class="audit-change-row__locale">{{ locale }}</span>
+    }
+  </p>
+
+  @for (action of row().row.actions; track $index) {
+    <p class="audit-change-row__change" data-testid="audit-change-row-change">
+      @if (action.labelKey) {
+        <span class="audit-change-row__label">{{ action.labelKey | translate }}:</span>
+      }
+      @if (action.oldValue !== null) {
+        <del class="audit-change-row__old" data-testid="audit-change-row-old">{{ action.oldValue }}</del>
+      }
+      @if (action.oldValue !== null && action.newValue !== null) {
+        &ngsp;<span class="audit-change-row__arrow" aria-hidden="true">→</span>&ngsp;
+      }
+      @if (action.newValue !== null) {
+        <ins class="audit-change-row__new" data-testid="audit-change-row-new">{{ action.newValue }}</ins>
+      }
+      @if (action.noteKey) {
+        <span class="audit-change-row__note">{{ action.noteKey | translate: action.noteParams }}</span>
+      }
+    </p>
+  }
+
+  @if (detailOpen()) {
+    <div class="audit-change-row__detail" data-testid="audit-change-row-detail">
+      @for (entry of detailEntries(); track entry.entryId) {
+        <dl class="audit-change-row__entry">
+          @for (line of entry.lines; track line.labelKey) {
+            <div class="audit-change-row__entry-line">
+              <dt class="audit-change-row__entry-label">{{ line.labelKey | translate }}</dt>
+              <dd class="audit-change-row__entry-values">
+                @if (line.oldValue !== null) {
+                  <del class="audit-change-row__old">{{ line.oldValue }}</del>
+                }
+                @if (line.oldValue !== null && line.newValue !== null) {
+                  &ngsp;<span class="audit-change-row__arrow" aria-hidden="true">→</span>&ngsp;
+                }
+                @if (line.newValue !== null) {
+                  <ins class="audit-change-row__new">{{ line.newValue }}</ins>
+                }
+              </dd>
+            </div>
+          }
+        </dl>
+      }
+      @if (businessEntries()?.error; as error) {
+        <p class="audit-change-row__error" role="alert">{{ error.messageKey | translate }}</p>
+      }
+      @if (hiddenBusinessEntryCount() > 0) {
+        <ignt-button
+          variant="tertiary"
+          size="small"
+          [label]="'audit.changeLog.row.showMore' | translate: { count: hiddenBusinessEntryCount() }"
+          [loading]="businessEntries()?.isLoading ?? false"
+          [disabled]="businessEntries()?.isLoading ?? false"
+          data-testid="audit-change-row-more-business"
+          (click)="onMoreBusinessEntries()"
+        />
+      }
+    </div>
+  }
+
+  @if (technicalOpen()) {
+    <div class="audit-change-row__technical" data-testid="audit-change-row-technical">
+      @if (allEntries()?.error; as error) {
+        <p class="audit-change-row__error" role="alert">{{ error.messageKey | translate }}</p>
+      }
+      @if (technicalEntries().length > 0) {
+        <div class="audit-change-row__table" role="table" [attr.aria-label]="'audit.changeLog.technical.title' | translate">
+          <div class="audit-change-row__table-row audit-change-row__table-row--header" role="row">
+            <span role="columnheader">{{ 'audit.changeLog.technical.model' | translate }}</span>
+            <span role="columnheader">{{ 'audit.changeLog.technical.action' | translate }}</span>
+            <span role="columnheader">{{ 'audit.changeLog.technical.field' | translate }}</span>
+            <span role="columnheader">{{ 'audit.changeLog.technical.before' | translate }}</span>
+            <span role="columnheader">{{ 'audit.changeLog.technical.after' | translate }}</span>
+          </div>
+          @for (technicalEntry of technicalEntries(); track technicalEntry.entryId) {
+            <div class="audit-change-row__table-group" role="rowgroup" data-testid="audit-change-row-technical-entry">
+              @if (technicalEntry.labels.length > 0) {
+                <div class="audit-change-row__table-row audit-change-row__table-row--entry" role="row">
+                  <span class="audit-change-row__table-labels" role="rowheader" data-testid="audit-change-row-technical-labels">
+                    @for (label of technicalEntry.labels; track label.name) {
+                      <span class="audit-change-row__table-label" data-testid="audit-change-row-technical-label">
+                        <code>{{ label.name }}</code> {{ label.value }}
+                      </span>
+                    }
+                  </span>
+                </div>
+              }
+              @for (technicalRow of technicalEntry.rows; track technicalRow.id) {
+                <div class="audit-change-row__table-row" role="row" data-testid="audit-change-row-technical-row">
+                  <code role="cell">{{ technicalRow.modelName }}</code>
+                  <code role="cell">{{ technicalRow.action }}</code>
+                  <code role="cell">{{ technicalRow.field }}</code>
+                  <code role="cell">{{ technicalRow.before ?? '—' }}</code>
+                  <code role="cell">{{ technicalRow.after ?? '—' }}</code>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+      @if (allEntries()?.isLoading) {
+        <p class="audit-change-row__status" aria-live="polite">{{ 'audit.changeLog.loading' | translate }}</p>
+      } @else if (allEntries()?.nextCursor) {
+        <ignt-button
+          variant="tertiary"
+          size="small"
+          [label]="'audit.changeLog.technical.loadMore' | translate"
+          data-testid="audit-change-row-more-technical"
+          (click)="onMoreTechnicalEntries()"
+        />
+      }
+    </div>
+  }
+</article>
+
+<ng-template #actionsMenu>
+  <ignt-menu>
+    @if (!restoreHidden()) {
+      <ignt-menu-item
+        value="restore"
+        [label]="(row().restorable ? 'audit.changeLog.row.restore' : 'audit.changeLog.row.restoreTooLarge') | translate"
+        [disabled]="restoreDisabled() || !row().restorable"
+        data-testid="audit-change-row-restore"
+        (triggered)="onRestore()"
+      />
+    }
+    @for (action of hostActions(); track action.id) {
+      <ignt-menu-item
+        [value]="action.id"
+        [label]="action.labelKey | translate: action.labelParams"
+        [attr.data-testid]="'audit-change-row-host-action-' + action.id"
+        (triggered)="onHostAction(action.id)"
+      />
+    }
+    @if (businessEntryCount() > 0) {
+      <ignt-menu-item
+        value="detail"
+        [label]="(detailOpen() ? 'audit.changeLog.row.hideDetail' : 'audit.changeLog.row.showDetail') | translate"
+        data-testid="audit-change-row-detail-toggle"
+        (triggered)="onDetailToggle()"
+      />
+    }
+    @if (technicalEntryCount() > 0) {
+      <ignt-menu-item
+        value="technical"
+        [label]="
+          (technicalOpen() ? 'audit.changeLog.row.hideTechnical' : 'audit.changeLog.row.showTechnical')
+            | translate: { count: technicalMenuCount() }
+        "
+        data-testid="audit-change-row-technical-toggle"
+        (triggered)="onTechnicalToggle()"
+      />
+    }
+  </ignt-menu>
+</ng-template>

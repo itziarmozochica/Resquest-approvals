@@ -1,0 +1,60 @@
+<ng-container *ngIf="(couponCodeApplied | async) === null">
+  <button class="reservation-coupon reservation-coupon--to-be-applied" (click)="openCouponModal()">
+    <ignt-icon class="reservation-coupon__badge-percent-icon" name="badge-percent" variant="regular" size="h3"></ignt-icon>
+    <div class="reservation-coupon__content">
+      <div class="reservation-coupon__content-title">
+        {{ 'reservations.reservationDetails.couponButton.title' | translate }}
+      </div>
+      <div class="reservation-coupon__content-subtitle">
+        {{ 'reservations.reservationDetails.couponButton.subtitle' | translate }}
+      </div>
+    </div>
+    <ignt-icon class="reservation-coupon__angle-right-icon" name="chevron-down" variant="solid" size="base"></ignt-icon>
+  </button>
+</ng-container>
+<ng-container *ngIf="couponCodeApplied | async as couponCode">
+  @let giftCardCodes = (appliedGiftCardCodes | async) ?? [];
+  <ignt-wrapper-card>
+    <div class="reservation-coupon">
+      <ignt-icon class="reservation-coupon__badge-percent-icon" name="badge-percent" variant="regular" size="h3"></ignt-icon>
+      <div class="reservation-coupon__content">
+        <div class="reservation-coupon__content-title">
+          {{ 'reservations.reservationDetails.couponButton.title' | translate }}
+        </div>
+        @if (isGiftCardCombinationActive) {
+          <div class="reservation-coupon__chips">
+            @if (giftCardCodes.length > 1) {
+              <ignt-tag>
+                {{ 'reservations.reservationDetails.couponButton.giftCardsTitle' | translate }}
+              </ignt-tag>
+            } @else {
+              @for (code of giftCardCodes; track code) {
+                <ignt-tag>{{ code }}</ignt-tag>
+              }
+            }
+          </div>
+        } @else {
+          <ignt-tag>
+            {{ couponCode.code }}
+          </ignt-tag>
+        }
+      </div>
+      <div class="reservation-coupon__actions">
+        <a igntLink size="small" (click)="loadingCoupon() ? null : removeCoupon()">
+          <ignt-icon class="loader" name="spinner" variant="solid" size="caption" [spin]="true" *ngIf="loadingCoupon()"></ignt-icon>
+          {{ 'reservations.reservationDetails.couponButton.remove' | translate }}
+        </a>
+        <div class="reservation-coupon__content-subtitle">
+          {{ -couponCode.discount.amount | currency: couponCode.discount.currency : 'symbol-narrow' }}
+        </div>
+      </div>
+    </div>
+    @if (isGiftCardCombinationActive) {
+      <div class="reservation-coupon__add-additional-wrapper">
+        <button igntButton sentiment="tertiary" size="small" [disabled]="loadingCoupon()" (click)="openAddGiftCardModal()">
+          {{ 'reservations.reservationDetails.couponButton.addAdditionalGiftCard' | translate }}
+        </button>
+      </div>
+    }
+  </ignt-wrapper-card>
+</ng-container>

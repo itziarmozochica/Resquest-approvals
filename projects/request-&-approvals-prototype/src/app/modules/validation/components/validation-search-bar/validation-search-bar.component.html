@@ -1,0 +1,71 @@
+<div class="validation-search">
+  <div class="validation-search__type" data-testid="validation-type-filter">
+    <ignt-typeahead
+      [fieldLabel]="'validateTickets.searchType' | translate"
+      [options]="validationOptions"
+      [preloadedOption]="initialValidationOption"
+      [selectedOption]="selectedOption()"
+      [editable]="false"
+      (selected)="selectValidationType($event)"
+    />
+  </div>
+
+  <div
+    #searchContainer
+    class="validation-search__field"
+    [class.validation-search__field--order]="isOrderSelected()"
+    [class.validation-search__field--filled]="isClosable()"
+    data-testid="validation-filter-filter"
+    (focusin)="showRecentSearches()"
+    (focusout)="hideRecentSearchesOnBlur($event)"
+    (keydown)="hideRecentSearchesOnKeydown($event)"
+  >
+    @if (isOrderSelected()) {
+      <span class="validation-search__prefix" aria-hidden="true">R</span>
+    }
+    <ignt-input-field
+      id="ticket-validation-search"
+      class="validation-search__input"
+      data-testid="ticket-validation-search-input"
+      [label]="placeholderKey() | translate"
+      [ngModel]="searchFieldValue()"
+      [ngModelOptions]="{ standalone: true }"
+      (ngModelChange)="changeSearchField($event)"
+      [leadIcon]="isOrderSelected() ? null : searchIcon"
+      [trailIcon]="isClosable() ? clearIcon : null"
+      [trailIconAriaLabel]="'validateTickets.clearSearch' | translate"
+      (input)="handleFieldInput($event)"
+      (keyup.enter)="submitSearch()"
+      (trailIconClicked)="clearSearchField()"
+    />
+    @if (isRecentSearchesVisible()) {
+      <app-recent-searches-dropdown
+        data-testid="recent-searches-dropdown"
+        [searches]="recentSearches()"
+        [query]="recentSearchesQuery()"
+        (selected)="selectRecentSearch($event)"
+        (removed)="removeRecentSearch($event)"
+        (cleared)="clearRecentSearches()"
+      />
+    }
+    @if (isInvalid()) {
+      <p class="validation-search__invalid" data-testid="ticket-validation-search-invalid" role="alert">
+        {{ 'validateTickets.invalidValue' | translate }}
+      </p>
+    }
+  </div>
+
+  @if (isCodeSelected()) {
+    <button
+      type="button"
+      ignt-icon-button
+      variant="sharp"
+      sentiment="tertiary"
+      size="small"
+      data-testid="ticket-validation-select-camera"
+      [icon]="['fas', 'qrcode']"
+      [attr.aria-label]="'validateTickets.scanQr' | translate"
+      (click)="selectCamera()"
+    ></button>
+  }
+</div>

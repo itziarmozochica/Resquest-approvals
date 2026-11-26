@@ -1,0 +1,142 @@
+<div class="message-dialog">
+  <div class="message-dialog__dialog modal-dialog">
+    <div class="message-dialog__content modal-content">
+      <div class="modal-header" [class.modal-no-title]="!viewModel.useTitleAsHeader || !viewModel.title">
+        @if (viewModel.useTitleAsHeader && viewModel.title) {
+          <p class="modal-title" data-testid="modal-title">
+            {{ viewModel.title }}
+          </p>
+        }
+        @if (viewModel.useTitleAsHeader && viewModel.hasCloseButton) {
+          <button type="button" class="btn-close" aria-label="Close" (click)="close(false)"></button>
+        }
+      </div>
+      <div class="modal-body modal__content" [class.message-dialog__body--header-title]="viewModel.useTitleAsHeader">
+        @if (viewModel.title && !viewModel.useTitleAsHeader) {
+          <div class="modal__title" data-testid="modal-title">
+            {{ viewModel.title }}
+          </div>
+        }
+        @for (section of viewModel.sections; track $index) {
+          <div class="messages" [class.messages--left]="section.align === 'left'">
+            @switch (section.type) {
+              @case ('messages') {
+                @for (message of section.messages; track $index) {
+                  <div class="messages__row">
+                    @if (section.renderHtml) {
+                      <p
+                        data-testid="modal-message"
+                        [class]="section.messageClass ? 'messages__text ' + section.messageClass : 'messages__text'"
+                        [innerHTML]="message"
+                      ></p>
+                    } @else {
+                      <p
+                        data-testid="modal-message"
+                        [class]="section.messageClass ? 'messages__text ' + section.messageClass : 'messages__text'"
+                      >
+                        {{ message }}
+                      </p>
+                    }
+                  </div>
+                }
+              }
+              @case ('template') {
+                <div>
+                  <ng-container *ngTemplateOutlet="section.template"></ng-container>
+                </div>
+              }
+              @case ('list') {
+                @if (section.title) {
+                  <p class="messages__text message-dialog__confirmation-title">{{ section.title }}</p>
+                }
+                <ul class="message-dialog__confirmation-list">
+                  @for (item of section.items; track $index) {
+                    <li>{{ item }}</li>
+                  }
+                </ul>
+              }
+            }
+          </div>
+        }
+        @if (viewModel.errorCode !== null && viewModel.errorCode !== undefined) {
+          <p class="message-dialog__error-code" data-testid="modal-error-code">
+            @if (viewModel.errorCodeLabel) {
+              {{ viewModel.errorCodeLabel }}: {{ viewModel.errorCode }}
+            } @else {
+              {{ viewModel.errorCode }}
+            }
+          </p>
+        }
+        @if (viewModel.infoBannerText) {
+          <ignt-alert
+            class="message-dialog__info-banner"
+            [sentiment]="viewModel.infoBannerSentiment"
+            [description]="viewModel.infoBannerText"
+          />
+        }
+        @if (viewModel.confirmationCheckboxLabel) {
+          <ignt-checkbox
+            class="message-dialog__confirmation-checkbox"
+            data-testid="modal-confirmation-checkbox"
+            [checked]="isConfirmationChecked()"
+            [hasError]="hasConfirmationError()"
+            [errorMessage]="viewModel.confirmationCheckboxErrorLabel || ''"
+            [label]="viewModel.confirmationCheckboxLabel"
+            (change)="toggleConfirmation($event)"
+          />
+        }
+        <div class="modal__actions" [class.modal__actions--vertical]="viewModel.buttonsLayout === 'vertical'">
+          @if (viewModel.buttonsLayout === 'vertical') {
+            <button
+              igntButton
+              [fill]="true"
+              [variant]="viewModel.acceptButtonVariant"
+              [loading]="isLoading()"
+              [disabled]="isLoading()"
+              data-testid="modal-accept-button"
+              (click)="onAcceptClick()"
+            >
+              {{ viewModel.acceptButtonLabel }}
+            </button>
+            @if (viewModel.cancelButtonLabel) {
+              <button
+                igntButton
+                [fill]="true"
+                sentiment="secondary"
+                [disabled]="isLoading() && !viewModel.allowCancelDuringLoading"
+                data-testid="modal-cancel-button"
+                (click)="close(false)"
+              >
+                {{ viewModel.cancelButtonLabel }}
+              </button>
+            }
+          } @else {
+            @if (viewModel.cancelButtonLabel) {
+              <button
+                igntButton
+                [fill]="true"
+                sentiment="secondary"
+                [disabled]="isLoading() && !viewModel.allowCancelDuringLoading"
+                data-testid="modal-cancel-button"
+                (click)="close(false)"
+              >
+                {{ viewModel.cancelButtonLabel }}
+              </button>
+            }
+            <button
+              igntButton
+              [fill]="true"
+              [variant]="viewModel.acceptButtonVariant"
+              [loading]="isLoading()"
+              [disabled]="isLoading()"
+              data-testid="modal-accept-button"
+              (click)="onAcceptClick()"
+            >
+              {{ viewModel.acceptButtonLabel }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

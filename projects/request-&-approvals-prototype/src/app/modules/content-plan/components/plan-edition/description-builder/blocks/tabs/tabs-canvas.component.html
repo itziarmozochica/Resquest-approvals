@@ -1,0 +1,45 @@
+<!-- The ng-container (zero DOM) keeps the root close-tag indented: Angular's
+     whitespace collapse leaves SINGLE-char runs untouched, so a column-0 close
+     tag would ship a literal "\n" into the export instead of the historical " ". -->
+<ng-container>
+  @let b = block();
+  @let tabs = b.props.tabs;
+  @let active = activeTab();
+  @let barColor = tabsBarColor();
+  <div class="block-tabs" [style.--tabs-surface]="barColor || null">
+    <div class="block-tabs-nav" aria-label="Tabs">
+      <div class="block-tabs-nav-inner">
+        @for (tab of tabs; track $index; let i = $index) {
+          <button
+            type="button"
+            class="block-tabs-pill"
+            [class.active]="i === activeTabIndex()"
+            [class.block-text-placeholder]="showPlaceholders() && !tab.label"
+            (click)="setActiveTab(i, $event)"
+          >
+            {{ tab.label || placeholderFor(KEYS.tabLabel, { index: i + 1 }) }}
+          </button>
+        }
+      </div>
+    </div>
+    @if (active) {
+      <div class="block-tabs-panel" [class.block-tabs-panel--no-media]="!active.imageSrc">
+        <div class="block-tabs-panel-main">
+          @if (active.contentTitle) {
+            <div class="block-tabs-panel-title">{{ active.contentTitle }}</div>
+          }
+          @if (showPlaceholders() && !hasRichText(active.body)) {
+            <div class="block-tabs-panel-body block-text-placeholder">{{ placeholderFor(SHARED_KEYS.bodyPlaceholder) }}</div>
+          } @else {
+            <div class="block-tabs-panel-body" [innerHTML]="active.body"></div>
+          }
+        </div>
+        @if (active.imageSrc) {
+          <div class="block-tabs-panel-media">
+            <img [src]="active.imageSrc" alt="" />
+          </div>
+        }
+      </div>
+    }
+  </div>
+</ng-container>

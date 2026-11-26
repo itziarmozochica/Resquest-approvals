@@ -1,0 +1,120 @@
+@let groupForm = group();
+@let groupIndex = index();
+<div class="quick-setup-inventory-group" [formGroup]="groupForm" [attr.data-testid]="'create-event-quick-setup-group-' + groupIndex">
+  <div class="quick-setup-inventory-group__header">
+    <ignt-icon class="quick-setup-inventory-group__icon" name="folder" variant="light" aria-hidden="true" />
+
+    <ignt-input-field
+      class="quick-setup-inventory-group__field quick-setup-inventory-group__field--name"
+      data-scroll-field
+      [id]="'create-event-quick-setup-group-name-' + groupIndex"
+      formControlName="name"
+      type="text"
+      [label]="'createEvent.quickSetupWizard.step2.groupNameLabel' | translate"
+      [placeholder]="'createEvent.quickSetupWizard.step2.groupNamePlaceholder' | translate"
+      [customFormErrors]="[
+        { type: 'required', message: 'form.error.required' | translate },
+        { type: 'nameDuplicated', message: 'form.error.duplicatedName' | translate: nameErrorParams() },
+      ]"
+      [attr.data-testid]="'create-event-quick-setup-group-name-input-' + groupIndex"
+    />
+
+    <ignt-input-field
+      class="quick-setup-inventory-group__field quick-setup-inventory-group__field--capacity"
+      data-scroll-field
+      [id]="'create-event-quick-setup-group-capacity-' + groupIndex"
+      formControlName="maxCapacity"
+      type="number"
+      [label]="'createEvent.quickSetupWizard.step2.groupCapacityLabel' | translate"
+      [customFormErrors]="[
+        { type: 'required', message: 'form.error.required' | translate },
+        { type: 'min', message: 'form.error.greaterThanZero' | translate },
+      ]"
+      [attr.data-testid]="'create-event-quick-setup-group-capacity-input-' + groupIndex"
+    />
+
+    <button
+      type="button"
+      ignt-icon-button
+      sentiment="tertiary"
+      size="medium"
+      class="quick-setup-inventory-group__icon-button quick-setup-inventory-group__icon-button--toggle"
+      [icon]="isExpanded() ? ['fal', 'chevron-up'] : ['fal', 'chevron-down']"
+      [attr.aria-expanded]="isExpanded()"
+      [attr.aria-label]="
+        (isExpanded() ? 'createEvent.quickSetupWizard.step2.collapseGroup' : 'createEvent.quickSetupWizard.step2.expandGroup') | translate
+      "
+      [attr.data-testid]="'create-event-quick-setup-group-toggle-' + groupIndex"
+      (click)="toggle()"
+    ></button>
+
+    <button
+      type="button"
+      ignt-icon-button
+      sentiment="tertiary"
+      size="medium"
+      class="quick-setup-inventory-group__icon-button quick-setup-inventory-group__icon-button--delete"
+      [icon]="['fas', 'trash']"
+      [attr.aria-label]="'createEvent.quickSetupWizard.step2.deleteGroup' | translate"
+      [attr.data-testid]="'create-event-quick-setup-group-delete-' + groupIndex"
+      (click)="deleted.emit()"
+    ></button>
+  </div>
+
+  <ignt-divider [margin]="false" />
+
+  <div
+    class="quick-setup-inventory-group__tickets"
+    [class.quick-setup-inventory-empty-drop-list]="isExpanded() && productCountParams().count === 0"
+    cdkDropList
+    [cdkDropListAutoScrollStep]="12"
+    [cdkDropListData]="groupForm.controls.tickets"
+    [attr.data-testid]="'create-event-quick-setup-group-tickets-' + groupIndex"
+    (cdkDropListDropped)="ticketDropped.emit($event)"
+  >
+    @if (isExpanded()) {
+      @for (ticket of groupForm.controls.tickets.controls; track ticket) {
+        <app-quick-setup-inventory-row
+          cdkDrag
+          [cdkDragData]="ticket"
+          [canDelete]="canDeleteTicket()"
+          [currency]="currency()"
+          [index]="ticketIndexes().get(ticket) ?? -1"
+          [isDraggable]="true"
+          [isPricesByTier]="isPricesByTier()"
+          [kind]="rowKind.Ticket"
+          [neededSessionTypeOptions]="neededSessionTypeOptionsByTicket().get(ticket) ?? []"
+          [productTypeOptions]="productTypeOptions()"
+          [row]="ticket"
+          (deleted)="ticketDeleted.emit(ticket)"
+        />
+      } @empty {
+        <app-quick-setup-inventory-drop-hint
+          [message]="'createEvent.quickSetupWizard.step2.groupEmptyHint' | translate"
+          [attr.data-testid]="'create-event-quick-setup-group-empty-' + groupIndex"
+        />
+        @if (isEmptyGroupError()) {
+          <ignt-field-error [showError]="true" [attr.data-testid]="'create-event-quick-setup-group-empty-error-' + groupIndex">
+            {{ 'createEvent.quickSetupWizard.step2.groupWithoutTickets' | translate }}
+          </ignt-field-error>
+        }
+      }
+    } @else {
+      <p class="quick-setup-inventory-group__summary" [attr.data-testid]="'create-event-quick-setup-group-summary-' + groupIndex">
+        {{ productCountKey() | translate: productCountParams() }}
+      </p>
+    }
+  </div>
+
+  @if (isExpanded()) {
+    <ignt-button
+      class="quick-setup-inventory-group__add-link"
+      [attr.data-testid]="'create-event-quick-setup-add-ticket-button-' + groupIndex"
+      [label]="'createEvent.quickSetupWizard.step2.addTicketToGroup' | translate"
+      size="small"
+      variant="tertiary"
+      [leadingIcon]="{ name: 'plus', variant: 'light' }"
+      (click)="ticketAdded.emit()"
+    />
+  }
+</div>

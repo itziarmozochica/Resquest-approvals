@@ -1,0 +1,305 @@
+<div class="information-request-new" data-testid="information-request-new">
+  <form [formGroup]="form" class="information-request-new__form">
+    <h1 class="information-request-new__title">{{ 'informationRequests.new.title' | translate }}</h1>
+
+    <app-fz-wizard-stepper
+      class="information-request-new__stepper"
+      data-testid="information-request-new-steps"
+      [steps]="stepViews()"
+      [currentIndex]="currentStepIndex()"
+      [allowStepSelect]="true"
+      (stepSelect)="onStepSelect($event)"
+    />
+
+    @if (currentStep() === 'template') {
+      <ignt-wrapper-card [elevation]="1" [mobileBorderless]="true">
+        <section class="information-request-new__section" data-testid="information-request-new-step-template">
+          @if (isStandalone()) {
+            <div class="information-request-new__block" data-testid="information-request-new-project-picker">
+              <h2 class="information-request-new__section-title">{{ 'informationRequests.new.sections.relatedLaunch' | translate }}</h2>
+              <p class="information-request-new__hint" data-testid="information-request-new-choose-launch">
+                {{ 'informationRequests.new.project.choosePrompt' | translate }}
+              </p>
+              <app-launch-picker
+                [launches]="availableProjects()"
+                [selectedLaunchId]="selectedProjectId()"
+                [loading]="projectsLoading()"
+                (launchSelected)="onProjectPicked($event)"
+              />
+            </div>
+          }
+          <div class="information-request-new__block">
+            @if (isStandalone() && selectedProjectId() === null) {
+            } @else if (templatesLoading()) {
+              <p class="information-request-new__loading" data-testid="information-request-new-templates-loading">
+                {{ 'informationRequests.new.template.loading' | translate }}
+              </p>
+            } @else if (groupedTemplates().length === 0) {
+              <p class="information-request-new__empty" data-testid="information-request-new-templates-empty">
+                {{ 'informationRequests.new.template.empty' | translate }}
+              </p>
+            } @else {
+              <p class="information-request-new__hint">{{ 'informationRequests.new.template.hint' | translate }}</p>
+              <div class="information-request-new__template-groups" data-testid="information-request-new-templates">
+                @for (group of groupedTemplates(); track group.key) {
+                  <section
+                    class="information-request-new__template-group"
+                    [attr.data-testid]="'information-request-new-template-group-' + group.key"
+                  >
+                    <h3 class="information-request-new__template-group-title">
+                      {{ templateGroupLabelKey(group.key) | translate }}
+                    </h3>
+                    <ul class="information-request-new__templates">
+                      @for (t of group.templates; track t.key) {
+                        <li>
+                          <button
+                            type="button"
+                            class="information-request-new__template-option"
+                            [class.information-request-new__template-option--selected]="form.controls.templateKey.value === t.key"
+                            (click)="selectTemplate(t.key)"
+                            [attr.data-testid]="'information-request-new-template-' + t.key"
+                            [attr.aria-pressed]="form.controls.templateKey.value === t.key"
+                          >
+                            {{ t.label }}
+                          </button>
+                        </li>
+                      }
+                    </ul>
+                  </section>
+                }
+              </div>
+            }
+          </div>
+        </section>
+      </ignt-wrapper-card>
+    } @else if (currentStep() === 'details') {
+      <ignt-wrapper-card class="information-request-new__sticky-details" [elevation]="1" [mobileBorderless]="true">
+        <section class="information-request-new__section" data-testid="information-request-new-step-details">
+          <h2 class="information-request-new__section-title">{{ 'informationRequests.new.sections.details' | translate }}</h2>
+          <label for="ir-title"
+            >{{ 'informationRequests.new.fields.title' | translate
+            }}<span class="information-request-new__required" aria-hidden="true">*</span></label
+          >
+          <input id="ir-title" type="text" class="form-control" formControlName="title" data-testid="information-request-new-title" />
+
+          <label for="ir-due-date"
+            >{{ 'informationRequests.new.fields.dueDatePartner' | translate
+            }}<span class="information-request-new__required" aria-hidden="true">*</span></label
+          >
+          <input
+            id="ir-due-date"
+            type="date"
+            class="form-control"
+            formControlName="dueDate"
+            [min]="minDueDate"
+            [max]="maxDueDate"
+            (click)="openDatePicker($event)"
+            data-testid="information-request-new-due-date"
+          />
+          @if (form.controls.dueDate.errors; as dueDateErrors) {
+            <p class="information-request-new__field-error" data-testid="information-request-new-due-date-error">
+              @if (dueDateErrors['required']) {
+                {{ 'informationRequests.new.errors.dueDateRequired' | translate }}
+              } @else if (dueDateErrors['dueDatePast']) {
+                {{ 'informationRequests.new.errors.dueDatePast' | translate }}
+              } @else if (dueDateErrors['dueDateTooFar']) {
+                {{ 'informationRequests.new.errors.dueDateTooFar' | translate }}
+              } @else if (dueDateErrors['dueDateFormat']) {
+                {{ 'informationRequests.new.errors.dueDateFormat' | translate }}
+              }
+            </p>
+          }
+        </section>
+      </ignt-wrapper-card>
+
+      @if (showQuestionCustomization() && templateQuestions().length > 0) {
+        <ignt-wrapper-card [elevation]="1" [mobileBorderless]="true">
+          <section class="information-request-new__section" data-testid="information-request-new-step-details-questions">
+            <h2 class="information-request-new__section-title">{{ 'informationRequests.new.sections.questionsConfig' | translate }}</h2>
+            <div class="information-request-new__customize" data-testid="information-request-new-customize">
+              <p class="information-request-new__hint">{{ 'informationRequests.new.customize.hint' | translate }}</p>
+              @for (group of groupedQuestions(); track group.section) {
+                <div class="customize-section-divider" [attr.data-testid]="'customize-section-' + (group.section ?? 'other')">
+                  <span class="customize-section-divider__chip">
+                    {{ group.section ?? ('informationRequests.new.customize.sectionOther' | translate) }}
+                  </span>
+                </div>
+                @for (question of group.questions; track question.id) {
+                  <app-question-customize-card
+                    [question]="question"
+                    [override]="questionOverride(question.id)"
+                    (requiredChange)="toggleQuestionRequired(question.id, $event)"
+                    (hiddenChange)="toggleQuestionHidden(question.id, $event)"
+                    (helpTextChange)="setQuestionHelpText(question.id, $event)"
+                  ></app-question-customize-card>
+                }
+              }
+            </div>
+          </section>
+        </ignt-wrapper-card>
+      }
+    } @else if (currentStep() === 'alerts') {
+      <ignt-wrapper-card [elevation]="1" [mobileBorderless]="true">
+        <section class="information-request-new__section" data-testid="information-request-new-step-alerts">
+          <p class="information-request-new__hint">{{ 'informationRequests.new.alerts.hint' | translate }}</p>
+          <app-alert-config-form
+            formControlName="alertConfig"
+            [partnerId]="partnerId()"
+            [projectId]="directoryProjectId()"
+            [currentUserEmail]="currentUserEmail"
+            data-testid="information-request-new-alert-config"
+          ></app-alert-config-form>
+          @if (alertError(); as alertErr) {
+            <p class="information-request-new__field-error" data-testid="information-request-new-alert-error">
+              @if (alertErr.raw) {
+                {{ alertErr.raw }}
+              } @else {
+                {{ alertErr.key! | translate: alertErr.params }}
+              }
+            </p>
+          }
+        </section>
+      </ignt-wrapper-card>
+    } @else {
+      <ignt-wrapper-card [elevation]="1" [mobileBorderless]="true">
+        <section
+          class="information-request-new__section information-request-new__review-step"
+          data-testid="information-request-new-step-review"
+        >
+          <h2 class="information-request-new__section-title">{{ 'informationRequests.new.sections.details' | translate }}</h2>
+          <dl class="information-request-new__review">
+            <dt>{{ 'informationRequests.new.fields.template' | translate }}</dt>
+            <dd>{{ selectedTemplate()?.label }}</dd>
+            <dt>{{ 'informationRequests.new.fields.title' | translate }}</dt>
+            <dd>{{ form.controls.title.value }}</dd>
+            @if (form.controls.dueDate.value) {
+              <dt>{{ 'informationRequests.new.fields.dueDatePartner' | translate }}</dt>
+              <dd>{{ form.controls.dueDate.value }}</dd>
+            }
+          </dl>
+
+          <h2 class="information-request-new__section-title">{{ 'informationRequests.new.review.formTitle' | translate }}</h2>
+          @if (visibleTemplateQuestions().length) {
+            <ul class="information-request-new__review-fields" data-testid="information-request-new-review-fields">
+              @for (question of visibleTemplateQuestions(); track question.id) {
+                <li class="information-request-new__field-chip">{{ question.label }}</li>
+              }
+            </ul>
+          } @else {
+            <p class="information-request-new__hint" data-testid="information-request-new-review-fields-empty">
+              {{ 'informationRequests.new.review.formEmpty' | translate }}
+            </p>
+          }
+
+          <h2 class="information-request-new__section-title">{{ 'informationRequests.new.review.remindersTitle' | translate }}</h2>
+          @if (reviewReminders(); as reminders) {
+            @if (reminders.enabled) {
+              <span
+                class="information-request-new__badge information-request-new__badge--on"
+                data-testid="information-request-new-review-reminders"
+              >
+                <span class="information-request-new__badge-dot"></span>
+                {{ 'informationRequests.new.review.remindersOn' | translate }} ·
+                {{ 'alertConfigForm.frequency.options.' + reminders.frequency | translate }}
+                @if (reminders.time) {
+                  · {{ reminders.time }}
+                }
+              </span>
+            } @else {
+              <span
+                class="information-request-new__badge information-request-new__badge--off"
+                data-testid="information-request-new-review-reminders"
+              >
+                {{ 'informationRequests.new.review.remindersOff' | translate }}
+              </span>
+            }
+          }
+
+          <h2 class="information-request-new__section-title">{{ 'informationRequests.new.review.notifyTitle' | translate }}</h2>
+          @if (reviewRecipients(); as recipients) {
+            <div class="information-request-new__review-recipients" data-testid="information-request-new-review-recipients">
+              <div class="information-request-new__recipient-group">
+                <span class="information-request-new__recipient-head">
+                  {{ 'informationRequests.new.review.notifyPartners' | translate }}
+                  <span class="information-request-new__recipient-count">{{ recipients.partners.length }}</span>
+                </span>
+                @if (recipients.partners.length) {
+                  <ul class="information-request-new__people">
+                    @for (email of recipients.partners; track email) {
+                      <li class="information-request-new__person">
+                        <span class="information-request-new__avatar">{{ email.charAt(0) }}</span>
+                        <span class="information-request-new__person-email">{{ email }}</span>
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <p class="information-request-new__hint">{{ 'informationRequests.new.review.notifyNone' | translate }}</p>
+                }
+              </div>
+              <div class="information-request-new__recipient-group">
+                <span class="information-request-new__recipient-head">
+                  {{ 'informationRequests.new.review.notifyFever' | translate }}
+                  <span class="information-request-new__recipient-count">{{ recipients.fever.length }}</span>
+                </span>
+                @if (recipients.fever.length) {
+                  <ul class="information-request-new__people">
+                    @for (email of recipients.fever; track email) {
+                      <li class="information-request-new__person information-request-new__person--fever">
+                        <span class="information-request-new__avatar">{{ email.charAt(0) }}</span>
+                        <span class="information-request-new__person-email">{{ email }}</span>
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <p class="information-request-new__hint">{{ 'informationRequests.new.review.notifyNone' | translate }}</p>
+                }
+              </div>
+            </div>
+          }
+        </section>
+      </ignt-wrapper-card>
+    }
+
+    @if (error(); as errorKey) {
+      <p class="information-request-new__error" data-testid="information-request-new-error">
+        {{ 'informationRequests.new.errors.' + errorKey | translate }}
+      </p>
+    }
+
+    <div class="information-request-new__actions">
+      <ignt-button
+        variant="secondary"
+        [label]="'common.cancel' | translate"
+        (click)="cancel()"
+        data-testid="information-request-new-cancel"
+      />
+      @if (currentStep() !== 'template') {
+        <ignt-button
+          variant="secondary"
+          [label]="'informationRequests.new.actions.previous' | translate"
+          (click)="previous()"
+          data-testid="information-request-new-previous"
+        />
+      }
+      @if (currentStep() !== 'review') {
+        <span class="information-request-new__next" [attr.title]="dueDateHint() | translate">
+          <ignt-button
+            variant="primary"
+            [label]="'informationRequests.new.actions.next' | translate"
+            [disabled]="!isStepValid(currentStep())"
+            (click)="next()"
+            data-testid="information-request-new-next"
+          />
+        </span>
+      } @else {
+        <ignt-button
+          variant="primary"
+          [label]="'informationRequests.new.actions.submit' | translate"
+          [disabled]="!form.valid || submitting()"
+          (click)="submit()"
+          data-testid="information-request-new-submit"
+        />
+      }
+    </div>
+  </form>
+</div>

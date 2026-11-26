@@ -1,0 +1,562 @@
+@use 'abstracts' as abstracts;
+@use 'foundations' as foundations;
+@use 'foundations/font/font-leadings' as font-leadings;
+
+$table-row-height: foundations.$space-12;
+$parent-sub-row-indent: foundations.$space-9;
+$card-primary-row-height: foundations.$space-16;
+$card-secondary-row-height: foundations.$space-12;
+$card-field-label-line-height: font-leadings.$leading-small;
+$card-field-label-max-height: 2 * $card-field-label-line-height;
+
+.ignt-table {
+  position: relative;
+}
+
+.ignt-table__toolbar {
+  align-items: center;
+  display: grid;
+  gap: foundations.$space-4;
+  grid-template-columns: 1fr;
+  width: 100%;
+
+  @include abstracts.ignt-media-breakpoint-up(tablet) {
+    grid-template-columns: 8fr 7fr;
+
+    .ignt-table__toolbar-search {
+      grid-column: 1;
+    }
+
+    .ignt-table__toolbar-actions {
+      grid-column: 2;
+      justify-self: stretch;
+    }
+  }
+
+  @include abstracts.ignt-media-breakpoint-up(desktop-sm) {
+    grid-template-columns: 1fr 1fr 1fr;
+
+    .ignt-table__toolbar-search {
+      grid-column: 1;
+    }
+
+    .ignt-table__toolbar-actions {
+      grid-column: 3;
+      justify-self: stretch;
+    }
+  }
+
+  > .ignt-table__toolbar-actions:only-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.ignt-table__toolbar.ignt-table__toolbar--full-width-search {
+  @include abstracts.ignt-media-breakpoint-up(desktop-sm) {
+    grid-template-columns: 1fr auto;
+
+    .ignt-table__toolbar-search {
+      grid-column: 1;
+    }
+
+    .ignt-table__toolbar-actions {
+      grid-column: 2;
+      justify-self: end;
+    }
+  }
+}
+
+.ignt-table__toolbar-search {
+  min-width: 0;
+}
+
+.ignt-table__toolbar-actions {
+  align-items: center;
+  display: flex;
+  gap: foundations.$space-4;
+  justify-content: space-between;
+  min-width: 0;
+
+  @include abstracts.ignt-media-breakpoint-up(tablet) {
+    justify-content: flex-end;
+  }
+}
+
+.ignt-table__toolbar-pagination {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: foundations.$space-4;
+  justify-content: flex-end;
+  justify-self: stretch;
+  min-width: 0;
+}
+
+.ignt-table__toolbar-filter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  justify-self: stretch;
+  min-width: 0;
+}
+
+.ignt-table__active-filters {
+  margin-bottom: foundations.$space-4;
+}
+
+.ignt-table__toolbar + .ignt-table__active-filters {
+  margin-top: foundations.$space-4;
+}
+
+.ignt-table__skeleton-cards {
+  display: flex;
+  flex-direction: column;
+  gap: foundations.$space-16;
+  width: 100%;
+}
+
+.ignt-table__row--skeleton {
+  pointer-events: none;
+}
+
+.ignt-table__row--skeleton .ignt-table__cell {
+  border-bottom: none;
+  cursor: default;
+}
+
+.ignt-table__row--skeleton:hover .ignt-table__cell {
+  background: foundations.$palette-neutral-white;
+}
+
+.ignt-table__cell--skeleton {
+  border-bottom: none;
+  box-sizing: border-box;
+  height: $table-row-height;
+  min-height: $table-row-height;
+  max-height: $table-row-height;
+  padding: 0 foundations.$space-4;
+  vertical-align: middle;
+}
+
+.ignt-table__cell--skeleton.ignt-table__cell--align-left {
+  text-align: start;
+}
+
+.ignt-table__cell--skeleton.ignt-table__cell--align-center {
+  text-align: center;
+}
+
+.ignt-table__cell--skeleton.ignt-table__cell--align-right {
+  text-align: end;
+}
+
+.ignt-table__scroll {
+  overflow-x: auto;
+}
+
+.ignt-table__parent-row {
+  &:focus-visible {
+    outline: foundations.$outline-accessibility;
+    outline-offset: -2px;
+  }
+}
+
+.ignt-table__parent-row--interactive {
+  cursor: pointer;
+}
+
+.ignt-table__parent-cell {
+  background: foundations.$palette-neutral-white;
+  border-bottom: 1px solid foundations.$palette-neutral-200;
+  box-sizing: border-box;
+  color: foundations.$color-text-main;
+  font: foundations.$font-small-bold;
+  height: $table-row-height;
+  max-height: $table-row-height;
+  min-height: $table-row-height;
+  padding: 0 foundations.$space-4;
+  text-align: start;
+  vertical-align: middle;
+}
+
+/**
+ * The spanning parent cell is as wide as the table, so its content is pinned instead of the cell:
+ * the label stays in view while a wide nested table scrolls sideways, matching the child rows'
+ * sticky primary cell. Padding moves to the pinned box so it travels with the content.
+ */
+.ignt-table__parent-cell--full {
+  padding: 0;
+}
+
+.ignt-table__parent-cell-pinned {
+  inset-inline-start: 0;
+  padding: 0 foundations.$space-4;
+  position: sticky;
+  width: max-content;
+}
+
+.ignt-table__parent-cell--primary {
+  inset-inline-start: 0;
+  position: sticky;
+  z-index: 1;
+}
+
+.ignt-table__parent-cell--actions {
+  padding: 0 foundations.$space-2;
+  white-space: nowrap;
+}
+
+.ignt-table__parent-row--interactive:hover .ignt-table__parent-cell {
+  background: var(--palette-neutral-100, #f2f3f3);
+}
+
+.ignt-table__row--sub .ignt-table__cell--primary {
+  padding-inline-start: calc(#{foundations.$space-4} + #{$parent-sub-row-indent});
+}
+
+.ignt-table__table {
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.ignt-table__header-cell {
+  background: foundations.$palette-neutral-white;
+  border-bottom: 1px solid foundations.$palette-neutral-200;
+  box-sizing: border-box;
+  color: foundations.$palette-neutral-800;
+  font: foundations.$font-small-bold;
+  height: $table-row-height;
+  max-height: $table-row-height;
+  min-height: $table-row-height;
+  padding: 0 foundations.$space-4;
+  position: sticky;
+  text-align: left;
+  top: 0;
+  vertical-align: middle;
+  z-index: 2;
+}
+
+.ignt-table__header-cell--primary {
+  inset-inline-start: 0;
+  z-index: 3;
+}
+
+.ignt-table__header-cell-text {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ignt-table__header-cell-custom {
+  align-items: center;
+  display: flex;
+  gap: foundations.$space-1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+
+  // The `th` only carries `text-align`, which a flex container ignores, so alignment is restated
+  // here the way the sort trigger restates it.
+  &--align-left {
+    justify-content: flex-start;
+  }
+
+  &--align-center {
+    justify-content: center;
+  }
+
+  &--align-right {
+    justify-content: flex-end;
+  }
+}
+
+.ignt-table__header-cell--align-left {
+  text-align: start;
+}
+
+.ignt-table__header-cell--align-center {
+  text-align: center;
+}
+
+.ignt-table__header-cell--align-right {
+  text-align: end;
+}
+
+.ignt-table__header-cell--sortable {
+  padding: 0;
+}
+
+.ignt-table__header-row:last-child .ignt-table__header-cell {
+  border-bottom: 1px solid foundations.$palette-neutral-200;
+}
+
+.ignt-table__cell {
+  background: foundations.$palette-neutral-white;
+  border-bottom: 1px solid foundations.$palette-neutral-200;
+  box-sizing: border-box;
+  color: foundations.$palette-neutral-800;
+  font: foundations.$font-small-regular;
+  height: $table-row-height;
+  padding: foundations.$space-2 foundations.$space-4;
+  text-align: start;
+  vertical-align: middle;
+}
+
+.ignt-table__cell--primary {
+  inset-inline-start: 0;
+  position: sticky;
+  z-index: 1;
+}
+
+.ignt-table__row:last-child .ignt-table__cell {
+  border-bottom: none;
+}
+
+.ignt-table__row--interactive {
+  cursor: pointer;
+}
+
+.ignt-table__row:not(.ignt-table__row--empty):hover .ignt-table__cell {
+  background: var(--palette-neutral-100, #f2f3f3);
+}
+
+.ignt-table__row:not(.ignt-table__row--empty):hover .ignt-table__cell--primary {
+  background: var(--palette-neutral-100, #f2f3f3);
+}
+
+.ignt-table__row--interactive:focus-visible {
+  outline: foundations.$outline-accessibility;
+  outline-offset: -2px;
+}
+
+.ignt-table__row--empty {
+  cursor: default;
+}
+
+.ignt-table__cell--empty {
+  color: foundations.$palette-neutral-500;
+  height: auto;
+  padding: foundations.$space-6 foundations.$space-4;
+  text-align: center;
+}
+
+.ignt-table__cell--actions {
+  padding: 0 foundations.$space-2;
+  white-space: nowrap;
+}
+
+.ignt-table__cell-inner {
+  align-items: center;
+  display: flex;
+  justify-content: flex-start;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ignt-table__cell-inner--align-left {
+  justify-content: flex-start;
+}
+
+.ignt-table__cell-inner--align-center {
+  justify-content: center;
+}
+
+.ignt-table__cell-inner--align-right {
+  justify-content: flex-end;
+}
+
+// Card view (responsive)
+.ignt-table__cards {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: foundations.$space-3;
+}
+
+.ignt-table__cards--empty {
+  color: foundations.$palette-neutral-500;
+  padding: foundations.$space-6 foundations.$space-4;
+  text-align: center;
+  width: 100%;
+}
+
+.ignt-table__card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background: foundations.$palette-neutral-white;
+  box-sizing: border-box;
+  cursor: default;
+  padding: 0;
+  width: 100%;
+}
+
+.ignt-table__card--has-more:not(:last-child) {
+  border-bottom: 1px solid foundations.$palette-neutral-200;
+}
+
+.ignt-table__card:hover {
+  background: var(--palette-neutral-100, #f2f3f3);
+
+  .ignt-table__card-field-label,
+  .ignt-table__card-field-label-text,
+  .ignt-table__card-field-value {
+    background: var(--palette-neutral-100, #f2f3f3);
+  }
+}
+
+.ignt-table__card--interactive {
+  cursor: pointer;
+}
+
+.ignt-table__card--interactive:focus-visible {
+  outline: foundations.$outline-accessibility;
+  outline-offset: 2px;
+}
+
+.ignt-table__card-header {
+  align-items: center;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  height: $card-primary-row-height;
+  max-height: $card-primary-row-height;
+  min-height: $card-primary-row-height;
+  padding: 0 foundations.$space-4;
+  width: 100%;
+}
+
+.ignt-table__card-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font: foundations.$font-small-bold;
+  color: foundations.$palette-neutral-800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ignt-table__card-action {
+  flex: none;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ignt-table__card-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: foundations.$space-4;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ignt-table__card-bottom--no-more {
+  align-items: stretch;
+}
+
+.ignt-table__card-fields {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  width: 100%;
+}
+
+.ignt-table__card-field-row {
+  align-items: stretch;
+  border-bottom: 1px solid foundations.$palette-neutral-200;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  min-height: $card-secondary-row-height;
+  width: 100%;
+}
+
+.ignt-table__card-fields--more {
+  width: 100%;
+}
+
+.ignt-table__card-accordion {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease-out;
+  width: 100%;
+}
+
+.ignt-table__card-accordion--open {
+  grid-template-rows: 1fr;
+}
+
+.ignt-table__card-accordion-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ignt-table__card-field-label {
+  align-items: center;
+  box-sizing: border-box;
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 foundations.$space-4 0 0;
+}
+
+.ignt-table__card-field-label-text {
+  box-sizing: border-box;
+  color: foundations.$palette-neutral-800;
+  /* stylelint-disable-next-line value-no-vendor-prefix -- display:-webkit-box pairs with -webkit-line-clamp for ellipsis */
+  display: -webkit-box;
+  font: foundations.$font-small-bold;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  line-height: $card-field-label-line-height;
+  max-height: $card-field-label-max-height;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.ignt-table__card-field-value {
+  align-items: center;
+  align-self: stretch;
+  background: foundations.$palette-neutral-white;
+  box-sizing: border-box;
+  color: foundations.$palette-neutral-800;
+  display: flex;
+  // Shrinks and wraps a long value instead of clipping it; the cap keeps the label readable beside it.
+  flex: 0 1 auto;
+  flex-direction: row;
+  font: foundations.$font-small-regular;
+  gap: foundations.$space-2;
+  justify-content: flex-end;
+  max-width: 70%;
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  padding: 0 foundations.$space-4;
+  text-align: end;
+}
+
+.ignt-table__card-more {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0 foundations.$space-1;
+  gap: foundations.$space-1;
+  margin-top: foundations.$space-4;
+  background: transparent;
+  border: none;
+  font: foundations.$font-base-bold;
+  color: foundations.$palette-primary-600;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

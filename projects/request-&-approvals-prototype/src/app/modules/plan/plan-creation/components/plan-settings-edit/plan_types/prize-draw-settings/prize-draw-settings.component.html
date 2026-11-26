@@ -1,0 +1,161 @@
+<div class="prize-draw-settings">
+  <div class="prize-draw-settings__title" translate>planSettings.title</div>
+
+  @if (showStatusBanner()) {
+    <ignt-alert class="prize-draw-settings__banner" sentiment="warning" [description]="statusBannerDescription()"></ignt-alert>
+  }
+
+  <div class="prize-draw-settings__content">
+    <form [formGroup]="prizeDrawSettingsForm" class="prize-draw-settings__form">
+      <div class="prize-draw-settings__dates">
+        <div class="prize-draw-settings__date-field">
+          <label class="prize-draw-settings__label" for="prize-draw-event-start-date">
+            {{ 'planSettings.prizeDraw.eventStartDate' | translate }}
+          </label>
+          <p class="prize-draw-settings__helper-text">
+            {{ 'planSettings.prizeDraw.eventStartDateHelper' | translate }}
+          </p>
+          <ignt-native-date-input
+            type="datetime-local"
+            inputId="prize-draw-event-start-date"
+            [value]="prizeDrawSettingsForm.get('eventStartsAt')?.value || ''"
+            [min]="eventStartsAtMin"
+            [disabled]="!isEventDatesEditable()"
+            [hasError]="!!eventStartDateErrorMessage()"
+            [errorMessage]="eventStartDateErrorMessage() || ''"
+            testId="prize-draw-event-start-date"
+            (valueChange)="onEventStartsAtChange($event)"
+            (blurred)="onEventStartsAtBlur()"
+          />
+        </div>
+
+        <div class="prize-draw-settings__date-field">
+          <label class="prize-draw-settings__label" for="prize-draw-event-end-date">
+            {{ 'planSettings.prizeDraw.eventEndDate' | translate }}
+          </label>
+          <p class="prize-draw-settings__helper-text">
+            {{ 'planSettings.prizeDraw.eventEndDateHelper' | translate }}
+          </p>
+          <ignt-native-date-input
+            type="datetime-local"
+            inputId="prize-draw-event-end-date"
+            [value]="prizeDrawSettingsForm.get('eventEndsAt')?.value || ''"
+            [min]="eventEndsAtMin"
+            [disabled]="!isEventDatesEditable()"
+            [hasError]="!!eventEndDateErrorMessage()"
+            [errorMessage]="eventEndDateErrorMessage() || ''"
+            testId="prize-draw-event-end-date"
+            (valueChange)="onEventEndsAtChange($event)"
+            (blurred)="onEventEndsAtBlur()"
+          />
+        </div>
+      </div>
+
+      <div class="prize-draw-settings__dates">
+        <div class="prize-draw-settings__date-field">
+          <label class="prize-draw-settings__label" for="prize-draw-draw-start-date">
+            {{ 'planSettings.prizeDraw.drawStartDate' | translate }}
+          </label>
+          <p class="prize-draw-settings__helper-text">
+            {{ 'planSettings.prizeDraw.drawStartDateHelper' | translate }}
+          </p>
+          <ignt-native-date-input
+            type="datetime-local"
+            inputId="prize-draw-draw-start-date"
+            [value]="prizeDrawSettingsForm.get('drawStartsAt')?.value || ''"
+            [min]="drawStartsAtMin"
+            [disabled]="!isDrawStartDateEditable()"
+            [hasError]="!!drawStartDateErrorMessage()"
+            [errorMessage]="drawStartDateErrorMessage() || ''"
+            testId="prize-draw-draw-start-date"
+            (valueChange)="onDrawStartsAtChange($event)"
+            (blurred)="onDrawStartsAtBlur()"
+          />
+        </div>
+
+        <div class="prize-draw-settings__date-field">
+          <label class="prize-draw-settings__label" for="prize-draw-draw-end-date">
+            {{ 'planSettings.prizeDraw.drawEndDate' | translate }}
+          </label>
+          <p class="prize-draw-settings__helper-text">
+            {{ 'planSettings.prizeDraw.drawEndDateHelper' | translate }}
+          </p>
+          <ignt-native-date-input
+            type="datetime-local"
+            inputId="prize-draw-draw-end-date"
+            [value]="prizeDrawSettingsForm.get('drawEndsAt')?.value || ''"
+            [min]="drawEndsAtMin"
+            [disabled]="!isDrawEndDateEditable()"
+            [hasError]="!!drawEndDateErrorMessage()"
+            [errorMessage]="drawEndDateErrorMessage() || ''"
+            testId="prize-draw-draw-end-date"
+            (valueChange)="onDrawEndsAtChange($event)"
+            (blurred)="onDrawEndsAtBlur()"
+          />
+        </div>
+      </div>
+
+      <div class="prize-draw-settings__points-field">
+        <label class="prize-draw-settings__label" for="prize-draw-points">
+          {{ 'planSettings.prizeDraw.pointsAmountPerParticipation' | translate }}
+        </label>
+        <ignt-input-field
+          id="prize-draw-points"
+          type="number"
+          formControlName="pointsAmountPerParticipation"
+          [label]="'planSettings.prizeDraw.pointsAmountPerParticipation' | translate"
+          [disabled]="!isPointsEditable()"
+          placeholder="1"
+          [customFormErrors]="[
+            {
+              type: 'required',
+              message: 'common.requiredField' | translate,
+            },
+            {
+              type: 'min',
+              message: 'planSettings.prizeDraw.errors.pointsMin' | translate,
+            },
+            {
+              type: 'integer',
+              message: 'planSettings.prizeDraw.errors.pointsInteger' | translate,
+            },
+          ]"
+          (blurred)="onPointsBlur()"
+          data-testid="prize-draw-points"
+        ></ignt-input-field>
+      </div>
+    </form>
+
+    @if (cancellationSettingsFacade.isVisible()) {
+      <div class="prize-draw-settings__cancellations">
+        <app-cancellation-settings-section
+          [form]="cancellationSettingsFacade.form"
+          [config]="cancellationSettingsFacade.config()"
+          [canEditPlan]="isAnyFieldEditable()"
+          [onFormDirtyChange]="onFormDirtyChange()"
+          [withCard]="false"
+        ></app-cancellation-settings-section>
+      </div>
+    }
+  </div>
+</div>
+
+<app-actions-bar
+  [useConfirmButton]="true"
+  [showSaveDraftButton]="mode() === 'creation'"
+  [continueButtonTranslationKey]="mode() === 'edit' ? 'common.saveSettings' : continueToNextTab() ? 'common.continue' : undefined"
+  [continueButtonDisabled]="
+    !isAnyFieldEditable() ||
+    prizeDrawSettingsForm.invalid ||
+    cancellationSettingsFacade.isInvalid ||
+    isSaving() ||
+    hasAnyError ||
+    (mode() === 'edit' && !hasPendingChanges)
+  "
+  [continueButtonLoading]="isSaving()"
+  [saveDraftDisabled]="!isAnyFieldEditable() || isSaving()"
+  (saveDraft)="onSaveDraft()"
+  (continue)="onConfirm()"
+  continueButtonTestId="prize-draw-settings-confirm"
+  saveDraftTestId="prize-draw-settings-save-draft"
+></app-actions-bar>

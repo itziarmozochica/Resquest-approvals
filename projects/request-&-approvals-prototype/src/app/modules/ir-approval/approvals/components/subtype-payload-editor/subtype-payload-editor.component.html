@@ -1,0 +1,186 @@
+@if (isUrlBased()) {
+  <section class="subtype-payload-editor" [formGroup]="form" data-testid="subtype-payload-editor-urls">
+    <h2 class="subtype-payload-editor__title">{{ 'approvals.new.payload.urls.title' | translate }}</h2>
+    <p class="subtype-payload-editor__hint">{{ 'approvals.new.payload.urls.hint' | translate }}</p>
+
+    <div class="subtype-payload-editor__row">
+      <input
+        type="url"
+        class="form-control"
+        [value]="urlDraft()"
+        (input)="onUrlDraftChange(eventValue($event))"
+        [placeholder]="'approvals.new.payload.urls.placeholder' | translate"
+        [disabled]="disabled()"
+        (keydown.enter)="addUrl(); $event.preventDefault()"
+        data-testid="subtype-payload-editor-url-input"
+      />
+      <ignt-button
+        variant="secondary"
+        [label]="'approvals.new.payload.urls.add' | translate"
+        [disabled]="disabled() || !urlDraft().trim().length"
+        (click)="addUrl()"
+        data-testid="subtype-payload-editor-url-add"
+      />
+    </div>
+
+    @if (urlError(); as errorKey) {
+      <p class="subtype-payload-editor__error" data-testid="subtype-payload-editor-url-error">
+        {{ 'approvals.new.payload.urls.errors.' + errorKey | translate }}
+      </p>
+    }
+
+    @if (entries().length) {
+      <div class="subtype-payload-editor__bulk" data-testid="subtype-payload-editor-bulk">
+        <span class="subtype-payload-editor__bulk-label">{{ 'approvals.new.payload.bulk.label' | translate }}</span>
+        <ignt-button
+          variant="secondary"
+          size="small"
+          [label]="'approvals.new.payload.bulk.approveAll' | translate"
+          [disabled]="disabled()"
+          (click)="setAllModes('approve')"
+          data-testid="subtype-payload-editor-set-all-approve"
+        />
+        <ignt-button
+          variant="secondary"
+          size="small"
+          [label]="'approvals.new.payload.bulk.informAll' | translate"
+          [disabled]="disabled()"
+          (click)="setAllModes('inform')"
+          data-testid="subtype-payload-editor-set-all-inform"
+        />
+      </div>
+
+      <ul class="subtype-payload-editor__list" data-testid="subtype-payload-editor-url-list">
+        @for (entry of entries(); track entry.url; let i = $index) {
+          <li class="subtype-payload-editor__item" data-testid="subtype-payload-editor-url-entry">
+            <div class="subtype-payload-editor__item-head">
+              <span class="subtype-payload-editor__url" [title]="entry.url">{{ entry.url }}</span>
+              <span class="subtype-payload-editor__select-wrap">
+                <select
+                  class="form-select subtype-payload-editor__mode"
+                  [value]="entry.mode"
+                  (change)="setMode(i, eventValue($event))"
+                  [disabled]="disabled()"
+                  [attr.data-testid]="'subtype-payload-editor-url-mode-' + i"
+                >
+                  <option value="approve">{{ 'approvals.new.payload.modes.approve' | translate }}</option>
+                  <option value="inform">{{ 'approvals.new.payload.modes.inform' | translate }}</option>
+                </select>
+              </span>
+              <ignt-button
+                variant="tertiary"
+                sentiment="danger"
+                size="small"
+                label="×"
+                [ariaLabel]="'approvals.new.payload.urls.remove' | translate"
+                [disabled]="disabled()"
+                (click)="removeUrl(i)"
+                [attr.data-testid]="'subtype-payload-editor-url-remove-' + i"
+              />
+            </div>
+            <input
+              type="text"
+              class="form-control subtype-payload-editor__description"
+              [value]="entry.description"
+              (input)="onDescriptionChange(i, eventValue($event))"
+              [placeholder]="'approvals.new.payload.urls.description.placeholder' | translate"
+              [disabled]="disabled()"
+              [attr.data-testid]="'subtype-payload-editor-url-description-' + i"
+            />
+          </li>
+        }
+      </ul>
+    }
+  </section>
+}
+
+@if (isSheetBased()) {
+  <section class="subtype-payload-editor" [formGroup]="form" data-testid="subtype-payload-editor-sheet">
+    <h2 class="subtype-payload-editor__title">{{ 'approvals.new.payload.sheet.title' | translate }}</h2>
+    <label class="subtype-payload-editor__field">
+      <span class="subtype-payload-editor__label">{{ 'approvals.new.payload.sheet.tabId' | translate }}</span>
+      <input
+        type="url"
+        class="form-control"
+        [value]="sheetUrl()"
+        (input)="onSheetUrlChange(eventValue($event))"
+        [placeholder]="'approvals.new.payload.sheet.urlPlaceholder' | translate"
+        [disabled]="disabled()"
+        [attr.aria-invalid]="sheetUrlError() ? 'true' : null"
+        data-testid="subtype-payload-editor-sheet-url"
+      />
+    </label>
+    <div class="subtype-payload-editor__row">
+      @if (sheetTabs().length > 1) {
+        <select
+          class="form-select"
+          [value]="sheetTabId()"
+          (change)="onSheetTabChange(eventValue($event))"
+          [disabled]="disabled() || sheetLoading()"
+          data-testid="subtype-payload-editor-sheet-tab"
+        >
+          @for (tab of sheetTabs(); track tab.sheetTabId) {
+            <option [value]="tab.sheetTabId">{{ tab.title }}</option>
+          }
+        </select>
+      }
+      <ignt-button
+        variant="secondary"
+        [label]="(sheetLoading() ? 'approvals.new.payload.sheet.loading' : 'approvals.new.payload.sheet.load') | translate"
+        [disabled]="disabled() || sheetLoading() || !spreadsheetId()"
+        (click)="loadSheetPreview()"
+        data-testid="subtype-payload-editor-sheet-load"
+      />
+    </div>
+    @if (sheetUrlError(); as errorKey) {
+      <p class="subtype-payload-editor__error" data-testid="subtype-payload-editor-sheet-error">
+        {{ 'approvals.new.payload.sheet.errors.' + errorKey | translate }}
+      </p>
+    }
+    @if (sheetPreviewRows().length) {
+      <div class="subtype-payload-editor__sheet-preview" data-testid="subtype-payload-editor-sheet-preview">
+        <p class="subtype-payload-editor__hint" data-testid="subtype-payload-editor-hide-hint">
+          {{ 'approvals.new.payload.sheet.hideHint' | translate }}
+        </p>
+        <div class="subtype-payload-editor__sheet-scroll">
+          <table class="subtype-payload-editor__sheet-table">
+            <thead>
+              <tr>
+                @for (cell of sheetPreviewRows()[0]; track $index) {
+                  <th scope="col" [class.subtype-payload-editor__col--hidden]="isColumnHidden($index)">
+                    <div class="subtype-payload-editor__col-head">
+                      <span class="subtype-payload-editor__col-name">{{ cell }}</span>
+                      <button
+                        type="button"
+                        class="subtype-payload-editor__col-toggle"
+                        [disabled]="disabled()"
+                        [attr.aria-pressed]="isColumnHidden($index)"
+                        [attr.title]="
+                          (isColumnHidden($index) ? 'approvals.new.payload.sheet.showColumn' : 'approvals.new.payload.sheet.hideColumn')
+                            | translate
+                        "
+                        (click)="toggleColumnHidden($index)"
+                        [attr.data-testid]="'subtype-payload-editor-col-toggle-' + $index"
+                      >
+                        {{ (isColumnHidden($index) ? 'approvals.new.payload.sheet.show' : 'approvals.new.payload.sheet.hide') | translate }}
+                      </button>
+                    </div>
+                  </th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of visiblePreviewDataRows(); track $index) {
+                <tr>
+                  @for (cell of row; track $index) {
+                    <td [class.subtype-payload-editor__col--hidden]="isColumnHidden($index)">{{ cell }}</td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+  </section>
+}

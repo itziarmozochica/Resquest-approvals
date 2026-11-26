@@ -1,0 +1,127 @@
+<form [formGroup]="form" (ngSubmit)="onSubmit()" class="dynamic-form">
+  <div *ngFor="let field of config.fields" class="dynamic-form__form-group" [ngClass]="field.cssClass">
+    <!-- Text Input -->
+    <ng-container *ngIf="field.type === 'text'">
+      <div class="dynamic-form__input-wrapper">
+        <input
+          [id]="field.name"
+          type="text"
+          [formControlName]="field.name"
+          [placeholder]="
+            getControl(field.name)?.value || isFocused(field.name) ? '' : field.placeholder || field.label + (field.required ? ' *' : '')
+          "
+          class="dynamic-form__form-input"
+          [class.dynamic-form__form-input--error]="getFieldState(field.name).isInvalid"
+          [class.dynamic-form__form-input--has-value]="getControl(field.name)?.value"
+          [class.dynamic-form__form-input--focused]="isFocused(field.name)"
+          [attr.aria-describedby]="getFieldState(field.name).ariaDescribedBy || null"
+          [attr.aria-invalid]="getFieldState(field.name).isInvalid"
+          (focus)="onInputFocus($event)"
+          (blur)="onInputBlur($event)"
+        />
+        <label
+          [for]="field.name"
+          class="dynamic-form__form-label"
+          [class.dynamic-form__form-label--floating]="getControl(field.name)?.value || isFocused(field.name)"
+        >
+          {{ field.label }}
+          <span *ngIf="field.required" class="dynamic-form__required">*</span>
+        </label>
+      </div>
+    </ng-container>
+
+    <!-- Textarea -->
+    <ng-container *ngIf="field.type === 'textarea'">
+      <div class="dynamic-form__input-wrapper">
+        <textarea
+          [id]="field.name"
+          [formControlName]="field.name"
+          [placeholder]="
+            getControl(field.name)?.value || isFocused(field.name) ? '' : field.placeholder || field.label + (field.required ? ' *' : '')
+          "
+          [rows]="field.rows || 3"
+          class="dynamic-form__form-textarea"
+          [class.dynamic-form__form-input--error]="getFieldState(field.name).isInvalid"
+          [class.dynamic-form__form-input--has-value]="getControl(field.name)?.value"
+          [class.dynamic-form__form-input--focused]="isFocused(field.name)"
+          [attr.aria-describedby]="getFieldState(field.name).ariaDescribedBy || null"
+          [attr.aria-invalid]="getFieldState(field.name).isInvalid"
+          (focus)="onInputFocus($event)"
+          (blur)="onInputBlur($event)"
+        ></textarea>
+        <label
+          [for]="field.name"
+          class="dynamic-form__form-label"
+          [class.dynamic-form__form-label--floating]="getControl(field.name)?.value || isFocused(field.name)"
+        >
+          {{ field.label }}
+          <span *ngIf="field.required" class="dynamic-form__required">*</span>
+        </label>
+      </div>
+    </ng-container>
+
+    <!-- Select -->
+    <ng-container *ngIf="field.type === 'select'">
+      <div class="dynamic-form__input-wrapper">
+        <select
+          [id]="field.name"
+          [formControlName]="field.name"
+          class="dynamic-form__form-select"
+          [class.dynamic-form__form-input--error]="getFieldState(field.name).isInvalid"
+          [class.dynamic-form__form-input--has-value]="getControl(field.name)?.value"
+          [class.dynamic-form__form-input--focused]="isFocused(field.name)"
+          [class.dynamic-form__form-select--empty]="!getControl(field.name)?.value && !isFocused(field.name)"
+          [attr.aria-describedby]="getFieldState(field.name).ariaDescribedBy || null"
+          [attr.aria-invalid]="getFieldState(field.name).isInvalid"
+          (focus)="onInputFocus($event)"
+          (blur)="onInputBlur($event)"
+        >
+          <option value="" disabled [selected]="!getControl(field.name)?.value">
+            {{ field.placeholder || field.label + (field.required ? ' *' : '') || 'Select an option' }}
+          </option>
+          <option *ngFor="let option of field.options" [value]="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+        <label
+          [for]="field.name"
+          class="dynamic-form__form-label"
+          [class.dynamic-form__form-label--floating]="getControl(field.name)?.value || isFocused(field.name)"
+        >
+          {{ field.label }}
+          <span *ngIf="field.required" class="dynamic-form__required">*</span>
+        </label>
+      </div>
+    </ng-container>
+
+    <!-- Help Text -->
+    <div *ngIf="field.helpText" [id]="field.name + '-help'" class="dynamic-form__form-help">
+      {{ field.helpText }}
+    </div>
+
+    <!-- Error Messages -->
+    <div *ngIf="getFieldState(field.name).isInvalid" [id]="field.name + '-error'" role="alert" class="dynamic-form__form-error">
+      {{ getFieldState(field.name).errorMessage }}
+    </div>
+  </div>
+
+  <!-- Form Actions -->
+  <div class="dynamic-form__actions">
+    <button igntButton sentiment="primary" type="submit" [fill]="true" [disabled]="isSubmitDisabled" data-testid="modal-accept-button">
+      <fa-icon *ngIf="isLoading" [icon]="['fas', 'spinner']" animation="spin"></fa-icon>
+      {{ config.submitButtonText || 'Submit' }}
+    </button>
+    <button
+      igntButton
+      sentiment="secondary"
+      variant="danger"
+      [fill]="true"
+      *ngIf="config.showCancelButton"
+      type="button"
+      (click)="onCancel()"
+      [disabled]="isLoading"
+    >
+      {{ config.cancelButtonText || 'Cancel' }}
+    </button>
+  </div>
+</form>

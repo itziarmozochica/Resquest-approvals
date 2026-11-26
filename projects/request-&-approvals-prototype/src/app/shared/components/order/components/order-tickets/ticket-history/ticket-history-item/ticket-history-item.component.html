@@ -1,0 +1,97 @@
+<app-shared-timeline-item
+  [a11yLabels]="a11yLabels()"
+  [dateFormat]="dateFormat"
+  [datetime]="historyItem().date ?? ''"
+  [description]="historyItem().description ?? ''"
+  [descriptionLineClamp]="descriptionLineClamp()"
+  headerLayout="inline"
+  [icon]="icon()"
+  [iconSentiment]="iconSentiment()"
+  iconSize="small"
+  [id]="historyItem().key"
+  [initialExpanded]="isTransferInProgress()"
+  [showConnectorBelow]="showConnectorBelow()"
+  [timezone]="sessionTimezone()"
+  [title]="historyItem().name"
+  data-testid="ticket-history-item"
+>
+  @if (hasExpandableContent()) {
+    <ng-template #expandedContent>
+      @switch (historyItem().type) {
+        @case (ticketHistoryItemType.TRANSFER_IN_PROGRESS) {
+          @let user = transferUser();
+          <div class="ticket-history-item__transfer-details" data-testid="ticket-history-transfer-details">
+            @if (user) {
+              <span class="ticket-history-item__extra-info-label"
+                ><strong>{{ 'validateTicketsNew.ticketHistory.receiver' | translate }}:</strong> {{ user.email }}</span
+              >
+            }
+            <div class="ticket-history-item__actions">
+              @if (user) {
+                <a
+                  role="button"
+                  class="ticket-history-item__resend-email-button"
+                  igntLink
+                  sentiment="primary"
+                  size="small"
+                  (click)="resendTransferEmail()"
+                  data-testid="ticket-history-resend-transfer-email"
+                >
+                  @if (isResendingEmail()) {
+                    <ignt-icon name="spinner" variant="solid" size="small" [spin]="true" aria-hidden="true" />
+                  } @else {
+                    {{ 'validateTicketsNew.ticketHistory.resendTransferEmail' | translate }}
+                  }
+                </a>
+              }
+              <a
+                role="button"
+                class="ticket-history-item__cancel-transfer-button"
+                data-testid="ticket-history-cancel-transfer"
+                igntLink
+                sentiment="danger"
+                size="small"
+                (click)="openCancelTransferDialog()"
+              >
+                @if (isLoading()) {
+                  <ignt-icon
+                    class="ticket-history-item__cancel-transfer-spinner"
+                    name="spinner"
+                    variant="solid"
+                    size="small"
+                    [spin]="true"
+                    aria-hidden="true"
+                  />
+                  {{ 'validateTicketsNew.ticketHistory.cancellingTransfer' | translate }}
+                } @else {
+                  {{ 'validateTicketsNew.ticketHistory.cancelTransfer' | translate }}
+                }
+              </a>
+            </div>
+          </div>
+        }
+        @case (ticketHistoryItemType.TRANSFER_COMPLETED) {
+          <span class="ticket-history-item__extra-info-label"
+            ><strong>{{ 'validateTicketsNew.ticketHistory.owner' | translate }}:</strong> {{ transferUser()?.email }}</span
+          >
+        }
+        @default {
+          <div class="ticket-history-item__details" data-testid="ticket-history-item-details">
+            @let validator = validatorLabel();
+            @if (validator) {
+              <span class="ticket-history-item__extra-info-label" data-testid="ticket-history-item-validator"
+                ><strong>{{ 'validateTicketsNew.tickets.validator' | translate }}</strong> {{ validator }}</span
+              >
+            }
+            @let profileName = profile();
+            @if (profileName) {
+              <span class="ticket-history-item__extra-info-label" data-testid="ticket-history-item-profile"
+                ><strong>{{ 'validateTicketsNew.tickets.profile' | translate }}</strong> {{ profileName }}</span
+              >
+            }
+          </div>
+        }
+      }
+    </ng-template>
+  }
+</app-shared-timeline-item>

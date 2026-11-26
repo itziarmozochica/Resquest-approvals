@@ -1,0 +1,157 @@
+<div class="plan-tags-edition">
+  @if (state() === 'loading') {
+    <div class="plan-tags-edition__grid" data-testid="tags-loading">
+      @for (slot of [1, 2, 3]; track slot) {
+        <div class="plan-tags-edition__cell">
+          <ignt-skeleton-base [animation]="true" [height]="14" [width]="'45%'" />
+          <ignt-skeleton-base [animation]="true" [height]="60" [width]="'100%'" />
+        </div>
+      }
+    </div>
+  }
+
+  @if (state() === 'error') {
+    <div class="plan-tags-edition__error" data-testid="tags-error">
+      <p class="plan-tags-edition__error-message">{{ 'planEdition.tags.loadError' | translate }}</p>
+      <button class="button button--secondary" (click)="retry()">
+        {{ 'common.retry' | translate }}
+      </button>
+    </div>
+  }
+
+  @if (state() === 'ok') {
+    @if (isEmpty()) {
+      <p class="plan-tags-edition__empty" data-testid="tags-empty">
+        {{ 'planEdition.tags.noTagsAvailable' | translate }}
+      </p>
+    } @else {
+      <div class="plan-tags-edition__sections" data-testid="tags-grid">
+        @if (requiredSelectorsCount() > 0) {
+          <div class="plan-tags-edition__section">
+            <p class="plan-tags-edition__section-title" data-testid="mandatory-tags-title">
+              {{ 'planEdition.tags.mandatoryTagsTitle' | translate }}
+            </p>
+            <div class="plan-tags-edition__grid">
+              @for (orderedSelector of requiredSelectors(); track $index) {
+                <ng-container [ngTemplateOutlet]="selectorField" [ngTemplateOutletContext]="{ orderedSelector: orderedSelector }" />
+              }
+            </div>
+          </div>
+        }
+
+        @if (requiredSelectorsCount() > 0 && optionalSelectorsCount() > 0) {
+          <div class="plan-tags-edition__separator" data-testid="required-optional-separator"></div>
+        }
+
+        @if (optionalSelectorsCount() > 0) {
+          <div class="plan-tags-edition__section">
+            <p class="plan-tags-edition__section-title" data-testid="optional-tags-title">
+              {{ 'planEdition.tags.optionalTagsTitle' | translate }}
+            </p>
+            <div class="plan-tags-edition__grid">
+              @for (orderedSelector of optionalSelectors(); track $index) {
+                <ng-container [ngTemplateOutlet]="selectorField" [ngTemplateOutletContext]="{ orderedSelector: orderedSelector }" />
+              }
+            </div>
+          </div>
+        }
+      </div>
+      @if (!isDraftMode()) {
+        <div class="plan-tags-edition__footer">
+          <ignt-button
+            data-testid="plan-tags-edition-publish"
+            [disabled]="!canSave()"
+            [label]="'planEdition.tags.publish' | translate"
+            (click)="save()"
+          />
+        </div>
+      }
+    }
+  }
+</div>
+
+<ng-template #labelRow let-text="text" let-tooltip="tooltip">
+  <div class="plan-tags-edition__label-row">
+    <label class="plan-tags-edition__label">{{ text }}</label>
+    @if (tooltip) {
+      <ignt-icon
+        class="plan-tags-edition__info-icon"
+        name="info-circle"
+        variant="solid"
+        size="caption"
+        [appTemplatedTooltip]="tooltipContent"
+        [appTemplatedTooltipContext]="{ text: tooltip }"
+      ></ignt-icon>
+    }
+  </div>
+</ng-template>
+
+<ng-template #selectorField let-orderedSelector="orderedSelector">
+  @if (orderedSelector.kind === 'taxonomy') {
+    <div class="plan-tags-edition__cell" [attr.data-testid]="'taxonomy-field-' + orderedSelector.selector.hierarchy.id">
+      <ng-container
+        [ngTemplateOutlet]="labelRow"
+        [ngTemplateOutletContext]="{
+          text: orderedSelector.selector.hierarchy.name,
+          tooltip: orderedSelector.selector.hierarchy.description,
+        }"
+      />
+      @if (orderedSelector.selector.hierarchy.maxTermsPerPlan === 1) {
+        <ignt-typeahead
+          [options]="orderedSelector.selector.options"
+          [selectedOption]="orderedSelector.selector.selectedOptions[0]"
+          [disabled]="!effectiveCanEdit()"
+          [emptyLabel]="orderedSelector.selector.displayLabel"
+          [fieldLabel]="orderedSelector.selector.displayLabel"
+          [error]="orderedSelector.selector.error !== null"
+          [errorMessage]="orderedSelector.selector.error ? (orderedSelector.selector.error | translate) : null"
+          (selected)="onTaxonomySelected(orderedSelector.selector.hierarchy.id, $event)"
+          (userInteraction)="onTaxonomyBlurred(orderedSelector.selector.hierarchy.id, $event)"
+        />
+      } @else {
+        <app-multi-select
+          [options]="orderedSelector.selector.options"
+          [selectedOptions]="orderedSelector.selector.selectedOptions"
+          [maxSelectedOptions]="orderedSelector.selector.hierarchy.maxTermsPerPlan"
+          [disabled]="!effectiveCanEdit()"
+          [placeholder]="orderedSelector.selector.displayLabel"
+          [displayInPlaceMaximum]="2"
+          [searchPlaceholder]="'planEdition.tags.selectOption' | translate"
+          [errorMessage]="orderedSelector.selector.error ? (orderedSelector.selector.error | translate) : null"
+          (selected)="onTaxonomyMultiSelected(orderedSelector.selector.hierarchy.id, $event)"
+        />
+      }
+    </div>
+  } @else {
+    <div
+      class="plan-tags-edition__cell"
+      [attr.data-testid]="orderedSelector.type === 'event' ? 'event-labels-field' : 'marketing-label-field'"
+    >
+      <ng-container
+        [ngTemplateOutlet]="labelRow"
+        [ngTemplateOutletContext]="{
+          text:
+            orderedSelector.type === 'event' ? ('planEdition.tags.eventTag' | translate) : ('planEdition.tags.marketingTag' | translate),
+          tooltip: 'planEdition.tags.customLabelTooltip' | translate,
+        }"
+      />
+      <app-multi-select
+        [options]="orderedSelector.selector.options"
+        [selectedOptions]="orderedSelector.selector.selectedOptions"
+        [maxSelectedOptions]="orderedSelector.selector.maxLabelsPerPlan"
+        [disabled]="!effectiveCanEdit()"
+        [placeholder]="
+          orderedSelector.type === 'event' ? ('planEdition.tags.eventTag' | translate) : ('planEdition.tags.marketingTag' | translate)
+        "
+        [displayInPlaceMaximum]="2"
+        [searchPlaceholder]="'planEdition.tags.selectOption' | translate"
+        [errorMessage]="orderedSelector.selector.error ? (orderedSelector.selector.error | translate) : null"
+        (selected)="orderedSelector.type === 'event' ? onEventLabelsSelected($event) : onMarketingLabelsSelected($event)"
+      />
+    </div>
+  }
+</ng-template>
+
+<ng-template #tooltipContent let-text="text">
+  <div class="plan-tags-edition__tooltip">{{ text }}</div>
+</ng-template>

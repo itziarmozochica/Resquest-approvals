@@ -1,0 +1,167 @@
+@use '../../styles/drag-handle' as drag;
+@use 'foundations' as foundations;
+
+:host {
+  display: block;
+}
+
+// One nested level of child array groups (e.g. a lineup item's own subitems), indented under the
+// row it belongs to so it reads as part of that row rather than a sibling of the parent group. The
+// nesting is real component nesting now, so the host classes itself instead of a shared ancestor
+// stylesheet reaching down with `::ng-deep`.
+:host(.immersive-array-group--nested) {
+  margin-inline-start: foundations.$space-5;
+}
+
+.immersive-array-group {
+  display: grid;
+  gap: foundations.$space-4;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.immersive-array-group__title {
+  align-items: center;
+  color: foundations.$color-text-subtle;
+  display: flex;
+  font: foundations.$font-caption-bold;
+  gap: foundations.$space-2;
+  letter-spacing: 0.04em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+// `ignt-accordion` clips its rows to the rounded frame with `overflow: hidden`, and
+// `ignt-button-dropdown` renders its options inline (`position: absolute`) rather than in an
+// overlay — so an enum dropdown inside an item gets cut off at the group's bottom edge. We give
+// the clipping up and round the end rows by hand, which is the only part `overflow` was buying.
+// An item's own copy is the header, so it can be a long line: keep it to one. `min-width: 0` is
+// what lets the title shrink — a flex item defaults to its content width and would never ellipsis.
+:host ::ng-deep .ignt-accordion-item__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:host ::ng-deep .ignt-accordion {
+  overflow: visible;
+}
+
+// The accordion host is a plain custom element with `min-width: auto`; it must be allowed to shrink
+// with the grid track above for the title ellipsis to ever engage.
+:host ::ng-deep ignt-accordion,
+:host ::ng-deep ignt-accordion-item {
+  min-width: 0;
+}
+
+// The item and its actions are one list row: a hairline between rows (the item's own is reset, since
+// it is always the first of its row), the item stretching to leave the actions at the end, and the
+// frame's rounded ends repeated on the first and last row, which no longer clip.
+// The actions sit over the header's end corner, out of the flow, so an expanded body still spans the
+// whole row; the header reserves their width through `padding-inline-end`.
+.immersive-array-group__row {
+  position: relative;
+
+  & + & {
+    border-top: 1px solid foundations.$color-border-main;
+  }
+
+  &:first-of-type {
+    border-start-end-radius: foundations.$radii-2;
+    border-start-start-radius: foundations.$radii-2;
+  }
+
+  &:last-of-type {
+    border-end-end-radius: foundations.$radii-2;
+    border-end-start-radius: foundations.$radii-2;
+  }
+}
+
+.immersive-array-group__item {
+  display: block;
+  min-width: 0;
+}
+
+:host ::ng-deep .immersive-array-group__item > .ignt-accordion-item > .ignt-accordion-item__header {
+  padding-inline-end: calc(foundations.$size-20 + foundations.$space-2);
+}
+
+:host ::ng-deep .immersive-array-group__row:first-of-type > ignt-accordion-item > .ignt-accordion-item {
+  border-start-start-radius: foundations.$radii-2;
+}
+
+:host ::ng-deep .immersive-array-group__row:last-of-type > ignt-accordion-item > .ignt-accordion-item {
+  border-end-start-radius: foundations.$radii-2;
+}
+
+// Aligned with the item's header: its `list` padding (`space-3`) around a `leading-base` line is 3rem.
+.immersive-array-group__row-actions {
+  align-items: center;
+  background: foundations.$color-background-main;
+  block-size: foundations.$size-12;
+  display: flex;
+  gap: foundations.$space-1;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  padding-inline: foundations.$space-2 foundations.$space-4;
+  position: absolute;
+
+  .immersive-array-group__row:first-of-type > & {
+    border-start-end-radius: foundations.$radii-2;
+  }
+
+  .immersive-array-group__row:last-of-type > & {
+    border-end-end-radius: foundations.$radii-2;
+  }
+
+  &:hover {
+    background: foundations.$palette-neutral-50;
+  }
+}
+
+// The header's hover and the actions' hover read as one row: either one tints the other.
+:host ::ng-deep .immersive-array-group__row:has(.ignt-accordion-item__header:hover) > .immersive-array-group__row-actions {
+  background: foundations.$palette-neutral-50;
+}
+
+:host
+  ::ng-deep
+  .immersive-array-group__row:has(.immersive-array-group__row-actions:hover)
+  > ignt-accordion-item
+  > .ignt-accordion-item
+  > .ignt-accordion-item__header {
+  background: foundations.$palette-neutral-50;
+}
+
+.immersive-array-group__fields {
+  display: grid;
+  gap: foundations.$space-4;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.immersive-array-group__drag-handle {
+  @include drag.drag-handle;
+}
+
+.immersive-array-group__row.cdk-drag-preview {
+  border-radius: foundations.$radii-2;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+}
+
+.immersive-array-group__row.cdk-drag-placeholder {
+  opacity: 0;
+}
+
+.immersive-array-group__row.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+// `cdkDropList` attaches to the `<ignt-accordion>` host itself, which carries no class of its own —
+// `.ignt-accordion` (used above) is an inner wrapper div, not the drop-list element.
+:host ::ng-deep ignt-accordion.cdk-drop-list-dragging .immersive-array-group__row:not(.cdk-drag-placeholder) {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.immersive-array-group__add-item {
+  margin-left: auto;
+}

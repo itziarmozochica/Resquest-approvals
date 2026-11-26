@@ -1,0 +1,56 @@
+@if (!isLoading() && showShiftWidget() && shouldDisplayShiftControls()) {
+  <div class="oss-mobile-shift">
+    @if (activeShift$ | async; as activeShift) {
+      <app-mobile-menu-item
+        data-testid="oss-mobile-shift-end-button-mobile"
+        [label]="'oneStopShop.shiftWidget.endShift' | translate"
+        variant="danger"
+        [leadingIcon]="['fal', 'stop']"
+        [disabled]="isEndingShift()"
+        (action)="endShift()"
+      >
+        @if (updatedShiftDuration$ | async; as duration) {
+          <ignt-tag variant="outline" sentiment="info">{{ duration }} {{ 'time.hours' | translate }}</ignt-tag>
+        }
+      </app-mobile-menu-item>
+      <app-mobile-menu-item
+        data-testid="oss-mobile-shift-details-button-mobile"
+        [label]="'oneStopShop.shiftWidget.seeShiftDetails' | translate"
+        [leadingIcon]="['fal', 'file-alt']"
+        [link]="['/box-office/shift/', activeShift.id]"
+        [linkParams]="{ placeId: activeShift.oboVenueId }"
+        (action)="onMobileShiftDetailsClick()"
+      ></app-mobile-menu-item>
+    } @else {
+      <app-mobile-menu-item
+        data-testid="oss-mobile-shift-start-button-mobile"
+        [label]="'oneStopShop.shiftWidget.startShift' | translate"
+        [leadingIcon]="['fal', 'play']"
+        (action)="startShift()"
+      >
+        @if (!hasDisabledShiftStrategy(shiftStrategy())) {
+          <ignt-tag variant="outline" sentiment="warning">{{ getShiftTagText() | translate }}</ignt-tag>
+        }
+      </app-mobile-menu-item>
+    }
+  </div>
+}
+
+<ng-template #loadingStartWait>
+  <ng-container *ngTemplateOutlet="loadingTemplate; context: { title: 'boxOffice.shifts.waitStart' | translate }"></ng-container>
+</ng-template>
+
+<ng-template #loadingEndWait>
+  <ng-container *ngTemplateOutlet="loadingTemplate; context: { title: 'boxOffice.shifts.waitEnd' | translate }"></ng-container>
+</ng-template>
+
+<ng-template #loadingTemplate let-title="title">
+  <div class="spinner-modal">
+    <div class="spinner-modal__title">
+      {{ title }}
+    </div>
+    <div data-testid="shift-controls-loading-modal">
+      <ignt-icon name="spinner" variant="solid" size="display" class="loader" [spin]="true" aria-hidden="true"></ignt-icon>
+    </div>
+  </div>
+</ng-template>

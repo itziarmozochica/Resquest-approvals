@@ -1,0 +1,435 @@
+@use 'foundations' as foundations;
+@use 'abstracts/functions/all';
+@use 'components/fields/textfield/tokens' as tokens;
+
+/*
+  Styles copied and pated from src/theme/components/fields/textfield/textfield.scss
+*/
+
+%text-ellipsis {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+%field-error-state {
+  border-color: tokens.$input-color-border-danger;
+  box-shadow: inset 0 0 0 foundations.$size-px tokens.$input-color-border-danger;
+}
+
+%field-focus-state {
+  border-color: tokens.$input-color-border-focus;
+  box-shadow: inset 0 0 0 foundations.$size-px tokens.$input-color-border-focus;
+  outline: foundations.$size-1 solid tokens.$input-color-accessibility-outline;
+  outline-offset: 0;
+}
+
+%field-warning-state {
+  border-color: tokens.$input-color-border-warning;
+  box-shadow: inset 0 0 0 foundations.$size-px tokens.$input-color-border-warning;
+}
+
+%field-error-state-focus {
+  border-color: tokens.$input-color-border-danger-focus;
+  box-shadow: inset 0 0 0 foundations.$size-px tokens.$input-color-border-danger-focus;
+  outline: foundations.$size-1 solid tokens.$input-color-accessibility-outline-danger;
+}
+
+@mixin field-label {
+  position: absolute;
+  font: foundations.$font-base-regular;
+  top: foundations.$size-4;
+  left: tokens.$input-dimensions-padding-inline;
+  right: tokens.$input-dimensions-padding-inline;
+  margin-block-end: 0;
+  transition:
+    transform 120ms ease-in-out,
+    font 120ms ease-in-out,
+    color 120ms ease-in-out;
+  color: foundations.$color-text-subtle;
+  cursor: text;
+  text-align: start;
+  @extend %text-ellipsis;
+
+  &--readonly {
+    color: tokens.$input-label-color-readonly;
+    overflow-wrap: break-word;
+  }
+}
+
+@mixin field-disabled {
+  border-color: tokens.$input-color-border-disable;
+  color: tokens.$input-value-color-disable;
+  background-color: tokens.$input-color-background-disable;
+  cursor: not-allowed;
+
+  ~ .field__label,
+  ~ .field__icon,
+  ~ .field__helper {
+    color: tokens.$input-label-color-disable;
+    cursor: not-allowed;
+  }
+
+  &::placeholder {
+    color: tokens.$input-placeholder-color-disable;
+  }
+
+  &[data-placeholder-as-empty-value='true'] {
+    &:disabled::placeholder {
+      color: tokens.$input-value-color-disable;
+    }
+  }
+}
+
+.field {
+  position: relative;
+  display: block;
+  margin: 0;
+
+  .error-message {
+    display: flex;
+    align-items: center;
+    height: 20px;
+    margin-top: 7px;
+
+    &__icon {
+      margin-right: 3px;
+      color: tokens.$input-helper-color-danger;
+    }
+  }
+
+  &:has(.field__icon--trail) :is(.field__input:not([type='date'], [type='time']), .field__select) {
+    padding-inline-end: tokens.$input-dimensions-padding-inline-icon;
+  }
+
+  &:has(.field__icon--lead) :is(.field__input, .field__select) {
+    padding-inline-start: tokens.$input-dimensions-padding-inline-icon;
+  }
+
+  &:has(.field__icon--lead) {
+    .field__label {
+      left: tokens.$input-dimensions-padding-inline-icon;
+    }
+  }
+
+  &:has(.field__select--typeahead.open) {
+    &::before {
+      content: '';
+      position: absolute;
+      inset: rem-calc(-11) 0 auto 0;
+      display: block;
+      height: foundations.$size-10;
+      background-color: foundations.$color-background-main;
+      z-index: 2;
+    }
+  }
+
+  &.show.dropdown {
+    > *:not(.dropdown-menu, .field-dropdown) {
+      z-index: 2;
+    }
+  }
+
+  &__input,
+  &__select {
+    position: relative;
+    height: tokens.$input-dimensions-height;
+    border-radius: tokens.$input-dimensions-radii;
+    background-color: tokens.$input-color-background;
+    appearance: none;
+    border: foundations.$size-px solid tokens.$input-color-border;
+    padding-block: tokens.$input-dimensions-padding-block-start tokens.$input-dimensions-padding-block-end;
+    padding-inline: tokens.$input-dimensions-padding-inline;
+    font: foundations.$font-base-regular;
+    width: 100%;
+    color: tokens.$input-value-color;
+    box-shadow: none;
+
+    &::placeholder {
+      opacity: 0;
+      transition: opacity 120ms ease-in-out;
+      color: tokens.$input-placeholder-color;
+      @extend %text-ellipsis;
+    }
+
+    &:focus {
+      border-color: tokens.$input-color-border-focus;
+      box-shadow: inset 0 0 0 foundations.$size-px tokens.$input-color-border-focus;
+      outline: foundations.$size-1 solid tokens.$input-color-accessibility-outline;
+      outline-offset: 0;
+    }
+
+    &:not(:focus)[data-placeholder-as-empty-value='true'] {
+      &::placeholder {
+        color: var(--ignt-placeholder-color-empty, tokens.$input-value-color);
+      }
+    }
+
+    &:focus:not([readonly]),
+    &:not(:placeholder-shown),
+    &[data-placeholder-as-empty-value='true'] {
+      &::placeholder {
+        opacity: 1;
+      }
+
+      ~ .field__label {
+        transform: translateY(-#{foundations.$size-2});
+        font: foundations.$font-caption-bold;
+      }
+    }
+
+    &--typeahead {
+      &.open,
+      &.open ~ .field__icon,
+      &.open ~ .field__label {
+        z-index: 2;
+      }
+    }
+
+    &[disabled] {
+      @include field-disabled;
+    }
+
+    &--readonly {
+      overflow-wrap: break-word;
+    }
+  }
+
+  &__input {
+    &[type='date'],
+    &[type='time'] {
+      min-width: 100%;
+      appearance: none;
+
+      &::-webkit-calendar-picker-indicator {
+        display: none;
+        appearance: none;
+      }
+
+      &::-webkit-date-and-time-value {
+        width: auto;
+      }
+
+      ~ .field__icon--trail {
+        background-color: tokens.$input-color-background;
+        border-radius: foundations.$size-10;
+        right: foundations.$size-px2;
+      }
+
+      &[disabled] {
+        ~ .field__icon--trail {
+          background-color: tokens.$input-color-background-disable;
+        }
+      }
+    }
+
+    &[readonly] {
+      border-color: tokens.$input-color-border-readonly;
+      color: tokens.$input-value-color-readonly;
+      background-color: tokens.$input-color-background-readonly;
+      outline: none;
+      cursor: not-allowed;
+
+      &:focus {
+        box-shadow: none;
+      }
+    }
+  }
+
+  &__select {
+    cursor: default;
+
+    + .field__label {
+      cursor: default;
+      pointer-events: none;
+    }
+
+    ~ .field__icon--trail {
+      pointer-events: none;
+    }
+
+    ~ .field__label {
+      right: foundations.$size-toucharea;
+    }
+
+    &--custom {
+      cursor: pointer;
+    }
+  }
+
+  &__label {
+    @include field-label;
+  }
+
+  &__icon {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    // Centred against the input box, not against the field, which also holds the helper and error labels.
+    top: calc((var(--ignt-input-field-height, #{tokens.$input-dimensions-height}) - #{foundations.$size-toucharea}) / 2);
+    width: foundations.$size-toucharea;
+    height: foundations.$size-toucharea;
+    cursor: pointer;
+
+    &--lead {
+      left: 0;
+      font: foundations.$font-h3;
+    }
+
+    &--trail {
+      right: 0;
+      font-size: var(--ignt-input-trail-icon-size, #{foundations.$size-base});
+    }
+
+    &--action {
+      padding: 0;
+      border: 0;
+      background: none;
+      color: inherit;
+
+      &.icon-button {
+        background: none;
+        box-shadow: none;
+      }
+
+      &:disabled,
+      &.icon-button:disabled {
+        cursor: not-allowed;
+        color: inherit;
+
+        // Inner glyph lives in ignt-icon-button's template; emulated encapsulation
+        // cannot match it without piercing, so the icon-button disabled styles win.
+        ::ng-deep fa-icon,
+        ::ng-deep .icon-button__icon {
+          color: inherit;
+          background-color: transparent;
+        }
+      }
+    }
+
+    &--loading {
+      cursor: default;
+      color: foundations.$color-text-subtle;
+
+      // The icon sizes itself from a non-inheriting custom property, so font-size cannot reach it.
+      ignt-icon {
+        --ignt-icon-size: var(--ignt-input-trail-icon-size, #{foundations.$size-base});
+      }
+    }
+  }
+
+  &__helper {
+    display: flex;
+    gap: tokens.$input-helper-dimensions-gap;
+    font: foundations.$font-caption-regular;
+    padding-block-start: tokens.$input-helper-dimensions-padding-block-start;
+    padding-inline-start: tokens.$input-helper-dimensions-padding-inline-start;
+
+    &--danger {
+      color: tokens.$input-helper-color-danger;
+    }
+
+    &--positive {
+      color: tokens.$input-helper-color-positive;
+    }
+
+    &--warning {
+      color: tokens.$input-helper-color-warning;
+    }
+  }
+
+  input.no-label {
+    padding-block: foundations.$size-2;
+    height: var(--ignt-input-no-label-height, foundations.$size-8);
+  }
+
+  &:has(input.no-label) .field__icon {
+    --ignt-input-field-height: var(--ignt-input-no-label-height, #{foundations.$size-8});
+  }
+
+  &:has(input.has-error),
+  &:has(input.ng-invalid.ng-dirty.ng-touched),
+  &:has(select.ng-invalid.ng-dirty.ng-touched),
+  &--danger {
+    .field {
+      &__input,
+      &__select {
+        @extend %field-error-state;
+
+        &::placeholder {
+          opacity: 1;
+        }
+
+        &:focus {
+          @extend %field-error-state-focus;
+        }
+      }
+
+      &__label {
+        transform: translateY(-#{foundations.$size-2});
+        font: foundations.$font-caption-bold;
+        color: tokens.$input-label-color-danger;
+      }
+
+      &__helper {
+        color: tokens.$input-helper-color-danger;
+      }
+    }
+  }
+
+  &--warning {
+    .field {
+      &__input,
+      &__select {
+        @extend %field-warning-state;
+
+        &:focus {
+          @extend %field-focus-state;
+        }
+      }
+
+      &__label {
+        color: tokens.$input-label-color-warning;
+      }
+
+      &__input[readonly] ~ .field__helper--warning,
+      &__input[disabled] ~ .field__helper--warning,
+      &__select[disabled] ~ .field__helper--warning {
+        color: tokens.$input-helper-color-warning;
+      }
+    }
+  }
+
+  .dropdown-menu,
+  .field-dropdown {
+    z-index: 1;
+    flex-direction: column;
+    padding: rem-calc(72) foundations.$space-3 foundations.$space-3 foundations.$space-3;
+    border-radius: foundations.$radii-2;
+    border: foundations.$size-px solid foundations.$color-border-main;
+    transform: none !important;
+    inset: -14px -12px auto !important;
+    box-shadow: 0 12px 12px 0 rgba(0, 70, 121, 0.2);
+    max-height: rem-calc(330);
+    width: calc(100% + #{foundations.$size-6});
+
+    &.show {
+      display: flex;
+    }
+
+    &__scroll-wrapper {
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      margin: 0;
+      overflow-y: auto;
+    }
+
+    &__footer {
+      flex: 0 0 auto;
+      padding-block-start: foundations.$space-3;
+      border-block-start: foundations.$size-px solid foundations.$color-border-main;
+    }
+  }
+}

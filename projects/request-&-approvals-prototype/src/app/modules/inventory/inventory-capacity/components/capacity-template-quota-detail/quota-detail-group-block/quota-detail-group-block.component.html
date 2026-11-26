@@ -1,0 +1,65 @@
+<div class="quota-detail__group-block" data-testid="quota-detail-group-block">
+  @if (group().sessionTypeGroupId !== null) {
+    <div class="quota-detail__group-header">
+      <div class="quota-detail__group-header-info">
+        <span class="quota-detail__group-label">{{ 'inventory.capacity.quotaDetail.capacityGroup' | translate }}</span>
+        <span class="quota-detail__group-name" data-testid="quota-detail-group-name">{{ group().name }}</span>
+        @if (!isEditing()) {
+          <ignt-button
+            data-testid="quota-detail-add-quota-btn"
+            sentiment="brand"
+            size="small"
+            variant="tertiary"
+            [disabled]="isEditingDisabled() || isSaving()"
+            [label]="'inventory.capacity.quotaDetail.addQuota' | translate"
+            [leadingIcon]="{ name: 'plus', variant: 'light' }"
+            (click)="onAddQuota()"
+          ></ignt-button>
+        }
+      </div>
+      <app-quota-detail-capacity-cell [controlName]="capacityControlName()" [displayValue]="group().capacity" />
+    </div>
+  } @else {
+    <div class="quota-detail__group-header" data-testid="quota-detail-ungrouped-header">
+      <span class="quota-detail__group-name">{{ 'inventory.capacity.quotaDetail.ungroupedTickets' | translate }}</span>
+    </div>
+  }
+
+  @if (group().capacityQuotas.length > 0 && group().capacity !== null) {
+    <app-quota-detail-free-capacity-row
+      [poolCapacity]="group().capacity"
+      [poolControlName]="capacityControlName()"
+      [quotaControlNames]="quotaControlNames()"
+      [quotas]="group().capacityQuotas"
+    />
+  }
+
+  @for (quota of group().capacityQuotas; track $index; let quotaIndex = $index) {
+    <app-quota-detail-quota-row
+      level="group"
+      [controlName]="quotaControlNames()[quotaIndex]"
+      [groupId]="group().sessionTypeGroupId"
+      [menuId]="getQuotaMenuId(quotaIndex)"
+      [openMenuId]="openMenuId()"
+      [quota]="quota"
+      [quotaIndex]="quotaIndex"
+      [template]="template()"
+      (menuToggle)="menuToggle.emit($event)"
+      (quotaAction)="quotaAction.emit($event)"
+    />
+  }
+
+  <hr class="quota-detail__divider" />
+
+  @for (sessionType of group().sessionTypes; track sessionType.sessionTypeId) {
+    <app-quota-detail-session-type-block
+      [groupId]="group().sessionTypeGroupId"
+      [openMenuId]="openMenuId()"
+      [sessionType]="sessionType"
+      [template]="template()"
+      (addQuota)="addQuota.emit($event)"
+      (menuToggle)="menuToggle.emit($event)"
+      (quotaAction)="quotaAction.emit($event)"
+    />
+  }
+</div>

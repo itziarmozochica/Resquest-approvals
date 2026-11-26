@@ -1,0 +1,86 @@
+<ignt-dialog-header>{{
+  (isSixteenByNine ? 'planEdition.galleryEdition.cropModalTitleSixteenByNine' : 'planEdition.galleryEdition.cropModalTitle') | translate
+}}</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <p class="gallery-image-crop-modal__instructions" data-testid="gallery-image-crop-modal-instructions">
+    {{
+      (isSixteenByNine
+        ? 'planEdition.galleryEdition.cropModalInstructionsSixteenByNine'
+        : 'planEdition.galleryEdition.cropModalInstructions'
+      ) | translate: { minSize: minSizePx, minHeight: minHeightPx }
+    }}
+  </p>
+
+  @if (loadFailed()) {
+    <p class="gallery-image-crop-modal__error" data-testid="gallery-image-crop-modal-load-error">
+      {{ 'planEdition.galleryEdition.cropPrepareError' | translate }}
+    </p>
+  } @else if (sourceTooSmall()) {
+    <p class="gallery-image-crop-modal__error" data-testid="gallery-image-crop-modal-too-small">
+      {{
+        (isSixteenByNine
+          ? 'planEdition.galleryEdition.cropSourceTooSmallMessageSixteenByNine'
+          : 'planEdition.galleryEdition.cropSourceTooSmallMessage'
+        )
+          | translate
+            : {
+                width: sourceDimensions()?.width,
+                height: sourceDimensions()?.height,
+                maxSquare: maxCropWidth(),
+                maxCropWidth: maxCropWidth(),
+                maxCropHeight: maxCropHeight(),
+                minSize: minSizePx,
+                minHeight: minHeightPx,
+              }
+      }}
+    </p>
+  }
+
+  <div
+    class="gallery-image-crop-modal__cropper"
+    data-testid="gallery-image-crop-modal-cropper"
+    [class.gallery-image-crop-modal__cropper--hidden]="loadFailed() || sourceTooSmall()"
+  >
+    <image-cropper
+      #imageCropper
+      [imageFile]="data.imageFile"
+      [maintainAspectRatio]="true"
+      [aspectRatio]="aspectRatio"
+      [autoCrop]="false"
+      [cropperMinWidth]="minSizePx"
+      [cropperMinHeight]="minHeightPx"
+      [format]="outputFormat"
+      [hidden]="loadFailed() || sourceTooSmall()"
+      output="blob"
+      (imageLoaded)="onImageLoaded($event)"
+      (cropperReady)="onCropperReady($event)"
+      (cropperChange)="onCropperChange($event)"
+      (loadImageFailed)="onLoadImageFailed()"
+    ></image-cropper>
+  </div>
+
+  @if (showCropTooSmallHint() && cropDimensions(); as dimensions) {
+    <p class="gallery-image-crop-modal__hint" data-testid="gallery-image-crop-modal-hint">
+      {{
+        (isSixteenByNine ? 'planEdition.galleryEdition.cropTooSmallHintSixteenByNine' : 'planEdition.galleryEdition.cropTooSmallHint')
+          | translate: { cropWidth: dimensions.width, cropHeight: dimensions.height, minSize: minSizePx, minHeight: minHeightPx }
+      }}
+    </p>
+  }
+</ignt-dialog-content>
+
+<ignt-dialog-footer [hideCancelButton]="true">
+  <ignt-button
+    variant="tertiary"
+    data-testid="gallery-image-crop-modal-cancel"
+    [label]="'planEdition.galleryEdition.cropModalCancel' | translate"
+    (click)="dismiss()"
+  />
+  <ignt-button
+    data-testid="gallery-image-crop-modal-save"
+    [label]="'planEdition.galleryEdition.cropModalSave' | translate"
+    [disabled]="!canSave() || isSaving()"
+    (click)="save()"
+  />
+</ignt-dialog-footer>

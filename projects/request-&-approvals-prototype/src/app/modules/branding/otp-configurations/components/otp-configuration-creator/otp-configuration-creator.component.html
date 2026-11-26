@@ -1,0 +1,239 @@
+<div class="otp-configuration-creator">
+  <div class="otp-configuration-creator__header">
+    <div class="otp-configuration-creator__title">
+      {{ (isEditMode ? 'branding.otpConfiguration.editTitle' : 'branding.otpConfiguration.createTitle') | translate }}
+    </div>
+    <button
+      ignt-icon-button
+      [icon]="['fas', 'times']"
+      [sentiment]="'tertiary'"
+      [size]="'medium'"
+      (click)="close()"
+      aria-label="Close"
+      data-testid="otp-configuration-creator-close"
+    ></button>
+  </div>
+
+  <form [formGroup]="configForm" (ngSubmit)="onSubmit()" class="otp-configuration-creator__form">
+    <div class="otp-configuration-creator__body">
+      <div class="otp-configuration-creator__field">
+        <ignt-input-field
+          [label]="('branding.otpConfiguration.form.name' | translate) + ' *'"
+          [placeholder]="'branding.otpConfiguration.form.namePlaceholder' | translate"
+          [customFormErrors]="[
+            {
+              type: 'required',
+              message: ('form.error.mandatoryField' | translate),
+            },
+          ]"
+          formControlName="name"
+          id="name"
+          data-testid="otp-configuration-creator-name"
+        >
+        </ignt-input-field>
+      </div>
+      <div class="otp-configuration-creator__field">
+        <ignt-typeahead
+          [options]="templateOptions()"
+          [fieldLabel]="('branding.otpConfiguration.form.template' | translate) + ' *'"
+          [selectedOption]="selectedTemplate()"
+          [editable]="true"
+          (selected)="onTemplateSelected($event)"
+          id="templateId"
+          data-testid="otp-configuration-creator-template-dropdown"
+        >
+        </ignt-typeahead>
+      </div>
+      <div class="otp-configuration-creator__field">
+        <ignt-input-field
+          [label]="('branding.otpConfiguration.form.senderName' | translate) + ' *'"
+          [placeholder]="'branding.otpConfiguration.form.senderNamePlaceholder' | translate"
+          [customFormErrors]="[
+            {
+              type: 'required',
+              message: ('form.error.mandatoryField' | translate),
+            },
+          ]"
+          formControlName="senderName"
+          id="senderName"
+          data-testid="otp-configuration-creator-sender-name"
+        >
+        </ignt-input-field>
+      </div>
+      <div class="otp-configuration-creator__field">
+        <ignt-input-field
+          [label]="('branding.otpConfiguration.form.senderAddress' | translate) + ' *'"
+          [placeholder]="'branding.otpConfiguration.form.senderAddressPlaceholder' | translate"
+          [customFormErrors]="[
+            {
+              type: 'required',
+              message: ('form.error.mandatoryField' | translate),
+            },
+            {
+              type: 'email',
+              message: ('form.error.invalidEmail' | translate),
+            },
+          ]"
+          formControlName="senderAddress"
+          id="senderAddress"
+          data-testid="otp-configuration-creator-sender-address"
+        >
+        </ignt-input-field>
+      </div>
+      <div class="otp-configuration-creator__field">
+        <ignt-input-field
+          [label]="('branding.otpConfiguration.form.brandingName' | translate) + ' *'"
+          [placeholder]="'branding.otpConfiguration.form.brandingNamePlaceholder' | translate"
+          [customFormErrors]="[
+            {
+              type: 'required',
+              message: ('form.error.mandatoryField' | translate),
+            },
+          ]"
+          formControlName="brandingName"
+          id="brandingName"
+          data-testid="otp-configuration-creator-branding-name"
+        >
+        </ignt-input-field>
+      </div>
+      <div class="otp-configuration-creator__field">
+        <ignt-input-field
+          [label]="'branding.otpConfiguration.form.replyToAddress' | translate"
+          [placeholder]="'branding.otpConfiguration.form.replyToAddressPlaceholder' | translate"
+          formControlName="replyToAddress"
+          id="replyToAddress"
+          data-testid="otp-configuration-creator-reply-to-address"
+          [customFormErrors]="[
+            {
+              type: 'email',
+              message: ('form.error.invalidEmail' | translate),
+            },
+          ]"
+        >
+        </ignt-input-field>
+      </div>
+      <div class="otp-configuration-creator__field">
+        <div class="otp-configuration-creator__toggle-wrapper">
+          <label class="otp-configuration-creator__toggle-label">
+            {{ 'branding.otpConfiguration.form.useTheme' | translate }}
+          </label>
+          <ignt-toggle
+            [checked]="configForm.get('useTheme')?.value"
+            [disabled]="!hasPartnerTheme()"
+            (change)="onUseThemeChange()"
+            id="useTheme"
+            data-testid="otp-configuration-creator-use-theme"
+          >
+          </ignt-toggle>
+        </div>
+        <p class="otp-configuration-creator__hint" data-testid="otp-configuration-creator-use-theme-hint">
+          @if (!hasPartnerTheme()) {
+            {{ 'branding.otpConfiguration.useThemeNoTheme' | translate }}
+          } @else if (useTheme()) {
+            {{ 'branding.otpConfiguration.useThemeEnabled' | translate }}
+          } @else {
+            {{ 'branding.otpConfiguration.useThemeDisabled' | translate }}
+          }
+        </p>
+      </div>
+      @if (selectedTemplateDetails(); as templateDetails) {
+        <div class="otp-configuration-creator__parameters_section">
+          <h3 class="otp-configuration-creator__parameters_section-title">
+            {{ 'branding.otpConfiguration.form.templateParameters' | translate }}
+          </h3>
+          @for (param of templateDetails.parameters; track param.id) {
+            <div class="otp-configuration-creator__field">
+              @if (param.type === 'boolean') {
+                <div class="otp-configuration-creator__toggle-wrapper">
+                  <label class="otp-configuration-creator__toggle-label">
+                    {{ param.name }}
+                  </label>
+                  <ignt-toggle
+                    [checked]="configForm.get('param_' + param.name)?.value"
+                    (change)="onParameterToggleChange(param.name)"
+                    [id]="'param_' + param.name"
+                    [attr.data-testid]="'otp-configuration-creator-param-' + param.name"
+                  >
+                  </ignt-toggle>
+                </div>
+              } @else if (param.type === 'number') {
+                <ignt-input-field
+                  [label]="param.name + (requiredParameters().has(param.name) ? ' *' : '')"
+                  [placeholder]="param.defaultValue || ''"
+                  [formControlName]="'param_' + param.name"
+                  type="number"
+                  [id]="'param_' + param.name"
+                  [attr.data-testid]="'create-otp-param-' + param.name"
+                  [customFormErrors]="[
+                    {
+                      type: 'required',
+                      message: ('form.error.mandatoryField' | translate),
+                    },
+                  ]"
+                >
+                </ignt-input-field>
+              } @else {
+                <ignt-input-field
+                  [label]="param.name + (requiredParameters().has(param.name) ? ' *' : '')"
+                  [placeholder]="param.defaultValue || ''"
+                  [formControlName]="'param_' + param.name"
+                  [id]="'param_' + param.name"
+                  [attr.data-testid]="'create-otp-param-' + param.name"
+                  [helperText]="
+                    param.type === 'translatable_string' ? ('branding.otpConfiguration.form.translatableStringHelper' | translate) : ''
+                  "
+                  [customFormErrors]="[
+                    {
+                      type: 'required',
+                      message: ('form.error.mandatoryField' | translate),
+                    },
+                  ]"
+                >
+                </ignt-input-field>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+    <div class="otp-configuration-creator__footer">
+      <button
+        igntButton
+        [sentiment]="'tertiary'"
+        [variant]="'default'"
+        [size]="'large'"
+        type="button"
+        (click)="close()"
+        data-testid="otp-configuration-creator-cancel-button"
+      >
+        {{ 'common.cancel' | translate }}
+      </button>
+      <button
+        igntButton
+        [sentiment]="'secondary'"
+        [variant]="'default'"
+        [size]="'large'"
+        [loading]="isSendingPreview()"
+        [disabled]="configForm.invalid || isLoading() || isSendingPreview()"
+        type="button"
+        (click)="onSendPreview()"
+        data-testid="otp-configuration-creator-send-preview-button"
+      >
+        {{ 'branding.otpConfiguration.sendPreview' | translate }}
+      </button>
+      <button
+        igntButton
+        [sentiment]="'primary'"
+        [variant]="'default'"
+        [size]="'large'"
+        [fill]="false"
+        [loading]="isLoading()"
+        [disabled]="configForm.invalid || isLoading() || isSendingPreview()"
+        type="submit"
+        data-testid="otp-configuration-creator-submit-button"
+      >
+        {{ 'common.save' | translate }}
+      </button>
+    </div>
+  </form>
+</div>

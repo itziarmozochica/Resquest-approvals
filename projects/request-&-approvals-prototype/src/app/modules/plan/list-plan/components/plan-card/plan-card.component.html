@@ -1,0 +1,283 @@
+<div *ngIf="screenSize === desktopScreenSize" class="card card--desktop" data-testid="desktop-plan-card" (click)="goToDetail('card')">
+  <ng-container *ngTemplateOutlet="planInfo; context: { plan: plan }"></ng-container>
+  <ng-container *ngTemplateOutlet="planDate; context: { plan: plan }"></ng-container>
+  <ng-container *ngTemplateOutlet="planKind; context: { plan: plan }"></ng-container>
+  <ng-container *ngTemplateOutlet="planSoldTickets; context: { plan: plan }"></ng-container>
+  <ng-container *ngTemplateOutlet="planGrossRevenue; context: { plan: plan }"></ng-container>
+  <ng-container *ngTemplateOutlet="planStatus; context: { plan: plan }"></ng-container>
+  <ng-container *ngTemplateOutlet="planVisibility; context: { plan: plan }"></ng-container>
+  <ng-container
+    *ngTemplateOutlet="shareTrackingLink; context: { trackingLink: trackingLink, buttonText: 'listPlan.trackingLink.button' }"
+  ></ng-container>
+  <ng-container *ngTemplateOutlet="planActions; context: { plan: plan }"></ng-container>
+</div>
+
+<div *ngIf="screenSize === tabletScreenSize" class="card card--tablet" data-testid="tablet-plan-card" (click)="goToDetail('card')">
+  <div class="card--tablet__row">
+    <ng-container *ngTemplateOutlet="planInfo; context: { plan: plan }"></ng-container>
+    <div class="plan__details">
+      <div class="card--tablet__column">
+        <ng-container *ngTemplateOutlet="planDate; context: { plan: plan }"></ng-container>
+      </div>
+      <div class="card--tablet__column">
+        <ng-container
+          *ngTemplateOutlet="shareTrackingLink; context: { trackingLink: trackingLink, buttonText: 'listPlan.trackingLink.button' }"
+        ></ng-container>
+        <ng-container *ngTemplateOutlet="planKind; context: { plan: plan }"></ng-container>
+      </div>
+      <div class="card--tablet__column" *ngIf="!isReseller">
+        <ng-container *ngTemplateOutlet="planSoldTickets; context: { plan: plan }"></ng-container>
+      </div>
+      <div class="card--tablet__column card--tablet__column-revenue" *ngIf="!isReseller">
+        <ng-container *ngTemplateOutlet="planGrossRevenue; context: { plan: plan }"></ng-container>
+      </div>
+    </div>
+    <ng-container *ngTemplateOutlet="planActions; context: { plan: plan }"></ng-container>
+  </div>
+</div>
+
+<div *ngIf="screenSize === mobileScreenSize" class="card card--mobile" data-testid="mobile-plan-card" (click)="goToDetail('card')">
+  <div class="card--mobile__row">
+    <ng-container *ngTemplateOutlet="planInfo; context: { plan: plan }"></ng-container>
+    <ng-container *ngTemplateOutlet="planActions; context: { plan: plan }"></ng-container>
+  </div>
+  <div class="card--mobile__row">
+    <div class="card--mobile__column">
+      <ng-container *ngTemplateOutlet="planKind; context: { plan: plan }"></ng-container>
+      <ng-container *ngTemplateOutlet="planDate; context: { plan: plan }"></ng-container>
+    </div>
+    <div class="card--mobile__column" [ngClass]="{ 'card--mobile__column--reseller': isReseller }">
+      <ng-container
+        *ngTemplateOutlet="shareTrackingLink; context: { trackingLink: trackingLink, buttonText: 'listPlan.trackingLink.buttonShort' }"
+      ></ng-container>
+      <div class="card--mobile__row">
+        <ng-container *ngTemplateOutlet="planSoldTickets; context: { plan: plan }"></ng-container>
+      </div>
+      <div class="card--mobile__row">
+        <ng-container *ngTemplateOutlet="planGrossRevenue; context: { plan: plan }"></ng-container>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #planInfo let-plan="plan">
+  <div class="card-content plan" (click)="goToDetail('card')" [ngClass]="{ 'card-content plan--reseller': isReseller }">
+    <img class="plan__image" alt="plan image" data-testid="plan-card-image" src="{{ plan.pictureURL }}" />
+    <div>
+      <ng-container *ngTemplateOutlet="planStatus; context: { plan: plan }"></ng-container>
+      <ng-container *ngTemplateOutlet="planSoldOut; context: { plan: plan }"></ng-container>
+      <div (click)="goToDetail('card')" class="plan__name" data-testid="plan-card-name">
+        {{ plan.name }}
+      </div>
+      <div class="plan__place" *ngIf="plan.firstPlace">
+        <fa-icon [fixedWidth]="true" [icon]="['far', 'map-marker-alt']"></fa-icon>
+        {{ plan.firstPlace.cityName | cityTranslate }}
+        - {{ plan.hasMultiplePlaces ? ('listPlan.multipleVenues' | translate) : firstPlaceName }}
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #planDate let-plan="plan">
+  <ng-container *ngIf="!plan.isStandard() && screenSize !== 'mobile'">
+    <div (click)="goToDetail('card')" class="card-content plan__dates" [ngClass]="{ 'card-content plan__dates--reseller': isReseller }">
+      -
+    </div>
+  </ng-container>
+  <ng-container *ngIf="plan.isStandard()">
+    <div
+      (click)="goToDetail('card')"
+      class="card-content plan__dates"
+      [class.plan__centered-date]="isSingleDateEvent && !plan.firstSessionDate"
+      [ngClass]="{ 'card-content plan__dates--reseller': isReseller }"
+    >
+      <div class="plan__single-date-title" *ngIf="isSingleDateEvent">
+        {{ 'listPlan.dateLabel' | translate }}
+      </div>
+      <div class="plan__date-title" *ngIf="!isSingleDateEvent">
+        {{ 'common.start' | translate }}
+      </div>
+      <div
+        class="plan__date"
+        data-testid="plan-card-first-session-date"
+        [class.plan__centered-date]="isSingleDateEvent && !plan.firstSessionDate"
+      >
+        {{ plan.firstSessionDate ? (plan.firstSessionDate | momentDate: 'd MMM yyyy' : plan.timezone) : '-' }}
+      </div>
+      <div class="plan__date-title" *ngIf="!isSingleDateEvent">
+        {{ 'common.end' | translate }}
+      </div>
+      <div class="plan__date" data-testid="plan-card-last-session-date" *ngIf="!isSingleDateEvent">
+        {{ plan.lastSessionDate ? (plan.lastSessionDate | momentDate: 'd MMM yyyy' : plan.timezone) : '-' }}
+      </div>
+    </div>
+  </ng-container>
+</ng-template>
+<ng-template #planKind let-plan="plan">
+  <div
+    *ngIf="plan.kind && !isReseller"
+    (click)="goToDetail('card')"
+    class="card-content plan__kind"
+    [class.plan__centered-date]="isSingleDateEvent && !plan.firstSessionDate && plan.isStandard()"
+  >
+    <div class="plan__kind-container" [attr.data-testid]="'plan-card-' + plan.kind + '-kind'">
+      {{ getPlanKindTranslationKey(plan.kind) | translate }}
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #planActions let-plan="plan">
+  <div class="card-content plan__actions">
+    <div class="plan__actions-dropdown" data-testid="plan-card-dropdown" (click)="$event.stopPropagation()">
+      <button
+        *ngIf="!isRefreshingInProgress && !isDuplicateInProgress; else spinner"
+        class="plan__actions-button"
+        data-testid="plan-card-dropdown-button"
+        [igntMenuTriggerFor]="planActionsMenu"
+      >
+        <fa-icon [fixedWidth]="true" [icon]="['fas', 'ellipsis-h']"></fa-icon>
+      </button>
+      <ng-template #planActionsMenu>
+        <ignt-menu>
+          @for (option of getMenuOptions(plan); track option.dataTestId) {
+            <ng-container *optimizelyFeature="option.optimizely ?? ''; enabled: true" ngProjectAs="ignt-menu-item">
+              @if (option.permission) {
+                <ignt-menu-item
+                  *permissionBased="option.permission"
+                  [value]="option.dataTestId"
+                  [attr.data-testid]="option.dataTestId"
+                  [label]="option.label | translate"
+                  [disabled]="option.disabled ?? false"
+                  (triggered)="option.action()"
+                >
+                  <ignt-icon [name]="option.icon.name" [variant]="option.icon.variant" />
+                </ignt-menu-item>
+              } @else {
+                <ignt-menu-item
+                  [value]="option.dataTestId"
+                  [attr.data-testid]="option.dataTestId"
+                  [label]="option.label | translate"
+                  [disabled]="option.disabled ?? false"
+                  (triggered)="option.action()"
+                >
+                  <ignt-icon [name]="option.icon.name" [variant]="option.icon.variant" />
+                </ignt-menu-item>
+              }
+            </ng-container>
+          }
+        </ignt-menu>
+      </ng-template>
+    </div>
+  </div>
+  <ng-template #spinner>
+    <fa-icon [icon]="['fas', 'spinner']" animation="spin"></fa-icon>
+  </ng-template>
+</ng-template>
+
+<ng-template #planStatus let-plan="plan">
+  <div
+    class="card-content plan__status"
+    data-testid="plan-card-status"
+    (click)="goToDetail('card')"
+    [ngClass]="{ 'card-content plan__status--reseller': isReseller }"
+  >
+    <div class="plan__status--inline">
+      <div class="plan__status-tag-group">
+        <app-plan-status-tag [status]="plan.status" [style]="plan.status === 'off_sale' ? 'solid' : 'outline'"></app-plan-status-tag>
+        <span *ngIf="reviewStatusLabelKey" class="plan__review-status" data-testid="plan-card-review-status">
+          {{ reviewStatusLabelKey | translate }}
+        </span>
+      </div>
+      <div class="plan__visibility--hidden" *ngIf="plan.isOnSale()">
+        <ng-container *ngTemplateOutlet="planVisibility; context: { plan: plan }"></ng-container>
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #planVisibility let-plan="plan">
+  <div *ngIf="!isReseller" class="card-content plan__visibility" data-testid="plan-card-visibility">
+    <span *ngIf="plan.isOnSale()">
+      <ignt-tag
+        [startIcon]="['fal', plan.isHiddenFeed ? 'eye-slash' : 'eye']"
+        [sentiment]="'sharp'"
+        [variant]="plan.isHiddenFeed ? 'solid' : 'outline'"
+      >
+        {{ 'filters.' + (plan.isHiddenFeed ? 'isHiddenFeed' : 'isPublicFeed') | translate | uppercase }}
+      </ignt-tag>
+    </span>
+    <span *ngIf="!plan.isOnSale()">-</span>
+  </div>
+</ng-template>
+
+<ng-template #planSoldTickets let-plan="plan">
+  <div *ngIf="!isReseller" class="card-content plan__ticket" data-testid="plan-card-ticket" (click)="goToDetail('card')">
+    <div class="plan__ticket-title">
+      {{ 'listPlan.ticketsLabel' | translate }}
+    </div>
+
+    <ng-container *ngIf="plan.kind === planKindEnum.WAITLIST; else notWaitListPlan">
+      <ng-container *ngIf="plan.getFreeSoldTickets() as freeSoldTickets; else emptyCount">
+        {{ 'listPlan.signups' | translate }}: {{ freeSoldTickets | number: '1.0-2' : locale }}
+      </ng-container>
+    </ng-container>
+
+    <ng-template #notWaitListPlan>
+      <ng-container
+        *ngIf="!plan.getSoldAddons(); else planWithAddons"
+        [ngTemplateOutlet]="countValue"
+        [ngTemplateOutletContext]="{ count: plan.getPaidSoldTickets() }"
+      >
+      </ng-container>
+
+      <ng-template #planWithAddons>
+        <div class="plan__ticket-count">
+          <ng-container *ngTemplateOutlet="countValue; context: { count: plan.getPaidSoldTickets() }"> </ng-container>
+        </div>
+
+        <div class="plan__ticket-count">
+          {{ 'listPlan.addons' | translate }}:
+          <ng-container *ngTemplateOutlet="countValue; context: { count: plan.getSoldAddons() }"> </ng-container>
+        </div>
+      </ng-template>
+    </ng-template>
+
+    <ng-container *ngTemplateOutlet="planSoldOut; context: { plan: plan }"></ng-container>
+  </div>
+</ng-template>
+<ng-template #planGrossRevenue let-plan="plan">
+  <div *ngIf="!isReseller" class="card-content plan__revenue" data-testid="plan-card-gross-revenue" (click)="goToDetail('card')">
+    <div class="plan__revenue-title">
+      {{ 'listPlan.grossRevenueLabel' | translate }}
+    </div>
+    {{ plan.grossRevenue ? plan.grossRevenue.toString(locale) : '-' }}
+  </div>
+</ng-template>
+
+<ng-template #shareTrackingLink let-trackingLink="trackingLink" let-buttonText="buttonText">
+  <div *ngIf="isReseller" class="plan__tracking-link">
+    <button igntButton size="small" [trailingIcon]="['fas', 'share']" (click)="shareModal($event)">
+      {{ buttonText | translate }}
+    </button>
+    <a
+      igntLink
+      ngxClipboard
+      [cbContent]="trackingLink"
+      (click)="copyToClipboard($event)"
+      class="plan__tracking-link--copy"
+      data-testid="copy-tracking-link"
+    >
+      {{ isTrackingLinkCopied ? ('listPlan.trackingLink.copiedLink' | translate) : ('listPlan.trackingLink.copyLink' | translate) }}
+    </a>
+  </div>
+</ng-template>
+
+<ng-template #planSoldOut let-plan="plan">
+  <div *ngIf="!!plan.isSoldOut && !isReseller" class="plan__ticket--sold-out">{{ 'listPlan.soldOut' | translate }}</div>
+</ng-template>
+
+<ng-template #countValue let-count="count">
+  <ng-container *ngIf="count; else emptyCount">{{ count | number: '1.0-2' : locale }}</ng-container>
+</ng-template>
+
+<ng-template #emptyCount> - </ng-template>

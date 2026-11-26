@@ -1,0 +1,184 @@
+<div class="field" [class.field--readonly]="readonly()">
+  <input
+    id="typeahead-input"
+    data-testid="typeahead-input"
+    type="text"
+    class="field__select field__select--typeahead"
+    [class.has-error]="error"
+    placeholder="{{ selectAllLabel ? selectAllLabel : emptyLabel }}"
+    [disabled]="disabled"
+    (keyup.arrowDown)="onPressArrow($event)"
+    (keyup.arrowUp)="onPressArrow($event)"
+    (keyup.enter)="onEnter($event)"
+    (focusout)="onFocusOutEvent($event)"
+    (click)="onClickInput()"
+    [(ngModel)]="model"
+    [ngModelOptions]="{ standalone: true }"
+    [focusFirst]="false"
+    [showHint]="true"
+    [ngbTypeahead]="search"
+    (selectItem)="onSelectItem($event)"
+    [inputFormatter]="formatter"
+    [resultTemplate]="rt"
+    [readonly]="!isEditable || readonly()"
+    [container]="effectiveContainer"
+    [popperOptions]="popperOptions"
+    [popupClass]="popupClass"
+    [attr.data-test-options-length]="options?.length || 0"
+    #instance="ngbTypeahead"
+    #inputTypeahead
+  />
+  <span class="field__label">
+    {{ fieldLabel }}
+    @if (fieldLabelTooltip) {
+      <ignt-icon
+        class="field__label-tooltip"
+        igntTooltip
+        name="info-circle"
+        role="img"
+        size="sm"
+        tabindex="0"
+        variant="solid"
+        [attr.aria-label]="fieldLabelTooltip"
+        [tooltipLabel]="fieldLabelTooltip"
+      />
+    }
+  </span>
+
+  @if (icon && !readonly() && openOnClick()) {
+    <fa-icon class="field__icon field__icon--trail" [icon]="['fal', 'chevron-down']" (click)="onClickIcon($event)"></fa-icon>
+  }
+</div>
+
+@if (errorMessage) {
+  <span class="field__helper field__helper--danger">
+    <fa-icon [icon]="['fas', 'exclamation-circle']"></fa-icon>
+    {{ errorMessage }}
+  </span>
+}
+
+<ng-template #rt let-r="result" let-t="term">
+  @if (isCreateNewOption(r) && isAddingCustomOption) {
+    <div
+      class="field-dropdown-item dropdown-item--create-new-form"
+      (mousedown)="$event.preventDefault(); $event.stopPropagation()"
+      (click)="$event.preventDefault(); $event.stopPropagation()"
+    >
+      <div class="typeahead-custom-option-form-wrapper">
+        <div class="typeahead-custom-option-input-row">
+          <input
+            type="text"
+            class="custom-option-input-injected"
+            [class.has-error]="customOptionInputError"
+            [(ngModel)]="customOptionInput"
+            [ngModelOptions]="{ standalone: true }"
+            [placeholder]="customOptionPlaceholder || createNewLabel"
+            [autofocus]="true"
+            (keydown.enter)="confirmCustomOption()"
+            (keydown.escape)="cancelCustomOption()"
+            (keydown.space)="handleCustomInputSpace($event)"
+            (input)="customOptionInputError = null"
+            (mousedown)="$event.stopPropagation()"
+            (click)="$event.stopPropagation()"
+            data-testid="custom-option-input"
+          />
+          <button
+            ignt-icon-button
+            [icon]="customOptionConfirmIcon"
+            class="custom-option-confirm-button"
+            (mousedown)="confirmCustomOption(); $event.preventDefault(); $event.stopPropagation()"
+            (click)="confirmCustomOption(); $event.preventDefault(); $event.stopPropagation()"
+            [disabled]="!customOptionInput.trim()"
+            data-testid="custom-option-confirm"
+          ></button>
+        </div>
+        @if (helperText && !customOptionInputError) {
+          <span class="field__helper">{{ helperText }}</span>
+        }
+        @if (customOptionInputError) {
+          <span class="field__helper field__helper--danger">
+            <fa-icon [icon]="['fas', 'exclamation-circle']"></fa-icon>
+            {{ customOptionInputError }}
+          </span>
+        }
+      </div>
+    </div>
+  }
+
+  @if (!isCreateNewOption(r) || !isAddingCustomOption) {
+    @if (r.isGroupHeader) {
+      <div
+        class="field-dropdown-item field-dropdown-item--group-header"
+        (mousedown)="$event.preventDefault(); $event.stopPropagation()"
+        (click)="$event.preventDefault(); $event.stopPropagation()"
+      >
+        {{ r.title }}
+      </div>
+    } @else if (isDisabledOption(r)) {
+      <div
+        class="field-dropdown-item field-dropdown-item--disabled"
+        data-testid="dropdown-item-disabled"
+        (mousedown)="$event.preventDefault()"
+      >
+        <div class="field-dropdown-item__disabled-content">
+          <span class="field-dropdown-item__disabled-title">{{ formatter(r) ?? r.title }}</span>
+          @if (r.disabledDescription) {
+            <span class="field-dropdown-item__disabled-description">{{ r.disabledDescription }}</span>
+          }
+        </div>
+        @if (r.isPartnerRestricted) {
+          <app-fever-only-marker data-testid="dropdown-item-fever-only-marker" />
+        }
+        @if (editOptionClicked.observed) {
+          <fa-icon [icon]="['fas', 'edit']" class="field-dropdown-item__edit-button" (click)="onEditOptionClick($event, r)"></fa-icon>
+        }
+      </div>
+    } @else {
+      <div
+        class="field-dropdown-item"
+        data-testid="dropdown-item"
+        [class]="getOptionClass(r)"
+        [class.dropdown-item--create-new]="isCreateNewOption(r)"
+        (mousedown)="isCreateNewOption(r) ? handleCreateNewClick($event) : null"
+        (click)="!isCreateNewOption(r) && onClickSelectOption()"
+      >
+        @if (!isLoadingOption(r)) {
+          <fa-icon *ngIf="isCreateNewOption(r)" [icon]="createNewIcon ?? ['fal', 'plus']" class="create-new-icon"></fa-icon>
+          @if (r.swatchClass) {
+            <span class="field-dropdown-item__swatch" [class]="r.swatchClass" aria-hidden="true"></span>
+          }
+          <div class="field-dropdown-item__content">
+            <ngb-highlight [result]="formatter(r) ?? r.title" [term]="t.trim()"></ngb-highlight>
+            @if (r.description) {
+              <span class="field-dropdown-item__description">{{ r.description }}</span>
+            }
+          </div>
+          @if (r.isPartnerRestricted) {
+            <app-fever-only-marker data-testid="dropdown-item-fever-only-marker" />
+          }
+          <div *ngIf="r.status && r.status !== 'on_sale'" class="status-container">
+            <app-plan-status-tag [status]="r.status" [style]="r.status === 'off_sale' ? 'solid' : 'outline'"></app-plan-status-tag>
+          </div>
+          @if (r.hasEditAction === true && editOptionClicked.observed) {
+            <fa-icon
+              [icon]="['fas', 'edit']"
+              class="field-dropdown-item__edit-button"
+              data-testid="dropdown-item-edit"
+              role="button"
+              tabindex="0"
+              [attr.aria-label]="editActionLabel"
+              (click)="onEditOptionClick($event, r)"
+              (keydown.enter)="onEditOptionClick($event, r)"
+              (keydown.escape)="onEditActionEscape($event)"
+              (keydown.space)="onEditOptionClick($event, r)"
+            ></fa-icon>
+          }
+        } @else {
+          <div class="dropdown-item__loading">
+            <fa-icon [icon]="['fas', 'spinner']" [spin]="true"></fa-icon>
+          </div>
+        }
+      </div>
+    }
+  }
+</ng-template>

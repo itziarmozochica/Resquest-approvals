@@ -1,0 +1,135 @@
+<div class="dynamic-pricing-families">
+  @for (family of families(); track family.id) {
+    <details class="dynamic-pricing-families__card" [attr.data-testid]="'family-card-' + family.id">
+      <summary class="dynamic-pricing-families__header">
+        <ignt-icon class="dynamic-pricing-families__chevron" name="chevron-right" variant="solid" size="sm" aria-hidden="true"></ignt-icon>
+
+        <div class="dynamic-pricing-families__identity">
+          <span class="dynamic-pricing-families__title-row">
+            <span class="dynamic-pricing-families__name">
+              @switch (family.kind) {
+                @case ('archived') {
+                  {{ 'sessions.pricing.priceListsOverview.archived' | translate }}
+                }
+                @case ('other') {
+                  {{ 'inventory.dynamicPricing.families.card.otherRules' | translate }}
+                }
+                @default {
+                  {{ family.name }}
+                }
+              }
+            </span>
+            @if (family.kind === 'family') {
+              <ignt-tag variant="outline" [sentiment]="getFamilyStatusConfig(family).sentiment">
+                {{ 'sessions.pricing.priceListsOverview.' + getFamilyStatusConfig(family).translationKey | translate }}
+              </ignt-tag>
+            }
+          </span>
+          <span class="dynamic-pricing-families__subtitle">
+            @if (family.kind === 'family') {
+              {{ 'inventory.dynamicPricing.families.card.pricingFamily' | translate }}
+              @if (family.levelCount !== null) {
+                <span data-testid="family-level-count">
+                  {{ 'inventory.dynamicPricing.families.card.levels' | translate: { count: family.levelCount } }}
+                </span>
+              }
+            } @else {
+              {{ 'inventory.dynamicPricing.families.card.ruleCount' | translate: { count: family.rows.length } }}
+            }
+          </span>
+        </div>
+
+        @if (family.scope; as scope) {
+          <div class="dynamic-pricing-families__scope">
+            <span class="dynamic-pricing-families__scope-group" data-testid="family-channels">
+              <span class="dynamic-pricing-families__scope-label">
+                <ignt-icon name="store" variant="light" size="sm" aria-hidden="true"></ignt-icon>
+                {{ 'inventory.dynamicPricing.families.wizard.basicSettings.channelsHeading' | translate }}
+              </span>
+              <span class="dynamic-pricing-families__scope-value" [title]="scope.channelsLabel">{{ scope.channelsLabel }}</span>
+            </span>
+
+            <span class="dynamic-pricing-families__scope-group" data-testid="family-time-slots">
+              <span class="dynamic-pricing-families__scope-label">
+                <ignt-icon name="calendar" variant="light" size="sm" aria-hidden="true"></ignt-icon>
+                {{ 'inventory.dynamicPricing.families.wizard.basicSettings.timeSlotsHeading' | translate }}
+              </span>
+              @if (scope.timeSlot; as timeSlot) {
+                <span class="dynamic-pricing-families__scope-value" [title]="scope.timeSlotDetail">
+                  {{ timeSlot.startDate | date: 'dd MMM yyyy' }} - {{ timeSlot.endDate | date: 'dd MMM yyyy' }}
+                  @if (scope.extraTimeSlots > 0) {
+                    <span class="dynamic-pricing-families__scope-extra" data-testid="family-extra-time-slots">
+                      +{{ scope.extraTimeSlots }}
+                    </span>
+                  }
+                </span>
+              } @else {
+                <span class="dynamic-pricing-families__scope-value">
+                  {{ 'inventory.dynamicPricing.families.card.allDates' | translate }}
+                </span>
+              }
+            </span>
+
+            <span class="dynamic-pricing-families__scope-group" data-testid="family-products">
+              <span class="dynamic-pricing-families__scope-label">
+                <ignt-icon name="ticket" variant="light" size="sm" aria-hidden="true"></ignt-icon>
+                {{ 'inventory.dynamicPricing.families.card.products' | translate }}
+              </span>
+              <span class="dynamic-pricing-families__scope-value" [title]="scope.productsLabel">{{ scope.productsLabel }}</span>
+            </span>
+          </div>
+        }
+      </summary>
+
+      <div class="dynamic-pricing-families__rules">
+        @for (row of family.rows; track row.rule.id) {
+          <div class="dynamic-pricing-families__rule" data-testid="family-rule-row">
+            <span class="dynamic-pricing-families__rule-source">
+              <span class="dynamic-pricing-families__rule-index">
+                {{ 'inventory.dynamicPricing.families.card.rule' | translate: { number: $index + 1 } }}
+                <span class="dynamic-pricing-families__rule-title" data-testid="family-rule-name">{{ row.rule.name }}</span>
+              </span>
+              <span class="dynamic-pricing-families__rule-name">{{ row.rule.fromPriceList.name }}</span>
+            </span>
+
+            <span class="dynamic-pricing-families__rule-condition">{{ row.condition }}</span>
+
+            <span class="dynamic-pricing-families__rule-target">
+              <ignt-icon name="arrow-right" variant="light" size="sm" aria-hidden="true"></ignt-icon>
+              <span class="dynamic-pricing-families__rule-name">{{ row.rule.toPriceList.name }}</span>
+            </span>
+
+            <ignt-tag variant="outline" [sentiment]="getRuleStatusConfig(row.rule).sentiment">
+              {{ 'sessions.pricing.priceListsOverview.' + getRuleStatusConfig(row.rule).translationKey | translate }}
+            </ignt-tag>
+
+            <span class="dynamic-pricing-families__rule-actions">
+              <button
+                ignt-icon-button
+                size="small"
+                sentiment="secondary"
+                type="button"
+                data-testid="family-rule-edit-button"
+                [attr.aria-label]="'sessions.dynamicPricing.rules.table.edit' | translate"
+                [disabled]="!canEdit(row.rule)"
+                [icon]="['fas', 'edit']"
+                (click)="editRule.emit(row.rule)"
+              ></button>
+              <button
+                ignt-icon-button
+                size="small"
+                sentiment="secondary"
+                type="button"
+                data-testid="family-rule-archive-button"
+                [attr.aria-label]="'sessions.dynamicPricing.rules.table.archive' | translate"
+                [disabled]="!canArchive(row.rule)"
+                [icon]="['fas', 'archive']"
+                (click)="archiveRule.emit(row.rule)"
+              ></button>
+            </span>
+          </div>
+        }
+      </div>
+    </details>
+  }
+</div>

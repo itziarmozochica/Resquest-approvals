@@ -1,0 +1,214 @@
+<div class="common-session-edit lateral-slider-body__wrapper">
+  <div class="common-session-edit__header">
+    <div data-testid="session-start-date" class="common-session-edit__header-date">
+      {{ session?.startsAt | momentDate: 'd MMM yyyy - HH:mm' : timezone }}
+    </div>
+    <div data-testid="session-codepool-name" class="common-session-edit__header-capacity-name">
+      {{ codePoolName }}
+    </div>
+    @if (!enableSessionLabelEdit) {
+      <div class="common-session-edit__header-ticket-name" data-testid="session-label-no-input">
+        {{ session?.label }}
+      </div>
+    }
+  </div>
+  @if (formLoaded) {
+    <form [formGroup]="formGroup" class="common-session-edit__form" data-testid="session-edit-form">
+      @if (enableSessionLabelEdit) {
+        <ng-container
+          [ngTemplateOutlet]="inputTemplate"
+          [ngTemplateOutletContext]="{ fieldName: 'label', fieldType: 'text' }"
+        ></ng-container>
+      }
+      <div class="input-inline">
+        @if (isPriceVisible) {
+          <ng-container
+            [ngTemplateOutlet]="inputTemplate"
+            [ngTemplateOutletContext]="{ fieldName: 'price', fieldType: 'currency' }"
+          ></ng-container>
+        }
+        <ng-container *ngTemplateOutlet="inputTemplate; context: { fieldName: 'maxQty', fieldType: 'number' }"></ng-container>
+      </div>
+      @if (shouldDisableMaxQty) {
+        <ignt-alert
+          class="common-session-edit__message-banner"
+          sentiment="warning"
+          [description]="'sessions.sessionsPerTimeslot.edition.error.assetBasedSessionCapacityUpdateNotAllowed' | translate"
+        ></ignt-alert>
+      }
+      <div class="input-inline">
+        <ng-container
+          *ngTemplateOutlet="
+            switchTemplate;
+            context: {
+              fieldName: 'status',
+              icon: ['fal', 'chart-line'],
+              checked: 'sessions.sessionsPerTimeslot.status.purchasable',
+              unchecked: 'sessions.sessionsPerTimeslot.forcedSaleClosure',
+            }
+          "
+        ></ng-container>
+        <ng-container
+          *ngTemplateOutlet="
+            switchTemplate;
+            context: {
+              fieldName: 'visibility',
+              icon: ['fal', 'eye-slash'],
+              checked: 'sessions.sessionsPerTimeslot.visibility.visible',
+              unchecked: 'sessions.sessionsPerTimeslot.visibility.hidden',
+            }
+          "
+        ></ng-container>
+      </div>
+
+      @if (timezone) {
+        <div class="session-edit-form-purchasability-window__container" data-testid="sales-window-section">
+          <div class="session-edit-form-purchasability-window__header">
+            <div class="session-edit-form-purchasability-window__title">
+              {{ 'salesWindow.section.title' | translate }}
+            </div>
+            <div class="session-edit-form-purchasability-window__subtitle">
+              {{ 'salesWindow.section.subtitle' | translate }}
+            </div>
+          </div>
+          <app-sales-window-field
+            data-testid="sales-window-default"
+            formControlName="defaultWindow"
+            [availableMax]="session?.endsAt ?? null"
+            [availableMin]="session?.startsAt ?? null"
+            maxBoundType="sessionEnd"
+            [timezone]="timezone"
+          ></app-sales-window-field>
+          <app-channel-overrides-panel
+            data-testid="channel-overrides-panel"
+            formControlName="channelOverrides"
+            [availableChannels]="availableChannels()"
+            [availableMax]="channelOverridesMaxBoundValue"
+            [availableMin]="session?.startsAt ?? null"
+            [maxBoundType]="channelOverridesMaxBoundType"
+            [timezone]="timezone"
+          ></app-channel-overrides-panel>
+        </div>
+      }
+
+      <ng-template #inputTemplate let-fieldName="fieldName" let-fieldType="fieldType">
+        <div
+          class="form-group"
+          [class.form-group--error]="getControlError(formGroup.get(fieldName))"
+          [class.form-group--readonly]="fieldName === 'maxQty' && shouldDisableMaxQty"
+        >
+          <label [for]="fieldName" class="form-label" translate>{{ 'sessions.sessionsPerTimeslot.edition.field.' + fieldName }} </label>
+
+          @if (fieldType === 'currency') {
+            <input
+              appAutoformatNumericInput
+              [attr.data-testid]="'session-' + fieldName"
+              class="form-input"
+              [currency]="session.ticketPrice?.currency"
+              [formControlName]="fieldName"
+              type="text"
+              autocomplete="off"
+              min="0"
+            />
+          } @else {
+            <input
+              [id]="fieldName"
+              [attr.data-testid]="'session-' + fieldName"
+              class="form-input"
+              [type]="fieldType"
+              [formControlName]="fieldName"
+              min="0"
+              autocomplete="off"
+            />
+          }
+        </div>
+        @if (getControlError(formGroup.get(fieldName)); as error) {
+          <ng-container
+            [ngTemplateOutlet]="validationErrors"
+            [ngTemplateOutletContext]="{ $implicit: [error], control: formGroup.get(fieldName) }"
+          ></ng-container>
+        }
+      </ng-template>
+
+      <ng-template #switchTemplate let-fieldName="fieldName" let-icon="icon" let-checked="checked" let-unchecked="unchecked">
+        <div class="form-group form-switch-group">
+          <fa-icon class="form-icon" [icon]="icon"></fa-icon>
+          <label [for]="fieldName" class="form-label" translate>{{ 'sessions.sessionsPerTimeslot.edition.field.' + fieldName }} </label>
+          <div class="form-value">
+            <span [class.form-value--checked]="!formGroup.get(fieldName).value" translate>{{ unchecked }}</span> /
+            <span [class.form-value--checked]="formGroup.get(fieldName).value" translate>{{ checked }}</span>
+          </div>
+          <div class="form-check form-switch form-switch-lg" data-testid="capacity-card-switch-button">
+            <input
+              [formControl]="formGroup.get(fieldName)"
+              [attr.data-testid]="'session-' + fieldName"
+              [checked]="formGroup.get(fieldName).value"
+              type="checkbox"
+              class="form-check-input"
+              [id]="'custom-capacity-switch-' + fieldName"
+            />
+            <label class="form-check-label" [for]="'custom-capacity-switch-' + fieldName"></label>
+          </div>
+        </div>
+      </ng-template>
+    </form>
+  }
+  @if (session?.hasPriceListPricing && formGroup.get('price').dirty) {
+    <ignt-alert
+      sentiment="warning"
+      [description]="'sessions.sessionsPerTimeslot.edition.priceListPriceEditionWarning' | translate"
+    ></ignt-alert>
+  }
+</div>
+<div class="lateral-slider-body__footer">
+  <ignt-button
+    variant="tertiary"
+    [label]="'sessions.sessionsPerTimeslot.edition.button.discard' | translate"
+    data-testid="session-discard-button"
+    (click)="cancel()"
+  />
+
+  <ignt-button
+    [label]="'sessions.sessionsPerTimeslot.edition.button.save' | translate"
+    data-testid="session-save-button"
+    [disabled]="isSaveButtonDisabled() || formGroup.pristine"
+    (click)="save()"
+  />
+</div>
+
+<ng-template #validationErrors let-errors let-control="control">
+  <div class="form-error">
+    <div>
+      @for (error of errors; track error) {
+        @switch (error) {
+          @case ('required') {
+            <p class="form-error--message" data-testid="error-mandatory-field">
+              <fa-icon class="form-error--icon" [icon]="['fas', 'exclamation-circle']"></fa-icon>
+              {{ 'form.error.mandatoryField' | translate }}
+            </p>
+          }
+          @case ('min') {
+            <p class="form-error--message" data-testid="error-min-value-field">
+              <fa-icon class="form-error--icon" [icon]="['fas', 'exclamation-circle']"></fa-icon>
+              @if (control?.errors?.['min']?.min === assetBasedCapacityAllowedValue) {
+                {{ 'sessions.sessionsPerTimeslot.edition.error.assetBasedSessionCapacityMustBe100001' | translate }}
+              } @else {
+                {{ 'form.error.greaterThanZero' | translate }}
+              }
+            </p>
+          }
+          @case ('max') {
+            <p class="form-error--message" data-testid="error-max-value-field">
+              <fa-icon class="form-error--icon" [icon]="['fas', 'exclamation-circle']"></fa-icon>
+              @if (control?.errors?.['max']?.max === assetBasedCapacityAllowedValue) {
+                {{ 'sessions.sessionsPerTimeslot.edition.error.assetBasedSessionCapacityMustBe100001' | translate }}
+              } @else {
+                {{ 'form.error.maxValue' | translate: { value: control?.errors?.['max']?.max } }}
+              }
+            </p>
+          }
+        }
+      }
+    </div>
+  </div>
+</ng-template>

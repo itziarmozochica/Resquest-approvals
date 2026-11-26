@@ -1,0 +1,91 @@
+<ignt-dialog-header hideCloseButton data-testid="edit-reservation-payment-deadline-dialog__title">
+  {{ titleKey() | translate }}
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="edit-reservation-payment-deadline-dialog">
+    @if (loading()) {
+      <p class="edit-reservation-payment-deadline-dialog__text" data-testid="edit-reservation-payment-deadline-dialog__loading">
+        {{ 'reservations.deadlines.deadlinesDialog.loading' | translate }}
+      </p>
+    } @else if (deadlines()) {
+      <p class="edit-reservation-payment-deadline-dialog__text" data-testid="edit-reservation-payment-deadline-dialog__intro">
+        {{ introKey() | translate: { reservationId: data.reservationId, timezone: timezoneLabel() } }}
+      </p>
+
+      @for (section of sections(); track section.kind) {
+        <section
+          class="edit-reservation-payment-deadline-dialog__section"
+          [attr.aria-labelledby]="hasDeposit() ? 'edit-reservation-' + section.kind + '-deadline-heading' : null"
+          [attr.data-testid]="'edit-reservation-payment-deadline-dialog__' + section.kind + '-deadline'"
+        >
+          @if (hasDeposit()) {
+            <h3 class="edit-reservation-payment-deadline-dialog__heading" [id]="'edit-reservation-' + section.kind + '-deadline-heading'">
+              {{ section.labelKey | translate }}
+            </h3>
+          }
+          <div class="edit-reservation-payment-deadline-dialog__fields">
+            <ignt-input-field
+              type="date"
+              [id]="'edit-reservation-' + section.kind + '-deadline-date'"
+              [label]="'reservations.deadlines.dialog.dateLabel' | translate"
+              [readonly]="!isEditable(section)"
+              [ngModel]="inputs()[section.kind].date"
+              (ngModelChange)="onDateChange(section.kind, $event)"
+            />
+            <ignt-input-field
+              type="time"
+              [id]="'edit-reservation-' + section.kind + '-deadline-time'"
+              [label]="'reservations.deadlines.dialog.timeLabel' | translate"
+              [readonly]="!isEditable(section)"
+              [ngModel]="inputs()[section.kind].time"
+              (ngModelChange)="onTimeChange(section.kind, $event)"
+            />
+          </div>
+          @if (fieldErrorKeys()[section.kind] ?? section.notEditableErrorKey; as fieldError) {
+            <p
+              class="edit-reservation-payment-deadline-dialog__error"
+              role="alert"
+              [attr.data-testid]="'edit-reservation-payment-deadline-dialog__' + section.kind + '-field-error'"
+            >
+              <ignt-icon name="exclamation-circle" variant="solid" size="caption" aria-hidden="true" />
+              {{ fieldError | translate }}
+            </p>
+          }
+          @if (section.latestAllowed; as latest) {
+            <p
+              class="edit-reservation-payment-deadline-dialog__hint"
+              [attr.data-testid]="'edit-reservation-payment-deadline-dialog__' + section.kind + '-latest-allowed'"
+            >
+              {{ 'reservations.deadlines.dialog.latestAllowed' | translate: { value: latest.dateTime, timezone: timezoneLabel() } }}
+            </p>
+          }
+        </section>
+      }
+    }
+
+    @if (errorKey(); as key) {
+      <ignt-alert sentiment="danger" data-testid="edit-reservation-payment-deadline-dialog__error">
+        <ng-template #igntAlertContent>{{ key | translate }}</ng-template>
+      </ignt-alert>
+    }
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer hideCancelButton>
+  <ignt-button
+    variant="secondary"
+    data-testid="edit-reservation-payment-deadline-dialog__cancel"
+    [disabled]="saving()"
+    [label]="'common.cancel' | translate"
+    (click)="cancel()"
+  />
+  <ignt-button
+    variant="primary"
+    data-testid="edit-reservation-payment-deadline-dialog__save"
+    [disabled]="!canSave()"
+    [loading]="saving()"
+    [label]="'common.save' | translate"
+    (click)="save()"
+  />
+</ignt-dialog-footer>

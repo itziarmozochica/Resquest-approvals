@@ -1,0 +1,91 @@
+<div
+  class="multi-step-modal-shell"
+  data-testid="multi-step-modal"
+  [class.multi-step-modal-shell--compact]="controller.currentStep()?.chrome.compactLayout === true"
+  [style.height.px]="sizerHeight()"
+>
+  <div #sizer class="multi-step-modal-shell__sizer">
+    @if (controller.currentStep(); as step) {
+      <header
+        class="multi-step-modal-shell__header"
+        data-testid="multi-step-modal-header"
+        [class.multi-step-modal-shell__header--centered]="step.chrome.centerTitle === true"
+      >
+        @if (step.chrome.showBack && controller.canGoBack()) {
+          <button
+            ignt-icon-button
+            type="button"
+            sentiment="tertiary"
+            class="multi-step-modal-shell__back"
+            data-testid="multi-step-modal-back"
+            [size]="step.chrome.centerTitle === true ? 'medium' : 'small'"
+            [variant]="step.chrome.centerTitle === true ? 'sharp' : 'default'"
+            [icon]="step.chrome.centerTitle === true ? ['fas', 'chevron-left'] : ['fal', 'angle-left']"
+            [attr.aria-label]="'common.back' | translate"
+            (click)="controller.goBack()"
+          ></button>
+        }
+        <h2 class="multi-step-modal-shell__title" data-testid="multi-step-modal-title">{{ step.titleKey | translate }}</h2>
+        @if (controller.isCloseVisible()) {
+          <button
+            ignt-icon-button
+            type="button"
+            size="small"
+            sentiment="tertiary"
+            class="multi-step-modal-shell__close"
+            data-testid="multi-step-modal-close"
+            [icon]="['fas', 'times']"
+            [attr.aria-label]="'common.close' | translate"
+            (click)="onClose()"
+          ></button>
+        }
+      </header>
+
+      <section class="multi-step-modal-shell__content">
+        <app-multi-step-modal-step-host />
+      </section>
+
+      <footer
+        class="multi-step-modal-shell__footer"
+        [class.multi-step-modal-shell__footer--separated]="controller.isFooterSeparatorVisible()"
+      >
+        @if (controller.isProgressVisible()) {
+          <div
+            class="multi-step-modal-shell__progress"
+            data-testid="multi-step-modal-progress"
+            role="progressbar"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            [attr.aria-valuenow]="progressPercent()"
+            [attr.aria-label]="'common.progress' | translate"
+          >
+            <span class="multi-step-modal-shell__progress-bar" [style.width.%]="controller.progress() * 100"></span>
+          </div>
+        }
+
+        <div
+          class="multi-step-modal-shell__actions"
+          data-testid="multi-step-modal-actions"
+          [class.multi-step-modal-shell__actions--full-width]="step.chrome.fullWidthPrimary === true"
+        >
+          @for (action of step.actions; track action.id) {
+            @if (controller.isActionVisible(action)) {
+              <ignt-button
+                class="multi-step-modal-shell__action"
+                [class.multi-step-modal-shell__action--primary]="action.kind === 'primary'"
+                [class.multi-step-modal-shell__action--leading]="action.placement === 'leading'"
+                [class.multi-step-modal-shell__action--full-width]="action.fullWidth === true"
+                [attr.data-testid]="'multi-step-modal-action-' + action.id"
+                [disabled]="isActionDisabled(action)"
+                [label]="action.labelKey | translate"
+                [sentiment]="actionSentiment(action)"
+                [variant]="actionVariant(action)"
+                (click)="onAction(action)"
+              />
+            }
+          }
+        </div>
+      </footer>
+    }
+  </div>
+</div>

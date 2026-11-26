@@ -1,0 +1,56 @@
+<form class="dynamic-fields-form" [formGroup]="form()">
+  @for (group of groups(); track group[0].field.id) {
+    <div class="dynamic-fields-form__group" data-testid="dynamic-fields-group">
+      @for (row of group; track row.field.id) {
+        <div
+          class="dynamic-fields-form__field"
+          [attr.data-testid]="'dynamic-field-' + row.field.id"
+          [class.dynamic-fields-form__field--inline]="row.controlKind === dynamicFieldControlKind.Switch"
+        >
+          <div class="dynamic-fields-form__heading">
+            <p class="dynamic-fields-form__title" [attr.data-testid]="'dynamic-field-title-' + row.field.id">
+              {{ row.title }}
+              @if (row.isOptional) {
+                <span class="dynamic-fields-form__optional">{{ optionalText() }}</span>
+              }
+            </p>
+            @if (row.field.description) {
+              <p class="dynamic-fields-form__description" [attr.data-testid]="'dynamic-field-description-' + row.field.id">
+                {{ row.field.description }}
+              </p>
+            }
+          </div>
+          @switch (row.controlKind) {
+            @case (dynamicFieldControlKind.Switch) {
+              <ignt-switch [ariaLabel]="row.title" [formControlName]="row.field.id"></ignt-switch>
+            }
+            @case (dynamicFieldControlKind.Textarea) {
+              <ignt-textarea-field
+                [customFormErrors]="row.errors"
+                [formControlName]="row.field.id"
+                [id]="'dynamic-field-' + row.field.id"
+                [label]="row.label"
+                [placeholder]="row.placeholder"
+              ></ignt-textarea-field>
+            }
+            @default {
+              <ignt-input-field
+                appNativePicker
+                [customFormErrors]="row.errors"
+                [formControlName]="row.field.id"
+                [helperText]="row.helperText"
+                [id]="'dynamic-field-' + row.field.id"
+                [label]="row.label"
+                [placeholder]="row.placeholder"
+                [placeholderAsEmptyValue]="row.field.isCalculated"
+                [trailIcon]="row.trailIcon"
+                [trailIconAriaLabel]="openDatePickerText()"
+                [type]="row.inputType"
+              ></ignt-input-field>
+            }
+          }
+        </div>
+      }
+    </div>
+  }
+</form>

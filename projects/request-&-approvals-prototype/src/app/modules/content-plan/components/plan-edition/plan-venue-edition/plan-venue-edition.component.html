@@ -1,0 +1,95 @@
+<ng-container [ngSwitch]="componentState">
+  <ng-container *ngSwitchCase="componentStateEnum.ok" [ngTemplateOutlet]="okTemplate"> </ng-container>
+  <ng-container *ngSwitchCase="componentStateEnum.loading" [ngTemplateOutlet]="loadingTemplate"> </ng-container>
+  <ng-container *ngSwitchCase="componentStateEnum.error" [ngTemplateOutlet]="errorTemplate"> </ng-container>
+</ng-container>
+
+<ng-template #okTemplate>
+  <div class="plan-edition-venue" data-testid="plan-edition-venue" *ngIf="isShowingVenueEditor">
+    <ignt-alert
+      *ngIf="showSuccessMessage"
+      [description]="'planEdition.venueTab.successMessage' | translate"
+      sentiment="positive"
+    ></ignt-alert>
+
+    <div class="plan-edition-venue__title" data-testid="plan-edition-venue-title">
+      <ignt-icon class="plan-edition-venue__title-icon" name="map-marker-alt" variant="regular" aria-hidden="true"></ignt-icon>
+      <span>{{ 'planEdition.venueTab.title' | translate }}</span>
+    </div>
+
+    <div class="plan-edition-venue__form" data-testid="plan-edition-venue-form">
+      <ng-container>
+        <div class="plan-edition-venue__form-field" data-testid="plan-edition-venue-form-field-name">
+          <div class="plan-edition-venue__form-label">
+            {{ 'planEdition.venueTab.venueName' | translate }}
+            <span class="plan-edition-venue__form-label--required">*</span>
+          </div>
+          <div class="plan-edition-venue__form-select" data-testid="plan-edition-venue-form-select">
+            <app-typeahead
+              #venueTypeahead
+              data-testid="plan-edition-venue-typeahead"
+              [options]="venueOptions"
+              [inputType]="'venue'"
+              [screen]="'planEdition'"
+              [emptyLabel]="'planEdition.venueTab.venuePlaceholder' | translate"
+              [selectedOption]="selectedVenue.get('name').value"
+              (selected)="onVenueSelected($event)"
+              (inputInteraction)="onVenueUserInteraction($event)"
+              [disabled]="!isEditableVenue || !canEditPlan() || !canEditVenue()"
+            ></app-typeahead>
+          </div>
+        </div>
+
+        <div
+          *ngIf="selectedVenue.get('address').value"
+          class="plan-edition-venue__form-field"
+          data-testid="plan-edition-venue-form-field-address"
+        >
+          <div class="plan-edition-venue__form-label">
+            {{ 'planEdition.venueTab.address' | translate }}
+          </div>
+          <div class="plan-edition-venue__form-description" data-testid="plan-edition-venue-address-display">
+            <span>{{ selectedVenue.get('address').value }}</span>
+          </div>
+        </div>
+
+        <hr />
+      </ng-container>
+    </div>
+    <div class="plan-edition-venue__map" data-testid="plan-edition-venue-map">
+      <div class="plan-edition-venue__map-image" data-testid="plan-edition-venue-map-image">
+        <img
+          class="image"
+          data-testid="plan-edition-venue-map-img"
+          [src]="mapImageUrl || 'assets/images/content-plan/placeholder-map.png'"
+        />
+      </div>
+    </div>
+    <div class="plan-edition-venue__bottom">
+      <button
+        data-testid="plan-venue-edition-publish"
+        [disabled]="!canEditPlan() || !canPublish()"
+        (click)="publish()"
+        class="box-office-content__button plan-content-edition__button"
+      >
+        {{
+          isDraftMode
+            ? isLastTab
+              ? ('common.save' | translate)
+              : ('common.next' | translate)
+            : ('planEdition.contentEdition.publishChanges' | translate)
+        }}
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #loadingTemplate>
+  <div data-testid="plan-venue-edition-spinner" class="loading-content-spinner">
+    <ignt-icon class="loader" name="spinner" variant="solid" size="display" [spin]="true" aria-hidden="true"></ignt-icon>
+  </div>
+</ng-template>
+
+<ng-template #errorTemplate>
+  <ignt-alert sentiment="danger" [description]="'errors.generic' | translate" data-testid="plan-venue-edition-error" />
+</ng-template>

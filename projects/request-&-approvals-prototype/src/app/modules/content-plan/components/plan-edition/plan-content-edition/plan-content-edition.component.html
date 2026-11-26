@@ -1,0 +1,286 @@
+<ng-template #headerLinkTemplate>
+  <a class="plan-content-edition__link" [href]="bestPracticesLink" target="_blank">
+    {{ 'planEdition.contentEdition.bestPracticesLink' | translate }}
+  </a>
+</ng-template>
+
+<ng-container [ngSwitch]="componentState">
+  <ng-container *ngSwitchCase="componentStateEnum.ok" [ngTemplateOutlet]="okTemplate"> </ng-container>
+  <ng-container *ngSwitchCase="componentStateEnum.loading" [ngTemplateOutlet]="loadingTemplate"> </ng-container>
+  <ng-container *ngSwitchCase="componentStateEnum.error" [ngTemplateOutlet]="errorTemplate"> </ng-container>
+</ng-container>
+
+<ng-template #okTemplate>
+  <div class="plan-content-edition">
+    <app-plan-edition-header
+      class="plan-content-edition__header"
+      [title]="'planEdition.contentEdition.requerimentsTitle' | translate"
+      [linkTemplate]="headerLinkTemplate"
+      [requeriments]="[
+        {
+          text: 'planEdition.contentEdition.dontUseAllCaps' | translate,
+          icon: [
+            ['fal', 'slash'],
+            ['fal', 'font'],
+          ],
+        },
+        {
+          text: 'planEdition.contentEdition.beConcise' | translate,
+          icon: ['fal', 'pencil'],
+        },
+        {
+          text: 'planEdition.contentEdition.dontAddLinks' | translate,
+          icon: [
+            ['fal', 'slash'],
+            ['fal', 'link'],
+          ],
+        },
+        {
+          text: 'planEdition.contentEdition.followCharacters' | translate,
+          icon: ['fal', 'arrows-h'],
+        },
+      ]"
+    >
+    </app-plan-edition-header>
+
+    <div class="plan-content-edition__body">
+      @if (missingTranslations()) {
+        <div class="plan-content-edition__missing-translations" data-testid="plan-content-edition-missing-translations">
+          <ignt-icon
+            class="plan-content-edition__missing-translations-icon"
+            name="circle-exclamation"
+            variant="regular"
+            aria-hidden="true"
+          ></ignt-icon>
+          <span>{{ 'planEdition.contentEdition.missingTranslationsWarning' | translate }}</span>
+          <button igntButton variant="default" sentiment="tertiary" size="small" type="button" (click)="goToTranslations()">
+            {{ 'planEdition.contentEdition.goToTranslations' | translate }}
+          </button>
+        </div>
+      }
+
+      @if (showComponentsDescriptionToggle && allowedChannels.length > 0) {
+        <app-content-channel-selector
+          class="plan-content-edition__channel-selector"
+          [channels]="allowedChannels"
+          [activeChannelIds]="activeChannelIds"
+          [selectedChannelId]="channelIdFormControl.value"
+          [canEditPlan]="canEditPlan() && hasEditContentPermission()"
+          (channelSelected)="onChannelChange($event)"
+          (channelRemoveClick)="onChannelRemoveClick($event)"
+          (addChannelClick)="openEditChannelsSidebar()"
+        ></app-content-channel-selector>
+      }
+
+      <div class="plan-content-edition__title">
+        <div class="plan-content-edition__title-label">
+          {{ 'planEdition.contentEdition.titleLabel' | translate }}
+        </div>
+        <input
+          [formControl]="planNameFormControl"
+          [attr.aria-label]="'planEdition.contentEdition.titleLabel' | translate"
+          data-testid="plan-content-edition-name-input"
+          class="plan-content-edition__title-input"
+          [maxlength]="PLAN_NAME_MAX_LENGTH"
+        />
+        <div class="plan-content-edition__title-info">
+          <ignt-icon class="plan-content-edition__title-icon" name="info-circle" variant="regular" aria-hidden="true"></ignt-icon>
+          <span>
+            {{ 'planEdition.contentEdition.titleInfo' | translate }}
+          </span>
+        </div>
+      </div>
+
+      <div class="plan-content-edition__description">
+        <div class="plan-content-edition__description-label">
+          {{ 'planEdition.contentEdition.descriptionLabel' | translate }}
+        </div>
+
+        @if (!hasComponentsDescriptionFormControl.value) {
+          <ignt-rich-text-editor
+            class="plan-content-edition__description-editor"
+            data-testid="plan-content-edition-description-input"
+            [formControl]="descriptionControl"
+            [features]="descriptionFeatures"
+            [blockElement]="'p'"
+            [imageUpload]="uploadFileCallback"
+            [readonly]="!canEditPlan() || !hasEditContentPermission()"
+          ></ignt-rich-text-editor>
+          <div class="plan-content-edition__description-info">
+            <ignt-icon class="plan-content-edition__description-icon" name="info-circle" variant="regular" aria-hidden="true"></ignt-icon>
+            <span>
+              {{ 'planEdition.contentEdition.descriptionInfo' | translate }}
+            </span>
+          </div>
+        }
+
+        @if (hasComponentsDescriptionFormControl.value) {
+          @if (showChannelDefaultContentBanner()) {
+            <ignt-alert sentiment="accent" [showCloseButton]="false" data-testid="plan-content-edition-channel-default-content-banner">
+              <ng-template #igntAlertContent>
+                <div class="plan-content-edition__channel-default-content-banner">
+                  <span>{{ 'planEdition.contentEdition.channelDefaultContentBanner.message' | translate }}</span>
+                  <button
+                    igntButton
+                    variant="default"
+                    sentiment="secondary"
+                    size="small"
+                    type="button"
+                    data-testid="plan-content-edition-create-channel-content"
+                    (click)="onAddChannelSchema()"
+                  >
+                    {{ 'planEdition.contentEdition.channelDefaultContentBanner.createButton' | translate }}
+                  </button>
+                </div>
+              </ng-template>
+            </ignt-alert>
+          } @else {
+            <app-description-builder
+              [initialSchema]="initialContentSchema"
+              [uploadImageCallback]="uploadContentImageCallback"
+              [disabled]="!canEditPlan() || !hasEditContentPermission() || (channelSchemaIsInherited && !isAddingChannelOverride)"
+              [highlightMissingMandatory]="highlightMissingMandatory()"
+              (schemaChange)="onBuilderSchemaChange($event)"
+            >
+              <!-- Static wrapper: `ng-content select` cannot match elements declared directly inside `@if`. -->
+              <div canvasHeaderAction>
+                @if (channelIdFormControl.value && canEditPlan() && hasEditContentPermission()) {
+                  @if (!channelSchemaIsInherited) {
+                    <button
+                      igntButton
+                      variant="danger"
+                      sentiment="tertiary"
+                      size="small"
+                      type="button"
+                      data-testid="plan-content-edition-remove-channel-override"
+                      (click)="onRemoveChannelOverride()"
+                    >
+                      {{ 'planEdition.contentEdition.removeChannelOverride' | translate }}
+                    </button>
+                  } @else if (isAddingChannelOverride) {
+                    <button
+                      igntButton
+                      variant="default"
+                      sentiment="tertiary"
+                      size="small"
+                      type="button"
+                      data-testid="plan-content-edition-discard-channel-override"
+                      (click)="onDiscardChannelOverride()"
+                    >
+                      {{ 'planEdition.contentEdition.discardChannelOverride' | translate }}
+                    </button>
+                  }
+                }
+              </div>
+            </app-description-builder>
+          }
+        }
+
+        @if (showComponentsDescriptionToggle) {
+          <div class="plan-content-edition__has-html-content">
+            <ignt-toggle
+              [id]="'has-html-content-toggle'"
+              [checked]="hasComponentsDescriptionFormControl.value"
+              [disabled]="hasComponentsDescriptionFormControl.disabled"
+              [attr.data-testid]="'plan-content-edition-has-html-content-toggle'"
+              (change)="onHasComponentsDescriptionToggleChange($event)"
+            ></ignt-toggle>
+            <label [for]="'has-html-content-toggle'">
+              <span>{{ 'planEdition.contentEdition.enableHtmlContentToggle' | translate }}</span>
+            </label>
+          </div>
+        }
+
+        @if (showComponentsDescriptionToggle && !hasComponentsDescriptionFormControl.value) {
+          <div class="plan-content-edition__html-content-info">
+            <ignt-icon
+              class="plan-content-edition__html-content-info-icon"
+              name="info-circle"
+              variant="regular"
+              aria-hidden="true"
+            ></ignt-icon>
+            <span>{{ 'planEdition.contentEdition.enableHtmlContentWarning' | translate }}</span>
+          </div>
+        }
+      </div>
+
+      <div *ngIf="planShortDescriptionFormControl" class="plan-content-edition__title">
+        <div class="plan-content-edition__title-label">
+          {{ 'planEdition.contentEdition.shortDescriptionLabel' | translate }}
+        </div>
+        <input
+          [maxlength]="MAX_SORT_DESCRIPTION_CHARACTERS"
+          [formControl]="planShortDescriptionFormControl"
+          [attr.aria-label]="'planEdition.contentEdition.shortDescriptionLabel' | translate"
+          data-testid="plan-content-edition-short-description-input"
+          class="plan-content-edition__title-input"
+        />
+        <div class="plan-content-edition__title-info">
+          <ignt-icon class="plan-content-edition__title-icon" name="info-circle" variant="regular" aria-hidden="true"></ignt-icon>
+          <span>
+            {{ 'planEdition.contentEdition.shortDescriptionInfo' | translate }}
+          </span>
+        </div>
+      </div>
+
+      <app-lateral-slider
+        [showDetails]="showEditChannelsSidebar()"
+        [title]="'planEdition.translationsEdition.editChannelsTitle' | translate"
+        [contentTemplate]="editChannelsContent"
+        [closeOnBackdropClick]="true"
+        (closeSlider)="closeEditChannelsSidebar()"
+      >
+      </app-lateral-slider>
+
+      <ng-template #editChannelsContent>
+        <app-select-content-channel-sidebar
+          [availableChannels]="allowedChannels"
+          [activeChannelIds]="activeChannelIds"
+          [channelsWithTranslations]="channelsWithTranslations"
+          [open]="showEditChannelsSidebar()"
+          (saveChannels)="onSaveChannels($event)"
+          (closeSidebar)="closeEditChannelsSidebar()"
+        ></app-select-content-channel-sidebar>
+      </ng-template>
+    </div>
+  </div>
+
+  <div class="plan-content-edition__footer">
+    <button
+      igntButton
+      [fill]="isMobile()"
+      data-testid="plan-content-edition-publish"
+      [disabled]="!canEditPlan() || !hasEditContentPermission() || !canPublish()"
+      (click)="publish()"
+    >
+      {{
+        isDraftMode
+          ? isLastTab
+            ? ('common.save' | translate)
+            : ('common.next' | translate)
+          : ('planEdition.contentEdition.publishChanges' | translate)
+      }}
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #loadingTemplate>
+  <div data-testid="plan-content-edition-spinner" class="loading-content-spinner">
+    <ignt-icon class="loader" name="spinner" variant="solid" size="display" [spin]="true" aria-hidden="true"></ignt-icon>
+  </div>
+</ng-template>
+
+<ng-template #errorTemplate>
+  <ignt-alert sentiment="danger" [description]="'errors.generic' | translate" data-testid="plan-content-edition-error" />
+</ng-template>
+
+<ng-template #savingModal>
+  <div class="saving-modal">
+    <div class="loading-modal__header">
+      {{ 'planEdition.contentEdition.savingModalTitle' | translate }}
+    </div>
+    <div class="spinner">
+      <ignt-icon class="loader" name="spinner" variant="solid" size="display" [spin]="true" aria-hidden="true"></ignt-icon>
+    </div>
+  </div>
+</ng-template>

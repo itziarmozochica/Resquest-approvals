@@ -1,0 +1,118 @@
+<div class="immersive-array-group" [attr.data-testid]="'immersive-module-content-group-' + group().groupPath">
+  <h4 class="immersive-array-group__title">
+    {{ group().labelKey | translate }}
+    <ignt-tag sentiment="neutral" variant="solid">{{ group().rows.length }}</ignt-tag>
+    <ignt-button
+      class="immersive-array-group__add-item"
+      size="small"
+      variant="secondary"
+      [label]="'common.add' | translate"
+      [attr.data-testid]="'immersive-module-content-add-item-' + group().groupPath"
+      (click)="onAddItem()"
+    />
+  </h4>
+
+  <!-- `list`, not `card`: card tints every collapsed row grey and only lifts the open one to
+       white. `list` keeps each row on the page background with a subtle hover, which is what
+       a stack of editable items should read as. -->
+  <!-- Track by tokens, not `row.index`: index shifts on remove and would reuse the
+       accordion item (and its expanded state) on a different row. -->
+  <ignt-accordion
+    variant="list"
+    cdkDropList
+    [cdkDropListData]="group().rows"
+    [cdkDropListDisabled]="!group().reorderable"
+    (cdkDropListDropped)="onItemDropped($event)"
+  >
+    @for (row of group().rows; track row.trackId) {
+      <!-- No `[cdkDragDisabled]` per row: `CdkDrag.disabled` already ORs its drop list's. The row wraps
+           the accordion item and its actions: the item's header is a button, and a button must not
+           hold another interactive control (the grip, the actions menu), so those sit beside it. -->
+      <div class="immersive-array-group__row" cdkDrag data-testid="immersive-module-content-item">
+        <ignt-accordion-item class="immersive-array-group__item" [label]="row.title">
+          <!-- The projection slot must be a static element: a node inside `@if` lands in the
+               default slot (the body), never in `[igntAccordionTrailing]`. Only the non-interactive
+               tags live here. -->
+          <ng-container igntAccordionTrailing>
+            @if (row.gapCount > 0) {
+              <ignt-tag data-testid="immersive-module-content-item-gap-tag" sentiment="warning" variant="solid">{{
+                row.gapCount
+              }}</ignt-tag>
+            }
+            @if (row.unsupported) {
+              <ignt-tag sentiment="neutral" variant="solid">{{ 'planEdition.immersiveContentPlan.readOnlyItemTag' | translate }}</ignt-tag>
+            }
+          </ng-container>
+
+          <!-- Deferred body: the item's form is created on expand and destroyed on collapse. -->
+          <ng-template igntAccordionBody>
+            <!-- Only the fields are withheld for an unsupported row: the remove action lives in the
+                 header menu, which stays available either way. Withholding both left the row neither
+                 editable nor deletable, with no way back once it was committed. -->
+            @if (!row.unsupported) {
+              <div class="immersive-array-group__fields">
+                @for (view of row.fields; track view.inputId) {
+                  <app-immersive-field
+                    [view]="view"
+                    (openMediaPreview)="openMediaPreview.emit($event)"
+                    (openTranslations)="openTranslations.emit($event)"
+                    (valueChange)="valueChange.emit({ input: $event, view })"
+                  />
+                }
+              </div>
+            }
+
+            @for (childGroup of row.childGroups; track childGroup.groupPath) {
+              <app-immersive-array-group
+                [group]="childGroup"
+                [nested]="true"
+                (addItem)="addItem.emit($event)"
+                (itemDropped)="itemDropped.emit($event)"
+                (openMediaPreview)="openMediaPreview.emit($event)"
+                (openTranslations)="openTranslations.emit($event)"
+                (removeItem)="removeItem.emit($event)"
+                (valueChange)="valueChange.emit($event)"
+              />
+            }
+          </ng-template>
+        </ignt-accordion-item>
+
+        <div class="immersive-array-group__row-actions">
+          @if (group().reorderable) {
+            <span
+              class="immersive-array-group__drag-handle"
+              cdkDragHandle
+              aria-hidden="true"
+              data-testid="immersive-module-content-drag-handle"
+            >
+              <ignt-icon name="grip-vertical" variant="solid" size="sm" />
+            </span>
+          }
+          <button
+            ignt-icon-button
+            data-testid="immersive-module-content-item-actions"
+            sentiment="tertiary"
+            size="small"
+            [attr.aria-label]="'planEdition.immersiveContentPlan.itemActionsAriaLabel' | translate: { item: row.title }"
+            [icon]="['fas', 'ellipsis-v']"
+            [igntMenuTriggerFor]="itemActionsMenu"
+          ></button>
+          <ng-template #itemActionsMenu>
+            <ignt-menu>
+              <ignt-menu-item
+                sentiment="danger"
+                value="remove"
+                [attr.data-testid]="'immersive-module-content-remove-item-' + group().groupPath + '-' + row.index"
+                [disabled]="!group().removable"
+                [label]="'common.remove' | translate"
+                (triggered)="onRemoveItem(row)"
+              >
+                <ignt-icon name="trash-can" variant="light" />
+              </ignt-menu-item>
+            </ignt-menu>
+          </ng-template>
+        </div>
+      </div>
+    }
+  </ignt-accordion>
+</div>

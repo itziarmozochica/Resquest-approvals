@@ -1,0 +1,99 @@
+<article class="item-card" [attr.aria-labelledby]="'item-card-title-' + item().id">
+  <div class="item-card__icon-wrapper" aria-hidden="true">
+    <div class="item-card__icon">
+      <ignt-icon [name]="icon()" [size]="iconSize()" [variant]="iconVariant()"></ignt-icon>
+    </div>
+  </div>
+  <div class="item-card__content">
+    <div class="item-card__body">
+      <header class="item-card__header">
+        <a class="item-card__title" [routerLink]="linkUrl()" [attr.id]="'item-card-title-' + item().id" (click)="onTitleClick()">
+          {{ item().title }}
+        </a>
+      </header>
+      @if (tags().length > 0) {
+        <div class="item-card__tags">
+          @for (tag of tags(); track tag.label + '-' + $index) {
+            <ignt-tag [sentiment]="tag.sentiment ?? 'info'" [startIcon]="tag.startIcon" [variant]="tag.variant ?? 'solid'">{{
+              tag.label
+            }}</ignt-tag>
+          }
+        </div>
+      }
+      @if (owners().length > 0) {
+        <div class="item-card__owners" [attr.data-testid]="'item-card-owners-' + item().id">
+          <span class="item-card__owners-primary">{{ ownersPrimaryLabel() }}</span>
+          @if (ownersMoreCount() > 0) {
+            <span
+              class="item-card__owners-more"
+              tabindex="0"
+              igntTooltip
+              [tooltipTemplate]="ownersTooltip"
+              [attr.data-testid]="'item-card-owners-more-' + item().id"
+            >
+              {{ 'reports.dashboardBuilder.itemCardOwnedByMore' | translate: { count: ownersMoreCount() } }}
+            </span>
+            <ng-template #ownersTooltip>
+              <ul class="item-card__owners-tooltip-list">
+                @for (email of ownersMoreEmails(); track email) {
+                  <li>{{ email }}</li>
+                }
+              </ul>
+            </ng-template>
+          }
+        </div>
+      }
+      @if (updatedAtDate(); as updated) {
+        <div class="item-card__meta">
+          <time class="item-card__updated" [attr.datetime]="item().updatedAt">
+            {{
+              'reports.dashboardBuilder.itemCardUpdated' | translate: { date: (updated | date: 'mediumDate' : undefined : dateLocale()) }
+            }}
+          </time>
+        </div>
+      }
+    </div>
+  </div>
+  @if (actions().length > 0) {
+    <nav class="item-card__menu" aria-label="Card actions">
+      <button
+        #menuTrigger
+        type="button"
+        class="item-card__menu-button"
+        ignt-icon-button
+        sentiment="tertiary"
+        size="small"
+        [icon]="['fas', 'ellipsis-v']"
+        [attr.aria-label]="('common.actions' | translate) + ' - ' + item().title"
+        [igntMenuTriggerFor]="actionsMenu"
+        [attr.data-testid]="'item-card-menu-trigger-' + item().id"
+      ></button>
+      <ng-template #actionsMenu>
+        <ignt-menu>
+          @for (cardAction of actions(); track cardAction.id) {
+            <!-- The menu focuses its first item before it is positioned: the delay measures the tooltip once the menu is in place. -->
+            <ignt-menu-item
+              class="item-card__menu-item"
+              [class.item-card__menu-item--disabled]="cardAction.disabled ?? false"
+              igntTooltip
+              [label]="cardAction.label | translate"
+              [tooltipDisabled]="!cardAction.disabled || !cardAction.disabledTooltip"
+              [tooltipLabel]="cardAction.disabledTooltip ? (cardAction.disabledTooltip | translate) : null"
+              tooltipPlacement="top"
+              [tooltipOpenDelay]="100"
+              [value]="cardAction.id"
+              [disabled]="cardAction.disabled ?? false"
+              [sentiment]="cardAction.sentiment"
+              [attr.data-testid]="'item-card-menu-item-' + cardAction.id + '-' + item().id"
+              (triggered)="handleMenuAction(cardAction)"
+            >
+              @if (cardAction.icon; as menuIcon) {
+                <ignt-icon [name]="menuIcon" variant="light"></ignt-icon>
+              }
+            </ignt-menu-item>
+          }
+        </ignt-menu>
+      </ng-template>
+    </nav>
+  }
+</article>

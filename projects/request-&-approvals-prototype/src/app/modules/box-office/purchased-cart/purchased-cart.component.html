@@ -1,0 +1,72 @@
+<ignt-expansion-panel *ngIf="!isOssFlow()" variant="menu">
+  <app-page-title page-title [title]="'menu.transactions' | translate" class="new-design"></app-page-title>
+  <app-search-bar [searchButtonLabel]="'boxOffice.show'" [showVenue]="true" [disabled]="true" [screen]="screen.boxOffice"> </app-search-bar>
+</ignt-expansion-panel>
+
+<div class="box-office-content" [class.box-office-content--oss-fullheight]="isOssFlow()">
+  <div class="box-office-content__container">
+    <app-start-end-shift
+      data-testid="order-start-end-shift"
+      *ngIf="hasShiftsEnabled && shouldDisplayShiftControls()"
+      class="box-office-content__shifts"
+      [currency]="currency!"
+      [onsiteSetup]="onsiteSetupStorage!"
+    ></app-start-end-shift>
+    <div *ngIf="orderInformationList().length > 0" class="purchased-cart" [ngClass]="{ 'purchased-cart--one-order': hasOneOrder() }">
+      <ignt-wrapper-card [elevation]="0" class="purchased-cart__thank-you-card">
+        <div class="purchased-cart__thank-you" [ngClass]="{ 'purchased-cart__thank-you__one-order': hasOneOrder() }">
+          <div class="purchased-cart__thank-you__header">
+            <div class="purchased-cart__thank-you__text">
+              <div class="purchased-cart__thank-you__title">
+                {{ 'boxOffice.order.details.purchaseConfirmed' | translate }}
+              </div>
+              <div class="purchased-cart__thank-you__description" translate>
+                {{ 'boxOffice.order.details.selectDifferentEvent' }}
+              </div>
+            </div>
+            <ignt-tag *ngIf="!hasOneOrder()" [heightAuto]="true">
+              <div class="purchased-cart__thank-you__tag">
+                {{ 'boxOffice.purchaseConfirmation.orderCount' | translate: { orderCount: orderInformationList().length } }}
+              </div></ignt-tag
+            >
+          </div>
+          <button
+            class="purchased-cart__thank-you__button"
+            (click)="createNewOrder()"
+            igntButton
+            color="primary"
+            [loading]="isStartingNewOrder()"
+          >
+            {{ 'boxOffice.purchaseConfirmation.newOrder' | translate }}
+          </button>
+        </div>
+      </ignt-wrapper-card>
+      <div class="purchased-cart__order-grid" [class.purchased-cart__order-grid--one-per-row]="journeyOrderIds().size > 0">
+        <ng-container *ngFor="let orderInformation of orderInformationList()">
+          <app-purchased-cart-order
+            [order]="orderInformation.order"
+            [agreementBlocked]="agreementBlocked()"
+            [agreementAction]="agreementAction()"
+            [agreementNoticeVisible]="agreementBlocked()"
+            [cartSessionsByDatetime]="orderInformation.cartSessionsByDatetime"
+            [mainPlan]="orderInformation.mainPlan"
+            [flexibleBundle]="orderInformation.flexibleBundle"
+            [showValidateButton]="showValidateButtonForOrder().get(orderInformation.order.id!)!"
+            [isValidating]="validatingByOrder().get(orderInformation.order.id!) ?? false"
+            [isFiscalReprintEnabled]="isFiscalReprintEnabled"
+            [isReprintingFiscalReceipt]="isReprintingFiscalReceipt"
+            (openAgreementList)="openAgreementList(orderInformation.order)"
+            (validateTickets)="validateTickets(orderInformation.order)"
+            (openTickets)="openTickets(orderInformation.order)"
+            (openDeliveryNote)="openDeliveryNote(orderInformation.order)"
+            (printReceipt)="printReceipt(orderInformation.order)"
+          >
+            @if (journeyOrderIds().has(orderInformation.order.id!)) {
+              <app-purchased-cart-journey journey [orderId]="orderInformation.order.id!" />
+            }
+          </app-purchased-cart-order>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+</div>

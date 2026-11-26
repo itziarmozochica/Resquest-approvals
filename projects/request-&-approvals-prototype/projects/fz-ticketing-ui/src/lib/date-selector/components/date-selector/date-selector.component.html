@@ -1,0 +1,79 @@
+<div class="date-time-selector date-time-selector--oss">
+  <article class="date-time-selector__dates">
+    @if (vm().fromDateRow.visible) {
+      <div class="fzt-date-selector__date-picker-row">
+        @if (vm().skeleton.availability) {
+          <div class="skeleton__availability">
+            <ignt-skeleton-base width="100%" [animation]="true" [height]="56" [white]="useWhiteSkeleton()" />
+          </div>
+        } @else {
+          <ignt-date-picker-input
+            class="availability-from-date"
+            data-testid="date-selector-invitation"
+            [isOneStopShop]="true"
+            [label]="translations().showAvailabilityFromLabel"
+            [startDate]="vm().fromDateRow.startDate"
+            [timezone]="vm().fromDateRow.timezone"
+            (changeDate)="fromDateChanged.emit($event)"
+          />
+        }
+      </div>
+    }
+
+    @if (vm().skeleton.dates) {
+      <div class="skeleton__dates">
+        @for (tile of skeletonTiles; track tile) {
+          <ignt-skeleton-base [animation]="true" [height]="56" [white]="useWhiteSkeleton()" />
+        }
+      </div>
+    } @else {
+      <fzt-date-pills-row
+        [translations]="translations()"
+        [vm]="vm()"
+        (dateSelected)="dateSelected.emit($event)"
+        (loadMoreClicked)="loadMoreClicked.emit()"
+      />
+    }
+  </article>
+
+  @if (vm().skeleton.sessions) {
+    <div class="skeleton__sessions">
+      @if (isMobile()) {
+        <div class="skeleton__tabs">
+          @for (width of skeletonTabWidths; track width) {
+            <ignt-skeleton-base [animation]="true" [height]="15" [width]="width + 'px'" />
+          }
+        </div>
+      } @else {
+        <ignt-skeleton-base width="100%" [animation]="true" [height]="20" [white]="useWhiteSkeleton()" />
+      }
+      <div [class.skeleton__dates]="isCompactViewport()" [class.skeleton__hours]="!isCompactViewport()">
+        @for (tile of skeletonTiles; track tile) {
+          <ignt-skeleton-base [animation]="true" [height]="skeletonTileHeight()" [white]="useWhiteSkeleton()" />
+        }
+      </div>
+      @if (!isMobile()) {
+        <ignt-skeleton-base width="100%" [animation]="true" [height]="20" [white]="useWhiteSkeleton()" />
+        <ignt-skeleton-base width="100%" [animation]="true" [height]="20" [white]="useWhiteSkeleton()" />
+      }
+    </div>
+  } @else {
+    @if (vm().showHoursSection) {
+      <fzt-timeslot-day-parts
+        [isMobile]="isMobile()"
+        [isTablet]="isTablet()"
+        [translations]="translations()"
+        [vm]="vm()"
+        (sectionToggled)="sectionToggled.emit($event)"
+        (timeslotConfirmed)="timeslotConfirmed.emit($event)"
+        (timeslotSelected)="timeslotSelected.emit($event)"
+      />
+    }
+    @if (vm().showEmptyState) {
+      <div class="fzt-date-selector__empty" data-testid="no-sessions-available">
+        <ignt-icon class="fzt-date-selector__empty__icon" name="sensor-alert" variant="light" />
+        <p class="fzt-date-selector__empty__text">{{ translations().noSessionsAvailable }}</p>
+      </div>
+    }
+  }
+</div>

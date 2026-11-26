@@ -1,0 +1,496 @@
+@if (!isLoading) {
+  <div class="cart-details" #cartContainer data-testid="cart">
+    @if (checkCustomerInfo) {
+      <div class="form-error">
+        <ignt-icon name="exclamation-circle" variant="solid" size="base" class="form-error--icon" aria-hidden="true" />
+        <span class="form-error--message" translate>
+          {{ 'oneStopShop.cart.reviewProvidedData' }}
+        </span>
+      </div>
+    }
+    @if (cart && cart.sessionItemsByDatetime) {
+      @if (sessionsByPlan() && sessionsByPlan().size > 0) {
+        <ng-container *ngFor="let planSessions of sessionsByPlan() | keyvalue; trackBy: trackByPlanKey">
+          @if (shouldShowPlanHeaders()) {
+            <div class="cart-plan-header" data-testid="cart-plan-header">
+              @if (getPlanImageUrl(planSessions.key)) {
+                <img [src]="getPlanImageUrl(planSessions.key)" alt="" class="cart-plan-header__image" />
+              }
+              <div class="cart-plan-header__info">
+                <div class="cart-plan-header__name">
+                  {{ getPlanName(planSessions.key) }}
+                </div>
+                @if (getVenueNamesForPlan(planSessions.key).length > 0) {
+                  <div class="cart-plan-header__place">
+                    <ignt-icon name="map-marker-alt" variant="regular" size="base" [fixedWidth]="true" aria-hidden="true" />
+                    {{ getVenueNamesForPlan(planSessions.key).join(', ') }}
+                  </div>
+                }
+              </div>
+              @if (hasSingleTimeslotInPlan(planSessions.value) && shouldShowPlanLevelEdit(+planSessions.key, planSessions.value)) {
+                <ignt-button
+                  variant="secondary"
+                  size="small"
+                  class="cart-plan-header__edit-button"
+                  data-testid="activate-plan-timeslot-button"
+                  [label]="'common.edit' | translate"
+                  (click)="activateSingleTimeslotForPlan(+planSessions.key, planSessions.value)"
+                />
+              }
+            </div>
+          }
+          <ng-container *ngFor="let item of planSessions.value.regularSessions; trackBy: trackByDatetimeAndVenue">
+            @if (item.sessions.length > 0) {
+              <div
+                class="timeslot-group"
+                [class.timeslot-group--inactive]="isTimeslotGroupInactive(+planSessions.key, item.datetime, item.venueId)"
+                data-testid="timeslot-group"
+              >
+                <div class="cart-ticket-list__title-wrapper">
+                  <div class="cart-ticket-list__title-content">
+                    <div class="cart-ticket-list__date" data-testid="cart-ticket-list-date">
+                      <ignt-icon name="ticket-alt" variant="light" size="base" aria-hidden="true" />
+                      {{ item.datetime | ossMomentDate: 'EEE, MMM d, HH:mma' : timezone : locale }}
+                    </div>
+                    @if (shouldShowVenueInTimeslot(planSessions.key, item.sessions[0])) {
+                      <div class="cart-ticket-list__place">
+                        <ignt-icon name="map-marker-alt" variant="regular" size="sm" [fixedWidth]="true" aria-hidden="true" />
+                        {{ getVenueName(item.venueId) }}
+                      </div>
+                    }
+                  </div>
+                  @if (shouldShowTimeslotLevelEdit(+planSessions.key, planSessions.value, item)) {
+                    <ignt-button
+                      variant="secondary"
+                      size="small"
+                      class="timeslot-group__edit-button"
+                      data-testid="activate-timeslot-button"
+                      [label]="'common.edit' | translate"
+                      (click)="
+                        timeslotActivated.emit({
+                          datetime: item.datetime,
+                          planId: +planSessions.key,
+                          venueId: item.venueId,
+                        })
+                      "
+                    />
+                  }
+                </div>
+                <ng-container
+                  *ngTemplateOutlet="
+                    cartSessions;
+                    context: {
+                      sessions: item.sessions,
+                      datetime: item.datetime,
+                    }
+                  "
+                ></ng-container>
+              </div>
+            }
+          </ng-container>
+          @if (planSessions.value.productSessions.length > 0) {
+            <div class="cart-ticket-list__title-wrapper" data-testid="cart-products-section">
+              <div class="cart-ticket-list__date" data-testid="cart-products-header">
+                <ignt-icon name="gift" variant="light" size="base" aria-hidden="true" />
+                {{ 'oneStopShop.cart.sectionProductsTitle' | translate }}
+              </div>
+            </div>
+            <ng-container
+              *ngTemplateOutlet="
+                cartSessions;
+                context: {
+                  sessions: planSessions.value.productSessions,
+                  datetime: 'products',
+                }
+              "
+            ></ng-container>
+          }
+        </ng-container>
+      }
+      @if (showPrice && cart?.totalBundleDiscount; as bundleDiscount) {
+        <ng-container
+          *ngTemplateOutlet="
+            appliedDiscount;
+            context: {
+              amountTestId: 'bundle-discount-amount',
+              icon: 'badge-percent',
+              label: ('boxOffice.cart.bundleDiscount' | translate),
+              money: { amount: -bundleDiscount.amount, currency: bundleDiscount.currency },
+              removable: false,
+              testId: 'cart-bundle-discount-item',
+            }
+          "
+        ></ng-container>
+      }
+      @if (couponDiscount && showPrice) {
+        <ng-container *ngTemplateOutlet="appliedCoupon"></ng-container>
+      }
+      <div class="cart-spacer"></div>
+      @if (couponRemainingBalance(); as remainingBalance) {
+        @if (remainingBalance.amount > 0 && showPrice) {
+          <ng-container *ngTemplateOutlet="couponRemainingBalanceRow; context: { remainingBalance: remainingBalance }"></ng-container>
+        }
+      }
+    } @else {
+      <ng-container *ngTemplateOutlet="noSessionContent"></ng-container>
+    }
+  </div>
+} @else {
+  <ng-container *ngTemplateOutlet="loading"></ng-container>
+}
+
+<ng-template #cartMoney let-locale="locale" let-money="money">
+  {{ money ? (money.amount | currency: money.currency : 'symbol-narrow' : null : locale) : '-' }}
+</ng-template>
+
+<ng-template #cartTicketItemInner let-session="session" let-datetime="datetime">
+  @let sessionPriceWithoutDiscount = getSessionPriceWithoutDiscount(session);
+  @let linePriceCatalogue = linePriceCatalogUnitPrice(session);
+  <div class="cart-ticket-item__wrapper">
+    <div class="cart-ticket-item-session-info">
+      @if (showPrice && sessionPriceWithoutDiscount) {
+        <ignt-tag
+          class="cart-ticket-item-session-info__member-discount"
+          sentiment="warning"
+          variant="outline"
+          data-testid="cart-ticket-item-member-discount"
+        >
+          {{ 'boxOffice.memberships.discounts.label' | translate }}
+        </ignt-tag>
+      }
+      @if (isSessionUnavailable(session)) {
+        <ignt-tag
+          class="cart-ticket-item-session-info__not-selectable"
+          sentiment="warning"
+          variant="outline"
+          data-testid="cart-ticket-item-not-selectable"
+        >
+          {{ 'boxOffice.cart.notSelectable' | translate }}
+        </ignt-tag>
+      }
+      <div
+        class="cart-ticket-item-session-info__name"
+        [class.cart-ticket-item-session-info__name--seated]="session.hasSeating"
+        data-testid="cart-ticket-session-name"
+      >
+        <ng-container>{{ session.sessionNameWithoutFormat || session.sessionName }}</ng-container>
+      </div>
+      @if (!showSeatingInModal) {
+        <div class="cart-ticket-item-session-info__seat-list">
+          @for (seat of getCompactSeatLabelsForUi(session); track seat) {
+            <span class="cart-ticket-item-session-info__seat-label" data-testid="cart-seat-label">
+              {{ seat }}
+            </span>
+          }
+        </div>
+      }
+      @if (showPrice) {
+        <div class="cart-ticket-item-session-info__ticket-price" data-testid="cart-total-ticket-session-price">
+          @if (sessionPriceWithoutDiscount; as priceWithoutDiscount) {
+            <s class="cart-ticket-item-session-info__ticket-price--without-discount" data-testid="cart-ticket-price-without-discount">
+              <span class="visually-hidden">{{ 'boxOffice.memberships.discounts.originalPrice' | translate }}</span>
+              <ng-container *ngTemplateOutlet="cartMoney; context: { money: priceWithoutDiscount, locale: locale }"></ng-container>
+            </s>
+          }
+          @if (catalogLineTotal(session); as catalogTotal) {
+            <s class="cart-ticket-item-session-info__ticket-price--without-discount" data-testid="cart-ticket-line-catalogue-price">
+              <span class="visually-hidden">{{ 'boxOffice.cart.linePrice.cataloguePrice' | translate }}</span>
+              <ng-container *ngTemplateOutlet="cartMoney; context: { money: catalogTotal, locale: locale }"></ng-container>
+            </s>
+          }
+          <span data-testid="cart-ticket-price">
+            <ng-container *ngTemplateOutlet="cartMoney; context: { money: session.price, locale: locale }"></ng-container>
+          </span>
+        </div>
+      }
+      @if (session.manualPrice; as manualPrice) {
+        <div class="cart-ticket-item-session-info__line-price-note" data-testid="cart-ticket-line-price-reason">
+          {{ 'boxOffice.cart.linePrice.reasonLabel' | translate }}: {{ manualPrice.concept }}
+        </div>
+        @if (manualPrice.setBy?.name; as author) {
+          <div class="cart-ticket-item-session-info__line-price-note" data-testid="cart-ticket-line-price-author">
+            {{ 'boxOffice.cart.linePrice.setBy' | translate: { name: author } }}
+          </div>
+        }
+      }
+      @if (showPrice && getCartSessionBookingFee(session); as bookingFee) {
+        <div class="cart-ticket-item-session-info__booking-fee" data-testid="cart-ticket-booking-fee">
+          {{
+            'oneStopShop.cart.bookingFee'
+              | translate: { amount: (bookingFee.amount | currency: bookingFee.currency : 'symbol-narrow' : null : locale) }
+          }}
+        </div>
+      }
+    </div>
+    <ng-container *ngTemplateOutlet="sessionCounter; context: { session: session, datetime: datetime }"></ng-container>
+  </div>
+  @if (linePriceCatalogue) {
+    <div class="cart-ticket-item__price-actions">
+      <ignt-button
+        data-testid="cart-ticket-edit-price"
+        size="small"
+        variant="tertiary"
+        [disabled]="linePriceControlHint() !== null || isCartLocked() || isCartUpdating()"
+        [label]="'boxOffice.cart.linePrice.editPrice' | translate"
+        [leadingIcon]="{ name: 'pen', variant: 'solid' }"
+        (click)="openLinePriceEditor(session, datetime, $event)"
+        (keydown.enter)="$event.stopPropagation()"
+        (keydown.space)="$event.stopPropagation()"
+      />
+      @if (session.manualPrice && linePriceControlHint() === null) {
+        <ignt-button
+          data-testid="cart-ticket-clear-price"
+          sentiment="danger"
+          size="small"
+          variant="tertiary"
+          [disabled]="isCartLocked() || isCartUpdating()"
+          [label]="'boxOffice.cart.linePrice.clearPrice' | translate"
+          (click)="clearLinePrice(session, datetime, $event)"
+          (keydown.enter)="$event.stopPropagation()"
+          (keydown.space)="$event.stopPropagation()"
+        />
+      }
+    </div>
+    @if (linePriceControlHint(); as disabledHint) {
+      <span class="cart-ticket-item__price-hint" data-testid="cart-ticket-edit-price-hint">{{ disabledHint | translate }}</span>
+    }
+    @if (isEditingLinePrice(session, datetime) && linePriceControlHint() === null) {
+      <app-cart-line-price-editor
+        class="cart-ticket-item__price-editor"
+        [busy]="isCartUpdating()"
+        [catalogUnitPrice]="linePriceCatalogue"
+        [locale]="locale"
+        [manualPrice]="session.manualPrice ?? null"
+        [surchargePerTicket]="session.surchargePerTicket ?? null"
+        [units]="linePriceUnits(session)"
+        (applied)="applyLinePrice(session, datetime, $event)"
+        (cancelled)="closeLinePriceEditor()"
+      />
+    }
+  }
+</ng-template>
+
+<ng-template #cartSessions let-sessions="sessions" let-datetime="datetime">
+  <div class="cart-ticket-list__wrapper" data-testid="cart-ticket-items-wrapper">
+    <ul class="cart-ticket-list">
+      <ng-container *ngFor="let session of sessions; trackBy: trackByFn">
+        @let realTimeSeatCards = realTimeSeatCardsByLineKey().get(datetime + '|' + session.sessionId) ?? [];
+        @if (realTimeSeatCards.length > 0) {
+          @for (seatCard of realTimeSeatCards; track $index) {
+            <li data-testid="cart-real-time-seat" class="cart-ticket-list__item cart-ticket-item wrapper-card">
+              <div class="cart-ticket-item__wrapper">
+                <div class="cart-ticket-item-session-info">
+                  <div
+                    class="cart-ticket-item-session-info__name cart-ticket-item-session-info__name--seated"
+                    data-testid="cart-ticket-session-name"
+                  >
+                    {{ seatCard.name }}
+                  </div>
+                  @if (!showSeatingInModal && seatCard.seat !== null) {
+                    <div class="cart-ticket-item-session-info__seat-list">
+                      <span class="cart-ticket-item-session-info__seat-label" data-testid="cart-seat-label">
+                        @if (seatCard.row !== null) {
+                          {{ 'boxOffice.realTimeSeatRowAndSeat' | translate: { row: seatCard.row, seat: seatCard.seat } }}
+                        } @else {
+                          {{ 'boxOffice.realTimeSeatOnly' | translate: { seat: seatCard.seat } }}
+                        }
+                      </span>
+                    </div>
+                  }
+                  @if (showPrice) {
+                    <div class="cart-ticket-item-session-info__ticket-price">
+                      <span data-testid="cart-ticket-price">
+                        <ng-container *ngTemplateOutlet="cartMoney; context: { money: seatCard.price, locale: locale }"></ng-container>
+                      </span>
+                    </div>
+                  }
+                </div>
+              </div>
+            </li>
+          }
+        } @else {
+          <div class="swipe-container">
+            @if (isSwipeActionsVisible(session, datetime)) {
+              @if (!isEditingLinePrice(session, datetime)) {
+                <div class="swipe-actions">
+                  <button
+                    sentiment="primary"
+                    variant="danger"
+                    ignt-icon-button
+                    (click)="onDelete(session, datetime)"
+                    [icon]="['fas', 'trash-alt']"
+                  ></button>
+                </div>
+              }
+              <li
+                data-testid="cart-ticket-item"
+                class="swipe-content cart-ticket-list__item cart-ticket-item wrapper-card"
+                [class.cart-item-added]="itemAddedEffect() === getCartItemEffectKey(session, datetime)"
+                [class.cart-item-removed]="itemRemovedEffect() === getCartItemEffectKey(session, datetime)"
+                [class.cart-ticket-item--disabled]="isSessionUnavailable(session)"
+                appNativeSwipeHorizontal
+                [swipeDisabled]="isEditingLinePrice(session, datetime)"
+                (swipeDelete)="onDelete(session, datetime)"
+              >
+                <ng-container *ngTemplateOutlet="cartTicketItemInner; context: { session: session, datetime: datetime }"></ng-container>
+              </li>
+            } @else {
+              <li
+                data-testid="cart-ticket-item"
+                class="swipe-content cart-ticket-list__item cart-ticket-item wrapper-card"
+                [class.cart-item-added]="itemAddedEffect() === getCartItemEffectKey(session, datetime)"
+                [class.cart-item-removed]="itemRemovedEffect() === getCartItemEffectKey(session, datetime)"
+                [class.cart-ticket-item--disabled]="isSessionUnavailable(session)"
+              >
+                <ng-container *ngTemplateOutlet="cartTicketItemInner; context: { session: session, datetime: datetime }"></ng-container>
+              </li>
+            }
+          </div>
+        }
+      </ng-container>
+      @for (partySizeWarning of getPartySizeWarnings(sessions); track $index) {
+        <li class="cart-ticket-list__party-size-warning">
+          <ignt-field-error [showError]="true" data-testid="party-size-warning">{{ partySizeWarning }}</ignt-field-error>
+        </li>
+      }
+    </ul>
+  </div>
+</ng-template>
+
+<ng-template #appliedCoupon>
+  <ng-container
+    *ngTemplateOutlet="
+      appliedDiscount;
+      context: {
+        amountTestId: 'coupon-discount-amount',
+        icon: couponsCount() > 1 ? 'gift' : 'badge-percent',
+        label: couponsCount() > 1 ? ('oneStopShop.cart.combinedCoupons' | translate) : couponDiscount.code,
+        money:
+          cart && cart.sessionItemsByDatetime
+            ? {
+                amount: -couponDiscount.discount.amount,
+                currency: couponDiscount.discount.currency
+                  ? couponDiscount.discount.currency
+                  : (cart.sessionItemsByDatetime | keyvalue)[0]?.value[0]?.price.currency,
+              }
+            : null,
+        removable: !isCartLocked(),
+        testId: 'cart-coupon-item',
+      }
+    "
+  ></ng-container>
+</ng-template>
+
+<ng-template
+  #appliedDiscount
+  let-amountTestId="amountTestId"
+  let-icon="icon"
+  let-label="label"
+  let-money="money"
+  let-removable="removable"
+  let-testId="testId"
+>
+  <div [attr.data-testid]="testId" class="cart-coupon-item wrapper-card">
+    <div class="cart-coupon-item__coupon cart-ticket-item-coupon-info">
+      <div class="cart-coupon-item-coupon-info__label">
+        <div class="cart-coupon-item-coupon-info__label-icon">
+          <ignt-icon [name]="icon" variant="solid" size="base" aria-hidden="true" />
+        </div>
+        <div class="cart-coupon-item-coupon-info__name">
+          <div>{{ label }}</div>
+          @if (money) {
+            <div [attr.data-testid]="amountTestId" class="cart-coupon-item-coupon-info__discount-amount">
+              <ng-container *ngTemplateOutlet="cartMoney; context: { money: money, locale: locale }"></ng-container>
+            </div>
+          }
+        </div>
+        @if (removable) {
+          <button
+            class="cart-coupon-item-coupon-info__remove-coupon"
+            ignt-icon-button
+            [size]="'small'"
+            (click)="removeAppliedDiscount()"
+            [icon]="['fas', 'trash-alt']"
+            data-testid="coupon-remove-coupon"
+          ></button>
+        }
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #sessionCounter let-session="session" let-datetime="datetime">
+  <div class="cart-ticket-item__counter">
+    <div class="cart-ticket-item__counter-pill">
+      <button
+        type="button"
+        ignt-icon-button
+        [size]="'medium'"
+        [icon]="decreaseRemovesLine(session) ? ['fas', 'trash-alt'] : ['fal', 'minus']"
+        [disabled]="isDecreaseDisabled(session, datetime)"
+        (click)="isCartSessionSeatingLine(session) ? onDelete(session, datetime) : decreaseTicketCounter(session, datetime)"
+        data-testid="ticket-selector-decrease-button"
+      ></button>
+      <input
+        [disabled]="isInputDisabled(session, datetime)"
+        placeholder="0"
+        [name]="session.sessionId"
+        [min]="0"
+        [max]="getMaxValueBySessionId(session.sessionId)"
+        [value]="getFormControlByName(session.sessionId)?.value"
+        class="cart-ticket-item__input"
+        data-testid="cart-ticket-item-quantity-input"
+        inputmode="numeric"
+        (beforeinput)="preventInvalidCharacters($event)"
+        (input)="updateSession($event, session, datetime)"
+        (blur)="normalizeSessionInput($event, session, datetime)"
+        (focus)="selectInputContent($event)"
+      />
+      <button
+        type="button"
+        ignt-icon-button
+        [size]="'medium'"
+        [disabled]="isIncreaseDisabled(session, datetime)"
+        (click)="increaseTicketCounter(session, datetime)"
+        [icon]="['fal', 'plus']"
+        data-testid="ticket-selector-increase-button"
+      ></button>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #noSessionContent>
+  @if (couponDiscount && showPrice) {
+    <ng-container *ngTemplateOutlet="appliedCoupon"></ng-container>
+  }
+  <ng-container *ngTemplateOutlet="emptyCart"></ng-container>
+</ng-template>
+
+<ng-template #emptyCart>
+  <div class="cart-details__empty-case" data-testid="empty-cart-placeholder">
+    <ignt-icon name="receipt" variant="light" size="base" class="cart-details__empty-case-icon" aria-hidden="true" />
+    <p class="cart-details__empty-case-label" translate>oneStopShop.cart.empty</p>
+  </div>
+</ng-template>
+
+<ng-template #couponRemainingBalanceRow let-remainingBalance="remainingBalance">
+  <div class="cart-coupon-remaining wrapper-card" data-testid="coupon-remaining-balance">
+    <div class="cart-coupon-remaining__info">
+      <div class="cart-coupon-remaining__label" translate>oneStopShop.cart.couponRemainingBalance</div>
+      <div class="cart-coupon-remaining__amount">
+        {{ remainingBalance.amount | currency: remainingBalance.currency : 'symbol-narrow' : null : locale }}
+      </div>
+    </div>
+    <div class="cart-coupon-remaining__icon">
+      <ignt-icon name="gift" variant="light" size="base" aria-hidden="true" />
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #loading>
+  <div class="loading">
+    <span class="loading__icon">
+      <ignt-icon name="spinner" variant="solid" size="display" class="loader" [spin]="true" aria-hidden="true" />
+    </span>
+  </div>
+</ng-template>

@@ -1,0 +1,104 @@
+<ignt-dialog-header data-testid="proforma-invoice-dialog-title">
+  {{ 'reservations.proformaInvoice.dialog.title' | translate }}
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="proforma-invoice-dialog">
+    @if (canSearchBusinesses) {
+      <ignt-typeahead
+        container="body"
+        data-testid="proforma-invoice-dialog-business"
+        [emptyLabel]="'reservations.proformaInvoice.dialog.searchPlaceholder' | translate"
+        [fieldLabel]="'reservations.proformaInvoice.dialog.business' | translate"
+        [isInDialog]="true"
+        [minSearchLength]="minSearchLength"
+        [options]="businessOptions()"
+        [refreshTrigger]="refreshTrigger$"
+        [selectedOption]="selectedBusinessOption()"
+        (inputInteraction)="onBusinessSearch($event)"
+        (selected)="onBusinessSelected($event)"
+      />
+    }
+
+    <form class="proforma-invoice-dialog__form" data-testid="proforma-invoice-dialog-recipient" [formGroup]="recipientForm">
+      <div class="proforma-invoice-dialog__fields">
+        <ignt-input-field
+          formControlName="name"
+          id="proforma-invoice-name"
+          [customFormErrors]="[
+            { type: 'required', message: 'form.error.required' | translate },
+            { type: 'pattern', message: 'form.error.required' | translate },
+          ]"
+          [label]="('businessManagement.form.businessName' | translate) + ' *'"
+        />
+        <ignt-input-field
+          formControlName="billingName"
+          id="proforma-invoice-billing-name"
+          [label]="'businessManagement.form.billingName' | translate"
+        />
+        <ignt-input-field
+          formControlName="taxId"
+          id="proforma-invoice-tax-id"
+          [customFormErrors]="[{ type: 'maxlength', message: 'form.error.maxLength' | translate: { value: '50' } }]"
+          [label]="'businessManagement.form.taxID' | translate"
+        />
+        <ignt-input-field
+          formControlName="email"
+          id="proforma-invoice-email"
+          [customFormErrors]="[{ type: 'emailValidator', message: 'form.error.invalidEmail' | translate }]"
+          [label]="'businessManagement.form.email' | translate"
+        />
+        <ignt-input-field formControlName="address" id="proforma-invoice-address" [label]="'businessManagement.form.address' | translate" />
+        <div class="proforma-invoice-dialog__pair">
+          <ignt-input-field
+            formControlName="postalCode"
+            id="proforma-invoice-postal-code"
+            [customFormErrors]="[{ type: 'maxlength', message: 'form.error.maxLength' | translate: { value: '20' } }]"
+            [label]="'businessManagement.form.postalCode' | translate"
+          />
+          <ignt-input-field
+            formControlName="region"
+            id="proforma-invoice-region"
+            [label]="'reservations.proformaInvoice.dialog.region' | translate"
+          />
+        </div>
+        <app-country-code-selector
+          data-testid="proforma-invoice-dialog-country"
+          [readonly]="isLoadingBusiness()"
+          [selectedOption]="recipientForm.controls.country.value"
+          (selected)="onCountrySelected($event)"
+        />
+      </div>
+
+      <ignt-textarea-field
+        formControlName="paymentNotes"
+        id="proforma-invoice-payment-notes"
+        [label]="'reservations.proformaInvoice.dialog.paymentNotes' | translate"
+        [rows]="4"
+      />
+    </form>
+
+    @if (error() !== null) {
+      <ignt-alert data-testid="proforma-invoice-dialog-error" sentiment="danger" [description]="errorMessageKey() | translate" />
+    }
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer hideCancelButton>
+  <div class="proforma-invoice-dialog__actions">
+    <ignt-button
+      data-testid="proforma-invoice-dialog-cancel"
+      variant="secondary"
+      [disabled]="isDownloading()"
+      [label]="'common.cancel' | translate"
+      (click)="onCancel()"
+    />
+    <ignt-button
+      data-testid="proforma-invoice-dialog-download"
+      [disabled]="isLoadingBusiness()"
+      [label]="'reservations.proformaInvoice.dialog.download' | translate"
+      [loading]="isDownloading()"
+      (click)="onDownload()"
+    />
+  </div>
+</ignt-dialog-footer>

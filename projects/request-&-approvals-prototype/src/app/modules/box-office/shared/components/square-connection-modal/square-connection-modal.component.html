@@ -1,0 +1,112 @@
+<app-modal-content>
+  <div class="square-modal" data-testid="square-modal">
+    <div class="square-modal__title" data-testid="square-modal-title" translate>
+      {{ deviceId ? 'square.disconnect.title' : 'square.connect.title' }}
+    </div>
+    <ng-container *ngIf="!deviceId; else disconnectionTemplate">
+      <ng-container *ngIf="code; else loadingCodeTemplate">
+        <ng-container
+          *ngIf="!error; else pairingErrorDeviceTemplate"
+          [ngTemplateOutlet]="pairingDeviceTemplate"
+          [ngTemplateOutletContext]="{ code }"
+        >
+        </ng-container>
+      </ng-container>
+    </ng-container>
+  </div>
+</app-modal-content>
+
+<ng-template #disconnectionTemplate>
+  <div class="square-modal__description" data-testid="square-modal-disconnect">
+    <ng-container *ngTemplateOutlet="disconnectionStepTemplate; context: { index: 1, stepText: 'square.disconnect.step1' }"> </ng-container>
+    <ng-container *ngTemplateOutlet="disconnectionStepTemplate; context: { index: 2, stepText: 'square.disconnect.step2' }"> </ng-container>
+    <ng-container *ngTemplateOutlet="disconnectionStepTemplate; context: { index: 3, stepText: 'square.disconnect.step3' }"> </ng-container>
+  </div>
+  <div class="square-modal-footer">
+    <button
+      class="square-modal-footer__button square-modal-footer__button--cancel"
+      data-testid="square-modal-cancel-button"
+      (click)="clickOnCancel()"
+    >
+      {{ 'buttons.cancel' | translate }}
+    </button>
+
+    <button class="square-modal-footer__button" data-testid="square-modal-confirm-button" (click)="clickOnDisconnect()">
+      {{ 'square.disconnect.modalButton' | translate }}
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #disconnectionStepTemplate let-index="index" let-stepText="stepText">
+  <div class="square-modal-step">
+    <div class="square-modal-step__container-icon">
+      <span class="square-modal-step__icon">{{ index }}</span>
+    </div>
+    <span class="square-modal-step__label" translate>{{ stepText }}</span>
+  </div>
+</ng-template>
+
+<ng-template #pairingDeviceTemplate let-code="code">
+  <p class="square-modal__description square-modal__border" translate>square.connect.description</p>
+  <p class="square-modal__code-step" translate>square.connect.step</p>
+  <p class="square-modal__code-value" data-testid="square-modal-code">{{ code }}</p>
+  <div class="square-modal__code-help">
+    <span class="square-modal__code-help-item" translate>square.connect.help1</span>
+    <span class="square-modal__code-help-item" translate>square.connect.help2</span>
+  </div>
+  <div class="square-modal-footer square-modal-footer--centered">
+    <button
+      class="square-modal-footer__button square-modal-footer__button--cancel"
+      data-testid="square-modal-cancel-button"
+      (click)="clickOnCancel()"
+    >
+      {{ 'buttons.cancel' | translate }}
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #pairingErrorDeviceTemplate>
+  <ng-container *ngTemplateOutlet="errorTemplate; context: { message: 'square.connect.errorConnectingDevice' }"> </ng-container>
+</ng-template>
+
+<ng-template #loadingCodeTemplate>
+  <ng-container *ngIf="loading" [ngTemplateOutlet]="loadingTemplate" [ngTemplateOutletContext]="{ message: 'square.connect.loadingCode' }">
+  </ng-container>
+  <ng-container *ngIf="error" [ngTemplateOutlet]="errorTemplate" [ngTemplateOutletContext]="{ message: 'square.connect.errorLoadingCode' }">
+  </ng-container>
+</ng-template>
+
+<ng-template #errorTemplate let-message="message">
+  <p
+    class="square-modal__description square-modal__description--error"
+    data-testid="square-modal-error"
+    [innerHTML]="message | translate"
+  ></p>
+  <div class="square-modal-footer square-modal-footer--centered" data-testid="square-modal-error">
+    <button
+      class="square-modal-footer__button square-modal-footer__button--cancel"
+      data-testid="square-modal-cancel-button"
+      (click)="clickOnCancel()"
+    >
+      {{ 'buttons.cancel' | translate }}
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #loadingTemplate let-message="message">
+  <div class="square-modal-loader" data-testid="square-modal-loading">
+    <span class="square-modal-loader__icon">
+      <fa-icon [icon]="['fas', 'spinner']" [size]="'4x'" class="loader"></fa-icon>
+    </span>
+    <p class="square-modal-loader__message" translate>{{ message }}</p>
+  </div>
+  <div class="square-modal-footer square-modal-footer--centered">
+    <button
+      class="square-modal-footer__button square-modal-footer__button--cancel"
+      data-testid="square-modal-cancel-button"
+      (click)="clickOnCancel()"
+    >
+      {{ 'buttons.cancel' | translate }}
+    </button>
+  </div>
+</ng-template>

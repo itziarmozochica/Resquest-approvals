@@ -1,0 +1,125 @@
+<div class="plan-metadata-edition">
+  @if (state() === 'loading') {
+    <p class="plan-metadata-edition__loading" data-testid="metadata-loading">{{ 'common.loading' | translate }}</p>
+  }
+
+  @if (state() === 'notFound') {
+    <ignt-alert data-testid="metadata-not-found" sentiment="warning" [description]="'planEdition.metadata.notFound' | translate" />
+  }
+
+  @if (state() === 'error') {
+    <div class="plan-metadata-edition__error" data-testid="metadata-error">
+      <p>{{ 'planEdition.metadata.loadError' | translate }}</p>
+      <ignt-button data-testid="plan-metadata-edition-retry" variant="secondary" [label]="'common.retry' | translate" (click)="retry()" />
+    </div>
+  }
+
+  @if (state() === 'ok') {
+    @if (planNotFound()) {
+      <ignt-alert data-testid="metadata-not-found" sentiment="warning" [description]="'planEdition.metadata.notFound' | translate" />
+    }
+
+    @if (unmappedErrors().length > 0) {
+      <ignt-alert data-testid="metadata-unmapped-errors" sentiment="danger" [description]="unmappedErrors().join('\n')" />
+    }
+
+    <form class="plan-metadata-edition__form" [formGroup]="form">
+      <div class="plan-metadata-edition__grid">
+        <div class="plan-metadata-edition__cell">
+          <ignt-input-field
+            formControlName="programId"
+            id="metadata-program-id"
+            type="number"
+            [customFormErrors]="[
+              { type: 'notAnInteger', message: 'planEdition.metadata.invalidProgramId' | translate },
+              { type: 'server', message: serverFieldErrors().programId ?? '' },
+            ]"
+            [label]="'planEdition.metadata.programId' | translate"
+          />
+        </div>
+
+        <div class="plan-metadata-edition__cell">
+          <ignt-input-field
+            formControlName="composerId"
+            id="metadata-composer-id"
+            type="number"
+            [customFormErrors]="[
+              { type: 'notAnInteger', message: 'planEdition.metadata.invalidComposerId' | translate },
+              { type: 'server', message: serverFieldErrors().composerId ?? '' },
+            ]"
+            [label]="'planEdition.metadata.composerId' | translate"
+          />
+        </div>
+
+        <div class="plan-metadata-edition__cell">
+          <ignt-input-field
+            formControlName="composerName"
+            id="metadata-composer-name"
+            [customFormErrors]="[{ type: 'server', message: serverFieldErrors().composerName ?? '' }]"
+            [label]="'planEdition.metadata.composerName' | translate"
+          />
+        </div>
+
+        <div class="plan-metadata-edition__cell">
+          <ignt-input-field
+            formControlName="musicGenre"
+            id="metadata-music-genre"
+            type="number"
+            [customFormErrors]="[
+              { type: 'notAnInteger', message: 'planEdition.metadata.invalidMusicGenre' | translate },
+              { type: 'server', message: serverFieldErrors().musicGenre ?? '' },
+            ]"
+            [label]="'planEdition.metadata.musicGenre' | translate"
+          />
+        </div>
+
+        <div class="plan-metadata-edition__cell">
+          <ignt-input-field
+            formControlName="ensemble"
+            id="metadata-ensemble"
+            [customFormErrors]="[{ type: 'server', message: serverFieldErrors().ensemble ?? '' }]"
+            [label]="'planEdition.metadata.ensemble' | translate"
+          />
+        </div>
+      </div>
+
+      <div class="plan-metadata-edition__cell plan-metadata-edition__cell--wide">
+        <ignt-textarea-field
+          formControlName="instrumentation"
+          id="metadata-instrumentation"
+          [customFormErrors]="[{ type: 'server', message: serverFieldErrors().instrumentation ?? '' }]"
+          [label]="'planEdition.metadata.instrumentation' | translate"
+          [rows]="4"
+        />
+      </div>
+
+      <div class="plan-metadata-edition__cell plan-metadata-edition__cell--wide">
+        <ignt-textarea-field
+          formControlName="setlist"
+          id="metadata-setlist"
+          [customFormErrors]="[{ type: 'server', message: serverFieldErrors().setlist ?? '' }]"
+          [label]="'planEdition.metadata.setlist' | translate"
+          [rows]="8"
+        />
+      </div>
+    </form>
+
+    @if (hasEditContentPermission()) {
+      <div class="plan-metadata-edition__footer">
+        <ignt-button
+          data-testid="plan-metadata-edition-discard"
+          variant="secondary"
+          [disabled]="!canDiscard()"
+          [label]="'planEdition.metadata.discard' | translate"
+          (click)="discard()"
+        />
+        <ignt-button
+          data-testid="plan-metadata-edition-save"
+          [disabled]="!canSave()"
+          [label]="'planEdition.metadata.save' | translate"
+          (click)="save()"
+        />
+      </div>
+    }
+  }
+</div>

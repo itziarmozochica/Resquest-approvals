@@ -1,0 +1,58 @@
+<div class="split-progress-step">
+  <app-split-summary-panel
+    class="split-progress-step__summary"
+    [toPay]="store.remainingAmount()"
+    [paid]="store.paidAmount()"
+    [locale]="store.context().locale"
+    [activeRow]="'paid'"
+    (toPayClick)="onReturnToPaymentProcess()"
+  />
+
+  <div class="split-progress-step__vertical-divider"></div>
+
+  <div class="split-progress-step__history" data-testid="transaction-history">
+    @if (timelineItems().length > 0) {
+      <app-shared-timeline
+        [dateFormat]="'LT'"
+        [dateLocale]="store.context().locale"
+        [defaultExpandedItem]="'last'"
+        [iconFramed]="true"
+        [iconSize]="'small'"
+        [items]="timelineItems()"
+      >
+        <ng-template timelineItemContent="transaction" let-item>
+          <div class="split-progress-step__transaction-details" data-testid="transaction-details">
+            @if (!item.transaction.delegated && item.transaction.terminalDescription) {
+              <p class="split-progress-step__transaction-line" data-testid="transaction-terminal">
+                <span class="split-progress-step__transaction-label">{{ 'checkout.splitProgress.terminal' | translate }}:</span>
+                <span class="split-progress-step__transaction-value">{{ item.transaction.terminalDescription }}</span>
+              </p>
+            }
+            <p class="split-progress-step__transaction-line" data-testid="transaction-payment-id">
+              <span class="split-progress-step__transaction-label">{{ 'checkout.splitProgress.paymentId' | translate }}:</span>
+              <span class="split-progress-step__transaction-value">{{ item.transaction.paymentId ?? '-' }}</span>
+            </p>
+            @if (item.transaction.methodLabel) {
+              <p class="split-progress-step__transaction-line" data-testid="transaction-payment-method">
+                <span class="split-progress-step__transaction-label">{{ 'checkout.splitProgress.paymentMethod' | translate }}:</span>
+                <span class="split-progress-step__transaction-value">
+                  @if (item.transaction.methodLabelSuffixKey; as suffixKey) {
+                    {{ item.transaction.methodLabel }} ({{ suffixKey | translate }})
+                  } @else {
+                    {{ item.transaction.methodLabel }}
+                  }
+                </span>
+              </p>
+            }
+          </div>
+        </ng-template>
+      </app-shared-timeline>
+    } @else {
+      <div class="split-progress-step__empty-state" data-testid="empty-state">
+        <ignt-icon name="receipt" variant="light" size="display" class="split-progress-step__empty-state-icon" aria-hidden="true" />
+        <p class="split-progress-step__empty-state-title">{{ 'checkout.splitProgress.emptyTitle' | translate }}</p>
+        <p class="split-progress-step__empty-state-description">{{ 'checkout.splitProgress.emptyDescription' | translate }}</p>
+      </div>
+    }
+  </div>
+</div>

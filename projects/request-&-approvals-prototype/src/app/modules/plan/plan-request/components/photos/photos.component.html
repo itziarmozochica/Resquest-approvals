@@ -1,0 +1,94 @@
+<div class="photos-content__title" translate>
+  <fa-icon [fixedWidth]="true" [icon]="['fal', 'image']"></fa-icon>
+  planRequest.photos.title
+</div>
+<div class="content-card">
+  <div class="content">
+    <form [formGroup]="photosForm">
+      <div class="form-group">
+        <label for="webUrl" class="form-label" translate>{{ 'planRequest.photos.webUrlTitle' }} </label>
+        <input
+          id="webUrl"
+          class="form-input"
+          type="text"
+          formControlName="webUrl"
+          autocomplete="off"
+          data-testid="plan-setup-input-web-url"
+          [ngClass]="getControlClass(photosForm.get('webUrl'), true)"
+        />
+        <label class="shared__tip" translate>{{ 'planRequest.photos.webUrlTip' }}</label>
+      </div>
+
+      <div class="form-group">
+        <label for="image" class="form-label" translate
+          >{{ 'planRequest.photos.uploadPictures' }}
+          <ng-container *ngTemplateOutlet="isMandatoryTemplate; context: { isMandatory: mandatoryFields.includes('images') }">
+          </ng-container>
+        </label>
+        <div class="images-warning">
+          <ng-container *ngTemplateOutlet="warningImages"></ng-container>
+        </div>
+        <div class="add-control-card">
+          <div
+            class="add-control-card__content"
+            data-testid="plan-request-photos-button-add"
+            role="button"
+            tabindex="0"
+            [attr.aria-label]="'planRequest.photos.clickToUpload' | translate"
+            (click)="requestUploadImage()"
+            (keydown.enter)="requestUploadImage()"
+          >
+            <fa-icon for="image" class="add-control-card__icon" [fixedWidth]="true" [icon]="['fas', 'file-upload']" />
+            <div class="add-control-card__title">
+              {{ 'planRequest.photos.clickToUpload' | translate }}
+            </div>
+            <div class="add-control-card__text">
+              {{ 'planRequest.photos.uploadFileText' | translate }}
+            </div>
+          </div>
+        </div>
+
+        <label *ngIf="uploadError" class="shared__error" translate data-testid="plan-request-photos-label-error"
+          >{{ 'planRequest.photos.uploadPicturesError' }}
+        </label>
+        <table formArrayName="images" class="shared__table">
+          <tr *ngFor="let image of images().controls; let i = index" [formGroupName]="i">
+            <td>
+              <img class="images" src="{{ image['controls']['imageUrl'].value }}" data-testid="plan-request-photos-image" />
+            </td>
+            <td>
+              <fa-icon
+                class="shared__icon"
+                [fixedWidth]="true"
+                [icon]="['fal', 'trash-alt']"
+                (click)="removeImage(i)"
+                data-testid="plan-request-photos-button-remove"
+              >
+              </fa-icon>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </form>
+  </div>
+</div>
+
+<ng-template #isMandatoryTemplate let-isMandatory="isMandatory">
+  <span class="form-label--small" [ngClass]="{ 'form-label--mandatory': isMandatory }">
+    {{ isMandatory ? '*' : ('common.optional' | translate) }}
+  </span>
+</ng-template>
+
+<ng-template #warningImages>
+  <div class="placeholder">
+    <div class="placeholder__more">
+      <fa-icon [icon]="['far', 'info-circle']" class="placeholder__more-icon"></fa-icon>
+      <div class="placeholder__more-text">
+        <span>
+          {{ 'planRequest.photos.imagesWarning' | translate }}
+          <a [href]="loadPhotographyPracticesUrl()" target="_blank" translate>{{ 'planRequest.photos.imagesRequirementsUrl' }}</a>
+        </span>
+      </div>
+    </div>
+  </div>
+</ng-template>

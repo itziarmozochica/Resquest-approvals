@@ -1,0 +1,54 @@
+<ng-content></ng-content>
+<div class="lateral-slider-body__wrapper">
+  <app-price-form
+    [parentFormGroup]="formGroup"
+    [item]="priceItem"
+    [currency]="currency"
+    [allowVariableSurcharge]="false"
+    [productTaxRate]="productTaxRate"
+    [allowedPriceRules]="[priceRuleType.FixedOverride]"
+    [hasPromotions]="hasPromotions"
+  >
+    <ng-container priceDetailsAdditionalFields>
+      <div *ngIf="isPack && packBreakdownItemsSeparatedSum" data-testid="pack-total-message" class="breakdown-total-message">
+        <ignt-icon class="breakdown-total-message__icon" name="thumbtack" variant="solid" />{{
+          'sessions.pricing.priceList.priceEditForm.packsBreakdown.separateItemsPriceMessage'
+            | translate: { totalPrice: (packBreakdownItemsSeparatedSum | currency: currency) }
+        }}
+      </div>
+      <app-packs-breakdown-form
+        *ngIf="isPack && planSessionTypes"
+        (itemsSeparatelyPriceSummed)="packBreakdownItemsSeparatedSum = $event"
+        [parentFormGroup]="formGroup"
+        [sessionTypeId]="item?.priceListItem.sessionType.id"
+        [initialBreakdownDefinition]="initialPackFareBreakdownDefinition"
+        [planSessionTypes]="planSessionTypes"
+        [totalPackPrice]="$any(formGroup.controls.priceForm?.value)?.ticketPrice"
+        [totalPackPriceTaxBase]="$any(formGroup.controls.priceForm?.value)?.basePrice"
+        [priceRuleType]="formGroup.controls.priceForm?.value.pricingType"
+        [currency]="currency"
+        [mustUseTaxBase]="item.mustUseTaxBase"
+      ></app-packs-breakdown-form>
+    </ng-container>
+  </app-price-form>
+  <button
+    *ngIf="item.isPriceListItemDefinitionOverwritten"
+    data-testid="remove-override-button"
+    class="button button--small button--secondary button--restore-override"
+    (click)="removeOverrideClicked.emit()"
+  >
+    {{ 'sessions.pricesPerTimeslot.editForm.removeOverrideButton' | translate }}
+  </button>
+</div>
+<div class="lateral-slider-body__footer">
+  <button
+    data-testid="set-price-button"
+    class="button button--large button--primary button--fill"
+    [disabled]="this.formGroup.invalid || this.formGroup.pristine"
+    (click)="onClickSetPrice()"
+  >
+    {{ 'sessions.pricesPerTimeslot.editForm.saveButton' | translate }}
+  </button>
+</div>
+
+<app-form-loading-spinner *ngIf="!formGroup.controls?.priceForm"></app-form-loading-spinner>

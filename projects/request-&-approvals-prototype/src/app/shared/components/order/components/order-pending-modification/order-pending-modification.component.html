@@ -1,0 +1,81 @@
+@if (isReleasing()) {
+  <ignt-alert
+    class="order-pending-modification"
+    data-testid="order-pending-modification-releasing"
+    sentiment="info"
+    [title]="i18n.releasingTitle | translate"
+    [description]="i18n.releasingDescription | translate"
+  >
+    <ng-template #igntAlertActions>
+      <ignt-button
+        data-testid="order-pending-modification-refresh"
+        sentiment="neutral"
+        size="small"
+        variant="secondary"
+        [label]="i18n.refreshOrder | translate"
+        (click)="refreshOrder()"
+      />
+    </ng-template>
+  </ignt-alert>
+} @else {
+  <ignt-alert
+    class="order-pending-modification"
+    data-testid="order-pending-modification"
+    sentiment="warning"
+    [title]="i18n.title | translate"
+  >
+    <ng-template #igntAlertContent>
+      <p class="order-pending-modification__description">{{ i18n.description | translate }}</p>
+      <dl class="order-pending-modification__fields">
+        <div data-testid="order-pending-modification-expires-at">
+          <dt>{{ (isExpired() ? i18n.expiredAt : i18n.expiresAt) | translate }}</dt>
+          <dd>{{ pendingModification().expiresAt | momentDate: 'd MMM yyyy, HH:mm' : timezone() : locale() }}</dd>
+        </div>
+      </dl>
+      @if (isExpired()) {
+        <p class="order-pending-modification__expired" data-testid="order-pending-modification-expired">
+          {{ i18n.expiredDescription | translate }}
+        </p>
+      }
+      <div class="order-pending-modification__actions">
+        @if (reservationLink(); as link) {
+          <ignt-button
+            data-testid="order-pending-modification-view-reservation"
+            sentiment="neutral"
+            tabindex="-1"
+            size="small"
+            variant="secondary"
+            [label]="i18n.viewReservation | translate"
+            [queryParams]="link.queryParams"
+            [routerLink]="link.commands"
+          />
+        }
+        <ignt-button
+          data-testid="order-pending-modification-share"
+          igntTooltip
+          sentiment="brand"
+          size="small"
+          variant="secondary"
+          [disabled]="isShareDisabled()"
+          [tooltipDisabled]="!isShareDisabled()"
+          [tooltipLabel]="shareHint() | translate"
+          [label]="i18n.sharePaymentLink | translate"
+          (click)="sharePaymentLink()"
+        />
+        <ignt-button
+          *permissionBased="cancelPermissions"
+          data-testid="order-pending-modification-cancel"
+          igntTooltip
+          sentiment="danger"
+          size="small"
+          variant="secondary"
+          [disabled]="isBusy()"
+          [tooltipDisabled]="!isBusy()"
+          [tooltipLabel]="i18n.busyHint | translate"
+          [label]="i18n.cancelPaymentLink | translate"
+          (click)="cancelPaymentLink()"
+        />
+      </div>
+    </ng-template>
+  </ignt-alert>
+}

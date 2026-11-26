@@ -1,0 +1,248 @@
+@use 'sass:map';
+@use 'abstracts' as abstracts;
+@use 'foundations' as foundations;
+@use 'foundations/text-styles' as text-styles;
+
+$toast-variants: (
+  info: var(--fv-color-surface-static-info-strong),
+  accent: var(--fv-color-surface-static-accent-strong),
+  positive: var(--fv-color-surface-static-positive-strong),
+  warning: var(--fv-color-surface-static-warning-strong),
+  danger: var(--fv-color-surface-static-danger-strong),
+  neutral: var(--fv-color-surface-static-inverse),
+);
+
+$toast-progress-colors: (
+  info: var(--fv-color-border-static-info),
+  accent: var(--fv-color-border-static-accent),
+  positive: var(--fv-color-border-static-positive),
+  warning: var(--fv-color-border-static-warning),
+  danger: var(--fv-color-border-static-danger),
+  neutral: var(--fv-color-border-static-on-inverse),
+);
+
+$toast-motion-duration: var(--fv-motion-duration-normal);
+$toast-motion-offset: var(--fv-spacing-xs);
+
+@keyframes ignt-toast-progress-drain {
+  from {
+    width: 100%;
+  }
+
+  to {
+    width: 0%;
+  }
+}
+
+// Width only: full width on mobile (the outlet supplies the side insets), a fixed 360px card once
+// there's room. Position and stacking live on the outlet.
+:host {
+  display: block;
+  width: 100%;
+  transition:
+    opacity $toast-motion-duration ease-out,
+    transform $toast-motion-duration ease-out;
+
+  // Enter: a freshly inserted card transitions from this state to its normal one.
+  @starting-style {
+    opacity: 0;
+    transform: translateY(calc(-1 * #{$toast-motion-offset}));
+  }
+
+  @include abstracts.ignt-media-breakpoint-up(tablet) {
+    width: 360px;
+  }
+
+  // With no transition, `@starting-style` is inert and Angular removes a leaving card on the next frame.
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+// Leave: added by `animate.leave` in the outlet; Angular removes the node once the transition ends.
+:host(.ignt-toast--leaving) {
+  opacity: 0;
+  transform: translateY(calc(-1 * #{$toast-motion-offset}));
+  transition-timing-function: ease-in;
+  pointer-events: none;
+}
+
+.ignt-toast {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  overflow: hidden;
+  padding-block: var(--fv-spacing-xs);
+  padding-inline: var(--fv-spacing-sm);
+  border-radius: var(--fv-border-radius-container-md);
+  box-shadow: var(--fv-elevation-floating);
+  color: var(--fv-color-content-static-fixed-white);
+  gap: var(--fv-spacing-xs);
+
+  // Reserves room for the absolutely-positioned close button so it never overlaps the text.
+  &--with-close {
+    padding-inline-end: var(--fv-size-touch-target-recommended);
+  }
+
+  // `&--with-close` only sets `padding-inline-end`, but this rule's `padding-inline` shorthand
+  // touches both sides: on a neutral toast with a close button, whichever rule compiles last
+  // would silently win the end-padding at equal specificity. The nested compound selector below
+  // pins it explicitly so the close button's reserved space is never lost.
+  &--neutral {
+    padding-inline: var(--fv-spacing-md);
+    color: var(--fv-color-content-static-on-inverse);
+
+    &.ignt-toast--with-close {
+      padding-inline-end: var(--fv-size-touch-target-recommended);
+    }
+  }
+
+  // As tall as the first line of text, so the icon centres on it: the title when there is one, the description otherwise.
+  &__icon-wrapper {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    justify-content: center;
+    box-sizing: content-box;
+    height: var(--fv-font-body-md-default-line-height);
+    padding-block-start: var(--fv-spacing-2xs);
+  }
+
+  &--with-title &__icon-wrapper {
+    height: var(--fv-font-label-md-strong-line-height);
+  }
+
+  &__icon {
+    color: currentColor;
+  }
+
+  &__container {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--fv-spacing-2xs);
+  }
+
+  &__content {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: var(--fv-spacing-2xs);
+    padding-block: var(--fv-spacing-2xs);
+
+    @include text-styles.fv-font-body-md-default;
+
+    // A `content` template belongs to the component that declared it, and Angular drops that component's styles
+    // when its last instance is destroyed — which happens whenever the caller navigates away while its toast is
+    // still on screen, leaving the link to fall back to the global anchor colour on a coloured background. The
+    // toast owns the background, so it owns the link colour on it, and only a rule of the toast's own can outlive
+    // the caller. `::ng-deep` is what reaches nodes stamped with another component's encapsulation.
+    // Review this once Ignite is fully tokenized: a global `ignt-base.scss` rule reading a link-colour token
+    // would do the same without piercing encapsulation.
+    ::ng-deep a {
+      color: inherit;
+      text-decoration: underline;
+    }
+  }
+
+  &__title {
+    margin: 0;
+
+    @include text-styles.fv-font-label-md-strong;
+  }
+
+  &__description {
+    width: 100%;
+    margin: 0;
+    white-space: pre-line;
+  }
+
+  &__actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    align-content: center;
+    align-self: stretch;
+    flex-wrap: wrap;
+    gap: var(--fv-spacing-xs);
+    padding-block-end: var(--fv-spacing-2xs);
+    padding-inline-end: var(--fv-spacing-xs);
+  }
+
+  // Touch area (44px) is larger than the visible circle (32px): mirrors `ignt-icon-button`'s
+  // `size="small"` used by Alert's own close button, which keeps the same two sizes.
+  &__close-button {
+    position: absolute;
+    inset-block-start: var(--fv-spacing-3xs);
+    inset-inline-end: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: var(--fv-size-touch-target-recommended);
+    height: var(--fv-size-touch-target-recommended);
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: currentColor;
+    cursor: pointer;
+  }
+
+  &__close-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: var(--fv-size-md);
+    height: var(--fv-size-md);
+    border-radius: var(--fv-border-radius-full);
+  }
+
+  &__close-button:hover &__close-icon-wrapper {
+    background: var(--fv-color-surface-interactive-neutral-weak-hover);
+  }
+
+  &__close-button:focus-visible &__close-icon-wrapper {
+    outline: var(--fv-focus-ring-outline);
+    outline-offset: var(--fv-focus-ring-outline-offset);
+    box-shadow: var(--fv-focus-ring-shadow);
+  }
+
+  &__close-icon {
+    color: currentColor;
+  }
+
+  // Drains from 100% to 0% over `--ignt-toast-duration` (set on the host by the component) and
+  // pauses in lockstep with the auto-dismiss timer (`animation-play-state` bound to the same
+  // hover/focus signal).
+  &__progress {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    width: 100%;
+    // No step of the new size scale is 4px.
+    height: foundations.$size-1;
+    // Square on purpose: the toast's own radius and `overflow: hidden` clip it, so it follows sharp brands too.
+    border-radius: var(--fv-border-radius-none);
+    animation: ignt-toast-progress-drain var(--ignt-toast-duration) linear forwards;
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
+  }
+
+  &__progress--paused {
+    animation-play-state: paused;
+  }
+}
+
+@each $variant, $background in $toast-variants {
+  .ignt-toast--#{$variant} {
+    background-color: $background;
+
+    .ignt-toast__progress {
+      background-color: map.get($toast-progress-colors, $variant);
+    }
+  }
+}

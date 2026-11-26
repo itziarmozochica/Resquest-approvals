@@ -1,0 +1,175 @@
+<div class="ticket-selector" data-testid="oss-ticket-selector">
+  <ng-container *ngIf="hasExplodePipe">
+    <ticket-selector-level-obo
+      class="ticket-selector__levels"
+      data-testid="oss-ticket-selector-level-obo"
+      [ticketTypes]="ticketTypesForLevelComponent"
+      [ticketTypeCounterBySessionId]="ticketTypeCounterBySessionId"
+      [ticketTypeCounterBySessionType]="ticketTypeCounterBySessionType"
+      (selectedLevel)="selectedLevel($event)"
+    >
+    </ticket-selector-level-obo>
+  </ng-container>
+  <form class="ticket-type-form" [formGroup]="ticketsFormGroup">
+    @if (isLoading()) {
+      <ng-container [ngTemplateOutlet]="skeletonTileTemplate"> </ng-container>
+    }
+
+    @if (!isLoading()) {
+      <ng-container *ngIf="unhiddenSectionTicketTypes.length > 0">
+        <ng-container *ngFor="let ticketType of unhiddenSectionTicketTypes; trackBy: trackByFn; let i = index">
+          <app-oss-tile
+            [name]="ossTileLabel(ticketType)"
+            [customColor]="tileColorOf(ticketType)"
+            [category]="ticketType.isAddon ? OssTileCategory.ADDON : OssTileCategory.SESSION"
+            [type]="OssTileType.SESSION_TYPE"
+            [id]="ticketType.sessionId"
+            [price]="ticketType.price"
+            [priceWithDiscount]="getPriceWithDiscount(ticketType)"
+            [unitsAvailable]="getTileUnitsAvailable(ticketType.availableTickets)"
+            [isOutOfStock]="isTileOutOfStock(ticketType.availableTickets)"
+            [isUnavailable]="isDisabled(ticketType)"
+            [isHidden]="ticketType.isHidden"
+            [showWarning]="isInOverrideZone() && hasSelectedTickets(ticketType)"
+            [locale]="locale"
+            [igntTourAnchor]="i === 0 ? tourAnchorId()! : ''"
+            (add)="increaseTicketCounter(ticketType)"
+          ></app-oss-tile>
+        </ng-container>
+      </ng-container>
+      <ng-container *ngIf="unhiddenAddonSectionTicketTypes.length > 0">
+        <ng-container *ngFor="let addOn of unhiddenAddonSectionTicketTypes; trackBy: trackByFn">
+          <app-oss-tile
+            [name]="ossTileLabel(addOn)"
+            [customColor]="tileColorOf(addOn)"
+            [category]="OssTileCategory.ADDON"
+            [type]="OssTileType.SESSION_TYPE"
+            [id]="addOn.sessionId"
+            [price]="addOn.price"
+            [priceWithDiscount]="getPriceWithDiscount(addOn)"
+            [unitsAvailable]="getTileUnitsAvailable(addOn.availableTickets)"
+            [isOutOfStock]="isTileOutOfStock(addOn.availableTickets)"
+            [isUnavailable]="isDisabled(addOn)"
+            [isHidden]="addOn.isHidden"
+            [showWarning]="isInOverrideZone() && hasSelectedTickets(addOn)"
+            [locale]="locale"
+            (add)="increaseTicketCounter(addOn)"
+          ></app-oss-tile>
+        </ng-container>
+      </ng-container>
+      @if (visibleOngoingMultiDayTicketGroups.length > 0) {
+        <div class="ticket-selector__hidden-section" data-testid="ticketing-ongoing-section">
+          <h3 class="ticket-selector__title">{{ 'boxOffice.ongoingMultiDayTicketsSection' | translate }}</h3>
+          <div class="ticket-selector__hidden-section-tiles">
+            @for (group of visibleOngoingMultiDayTicketGroups; track group.startOn + group.finishOn) {
+              @for (ticketType of group.ticketTypes; track trackByFn($index, ticketType)) {
+                <div class="oss-ticket-selector__ongoing-item">
+                  <app-oss-tile
+                    [name]="ossTileLabel(ticketType)"
+                    [customColor]="tileColorOf(ticketType)"
+                    [category]="OssTileCategory.SESSION"
+                    [type]="OssTileType.SESSION_TYPE"
+                    [id]="ticketType.sessionId"
+                    [price]="ticketType.price"
+                    [priceWithDiscount]="getPriceWithDiscount(ticketType)"
+                    [unitsAvailable]="getTileUnitsAvailable(ticketType.availableTickets)"
+                    [isOutOfStock]="isTileOutOfStock(ticketType.availableTickets)"
+                    [isUnavailable]="isDisabled(ticketType)"
+                    [isHidden]="ticketType.isHidden"
+                    [showWarning]="isInOverrideZone() && hasSelectedTickets(ticketType)"
+                    [locale]="locale"
+                    (add)="increaseTicketCounter(ticketType)"
+                  ></app-oss-tile>
+                  @if (ticketType.isOngoingMultiDay && ticketType.ongoingMultiDayStartOnLabel) {
+                    <div class="ticket-type__ongoing-dates ticket-type__ongoing-dates--per-ticket" data-testid="ticket-type-ongoing-dates">
+                      <span class="ticket-type__ongoing-date-part">{{
+                        'boxOffice.ongoingMultiDayStartOn' | translate: { date: ticketType.ongoingMultiDayStartOnLabel }
+                      }}</span>
+                      @if (ticketType.ongoingMultiDayFinishOnLabel) {
+                        <span class="ticket-type__ongoing-date-part">{{
+                          'boxOffice.ongoingMultiDayFinishesOn' | translate: { date: ticketType.ongoingMultiDayFinishOnLabel }
+                        }}</span>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            }
+          </div>
+        </div>
+      }
+      <ng-container *ngIf="hiddenSectionTicketTypes.length > 0 || hiddenAddonSectionTicketTypes.length > 0">
+        <div class="ticket-selector__hidden-section">
+          <h3 class="ticket-selector__title">
+            <ignt-icon name="eye-slash" variant="light" size="base" aria-hidden="true" />
+            {{ 'boxOffice.hiddenTicketsSection' | translate }}
+          </h3>
+          <div class="ticket-selector__hidden-section-tiles">
+            <ng-container *ngIf="hiddenSectionTicketTypes.length > 0">
+              <ng-container *ngFor="let ticketType of hiddenSectionTicketTypes; trackBy: trackByFn">
+                <app-oss-tile
+                  [name]="ossTileLabel(ticketType)"
+                  [customColor]="tileColorOf(ticketType)"
+                  [category]="ticketType.isAddon ? OssTileCategory.ADDON : OssTileCategory.SESSION"
+                  [type]="OssTileType.SESSION_TYPE"
+                  [id]="ticketType.sessionId"
+                  [price]="ticketType.price"
+                  [priceWithDiscount]="getPriceWithDiscount(ticketType)"
+                  [unitsAvailable]="getTileUnitsAvailable(ticketType.availableTickets)"
+                  [isOutOfStock]="isTileOutOfStock(ticketType.availableTickets)"
+                  [isUnavailable]="isDisabled(ticketType)"
+                  [isHidden]="ticketType.isHidden"
+                  [showWarning]="isInOverrideZone() && hasSelectedTickets(ticketType)"
+                  [locale]="locale"
+                  (add)="increaseTicketCounter(ticketType)"
+                ></app-oss-tile>
+              </ng-container>
+            </ng-container>
+            <ng-container *ngIf="hiddenAddonSectionTicketTypes.length > 0">
+              <ng-container *ngFor="let addOn of hiddenAddonSectionTicketTypes; trackBy: trackByFn">
+                <app-oss-tile
+                  [name]="ossTileLabel(addOn)"
+                  [customColor]="tileColorOf(addOn)"
+                  [category]="OssTileCategory.ADDON"
+                  [type]="OssTileType.SESSION_TYPE"
+                  [id]="addOn.sessionId"
+                  [price]="addOn.price"
+                  [priceWithDiscount]="getPriceWithDiscount(addOn)"
+                  [unitsAvailable]="getTileUnitsAvailable(addOn.availableTickets)"
+                  [isOutOfStock]="isTileOutOfStock(addOn.availableTickets)"
+                  [isUnavailable]="isDisabled(addOn)"
+                  [isHidden]="addOn.isHidden"
+                  [showWarning]="isInOverrideZone() && hasSelectedTickets(addOn)"
+                  [locale]="locale"
+                  (add)="increaseTicketCounter(addOn)"
+                ></app-oss-tile>
+              </ng-container>
+            </ng-container>
+          </div>
+        </div>
+      </ng-container>
+    }
+  </form>
+  @if (!isLoading() && selectedTicketTypes.length > 0) {
+    <div class="ticket-selector__taxes-included">
+      <span> * {{ 'boxOffice.taxesIncluded' | translate }}</span>
+    </div>
+  }
+</div>
+
+<ng-template #skeletonTileTemplate>
+  <div class="skeleton-tile" *ngFor="let item of [1, 2, 3, 4, 5]">
+    <div class="skeleton-tile__content">
+      <ignt-skeleton-base [height]="8" width="60%" [animation]="true"></ignt-skeleton-base>
+      <div class="skeleton-tile__content-bottom">
+        <div class="skeleton-tile__content-bottom-left">
+          <ignt-skeleton-base [height]="8" width="60%" [animation]="true"></ignt-skeleton-base>
+          <ignt-skeleton-base [height]="8" [animation]="true"></ignt-skeleton-base>
+        </div>
+        <div class="skeleton-tile__content-bottom-right">
+          <ignt-skeleton-base [height]="8" width="25%" [animation]="true"></ignt-skeleton-base>
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-template>

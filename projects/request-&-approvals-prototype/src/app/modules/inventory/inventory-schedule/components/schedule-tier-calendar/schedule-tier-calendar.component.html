@@ -1,0 +1,67 @@
+<div
+  class="schedule-tier-calendar"
+  [class.schedule-tier-calendar--fluid]="fluidColumns()"
+  [style.--schedule-tier-calendar-day-count]="fluidColumns() ? days().length : null"
+>
+  @if (showOpenTimeSlotError()) {
+    <ignt-alert [description]="'inventory.schedule.scheduleForm.fieldErrors.noOpenTimeSlot' | translate"></ignt-alert>
+  }
+
+  <div
+    class="schedule-tier-calendar__table"
+    [class.schedule-tier-calendar__table--capacity-template-hidden]="hideCapacityTemplate()"
+    [class.schedule-tier-calendar__table--scrollable]="isScrollable()"
+    [attr.data-testid]="tableTestId() ?? null"
+  >
+    <div class="schedule-tier-calendar__table-rows">
+      <app-schedule-calendar-column-time-labels
+        class="schedule-tier-calendar__time-labels"
+        [duration]="duration()"
+        [endTime]="endTime()"
+        [fixedTimeSlots]="fixedTimeSlots()"
+        [startTime]="startTime()"
+        [timeSlotLeftOutReason]="timeSlotLeftOutReason()"
+        [timeSlotsLeftOut]="timeSlotsLeftOut()"
+      />
+      @for (day of days(); track trackDay($index, day); let colIdx = $index) {
+        <app-schedule-calendar-column-day
+          class="schedule-tier-calendar__day-column"
+          [capacityOptions]="capacityOptions()"
+          [columnIndex]="colIdx"
+          [day]="day"
+          [defaultCapacityTemplateId]="defaultCapacityTemplateId()"
+          [dragOriginRow]="getDragOriginRow(colIdx)"
+          [dragTierColor]="dragTierDisplay()?.color ?? null"
+          [duration]="duration()"
+          [endTime]="endTime()"
+          [fixedTimeSlots]="fixedTimeSlots()"
+          [headerDateFormat]="headerDateFormat()"
+          [hideCapacityTemplate]="hideCapacityTemplate()"
+          [highlightedRows]="getHighlightedRows(colIdx)"
+          [isDragging]="isDragging()"
+          [isLeftEdge]="isHighlightedLeftEdge(colIdx)"
+          [isRightEdge]="isHighlightedRightEdge(colIdx)"
+          [startTime]="startTime()"
+          [tierOptions]="tierOptions()"
+          [timeSlotsLeftOut]="timeSlotsLeftOut()"
+          [timezone]="timezone()"
+          [weekDay]="day.weekDayName"
+          [disabled]="isDayDisabled()(day)"
+          (cellMouseDown)="onCellMouseDown(colIdx, $event)"
+          (dayChange)="onDayChange($event)"
+        />
+      }
+    </div>
+  </div>
+</div>
+
+@if (isDragging() && dragTierDisplay(); as tierDisplay) {
+  <div
+    class="schedule-tier-calendar__drag-ghost"
+    [style.left.px]="dragMousePosition().x"
+    [style.top.px]="dragMousePosition().y"
+    [style.--tier-ghost-color]="tierDisplay.color"
+  >
+    {{ tierDisplay.title }}
+  </div>
+}

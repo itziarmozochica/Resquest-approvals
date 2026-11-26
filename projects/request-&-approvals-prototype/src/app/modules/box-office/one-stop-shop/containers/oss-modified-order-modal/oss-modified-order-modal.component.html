@@ -1,0 +1,81 @@
+<ignt-dialog-header data-testid="oss-modified-order-modal-title">
+  {{ 'boxOffice.orderModifiedModal.title' | translate: { id: orderNumber() } }}
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="oss-modified-order-modal" data-testid="oss-modified-order-modal">
+    @if (orderCart(); as cart) {
+      <cart-detail
+        class="oss-modified-order-modal__order-detail"
+        [cart]="cart"
+        [orderId]="order()?.id"
+        [showClearAll]="false"
+        [showDiscount]="false"
+        [showPaymentDetails]="true"
+        [showSeatingInModal]="true"
+        [showSessionDate]="true"
+        [showShadow]="false"
+        [title]="'reschedule.order.detail.title'"
+        scope="order"
+        data-testid="oss-modified-order-modal-cart-detail"
+      ></cart-detail>
+    } @else {
+      @for (group of sessionsWithTickets(); track group.sessionName) {
+        <div class="oss-modified-order-modal__session" data-testid="oss-modified-order-modal-session">
+          <p class="oss-modified-order-modal__summary-line" data-testid="oss-modified-order-modal-summary">
+            {{ group.units }} x {{ group.sessionName }}
+          </p>
+          @if (showQrAndSeats()) {
+            <div class="oss-modified-order-modal__tickets" data-testid="oss-modified-order-modal-tickets">
+              @for (ticket of group.tickets; track ticket.id) {
+                @if (ticket.code || ticket.seat || ticket.spot?.label) {
+                  <div class="oss-modified-order-modal__ticket-card" data-testid="oss-modified-order-modal-ticket-card">
+                    @if (ticket.code) {
+                      <div class="oss-modified-order-modal__ticket-code">
+                        @let codeIconName = ticket.codeType === CodeType.BARCODE ? 'barcode' : 'qrcode';
+                        <ignt-icon
+                          [name]="codeIconName"
+                          variant="regular"
+                          size="caption"
+                          class="oss-modified-order-modal__ticket-code-icon"
+                        ></ignt-icon>
+                        <span data-testid="oss-modified-order-modal-ticket-code"
+                          >{{
+                            ticket.codeType === CodeType.BARCODE
+                              ? ('validateTicketsNew.tickets.barcode' | translate)
+                              : ('validateTicketsNew.tickets.QR' | translate)
+                          }}
+                          {{ ticket.code }}</span
+                        >
+                      </div>
+                    }
+                    @if (ticket.seat || ticket.spot?.label) {
+                      <div class="oss-modified-order-modal__ticket-seat" data-testid="oss-modified-order-modal-ticket-seat">
+                        <ignt-icon
+                          name="loveseat"
+                          variant="light"
+                          size="caption"
+                          class="oss-modified-order-modal__ticket-seat-icon"
+                        ></ignt-icon>
+                        <span data-testid="oss-modified-order-modal-ticket-seat-label">{{ ticket.seat ?? ticket.spot?.label }}</span>
+                      </div>
+                    }
+                  </div>
+                }
+              }
+            </div>
+          }
+        </div>
+      }
+    }
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer hideCancelButton>
+  <ignt-button
+    fill
+    igntDialogClose
+    [label]="'boxOffice.orderModifiedModal.close' | translate"
+    data-testid="oss-modified-order-modal-close"
+  />
+</ignt-dialog-footer>

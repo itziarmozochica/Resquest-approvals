@@ -1,0 +1,61 @@
+<ignt-dialog-header>
+  {{ 'distributors.filters.title' | translate }}
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <p class="distributor-filters__subtitle">{{ 'distributors.filters.subtitle' | translate }}</p>
+
+  <div class="distributor-filters__field">
+    <!-- `container="body"` + `isInDialog` is what keeps the popup above the dialog overlay
+         and sized to the field; an inline popup would be clipped by the dialog's scroll. -->
+    <ignt-typeahead
+      container="body"
+      [isInDialog]="true"
+      [editable]="false"
+      [fieldLabel]="'distributors.columns.catalogAccess' | translate"
+      [options]="catalogAccessOptions"
+      [selectedOption]="selectedCatalogAccess"
+      (selected)="selectCatalogAccess($event)"
+    ></ignt-typeahead>
+  </div>
+
+  <div class="distributor-filters__field">
+    <!-- Editable and server-searched: partners clamps a page at 100 groups, so a fixed list cannot
+         reach an organizer's later ones.
+
+         `refreshOnlyWhenOpen` is deliberately left off. The shared typeahead also filters `options`
+         client-side by what was typed, and a term that matches nothing in the page currently loaded
+         empties that list, which closes the popup - so gating the refresh on an open popup would
+         drop exactly the results this field exists to show. Nothing loads in the background here:
+         the options are seeded from the roster and only replaced by a search the user typed. -->
+    <ignt-typeahead
+      container="body"
+      data-testid="distributors-filter-group"
+      [isInDialog]="true"
+      [fieldLabel]="'distributors.columns.group' | translate"
+      [minSearchLength]="minGroupSearchLength"
+      [options]="groupOptions()"
+      [refreshTrigger]="groupRefresh$"
+      [selectedOption]="selectedGroup()"
+      (inputInteraction)="searchGroups($event)"
+      (scrollToEnd)="loadMoreGroups()"
+      (selected)="selectGroup($event)"
+    ></ignt-typeahead>
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer [hideCancelButton]="true">
+  <ignt-button
+    class="distributor-filters__clear"
+    [label]="'distributors.filters.clear' | translate"
+    variant="tertiary"
+    data-testid="distributors-filters-clear"
+    (click)="clearFilters()"
+  />
+  <ignt-button
+    [label]="'distributors.filters.apply' | translate"
+    variant="primary"
+    data-testid="distributors-filters-apply"
+    (click)="applyFilters()"
+  />
+</ignt-dialog-footer>

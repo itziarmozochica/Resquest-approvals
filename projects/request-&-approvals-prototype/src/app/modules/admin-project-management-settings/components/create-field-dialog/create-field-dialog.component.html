@@ -1,0 +1,134 @@
+<div class="cfd-backdrop" (click)="onCancel()"></div>
+<div class="cfd-dialog" role="dialog" aria-modal="true">
+  <header class="cfd-header">
+    <h3>{{ 'adminServiceCatalog.createField.title' | translate }}</h3>
+  </header>
+
+  @if (step() === 'kind') {
+    <div class="cfd-body">
+      <p class="cfd-step-title">{{ 'adminServiceCatalog.createField.chooseKind' | translate }}</p>
+      <div class="cfd-kinds">
+        @for (k of kindOptions; track k) {
+          <button
+            type="button"
+            class="cfd-kind"
+            [class.cfd-kind--active]="kind() === k"
+            [attr.aria-pressed]="kind() === k"
+            (click)="selectKind(k)"
+            [attr.data-testid]="'create-field-kind-' + k"
+          >
+            <span class="cfd-kind__name">{{ 'adminServiceCatalog.createField.kind.' + k | translate }}</span>
+            <span class="cfd-kind__hint">{{ 'adminServiceCatalog.createField.kindHint.' + k | translate }}</span>
+          </button>
+        }
+      </div>
+      <footer class="cfd-footer">
+        <button type="button" igntButton sentiment="tertiary" (click)="onCancel()">
+          {{ 'adminServiceCatalog.createField.cancel' | translate }}
+        </button>
+        <button type="button" igntButton sentiment="primary" (click)="next()">
+          {{ 'adminServiceCatalog.createField.next' | translate }}
+        </button>
+      </footer>
+    </div>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="submit()" class="cfd-body">
+      <label class="cfd-field">
+        <span>{{ 'adminServiceCatalog.createField.label' | translate }}</span>
+        <input type="text" class="form-control" formControlName="label" />
+      </label>
+
+      @if (kind() === 'simple') {
+        <label class="cfd-field">
+          <span>{{ 'adminServiceCatalog.createField.type' | translate }}</span>
+          <select class="form-control" formControlName="type">
+            @for (t of types; track t) {
+              <option [value]="t">{{ t }}</option>
+            }
+          </select>
+        </label>
+      }
+
+      <label class="cfd-field">
+        <span>{{ 'adminServiceCatalog.createField.section' | translate }}</span>
+        <input type="text" class="form-control" formControlName="section" />
+      </label>
+
+      <label class="cfd-field cfd-field--inline">
+        <input type="checkbox" formControlName="required" />
+        <span>{{ 'adminServiceCatalog.createField.required' | translate }}</span>
+      </label>
+
+      <label class="cfd-field">
+        <span>{{ 'adminServiceCatalog.createField.helpText' | translate }}</span>
+        <input type="text" class="form-control" formControlName="helpText" />
+      </label>
+
+      @if (kind() === 'simple' && supportsOptions()) {
+        <label class="cfd-field">
+          <span>{{ 'adminServiceCatalog.createField.options' | translate }}</span>
+          <textarea
+            class="form-control"
+            rows="4"
+            formControlName="options"
+            [placeholder]="'adminServiceCatalog.editor.optionsHint' | translate"
+          ></textarea>
+        </label>
+      }
+
+      @if (kind() === 'grid') {
+        <div class="cfd-field cfd-field--grid">
+          <app-grid-column-editor [columns]="gridColumns" [picklists]="gridPicklists" (columnsChange)="onGridChange($event)" />
+        </div>
+        <label class="cfd-field">
+          <span>{{ 'adminServiceCatalog.editor.minRows' | translate }}</span>
+          <input type="number" class="form-control" min="1" max="50" [(ngModel)]="gridMinRows" [ngModelOptions]="{ standalone: true }" />
+        </label>
+      }
+
+      @if (kind() === 'faq') {
+        <label class="cfd-field">
+          <span>{{ 'adminServiceCatalog.editor.minPairs' | translate }}</span>
+          <input type="number" class="form-control" min="1" max="50" [(ngModel)]="faqMinPairs" [ngModelOptions]="{ standalone: true }" />
+        </label>
+      }
+
+      @if (kind() === 'stepperRef') {
+        <label class="cfd-field">
+          <span>{{ 'adminServiceCatalog.createField.stepperRef.pick' | translate }}</span>
+          @if (selectableStepperTemplates().length) {
+            <select
+              class="form-control"
+              [ngModel]="selectedStepperKey"
+              (ngModelChange)="onStepperKeyChange($event)"
+              [ngModelOptions]="{ standalone: true }"
+              data-testid="create-field-stepper-picker"
+            >
+              @for (t of selectableStepperTemplates(); track t.key) {
+                <option [value]="t.key">{{ t.label }}</option>
+              }
+            </select>
+          } @else {
+            <p class="cfd-empty">{{ 'adminServiceCatalog.createField.stepperRef.empty' | translate }}</p>
+          }
+        </label>
+        <label class="cfd-field cfd-field--inline">
+          <input type="checkbox" [(ngModel)]="multiInstanceForRef" [ngModelOptions]="{ standalone: true }" />
+          <span>{{ 'adminServiceCatalog.createField.stepperRef.multiInstance' | translate }}</span>
+        </label>
+      }
+
+      <footer class="cfd-footer">
+        <button type="button" igntButton sentiment="tertiary" (click)="back()">
+          {{ 'adminServiceCatalog.createField.back' | translate }}
+        </button>
+        <button type="button" igntButton sentiment="tertiary" (click)="onCancel()">
+          {{ 'adminServiceCatalog.createField.cancel' | translate }}
+        </button>
+        <button type="submit" igntButton sentiment="primary" [disabled]="form.invalid">
+          {{ 'adminServiceCatalog.createField.confirm' | translate }}
+        </button>
+      </footer>
+    </form>
+  }
+</div>

@@ -1,0 +1,52 @@
+<div [class.order-tickets--cancelled]="session.status === validationStatusEnum.CANCELLED" class="order-tickets">
+  <div data-testid="order-ticket-session-name">
+    {{ session.units }} x {{ session.sessionName }}
+    @if (!session.isPackConstituent) {
+      <span class="order-tickets__ticket-price">
+        (
+        {{ 'validateTicketsNew.tickets.ticketPrice' | translate }}:
+        @if (shouldShowLoyaltyPrice()) {
+          {{ 'orders.loyaltyPoints' | translate: { points: session.loyaltyTotalPrice | number } }}
+        } @else {
+          <ng-container
+            *ngTemplateOutlet="cartMoney; context: { money: partnerSharePrice() ?? session.price, locale: locale }"
+          ></ng-container>
+        }
+        )
+      </span>
+    }
+  </div>
+  <div>
+    <ng-container *ngTemplateOutlet="ticketCountSelector"></ng-container>
+  </div>
+</div>
+
+<ng-template #ticketCountSelector>
+  <ng-container *permissionBased="'can_view_validation'">
+    <div class="ticket-counter" *ngIf="!hiddenValidation">
+      <div
+        class="ticket-counter__minus"
+        data-testid="order-ticket-counter-minus"
+        (click)="addToValidationCount(-1)"
+        [class.ticket-counter__minus--disabled]="!canAddToPendingValidationCount(-1) || forceDisabled"
+      >
+        <fa-icon [icon]="['fal', 'minus']"></fa-icon>
+      </div>
+      <div class="ticket-counter__count" data-testid="order-ticket-counter-label">
+        {{ getPendingValidationStatusString() }}
+      </div>
+      <div
+        class="ticket-counter__plus"
+        data-testid="order-ticket-counter-plus"
+        (click)="addToValidationCount(1)"
+        [class.ticket-counter__minus--disabled]="!canAddToPendingValidationCount(1) || forceDisabled"
+      >
+        <fa-icon [icon]="['fal', 'plus']"></fa-icon>
+      </div>
+    </div>
+  </ng-container>
+</ng-template>
+
+<ng-template #cartMoney let-locale="locale" let-money="money">
+  {{ money ? (money.amount | currency: money.currency : 'symbol-narrow' : null : locale) : '-' }}
+</ng-template>

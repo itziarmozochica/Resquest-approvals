@@ -1,0 +1,72 @@
+<cdk-accordion>
+  <cdk-accordion-item #accordionItem="cdkAccordionItem" [expanded]="getExpanded()">
+    <ignt-wrapper-card *ngIf="isCardVariant()" [elevation]="elevation">
+      <ng-container *ngTemplateOutlet="panelTemplate"></ng-container>
+    </ignt-wrapper-card>
+    <div *ngIf="isBorderlessVariant()">
+      <ng-container *ngTemplateOutlet="panelTemplate"></ng-container>
+    </div>
+    <div *ngIf="isMenuVariant()">
+      <ng-container *ngTemplateOutlet="panelTemplate"></ng-container>
+    </div>
+  </cdk-accordion-item>
+</cdk-accordion>
+
+<ng-template #panelTemplate>
+  <div
+    [attr.id]="'accordion-header'"
+    [attr.aria-expanded]="accordionItem.expanded"
+    [attr.aria-controls]="'accordion-body'"
+    [ngClass]="containerClasses"
+  >
+    <div [ngClass]="headerClasses" (click)="isNotMenuVariant() ? accordionItem.toggle() : null">
+      <ng-container *ngIf="isMenuVariant()">
+        <ng-content select="[page-title]"></ng-content>
+        <button
+          class="menu-button"
+          data-testid="ignt-expansion-panel-menu-toggle"
+          [attr.aria-expanded]="accordionItem.expanded"
+          [attr.aria-controls]="'accordion-body'"
+          (click)="accordionItem.toggle()"
+          *ngIf="isMobile()"
+        >
+          <span>{{ label }}</span>
+          <fa-icon [icon]="accordionItem.expanded ? faChevronUp : faChevronDown"></fa-icon>
+        </button>
+      </ng-container>
+
+      <ng-container *ngIf="isNotMenuVariant()">
+        <div class="ignt-expansion-panel__header-container">
+          <fa-icon *ngIf="icon" [icon]="icon"></fa-icon>
+          <p *ngIf="title.length > 0" class="ignt-expansion-panel__header-title">{{ title }}</p>
+          <div
+            *ngIf="badgeCount !== undefined"
+            class="ignt-expansion-panel__badge"
+            [attr.aria-label]="badgeAriaLabel || badgeCount + ' items'"
+            role="status"
+          >
+            {{ badgeCount }}
+          </div>
+        </div>
+        <ng-container *ngIf="title.length === 0">
+          <ng-content select="[expansion-panel-title]"></ng-content>
+        </ng-container>
+        <fa-icon [icon]="accordionItem.expanded ? faChevronUp : faChevronDown"></fa-icon>
+      </ng-container>
+    </div>
+
+    <ng-container *ngIf="!accordionItem.expanded" class="ignt-expansion-panel__visible-content">
+      <ng-content select="[always-visible-modifier]"></ng-content>
+    </ng-container>
+
+    <div
+      [ngClass]="contentClasses"
+      role="region"
+      [style.display]="accordionItem.expanded ? '' : 'none'"
+      [attr.id]="'accordion-body'"
+      [attr.aria-labelledby]="'accordion-header'"
+    >
+      <ng-content></ng-content>
+    </div>
+  </div>
+</ng-template>

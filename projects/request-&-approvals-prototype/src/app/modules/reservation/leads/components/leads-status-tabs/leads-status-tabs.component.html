@@ -1,0 +1,35 @@
+<ignt-tabs
+  class="leads-status-tabs__tabs"
+  data-testid="leads-status-tabs"
+  [selectedIndex]="selectedIndex()"
+  (selectedIndexChange)="onTabSelected($event)"
+>
+  <!-- Tracked by label AND count: `ignt-tabs` is OnPush and reads its items' labels in its own template,
+       so a label that changes in place (the counts land after the first render) would never be drawn.
+       A changed count re-creates the item instead, which the tabs observe and redraw. -->
+  @for (tab of tabs(); track tab.labelKey + ':' + tab.count) {
+    <ignt-tabs-item
+      [attr.data-testid]="'leads-status-tab-' + (tab.category ?? 'ALL')"
+      [label]="(tab.labelKey | translate) + countBadge(tab.count)"
+    />
+  }
+</ignt-tabs>
+
+@if (statuses().length > 0) {
+  <div
+    class="leads-status-tabs__chips"
+    role="group"
+    data-testid="leads-status-chips"
+    [attr.aria-label]="'leads.filters.statusChips' | translate"
+  >
+    @for (status of statuses(); track status) {
+      <ignt-pill-button
+        [attr.data-testid]="'leads-status-chip-' + status"
+        [checked]="selectedStatuses().includes(status)"
+        [label]="'leads.statuses.' + status | translate"
+        [value]="status"
+        (checkedChange)="onStatusToggled(status, $event)"
+      />
+    }
+  </div>
+}

@@ -1,0 +1,50 @@
+import { PlanCategory, PlanType } from './general-section.enum';
+import { RequestGeneralReview } from './post-purchase-section.enum';
+import { SelectorSettingType, SessionSelectorType } from './selector-session-section.enum';
+import { TransportConfiguration } from './transport-configuration.model';
+import { ValidationMethod, ValidationWindow } from './validation-section.enum';
+
+export const mainPlanLabelFormatMaxLength = 100;
+
+export interface MainPlanSettings {
+  allowLoyaltyRedemption: boolean;
+  baseLocale: string;
+  calendarSelector: boolean;
+  category: PlanCategory;
+  cities: number[];
+  continuousTimeSelector: boolean;
+  denyPublishingInOta: boolean;
+  disallowIndexing: boolean;
+  hasPriceListPricing: boolean;
+  hideCouponLoyalty: boolean;
+  hideHelp: boolean;
+  labelFormat: string;
+  maxFeverCreditAllowed: string;
+  mustUseTaxBase: boolean;
+  partnershipType: string;
+  permissions: string[];
+  requestGeneralReview: RequestGeneralReview;
+  required3ds: boolean;
+  allowInvitationReselling?: boolean;
+  resellingProviders: string[];
+  selectorSettingType: SelectorSettingType;
+  sessionSelectorType: SessionSelectorType;
+  shouldChargeBookingFeesOnExchange: boolean;
+  showImportantInformation: boolean;
+  type: PlanType;
+  validationMethod: ValidationMethod;
+  validationWindow: ValidationWindow;
+  allowTicketCancellations?: boolean;
+  categoryAllowedValues?: string[];
+  contracts?: string[];
+  hoursBeforeSessionCancellationNotAllowed?: number;
+  overrideCapacityLimit?: number | null;
+  partnershipTypeAllowedValues?: string[];
+  redirectToId?: number | null;
+  requiredPurchaseTerms?: string | null;
+  selectorSettingTypeAllowedValues?: string[];
+  sessionSelectorTypeAllowedValues?: string[];
+  transportConfiguration?: TransportConfiguration;
+  typeAllowedValues?: string[];
+  validationMethodAllowedValues?: string[];
+}

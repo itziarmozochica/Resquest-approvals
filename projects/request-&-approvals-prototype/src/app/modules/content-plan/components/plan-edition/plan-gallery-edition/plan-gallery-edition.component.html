@@ -1,0 +1,118 @@
+<ng-template #headerLinkTemplate>
+  <a class="plan-gallery-edition__link" target="_blank" [href]="fileTemplateUrl">
+    <fa-icon [icon]="['far', 'file-download']"></fa-icon>
+    {{ 'planEdition.galleryEdition.imageTemplateLink' | translate }}
+  </a>
+</ng-template>
+
+<ng-container [ngSwitch]="componentState">
+  <ng-container *ngSwitchCase="componentStateEnum.ok" [ngTemplateOutlet]="okTemplate"> </ng-container>
+  <ng-container *ngSwitchCase="componentStateEnum.loading" [ngTemplateOutlet]="loadingTemplate"> </ng-container>
+  <ng-container *ngSwitchCase="componentStateEnum.error" [ngTemplateOutlet]="errorTemplate"> </ng-container>
+</ng-container>
+
+<ng-template #okTemplate>
+  @let squareImages = { text: 'planEdition.galleryEdition.squareImages' | translate, icon: ['fal', 'draw-square'] };
+  @let noCollages = { text: 'planEdition.galleryEdition.noCollages' | translate, icon: ['far', 'times-circle'] };
+  @let useTemplate = { text: 'planEdition.galleryEdition.useTemplate' | translate, icon: ['fal', 'th-large'] };
+  @let acceptedFormats = { text: 'planEdition.galleryEdition.acceptedFormats' | translate, icon: ['fas', 'image'] };
+  @let sixteenByNineRequirements = { text: 'planEdition.galleryEdition.sixteenByNineRequirements' | translate, icon: ['fal', 'expand'] };
+  <app-plan-edition-header
+    class="plan-gallery-edition__header"
+    [title]="'planEdition.galleryEdition.requerimentsTitle' | translate"
+    [linkTemplate]="headerLinkTemplate"
+    [requeriments]="
+      canManageGalleryLayout()
+        ? [squareImages, noCollages, useTemplate, acceptedFormats, sixteenByNineRequirements]
+        : [squareImages, noCollages, useTemplate, acceptedFormats]
+    "
+  >
+  </app-plan-edition-header>
+  <div class="plan-gallery-edition__body">
+    <div class="plan-gallery-edition__title">
+      {{ 'planEdition.galleryEdition.uploadMedia' | translate }}
+    </div>
+    <div class="plan-gallery-edition__text">
+      <div [innerHtml]="'planEdition.galleryEdition.uploadMediaText' | translate"></div>
+      <div
+        class="plan-gallery-edition__undo"
+        (click)="undo()"
+        [class.plan-gallery-edition__undo--disabled]="!isGalleryDirty || !canEditPlan() || !hasEditContentPermission()"
+      >
+        <fa-icon [fixedWidth]="true" [icon]="['fas', 'undo']"></fa-icon>
+        {{ 'planEdition.galleryEdition.restore' | translate }}
+      </div>
+    </div>
+    @if (canManageGalleryLayout()) {
+      <div class="plan-gallery-edition__layout">
+        <div class="plan-gallery-edition__layout-label" id="desktop-gallery-layout-label">
+          {{ 'planEdition.galleryEdition.galleryLayoutLabel' | translate }}
+        </div>
+        <div
+          class="plan-gallery-edition__layout-options"
+          role="group"
+          data-testid="plan-gallery-edition-desktop-layout"
+          aria-labelledby="desktop-gallery-layout-label"
+        >
+          @for (option of galleryLayoutOptions; track option.labelKey) {
+            <ignt-pill-button
+              [attr.data-testid]="'plan-gallery-edition-desktop-layout-' + (option.value ?? 'automatic')"
+              [checked]="desktopGalleryLayout === option.value"
+              [disabled]="!canEditPlan() || !hasEditContentPermission()"
+              [label]="option.labelKey | translate"
+              [value]="option.value ?? 'automatic'"
+              (checkedChange)="selectDesktopGalleryLayout(option.value)"
+            />
+          }
+        </div>
+        <p class="plan-gallery-edition__layout-help">
+          {{ 'planEdition.galleryEdition.galleryLayoutHelp' | translate }}
+        </p>
+      </div>
+    }
+    <app-image-sortable-list
+      [uploadFileCallback]="uploadFileCallback"
+      [uploadVariantFileCallback]="uploadVariantFileCallback"
+      [showCoverVariant]="isCoverVariantSlotVisible()"
+      [disabled]="!canEditPlan() || !hasEditContentPermission()"
+      [(photos)]="photos"
+    >
+    </app-image-sortable-list>
+  </div>
+  <div class="plan-gallery-edition__footer">
+    <ignt-button
+      data-testid="plan-gallery-edition-publish"
+      [disabled]="!canEditPlan() || !hasEditContentPermission() || !canPublish()"
+      [fill]="isMobile()"
+      [label]="
+        isDraftMode
+          ? isLastTab
+            ? ('common.save' | translate)
+            : ('common.next' | translate)
+          : ('planEdition.galleryEdition.publish' | translate)
+      "
+      (click)="publish()"
+    />
+  </div>
+</ng-template>
+
+<ng-template #loadingTemplate>
+  <div data-testid="plan-gallery-edition-spinner" class="loading-image-spinner">
+    <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'4x'"></fa-icon>
+  </div>
+</ng-template>
+
+<ng-template #errorTemplate>
+  <ignt-alert sentiment="danger" [description]="'errors.generic' | translate" data-testid="plan-gallery-edition-error" />
+</ng-template>
+
+<ng-template #savingModal>
+  <div class="saving-modal">
+    <div class="loading-modal__header">
+      {{ 'planEdition.galleryEdition.savingModalTitle' | translate }}
+    </div>
+    <div class="spinner">
+      <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'4x'"></fa-icon>
+    </div>
+  </div>
+</ng-template>

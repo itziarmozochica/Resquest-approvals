@@ -1,0 +1,66 @@
+<ignt-dialog-header [hideCloseButton]="isSubmitting()">New version</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <form class="create-version-panel__form" [formGroup]="form">
+    <p class="create-version-panel__lead">
+      Versions are immutable and published on creation. This appends a new version that supersedes the current one.
+    </p>
+
+    <div class="create-version-panel__field">
+      <span class="create-version-panel__label">Agreement text</span>
+      <ignt-rich-text-editor
+        class="create-version-panel__editor"
+        data-testid="version-content-editor"
+        [formControl]="form.controls.content"
+        [features]="contentFeatures"
+        blockElement="p"
+        placeholder="Paste the exact legal text shown to the signer…"
+        (blurred)="cleanContent()"
+      ></ignt-rich-text-editor>
+      @if (contentError(); as error) {
+        <p class="create-version-panel__hint create-version-panel__hint--error" data-testid="version-content-error" role="alert">
+          {{ error }}
+        </p>
+      }
+      <p class="create-version-panel__hint">Links and images are removed.</p>
+      <p class="create-version-panel__hint">A content hash is generated to prove exactly what was accepted.</p>
+    </div>
+
+    @if (hasPriorVersions) {
+      <div class="create-version-panel__switch">
+        <span class="create-version-panel__switch-txt">
+          <b>Prior acceptances stay valid</b>
+          <small>When off, existing acceptances are invalidated and participants must re-sign.</small>
+        </span>
+        <ignt-toggle
+          [checked]="priorAcceptanceValid()"
+          data-testid="version-prior-acceptance"
+          (change)="togglePriorAcceptance()"
+        ></ignt-toggle>
+      </div>
+    } @else {
+      <p class="create-version-panel__hint" data-testid="version-first-note">
+        This is the first version, so there are no prior acceptances to keep valid.
+      </p>
+    }
+  </form>
+</ignt-dialog-content>
+
+<ignt-dialog-footer class="create-version-panel__footer" hideCancelButton>
+  <ignt-button
+    variant="tertiary"
+    sentiment="neutral"
+    label="Cancel"
+    [disabled]="isSubmitting()"
+    data-testid="version-cancel"
+    (click)="cancel()"
+  />
+  <ignt-button
+    class="create-version-panel__create"
+    label="Publish version"
+    [loading]="isSubmitting()"
+    [disabled]="isSubmitting()"
+    data-testid="version-publish"
+    (click)="create()"
+  />
+</ignt-dialog-footer>

@@ -1,0 +1,57 @@
+<ignt-dialog-header data-testid="onsite-setup-modal" [hideCloseButton]="!hasCloseButton">
+  {{ modalTitle() }}
+</ignt-dialog-header>
+<ignt-dialog-content>
+  <div class="oss-onsite-setup-modal__content" [class.oss-onsite-setup-modal__content--with-recents]="isRecentSectionVisible()">
+    @if (!hasActiveShiftAndPreviousOnsiteSetup) {
+      @if (!isRecentSectionVisible() && !isVenueSearchActive()) {
+        <div class="oss-setup-header" data-testid="onsite-setup-greeting">
+          <div class="oss-setup-greeting">
+            👋 <span>{{ greetingTitle() }}</span>
+          </div>
+          <div class="oss-setup-subtitle">{{ translations().greetingsSubtitle }}</div>
+        </div>
+      }
+      @if (isRecentSectionVisible()) {
+        <fzt-onsite-setup-recents
+          [recentLabel]="translations().recent"
+          [recents]="recentOnsiteSetups()"
+          [searchLabel]="translations().search"
+          (recentSelected)="selectRecentOnsiteSetup($event)"
+          (searchActivated)="activateVenueSearch()"
+        />
+      }
+      <div class="onsite-setup">
+        <fzt-onsite-setup-venue-picker
+          [closeSearchLabel]="translations().closeSearch"
+          [isCompact]="isRecentSectionVisible()"
+          [isSearchFieldVisible]="isVenueSearchFieldVisible()"
+          [label]="translations().selectVenue"
+          [searchControl]="venueSearchFormControl"
+          [searchLabel]="translations().searchVenue"
+          [searchPlaceholder]="translations().searchVenuePlaceholder"
+          [selectedVenueId]="selectedVenue()?.id ?? null"
+          [showCloseSearchButton]="recentOnsiteSetups().length > 0"
+          [venues]="filteredVenueOptions()"
+          (searchClosed)="deactivateVenueSearch()"
+          (searchEnterPressed)="onSearchEnterKey()"
+          (venueSelected)="selectVenue($event)"
+        />
+
+        @if (shouldShowSetups()) {
+          <fzt-onsite-setup-setup-picker
+            [disabled]="!selectedVenue()"
+            [label]="translations().selectOnsiteSetup"
+            [selectedSetupId]="selectedOnsiteSetupOption()?.id ?? null"
+            [setups]="onsiteSetupOptions()"
+            (setupSelected)="selectOnsiteSetup($event)"
+          />
+        }
+      </div>
+    } @else {
+      <div data-testid="onsite-setup-active-shift">
+        <p>{{ translations().activeShiftMessage }}</p>
+      </div>
+    }
+  </div>
+</ignt-dialog-content>

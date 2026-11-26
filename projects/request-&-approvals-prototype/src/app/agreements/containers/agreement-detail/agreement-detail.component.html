@@ -1,0 +1,338 @@
+<section class="main-wrapper" aria-label="Agreement detail" [attr.aria-busy]="isLoading()">
+  @if (agreement(); as a) {
+    <div class="agreement-detail__topbar">
+      <div class="agreement-detail__title">
+        <a class="agreement-detail__crumb" [routerLink]="['/agreements']">← Agreements</a>
+        <h1>{{ a.name }}</h1>
+      </div>
+      <div class="agreement-detail__actions">
+        @if (a.status !== agreementStatus.archived) {
+          <ignt-button
+            class="agreement-detail__primary-action"
+            variant="secondary"
+            sentiment="danger"
+            label="Archive"
+            [leadingIcon]="archiveIcon"
+            data-testid="detail-archive"
+            (click)="confirmArchive()"
+          />
+        } @else {
+          <ignt-button
+            class="agreement-detail__primary-action"
+            variant="secondary"
+            sentiment="neutral"
+            label="Restore"
+            [leadingIcon]="restoreIcon"
+            data-testid="detail-restore"
+            (click)="restore()"
+          />
+        }
+        @if (canEdit()) {
+          <ignt-button
+            class="agreement-detail__primary-action"
+            label="Edit"
+            [leadingIcon]="editIcon"
+            data-testid="detail-edit"
+            (click)="openEdit()"
+          />
+        }
+      </div>
+    </div>
+
+    <div class="wrapper-card wrapper-card--elevation-100 agreement-detail__summary-card">
+      <div class="agreement-detail__summary">
+        <div class="agreement-detail__summary-main">
+          <div class="agreement-detail__icon" [style.background]="agreementTypeMeta[a.agreementType].color + '1a'">
+            <ignt-icon [name]="'file-alt'" size="h2" variant="light" [style.color]="agreementTypeMeta[a.agreementType].color" />
+          </div>
+          <div>
+            <div class="agreement-detail__summary-name">{{ a.name }}</div>
+            <div class="agreement-detail__summary-type">
+              <span class="agreement-detail__dot" [style.background]="agreementTypeMeta[a.agreementType].color"></span>
+              {{ agreementTypeMeta[a.agreementType].label }}
+            </div>
+            <ignt-tag class="agreement-detail__summary-status" [sentiment]="statusTag(a.status).sentiment" variant="solid">{{
+              statusTag(a.status).label
+            }}</ignt-tag>
+          </div>
+        </div>
+        <div class="agreement-detail__summary-col">
+          <span class="agreement-detail__meta">
+            <ignt-icon [name]="'calendar-alt'" size="base" variant="light" />
+            Updated: {{ formatDate(a.updatedAt) }}
+          </span>
+          <span class="agreement-detail__meta">
+            <ignt-icon [name]="'address-card'" size="base" variant="light" />
+            Partner: {{ partnerName() || '—' }}
+          </span>
+        </div>
+        <div class="agreement-detail__summary-col agreement-detail__summary-col--end">
+          <span class="agreement-detail__meta">
+            <ignt-icon [name]="'layer-group'" size="base" variant="light" />
+            @if (current(); as c) {
+              Latest published: v{{ c.version }}
+            } @else {
+              Latest published: None yet
+            }
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="wrapper-card wrapper-card--elevation-100">
+      <ignt-tabs [selectedIndex]="selectedTabIndex()" (selectedIndexChange)="onTabIndexChange($event)">
+        <ignt-tabs-item [label]="'Overview'">
+          <div class="agreement-detail__card">
+            <div class="agreement-detail__panel-title">Agreement details</div>
+            <dl class="agreement-detail__kv">
+              <dt>Name</dt>
+              <dd>{{ a.name }}</dd>
+              <dt>Type</dt>
+              <dd>{{ agreementTypeMeta[a.agreementType].label }}</dd>
+              <dt>Status</dt>
+              <dd>
+                <ignt-tag [sentiment]="statusTag(a.status).sentiment" variant="outline">{{ statusTag(a.status).label }}</ignt-tag>
+              </dd>
+              <dt>Partner</dt>
+              <dd>{{ partnerName() || '—' }}</dd>
+              <dt>Latest published</dt>
+              <dd>
+                @if (current(); as c) {
+                  v{{ c.version }}
+                } @else {
+                  <span class="agreement-detail__muted">None yet</span>
+                }
+              </dd>
+              <dt>Created</dt>
+              <dd>{{ formatDate(a.createdAt) }}</dd>
+            </dl>
+          </div>
+        </ignt-tabs-item>
+
+        <ignt-tabs-item [label]="'Versions'">
+          <div class="agreement-detail__section-head">
+            <ignt-button
+              size="small"
+              label="New version"
+              [leadingIcon]="newVersionIcon"
+              [disabled]="!canPublishVersion()"
+              data-testid="detail-new-version"
+              (click)="openCreateVersion()"
+            />
+          </div>
+          @if (needsPolicyBeforePublishing()) {
+            <ignt-alert
+              sentiment="warning"
+              class="agreement-detail__versions-notice"
+              description="Configure an acceptance policy before publishing a version."
+              data-testid="detail-versions-notice"
+            />
+          }
+          <ignt-table
+            class="agreement-detail__versions-table"
+            [data]="filteredVersions()"
+            [filterConfig]="versionFilterConfig()"
+            [hasPagination]="true"
+            [interactiveRows]="true"
+            [pageSize]="10"
+            [searchConfig]="versionSearchConfig()"
+            data-testid="agreement-versions-table"
+            (filterClearAll)="onVersionFilterClearAll()"
+            (filterClosed)="onVersionFilterClosed()"
+            (filterPillRemoved)="onVersionFilterPillRemoved($event)"
+            (rowInteraction)="openVersionViewer($event.item)"
+            (searchChanged)="onVersionSearch($event)"
+          >
+            <ignt-table-column key="version" header="Version" columnType="primary">
+              <ng-template [igntTableColumnTemplateType]="tableColumnTypeSample()" let-item="item">
+                <div class="agreement-detail__cell-main" [class.agreement-detail__cell-main--latest]="isCurrent(item)">
+                  v{{ item.version }}
+                </div>
+              </ng-template>
+            </ignt-table-column>
+            <ignt-table-column key="status" header="Status">
+              <ng-template [igntTableColumnTemplateType]="tableColumnTypeSample()" let-item="item">
+                <ignt-tag [sentiment]="stateTagFor(item).sentiment" variant="outline">{{ stateTagFor(item).label }}</ignt-tag>
+              </ng-template>
+            </ignt-table-column>
+            <ignt-table-column key="reuse" header="Reuse">
+              <ng-template [igntTableColumnTemplateType]="tableColumnTypeSample()" let-item="item">
+                <ignt-tag [sentiment]="reuseTagFor(item).sentiment" variant="outline">{{ reuseTagFor(item).label }}</ignt-tag>
+              </ng-template>
+            </ignt-table-column>
+            <ignt-table-column key="createdAt" header="Created">
+              <ng-template [igntTableColumnTemplateType]="tableColumnTypeSample()" let-item="item">
+                <span class="agreement-detail__muted">{{ formatDate(item.createdAt) }}</span>
+              </ng-template>
+            </ignt-table-column>
+            <ignt-table-column key="contentHash" header="Content hash">
+              <ng-template [igntTableColumnTemplateType]="tableColumnTypeSample()" let-item="item">
+                <span class="agreement-detail__mono agreement-detail__faint" [title]="item.contentHash">{{ item.contentHash }}</span>
+              </ng-template>
+            </ignt-table-column>
+            <ignt-table-column header="" columnType="action" [width]="56">
+              <ng-template [igntTableColumnTemplateType]="tableColumnTypeSample()" let-item="item">
+                <ignt-icon class="agreement-detail__chevron" [name]="'chevron-right'" size="caption" variant="light" />
+              </ng-template>
+            </ignt-table-column>
+          </ignt-table>
+        </ignt-tabs-item>
+
+        <ignt-tabs-item [label]="'Policy'">
+          @if (a.policy; as policy) {
+            @if (canEditPolicy()) {
+              <div class="agreement-detail__section-head">
+                <ignt-button
+                  size="small"
+                  label="Edit policy"
+                  [leadingIcon]="editIcon"
+                  data-testid="detail-policy-edit"
+                  (click)="openPolicy()"
+                />
+              </div>
+            }
+
+            <div class="agreement-detail__sections">
+              <div class="agreement-detail__card agreement-detail__section">
+                <div class="agreement-detail__section-title">
+                  <ignt-icon [name]="'calendar-alt'" size="base" variant="light" />
+                  <b>Validity</b>
+                </div>
+                <small class="agreement-detail__section-desc">When an acceptance is valid and for how long.</small>
+                <div class="agreement-detail__field-grid">
+                  <div>
+                    <div class="agreement-detail__field-key">Expires after</div>
+                    <div class="agreement-detail__field-value">
+                      @if (policy.expiresAfterDays === null) {
+                        Never expires
+                      } @else {
+                        {{ policy.expiresAfterDays }} days
+                      }
+                    </div>
+                  </div>
+                  <div>
+                    <div class="agreement-detail__field-key">Effective from</div>
+                    <div class="agreement-detail__field-value">{{ formatDate(policy.effectiveFrom) }}</div>
+                  </div>
+                  <div>
+                    <div class="agreement-detail__field-key">Effective until</div>
+                    <div class="agreement-detail__field-value">
+                      @if (policy.effectiveUntil) {
+                        {{ formatDate(policy.effectiveUntil) }}
+                      } @else {
+                        Open
+                      }
+                    </div>
+                  </div>
+                  <div>
+                    <div class="agreement-detail__field-key">Status</div>
+                    <div class="agreement-detail__field-value">
+                      <ignt-tag [sentiment]="policyTag(policy.status).sentiment" variant="outline">{{
+                        policyTag(policy.status).label
+                      }}</ignt-tag>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="agreement-detail__card agreement-detail__section">
+                <div class="agreement-detail__section-title">
+                  <ignt-icon [name]="'share-alt'" size="base" variant="light" />
+                  <b>Reuse</b>
+                </div>
+                <small class="agreement-detail__section-desc">How an acceptance can be reused across contexts.</small>
+                <div class="agreement-detail__field-grid">
+                  <div>
+                    <div class="agreement-detail__field-key">Group acceptance</div>
+                    <div class="agreement-detail__field-value">{{ policy.groupAcceptanceAllowed ? 'Allowed' : 'Blocked' }}</div>
+                  </div>
+                  <div>
+                    <div class="agreement-detail__field-key">Guardian acceptance</div>
+                    <div class="agreement-detail__field-value">{{ policy.guardianAcceptanceAllowed ? 'Allowed' : 'Blocked' }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          } @else {
+            <div class="agreement-detail__card">
+              <div class="agreement-detail__empty">
+                <h3>No policy configured</h3>
+                <p>
+                  The policy defines when an acceptance is valid: expiry, cross-partner reuse, group and guardian acceptance. Without it the
+                  agreement check cannot return <b>satisfied</b>.
+                </p>
+                @if (canEditPolicy()) {
+                  <ignt-button label="Configure policy" data-testid="detail-policy-create" (click)="openPolicy()" />
+                }
+              </div>
+            </div>
+          }
+        </ignt-tabs-item>
+      </ignt-tabs>
+    </div>
+  } @else if (isLoading()) {
+    <div class="wrapper-card wrapper-card--elevation-100">
+      <div class="agreement-detail__loading" role="status">Loading agreement…</div>
+    </div>
+  } @else if (hasLoadError()) {
+    <div class="wrapper-card wrapper-card--elevation-100">
+      <div class="agreement-detail__empty" role="status">
+        <h3>Could not load agreement</h3>
+        <p>Something went wrong while loading. <a [routerLink]="['/agreements']">Back to agreements</a>.</p>
+      </div>
+    </div>
+  } @else {
+    <div class="wrapper-card wrapper-card--elevation-100">
+      <div class="agreement-detail__empty" role="status">
+        <h3>Agreement not found</h3>
+        <p>This agreement may have been removed. <a [routerLink]="['/agreements']">Back to agreements</a>.</p>
+      </div>
+    </div>
+  }
+</section>
+
+<ng-template #versionFiltersPanelTpl>
+  <div class="agreement-detail__filters-shell">
+    <ignt-dialog-header>Filters</ignt-dialog-header>
+    <ignt-dialog-content>
+      <div class="agreement-detail__filters-panel" role="group" aria-label="Version filters">
+        <app-multi-select
+          class="field"
+          [displayInPlaceMaximum]="2"
+          [options]="versionFilterOptions.state"
+          placeholder="Any state"
+          [selectedOptions]="draftVersionFilters().state"
+          (selected)="onDraftVersionFilterChange('state', $event)"
+          data-testid="version-filter-state"
+        ></app-multi-select>
+        <app-multi-select
+          class="field"
+          [displayInPlaceMaximum]="2"
+          [options]="versionFilterOptions.reuse"
+          placeholder="Any reuse"
+          [selectedOptions]="draftVersionFilters().reuse"
+          (selected)="onDraftVersionFilterChange('reuse', $event)"
+          data-testid="version-filter-reuse"
+        ></app-multi-select>
+      </div>
+    </ignt-dialog-content>
+    <ignt-dialog-footer class="agreement-detail__filters-footer" hideCancelButton>
+      <ignt-button
+        class="agreement-detail__filters-clear"
+        variant="tertiary"
+        sentiment="neutral"
+        label="Reset filters"
+        [disabled]="activeDraftVersionFilterCount() === 0"
+        data-testid="version-filters-clear"
+        (click)="clearDraftVersionFilters()"
+      />
+      <ignt-button
+        class="agreement-detail__filters-apply"
+        [label]="'Apply filters (' + draftVersionFilteredCount() + ')'"
+        data-testid="version-filters-apply"
+        igntDialogClose
+        (click)="applyDraftVersionFilters()"
+      />
+    </ignt-dialog-footer>
+  </div>
+</ng-template>

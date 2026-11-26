@@ -1,0 +1,439 @@
+<!-- A ticket type's name as the table shows it: category icon, name, then what needs fixing (no sessions, missing fields). -->
+<ng-template #ticketName let-sessionType="sessionType" let-name="name">
+  <span class="steps-browser__name steps-browser__name--ticket">
+    <ignt-icon
+      class="steps-browser__category"
+      data-testid="itt-steps-category-icon"
+      variant="light"
+      size="sm"
+      [name]="getCategoryIcon(sessionType)"
+    />
+    <span>{{ name }}</span>
+    @if (sessionType.hasSessions === false && !sessionType.archivedAt) {
+      <span
+        class="steps-browser__no-sessions"
+        data-testid="itt-steps-no-sessions"
+        igntTooltip
+        [tooltipLabel]="'inventory.ticketTypes.noSessionsTooltip' | translate"
+        ><ignt-icon name="calendar-exclamation" variant="light" size="sm" />{{ 'inventory.ticketTypes.noSessions' | translate }}</span
+      >
+    }
+    @if (sessionTypeIdsMissingRequiredFields().has(sessionType.id)) {
+      <ignt-icon
+        class="steps-browser__missing-fields"
+        data-testid="itt-steps-missing-required-fields"
+        name="triangle-exclamation"
+        variant="solid"
+        size="sm"
+        role="img"
+        igntTooltip
+        [attr.aria-label]="'inventory.ticketTypes.missingRequiredFieldsTooltip' | translate"
+        [tooltipLabel]="'inventory.ticketTypes.missingRequiredFieldsTooltip' | translate"
+      />
+    }
+  </span>
+</ng-template>
+
+<!-- The partner's tags on the right of the row, so they line up down the column. -->
+<ng-template #ticketTags let-sessionType="sessionType">
+  @let tags = getTags(sessionType);
+  @if (tags.length > 0) {
+    <app-tag-chip-list class="steps-browser__tags" data-testid="itt-steps-tags" [tags]="tags" />
+  }
+</ng-template>
+
+<!-- The table's pencil on a group row: opens today's group form. -->
+<ng-template #editGroupButton let-groupId="groupId" let-name="name">
+  <button
+    type="button"
+    ignt-icon-button
+    class="steps-browser__edit-group"
+    data-testid="itt-steps-edit-group"
+    sentiment="tertiary"
+    size="small"
+    [icon]="['far', 'edit']"
+    [attr.aria-label]="'inventory.ticketTypes.steps.editGroup' | translate: { name }"
+    (click)="editGroup.emit(groupId)"
+  ></button>
+</ng-template>
+
+<!-- What an asset-based group draws its capacity from, under the group in the groups list. -->
+<ng-template #groupAssets let-name="name">
+  <span class="steps-browser__meta steps-browser__meta--asset" data-testid="itt-groups-asset">
+    <ignt-icon name="building-columns" variant="light" size="sm" />
+    {{ 'inventory.ticketTypes.steps.groupAssets' | translate: { name } }}
+  </span>
+</ng-template>
+
+<ng-template #emptyState>
+  <div class="steps-browser__empty-all" data-testid="itt-steps-empty">
+    @if (isShopProductsFilter()) {
+      <div class="steps-browser__empty-content">
+        <h3 class="steps-browser__empty-title">{{ 'inventory.ticketTypes.steps.shopProductsNotInStepsTitle' | translate }}</h3>
+        <p class="steps-browser__empty-text">{{ 'inventory.ticketTypes.steps.shopProductsNotInSteps' | translate }}</p>
+      </div>
+      <ignt-button
+        variant="secondary"
+        [label]="'inventory.ticketTypes.steps.showInCapacityGroups' | translate"
+        (click)="showInCapacityGroups.emit()"
+      />
+    } @else {
+      <p class="steps-browser__empty-text">{{ 'inventory.ticketTypes.steps.empty' | translate }}</p>
+      @if (isFiltered()) {
+        <ignt-button
+          variant="secondary"
+          size="small"
+          [label]="'inventory.ticketTypes.steps.clearFilters' | translate"
+          (click)="clearFilters.emit()"
+        />
+      }
+    }
+  </div>
+</ng-template>
+
+<div
+  class="steps-browser"
+  data-testid="itt-steps-browser"
+  [class.steps-browser--groups]="view() === 'groups'"
+  [style.--steps-browser-columns]="view() === 'groups' ? null : gridColumns()"
+>
+  @if (view() === 'groups' && capacityGroups().length === 0) {
+    <ng-container [ngTemplateOutlet]="emptyState" />
+  } @else if (view() === 'groups') {
+    <!-- Groups -->
+    <section class="steps-browser__col" [class.steps-browser__col--current]="groupsPhoneColumn() === 0" data-testid="itt-groups-column-1">
+      <header class="steps-browser__head">
+        <span class="steps-browser__title">{{ 'inventory.ticketTypes.steps.viewCapacityGroups' | translate }}</span>
+        <span class="steps-browser__count">{{ capacityGroups().length }}</span>
+      </header>
+      <div class="steps-browser__scroll">
+        @for (group of capacityGroups(); track group.key) {
+          <div class="steps-browser__item" [class.steps-browser__item--selected]="group === selectedGroup()">
+            <div
+              class="steps-browser__pick"
+              role="button"
+              tabindex="0"
+              [attr.aria-pressed]="group === selectedGroup()"
+              (click)="selectGroup(group)"
+              (keydown.enter)="$event.preventDefault(); selectGroup(group)"
+              (keydown.space)="$event.preventDefault(); selectGroup(group)"
+            >
+              <span class="steps-browser__text">
+                <span class="steps-browser__name">{{ group.name }}</span>
+                <span class="steps-browser__meta"
+                  >{{ countLabel(group.sessionTypes.length, 'ticketTypes') }} ·
+                  {{ 'inventory.ticketTypes.steps.orderRange' | translate: { order: getGroupSortingRange(group) } }}</span
+                >
+                @if (getGroupAssetName(group.id); as assetName) {
+                  <ng-container [ngTemplateOutlet]="groupAssets" [ngTemplateOutletContext]="{ name: assetName }" />
+                }
+              </span>
+            </div>
+            @if (canEditGroups() && group.id !== null) {
+              <ng-container [ngTemplateOutlet]="editGroupButton" [ngTemplateOutletContext]="{ groupId: group.id, name: group.name }" />
+            }
+            <!-- Last on the right, after the pencil; part of the row's target, so it selects the group too. -->
+            <ignt-icon
+              class="steps-browser__chevron steps-browser__chevron--trailing"
+              name="chevron-right"
+              variant="light"
+              size="sm"
+              aria-hidden="true"
+              (click)="selectGroup(group)"
+            />
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- Ticket types in the selected group -->
+    <section class="steps-browser__col" [class.steps-browser__col--current]="groupsPhoneColumn() === 1" data-testid="itt-groups-column-2">
+      @if (selectedGroup(); as group) {
+        <header class="steps-browser__head">
+          <button
+            type="button"
+            ignt-icon-button
+            class="steps-browser__back"
+            sentiment="tertiary"
+            size="small"
+            [icon]="['fas', 'chevron-left']"
+            [attr.aria-label]="'inventory.ticketTypes.steps.back' | translate"
+            (click)="goBack(1)"
+          ></button>
+          <span class="steps-browser__title">{{ 'inventory.ticketTypes.steps.ticketTypesInGroup' | translate: { name: group.name } }}</span>
+          <span class="steps-browser__count">{{ group.sessionTypes.length }}</span>
+        </header>
+        <div class="steps-browser__scroll">
+          @for (sessionType of group.sessionTypes; track sessionType.id) {
+            <div
+              class="steps-browser__item steps-browser__item--ticket"
+              [class.steps-browser__item--editable]="canOpenEdit(sessionType)"
+              [attr.data-testid]="'itt-groups-ticket-type-' + sessionType.id"
+              [attr.tabindex]="canOpenEdit(sessionType) ? 0 : null"
+              (click)="openEdit(sessionType)"
+              (keydown.enter)="openEdit(sessionType, $event)"
+            >
+              <span class="steps-browser__text">
+                <ng-container
+                  [ngTemplateOutlet]="ticketName"
+                  [ngTemplateOutletContext]="{ sessionType, name: getTicketTypeName(sessionType) }"
+                />
+                <span class="steps-browser__meta">
+                  @if (getStepPath(sessionType)) {
+                    {{ getStepPath(sessionType) }} ·
+                  }
+                  {{
+                    'inventory.ticketTypes.steps.ticketMeta'
+                      | translate: { order: getDisplaySorting(sessionType), quantity: getAllowedNumTickets(sessionType) }
+                  }}
+                  @if (getCategoryLabel(sessionType); as category) {
+                    · {{ category }}
+                  }
+                  @if (getProductTypeLabel(sessionType); as productType) {
+                    · {{ productType }}
+                  }
+                </span>
+              </span>
+              <ng-container [ngTemplateOutlet]="ticketTags" [ngTemplateOutletContext]="{ sessionType }" />
+              @if (showActions()) {
+                <app-inventory-ticket-types-row-actions-menu
+                  [availableActions]="readOnlySessionTypeIds().has(sessionType.id) ? readOnlyRowActions() : availableActions()"
+                  (actionSelected)="onAction($event, sessionType)"
+                  (click)="$event.stopPropagation()"
+                />
+              }
+            </div>
+          }
+        </div>
+      }
+    </section>
+  } @else if (tree().roots.length === 0 && tree().notInSteps.length === 0) {
+    <ng-container [ngTemplateOutlet]="emptyState" />
+  } @else {
+    @if (hiddenChoices().length > 0) {
+      <!-- More steps than columns: the earlier choices, to go back to them. -->
+      <div
+        class="steps-browser__crumbs"
+        role="navigation"
+        data-testid="itt-steps-breadcrumb"
+        [attr.aria-label]="'inventory.ticketTypes.steps.earlierSteps' | translate"
+      >
+        <!-- A way back, so it points back, inside the first step so arrow and label are one target. -->
+        @for (choice of hiddenChoices(); track choice.index; let first = $first; let last = $last) {
+          <div
+            class="steps-browser__crumb"
+            role="button"
+            tabindex="0"
+            (click)="showFromColumn(choice.index)"
+            (keydown.enter)="$event.preventDefault(); showFromColumn(choice.index)"
+            (keydown.space)="$event.preventDefault(); showFromColumn(choice.index)"
+          >
+            @if (first) {
+              <ignt-icon class="steps-browser__chevron" name="chevron-left" variant="solid" size="sm" />
+            }
+            {{ 'inventory.ticketTypes.steps.step' | translate: { index: choice.index + 1 } }}: <b>{{ choice.label }}</b>
+          </div>
+          @if (!last) {
+            <ignt-icon class="steps-browser__chevron" name="chevron-right" variant="light" size="sm" />
+          }
+        }
+      </div>
+    }
+    @for (column of visibleColumns(); track column.index) {
+      <section
+        class="steps-browser__col"
+        [class.steps-browser__col--current]="phoneColumnIndex() === column.index"
+        [attr.data-testid]="'itt-steps-column-' + (column.index + 1)"
+        (keydown)="onOptionKeydown($event)"
+      >
+        <header class="steps-browser__head">
+          @if (column.index > 0) {
+            <button
+              type="button"
+              ignt-icon-button
+              class="steps-browser__back"
+              sentiment="tertiary"
+              size="small"
+              [icon]="['fas', 'chevron-left']"
+              [attr.aria-label]="'inventory.ticketTypes.steps.back' | translate"
+              (click)="goBack(column.index)"
+            ></button>
+          }
+          <span class="steps-browser__title">
+            @switch (column.kind) {
+              @case ('notInSteps') {
+                {{ (isList() ? 'inventory.ticketTypes.title' : 'inventory.ticketTypes.steps.notInSteps') | translate }}
+              }
+              @case ('tickets') {
+                {{ 'inventory.ticketTypes.steps.ticketTypesIn' | translate: { index: column.index + 1, name: column.parentLabel } }}
+              }
+              @default {
+                {{
+                  (column.index === 0 ? 'inventory.ticketTypes.steps.step' : 'inventory.ticketTypes.steps.stepIn')
+                    | translate: { index: column.index + 1, name: column.parentLabel }
+                }}
+              }
+            }
+          </span>
+          <span class="steps-browser__count">{{ column.kind === 'steps' ? column.nodes.length : column.sessionTypes.length }}</span>
+        </header>
+
+        <div class="steps-browser__scroll">
+          <div
+            class="steps-browser__list"
+            cdkDropList
+            cdkDropListLockAxis="y"
+            [cdkDropListData]="column.parentKey"
+            [cdkDropListDisabled]="!isSortModeActive() || isSortSaving()"
+            (cdkDropListDropped)="onDrop($event)"
+          >
+            @if (column.kind === 'steps') {
+              @for (node of column.nodes; track node.key; let index = $index) {
+                <div
+                  class="steps-browser__item"
+                  [class.steps-browser__item--selected]="node.key === column.selectedKey"
+                  cdkDrag
+                  [cdkDragDisabled]="!isSortModeActive() || isSortSaving()"
+                >
+                  @if (isSortModeActive()) {
+                    <!-- Written in place (not a shared template) so cdkDragHandle finds its cdkDrag. -->
+                    <button
+                      ignt-icon-button
+                      class="steps-browser__handle"
+                      data-testid="itt-steps-drag-handle"
+                      sentiment="tertiary"
+                      size="small"
+                      cdkDragHandle
+                      [icon]="['fas', 'grip-vertical']"
+                      [attr.aria-label]="'inventory.ticketTypes.steps.moveRow' | translate: { name: node.label }"
+                      (keydown)="onHandleKeydown($event, column.parentKey, index)"
+                    ></button>
+                  }
+                  <div
+                    class="steps-browser__pick"
+                    role="button"
+                    [attr.aria-pressed]="node.key === column.selectedKey"
+                    [attr.tabindex]="node.key === column.selectedKey ? 0 : -1"
+                    (click)="selectNode(column, node)"
+                    (keydown.enter)="$event.preventDefault(); selectNode(column, node)"
+                    (keydown.space)="$event.preventDefault(); selectNode(column, node)"
+                  >
+                    <span class="steps-browser__text">
+                      <span class="steps-browser__name">{{ node.label }}</span>
+                      <span class="steps-browser__meta">
+                        {{ countLabel(getTicketTypeCount(node), 'ticketTypes') }}
+                        @if (node.children.length > 0) {
+                          · {{ countLabel(node.children.length, 'options') }}
+                        }
+                        · {{ 'inventory.ticketTypes.steps.orderRange' | translate: { order: getSortingRange(node) } }}
+                      </span>
+                    </span>
+                    <ignt-icon class="steps-browser__chevron" name="chevron-right" variant="light" size="sm" />
+                  </div>
+                </div>
+              }
+            } @else {
+              @for (sessionType of column.sessionTypes; track sessionType.id; let index = $index) {
+                <!-- Written in place (not a shared template) so cdkDrag finds this cdkDropList: a template injects from where it is declared. -->
+                @let name = column.kind === 'notInSteps' ? sessionType.label : getTicketTypeName(sessionType);
+                @let parentKey = column.parentKey;
+                <div
+                  class="steps-browser__item steps-browser__item--ticket"
+                  [class.steps-browser__item--editable]="canOpenEdit(sessionType)"
+                  [attr.data-testid]="'itt-steps-ticket-type-' + sessionType.id"
+                  [attr.tabindex]="index === 0 ? 0 : -1"
+                  (click)="openEdit(sessionType)"
+                  (keydown.enter)="openEdit(sessionType, $event)"
+                  cdkDrag
+                  [cdkDragDisabled]="!isSortModeActive() || isSortSaving()"
+                >
+                  @if (isSortModeActive()) {
+                    <button
+                      ignt-icon-button
+                      class="steps-browser__handle"
+                      data-testid="itt-steps-drag-handle"
+                      sentiment="tertiary"
+                      size="small"
+                      cdkDragHandle
+                      [icon]="['fas', 'grip-vertical']"
+                      [attr.aria-label]="'inventory.ticketTypes.steps.moveRow' | translate: { name }"
+                      (keydown)="onHandleKeydown($event, parentKey, index)"
+                    ></button>
+                  }
+                  <span class="steps-browser__text">
+                    <ng-container [ngTemplateOutlet]="ticketName" [ngTemplateOutletContext]="{ sessionType, name }" />
+                    <span class="steps-browser__meta">
+                      {{
+                        'inventory.ticketTypes.steps.ticketMeta'
+                          | translate: { order: getDisplaySorting(sessionType), quantity: getAllowedNumTickets(sessionType) }
+                      }}
+                      <!-- A ticket type's own setting: tickets under one option can use different groups. -->
+                      @if (sessionType.groups?.[0]; as group) {
+                        · {{ group.name }}
+                      }
+                      @if (getCategoryLabel(sessionType); as category) {
+                        · {{ category }}
+                      }
+                      @if (getProductTypeLabel(sessionType); as productType) {
+                        · {{ productType }}
+                      }
+                    </span>
+                  </span>
+                  <ng-container [ngTemplateOutlet]="ticketTags" [ngTemplateOutletContext]="{ sessionType }" />
+                  @if (!isSortModeActive() && showActions()) {
+                    <app-inventory-ticket-types-row-actions-menu
+                      [availableActions]="readOnlySessionTypeIds().has(sessionType.id) ? readOnlyRowActions() : availableActions()"
+                      (actionSelected)="onAction($event, sessionType)"
+                      (click)="$event.stopPropagation()"
+                    />
+                  }
+                </div>
+              }
+            }
+          </div>
+          @if (column.index === 0 && !isList() && tree().notInSteps.length > 0) {
+            <div
+              class="steps-browser__item"
+              [class.steps-browser__item--selected]="isShowingNotInSteps()"
+              data-testid="itt-steps-not-in-steps"
+            >
+              <div
+                class="steps-browser__pick"
+                role="button"
+                [attr.aria-pressed]="isShowingNotInSteps()"
+                [attr.tabindex]="isShowingNotInSteps() ? 0 : -1"
+                (click)="selectNotInSteps()"
+                (keydown.enter)="$event.preventDefault(); selectNotInSteps()"
+                (keydown.space)="$event.preventDefault(); selectNotInSteps()"
+              >
+                <span class="steps-browser__text">
+                  <span class="steps-browser__name steps-browser__name--danger">
+                    <ignt-icon name="circle-exclamation" variant="solid" size="sm" />
+                    {{ 'inventory.ticketTypes.steps.notInSteps' | translate }}
+                  </span>
+                  <span class="steps-browser__meta">
+                    {{ countLabel(tree().notInSteps.length, 'ticketTypes') }} ·
+                    {{ 'inventory.ticketTypes.steps.notInStepsHint' | translate }}
+                  </span>
+                </span>
+                <ignt-icon class="steps-browser__chevron" name="chevron-right" variant="light" size="sm" />
+              </div>
+            </div>
+          }
+          @if (column.kind === 'tickets' && canCreateTicketTypes() && !isSortModeActive() && column.sessionTypes.length > 0) {
+            <div class="steps-browser__add">
+              <ignt-button
+                data-testid="itt-steps-new-ticket-type"
+                variant="tertiary"
+                size="small"
+                [label]="'inventory.ticketTypes.steps.newTicketTypeInStep' | translate"
+                [leadingIcon]="{ name: 'plus', variant: 'solid' }"
+                (click)="newTicketTypeInStep.emit(column.sessionTypes[0])"
+              />
+            </div>
+          }
+        </div>
+      </section>
+    }
+  }
+</div>

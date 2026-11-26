@@ -1,0 +1,196 @@
+<div class="cancel-time-slots-sheet lateral-slider-body__wrapper">
+  <div class="cancel-time-slots-sheet__section">
+    <h6 class="cancel-time-slots-sheet__section-title">
+      {{ 'sessions.cancelDatesCalendar.sheet.timeSlotsSelected' | translate: { count: timeSlotsInfo().length } }}
+    </h6>
+    <div class="cancel-time-slots-sheet__timeslots-list">
+      @for (slot of visibleTimeSlots(); track slot.timeSlotId; let idx = $index) {
+        <span class="cancel-time-slots-sheet__timeslot-item">{{ slot.formattedTime }};</span>
+      }
+    </div>
+    @if (hasMoreTimeSlots()) {
+      <button class="cancel-time-slots-sheet__toggle-link" type="button" (click)="toggleTimeSlotsExpanded()">
+        @if (isTimeSlotsExpanded()) {
+          {{ 'sessions.cancelDatesCalendar.sheet.seeLess' | translate }}
+        } @else {
+          {{ 'sessions.cancelDatesCalendar.sheet.seeMore' | translate }}
+        }
+      </button>
+    }
+  </div>
+
+  <div class="cancel-time-slots-sheet__section">
+    <h6 class="cancel-time-slots-sheet__section-title">
+      {{ 'sessions.cancelDatesCalendar.sheet.productsSold' | translate: { count: totalProductsSold() } }}
+    </h6>
+  </div>
+
+  <div class="cancel-time-slots-sheet__section">
+    <h6 class="cancel-time-slots-sheet__section-title">
+      {{ 'sessions.cancelDatesCalendar.sheet.selectProducts' | translate }}
+    </h6>
+    <p class="cancel-time-slots-sheet__section-description">
+      {{ 'sessions.cancelDatesCalendar.sheet.selectProductsDescription' | translate }}
+    </p>
+
+    <div class="cancel-time-slots-sheet__products">
+      <div class="cancel-time-slots-sheet__product-row cancel-time-slots-sheet__product-row--all" (click)="toggleAllProducts()">
+        <input
+          type="checkbox"
+          class="cancel-time-slots-sheet__checkbox"
+          [checked]="allProductsSelected()"
+          [indeterminate]="allProductsIndeterminate()"
+          data-testid="all-products-checkbox"
+        />
+        <span class="cancel-time-slots-sheet__product-label cancel-time-slots-sheet__product-label--bold">
+          {{ 'sessions.cancelDatesCalendar.sheet.allProducts' | translate }}
+        </span>
+        <button class="cancel-time-slots-sheet__expand-button" type="button" (click)="toggleProductsExpanded(); $event.stopPropagation()">
+          <ignt-icon [name]="isProductsExpanded() ? 'chevron-up' : 'chevron-down'" variant="light"></ignt-icon>
+        </button>
+      </div>
+
+      @if (isProductsExpanded()) {
+        @for (group of productGroups(); track group.groupId) {
+          <div
+            class="cancel-time-slots-sheet__product-row cancel-time-slots-sheet__product-row--group"
+            (click)="toggleGroup(group.groupId)"
+          >
+            <input
+              type="checkbox"
+              class="cancel-time-slots-sheet__checkbox"
+              [checked]="group.selected"
+              [indeterminate]="group.indeterminate"
+              [attr.data-testid]="group.groupId !== null ? 'group-checkbox-' + group.groupId : 'ungrouped-checkbox'"
+            />
+            @if (group.groupId !== null) {
+              <span class="cancel-time-slots-sheet__product-label cancel-time-slots-sheet__product-label--bold">
+                {{ group.groupName }}
+              </span>
+            } @else {
+              <span class="cancel-time-slots-sheet__product-label cancel-time-slots-sheet__product-label--ungrouped">
+                {{ 'sessions.cancelDatesCalendar.sheet.ungroupedTickets' | translate }}
+              </span>
+            }
+          </div>
+          @for (sessionType of group.sessionTypes; track sessionType.sessionTypeId) {
+            <div
+              class="cancel-time-slots-sheet__product-row cancel-time-slots-sheet__product-row--item cancel-time-slots-sheet__product-row--nested"
+              (click)="toggleSessionType(sessionType.sessionTypeId)"
+            >
+              <input
+                type="checkbox"
+                class="cancel-time-slots-sheet__checkbox"
+                [checked]="sessionType.selected"
+                [attr.data-testid]="'session-type-checkbox-' + sessionType.sessionTypeId"
+              />
+              <span class="cancel-time-slots-sheet__product-label">
+                {{ sessionType.name }}
+                ({{ 'sessions.cancelDatesCalendar.sheet.soldTickets' | translate: { count: sessionType.totalSoldTickets } }})
+              </span>
+            </div>
+          }
+        }
+      }
+    </div>
+  </div>
+
+  @if (hasSelectedSessionsWithOrders()) {
+    <ignt-alert
+      sentiment="warning"
+      [description]="'sessions.cancelDatesCalendar.sheet.ordersCancelledInFullWarning' | translate"
+      data-testid="sheet-orders-warning"
+    />
+  }
+
+  @if (requiresApproval()) {
+    <ignt-checkbox
+      class="cancel-time-slots-sheet__approval-checkbox"
+      [checked]="isApprovalAcknowledged()"
+      (change)="onApprovalChange($event)"
+      dataTestId="sheet-high-volume-approval-checkbox"
+    >
+      <span [innerHTML]="'sessions.cancelDatesCalendar.sheet.highVolumeApprovalCheckbox' | translate"></span>
+    </ignt-checkbox>
+  }
+
+  <hr class="cancel-time-slots-sheet__divider" />
+
+  <div class="cancel-time-slots-sheet__section">
+    <h6 class="cancel-time-slots-sheet__section-title">
+      {{ 'sessions.cancelDatesCalendar.sheet.cancellationReason' | translate }}
+    </h6>
+    <ignt-typeahead
+      (selected)="onCancellationReasonSelected($event)"
+      [editable]="false"
+      [emptyLabel]="'sessions.cancelDatesCalendar.questions.cancellationReason.reasonPlaceholder' | translate"
+      [fieldLabel]="'sessions.cancelDatesCalendar.sheet.cancellationReason' | translate"
+      [options]="cancellationReasons()"
+      [selectedOption]="selectedCancellationReason()"
+      [customPopupClass]="'dropdown-menu--on-sidebar'"
+      data-testid="sheet-cancellation-reason-select"
+    ></ignt-typeahead>
+  </div>
+
+  <div class="cancel-time-slots-sheet__section">
+    <h6 class="cancel-time-slots-sheet__section-title">
+      {{ 'sessions.cancelDatesCalendar.sheet.usersCompensation' | translate }}
+    </h6>
+    <p class="cancel-time-slots-sheet__section-description">
+      {{ 'sessions.cancelDatesCalendar.sheet.usersCompensationDescription' | translate }}
+    </p>
+    <ignt-typeahead
+      (selected)="onReimbursementMethodSelected($event)"
+      [editable]="false"
+      [emptyLabel]="'sessions.cancelDatesCalendar.questions.reimbursementMethod.reimbursementMethodPlaceholder' | translate"
+      [fieldLabel]="'sessions.cancelDatesCalendar.sheet.usersCompensation' | translate"
+      [options]="reimbursementMethods()"
+      [selectedOption]="selectedReimbursementMethod()"
+      [customPopupClass]="'dropdown-menu--on-sidebar'"
+      data-testid="sheet-reimbursement-method-select"
+    ></ignt-typeahead>
+  </div>
+
+  <div class="cancel-time-slots-sheet__section">
+    <h6 class="cancel-time-slots-sheet__section-title">
+      {{ 'sessions.cancelDatesCalendar.sheet.comments' | translate }}
+    </h6>
+    <textarea
+      class="cancel-time-slots-sheet__textarea form-control"
+      [(ngModel)]="comments"
+      rows="4"
+      data-testid="sheet-comments"
+    ></textarea>
+  </div>
+
+  @if (showInternalCommentsField()) {
+    <div class="cancel-time-slots-sheet__section">
+      <h6 class="cancel-time-slots-sheet__section-title">
+        {{ 'sessions.cancelDatesCalendar.sheet.internalComments' | translate }}
+      </h6>
+      <textarea
+        class="cancel-time-slots-sheet__textarea form-control"
+        [(ngModel)]="internalComments"
+        rows="4"
+        data-testid="sheet-internal-comments"
+      ></textarea>
+    </div>
+  }
+</div>
+
+<div class="lateral-slider-body__footer cancel-time-slots-sheet__footer">
+  <ignt-button
+    class="cancel-time-slots-sheet__confirm-button"
+    sentiment="danger"
+    size="large"
+    fill
+    data-testid="sheet-confirm-cancellation-button"
+    [disabled]="isConfirmDisabled"
+    [label]="'sessions.cancelDatesCalendar.sheet.confirmCancellation' | translate"
+    [loading]="isLoading()"
+    (click)="onConfirm()"
+  />
+  <button class="cancel-time-slots-sheet__discard-link" type="button" data-testid="sheet-discard-changes-button" (click)="onDiscard()">
+    {{ 'sessions.cancelDatesCalendar.sheet.discardChanges' | translate }}
+  </button>
+</div>

@@ -1,0 +1,143 @@
+<div class="distributor-groups">
+  <ignt-breadcrumb class="distributor-groups__breadcrumb" [items]="breadcrumbs" />
+
+  <div class="distributor-groups__header">
+    <h1 class="distributor-groups__title">{{ 'distributors.groups.pageTitle' | translate }}</h1>
+    @if (canManage()) {
+      <span class="only-in-desktop">
+        <ignt-button
+          data-testid="distributor-groups-new"
+          size="small"
+          variant="primary"
+          [label]="'distributors.groups.new' | translate"
+          (click)="onCreateGroup()"
+        />
+      </span>
+    }
+  </div>
+
+  <p
+    class="distributor-groups__description"
+    data-testid="distributor-groups-description"
+    [innerHTML]="'distributors.groups.pageDescription' | translate: { distributorsUrl, eventsUrl }"
+  ></p>
+
+  <ignt-tabs class="distributor-groups__tabs" [hasExtraLine]="true" [selectedIndex]="1" (selectedIndexChange)="onTabChange($event)">
+    <ignt-tabs-item [label]="'distributors.tabs.allDistributors' | translate" />
+    <ignt-tabs-item [label]="'distributors.tabs.groups' | translate">
+      @if (hasError()) {
+        <div class="distributor-groups__message" data-testid="distributor-groups-error">
+          {{ 'distributors.groups.loadError' | translate }}
+          <ignt-button
+            class="distributor-groups__retry"
+            size="small"
+            variant="secondary"
+            data-testid="distributor-groups-retry"
+            [label]="'distributors.retry' | translate"
+            (click)="load()"
+          />
+        </div>
+      } @else {
+        <ignt-table
+          layout="table"
+          [data]="groups()"
+          [hasServerSidePagination]="true"
+          [isLoading]="isLoading()"
+          [pageIndex]="pageIndex()"
+          [pageSize]="pageSize"
+          [searchConfig]="searchConfig()"
+          [totalRowCount]="total()"
+          (paginationChange)="onPaginationChange($event)"
+          (searchChanged)="onSearchChanged($event)"
+        >
+          <ignt-table-column key="name" columnType="primary" [header]="'distributors.groups.columns.group' | translate" [width]="360">
+            <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+              <span class="distributor-groups__name" data-testid="distributor-group-name">{{ item.name }}</span>
+              <span class="distributor-groups__subtitle" data-testid="distributor-group-subtitle">{{ subtitleKey(item) | translate }}</span>
+            </ng-template>
+          </ignt-table-column>
+
+          <ignt-table-column
+            key="eventsCount"
+            align="right"
+            columnType="secondary"
+            [header]="'distributors.groups.columns.events' | translate"
+            [width]="110"
+          >
+            <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+              <span
+                class="distributor-groups__count"
+                data-testid="distributor-group-events"
+                igntTooltip
+                [attr.aria-label]="item.eventsCount === 0 ? ('distributors.groups.noEventsTooltip' | translate) : null"
+                [attr.tabindex]="item.eventsCount === 0 ? 0 : null"
+                [class.distributor-groups__count--empty]="item.eventsCount === 0"
+                [tooltipDisabled]="item.eventsCount !== 0"
+                [tooltipLabel]="'distributors.groups.noEventsTooltip' | translate"
+              >
+                @if (item.eventsCount === 0) {
+                  <ignt-icon name="exclamation-triangle" variant="solid" size="caption" />
+                }
+                {{ item.eventsCount }}
+              </span>
+            </ng-template>
+          </ignt-table-column>
+
+          <ignt-table-column
+            key="distributorsCount"
+            align="right"
+            columnType="secondary"
+            [header]="'distributors.groups.columns.distributors' | translate"
+            [width]="130"
+          >
+            <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+              <span
+                class="distributor-groups__count"
+                data-testid="distributor-group-count"
+                igntTooltip
+                [attr.aria-label]="item.distributorsCount === 0 ? ('distributors.groups.emptyTooltip' | translate) : null"
+                [attr.tabindex]="item.distributorsCount === 0 ? 0 : null"
+                [class.distributor-groups__count--empty]="item.distributorsCount === 0"
+                [tooltipDisabled]="item.distributorsCount !== 0"
+                [tooltipLabel]="'distributors.groups.emptyTooltip' | translate"
+              >
+                @if (item.distributorsCount === 0) {
+                  <ignt-icon name="exclamation-triangle" variant="solid" size="caption" />
+                }
+                {{ item.distributorsCount }}
+              </span>
+            </ng-template>
+          </ignt-table-column>
+
+          <ignt-table-column align="right" columnType="action" [header]="''" [width]="120">
+            <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+              <ignt-button
+                size="small"
+                variant="secondary"
+                data-testid="distributor-group-manage"
+                [label]="'distributors.groups.manage' | translate"
+                (click)="onManageGroup(item)"
+              />
+            </ng-template>
+          </ignt-table-column>
+        </ignt-table>
+      }
+    </ignt-tabs-item>
+  </ignt-tabs>
+
+  @if (canManage()) {
+    <div class="only-in-mobile">
+      <bottom-slider [buttonsTemplate]="newGroupMobileButton" />
+    </div>
+
+    <ng-template #newGroupMobileButton>
+      <ignt-button
+        data-testid="distributor-groups-new-mobile"
+        variant="primary"
+        [fill]="true"
+        [label]="'distributors.groups.new' | translate"
+        (click)="onCreateGroup()"
+      />
+    </ng-template>
+  }
+</div>

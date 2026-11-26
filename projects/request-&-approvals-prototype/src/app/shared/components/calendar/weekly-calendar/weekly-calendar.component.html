@@ -1,0 +1,98 @@
+<table class="calendar">
+  <thead>
+    <tr class="calendar__header">
+      <th class="time-header">
+        <div class="time-header__content">
+          <ng-container *ngIf="timeHeaderTemplate; else defaultTimeHeader" [ngTemplateOutlet]="timeHeaderTemplate"></ng-container>
+          <ng-template #defaultTimeHeader>
+            {{ 'weeklyCalendar.startTime' | translate }}
+          </ng-template>
+        </div>
+      </th>
+      <th
+        *ngFor="let day of weekDays; trackBy: trackByTime"
+        class="day-header"
+        data-testid="weekly-calendar-day-header"
+        [attr.data-scrollanchor]="isCurrentWeek && isToday(day) ? 'calendar-today-column' : null"
+        [class.day-header--empty]="weekDayEvents.get(day).length === 0"
+        [class.day-header--selected]="day?.getTime() === selectedDayLocalized?.getTime()"
+        [class.day-header--today]="isCurrentWeek && isToday(day)"
+      >
+        <ng-container
+          *ngIf="dayHeaderPrependTemplate"
+          [ngTemplateOutlet]="dayHeaderPrependTemplate"
+          [ngTemplateOutletContext]="{ $implicit: weekDayEvents.get(day), day }"
+        >
+        </ng-container>
+        <div class="day-header__content">
+          <span class="day-header__day">{{ day | momentDate: 'd' : timezone }}</span>
+          <span class="day-header__weekday"> {{ day | momentDate: 'EEE' : timezone }}</span>
+          <ng-container
+            *ngIf="headerTemplate"
+            [ngTemplateOutlet]="headerTemplate"
+            [ngTemplateOutletContext]="{ $implicit: weekDayEvents.get(day), day }"
+          >
+          </ng-container>
+        </div>
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr
+      *ngFor="let slot of calendarSlots; trackBy: trackByTime; let timeIndex = index"
+      [attr.data-testid]="timeIndex === 0 ? 'weekly-calendar-event-container-row' : null"
+    >
+      <td class="hour-hint" [style.height]="rowHeightInPixels + 'px'">
+        <ng-container
+          *ngIf="hourHintTemplate; else defaultHourHint"
+          [ngTemplateOutlet]="hourHintTemplate"
+          [ngTemplateOutletContext]="{ $implicit: slot }"
+        ></ng-container>
+        <ng-template #defaultHourHint>
+          <div class="hour-hint__content">
+            {{ slot | momentDate: 'shortTime' : timezone }}
+          </div>
+          <div class="hour-hint__content hour-hint__content--small">
+            {{ slot | momentDate: 'h a' : timezone }}
+          </div>
+        </ng-template>
+      </td>
+      <td
+        *ngFor="let day of weekDays; trackBy: trackByTime"
+        [style.height]="rowHeightInPixels + 'px'"
+        class="weekly-calendar-day-body"
+        data-testid="weekly-calendar-day-body"
+        [class.weekly-calendar-day-body--today]="isCurrentWeek && isToday(day)"
+      >
+        <div
+          *ngIf="isCurrentWeek && isToday(day) && isCurrentTimeRow(timeIndex) && currentTimeOffsetInRowPx !== null"
+          class="weekly-calendar__current-time-line"
+          data-testid="weekly-calendar-current-time-line"
+          [style.top.px]="currentTimeOffsetInRowPx"
+        ></div>
+        <ng-container *ngIf="timeIndex === 0" class="event">
+          <div
+            #calendarItem
+            [attr.data-scrollanchor]="'calendar-slot-' + eventExt.event.startsAt?.toISOString()"
+            *ngFor="let eventExt of weekDayEvents.get(day); trackBy: trackByStartDate; let index = index"
+            data-testid="weekly-calendar-day-event"
+            class="event"
+            [style.top]="getPosition(eventExt.event.startsAt, day) + 'px'"
+            [style.height]="getPosition(eventExt.event.endsAt, day) - getPosition(eventExt.event.startsAt, day) + 'px'"
+          >
+            <ng-container
+              *ngTemplateOutlet="
+                slotTemplate;
+                context: {
+                  $implicit: eventExt.event,
+                  isClamped: eventExt.isClamped,
+                }
+              "
+            >
+            </ng-container>
+          </div>
+        </ng-container>
+      </td>
+    </tr>
+  </tbody>
+</table>

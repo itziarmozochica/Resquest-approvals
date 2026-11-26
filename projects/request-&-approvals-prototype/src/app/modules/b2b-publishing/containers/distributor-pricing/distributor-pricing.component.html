@@ -1,0 +1,137 @@
+<section class="distributor-pricing" data-testid="distributor-pricing">
+  <header class="distributor-pricing__header">
+    @if (groupName(); as group) {
+      <h2 class="distributor-pricing__title" data-testid="distributor-pricing-group">
+        {{ 'distributors.detail.pricing.inGroup' | translate: { group } }}
+      </h2>
+    }
+
+    <p class="distributor-pricing__lead">{{ 'distributors.detail.pricing.lead' | translate }}</p>
+
+    @if (hasGroupsError()) {
+      <p class="distributor-pricing__groups-error" data-testid="distributor-pricing-groups-error">
+        {{ 'distributors.detail.pricing.groupLoadError' | translate }}
+
+        <ignt-button
+          data-testid="distributor-pricing-groups-retry"
+          size="small"
+          variant="secondary"
+          [label]="'distributors.detail.pricing.events.retry' | translate"
+          (click)="reloadGroups()"
+        />
+      </p>
+    }
+  </header>
+
+  @if (hasEventsError()) {
+    <div class="distributor-pricing__message" data-testid="distributor-pricing-error">
+      {{ 'distributors.detail.pricing.events.loadError' | translate }}
+      <ignt-button
+        data-testid="distributor-pricing-retry"
+        size="small"
+        variant="secondary"
+        [label]="'distributors.detail.pricing.events.retry' | translate"
+        (click)="reloadEvents()"
+      />
+    </div>
+  } @else {
+    <ignt-table
+      class="distributor-pricing__events"
+      layout="table"
+      [data]="rows()"
+      [hasServerSidePagination]="true"
+      [isLoading]="isLoadingEvents()"
+      [pageIndex]="pageIndex()"
+      [pageSize]="pageSize"
+      [searchConfig]="searchConfig()"
+      [totalRowCount]="total()"
+      (paginationChange)="onPaginationChange($event)"
+      (searchChanged)="onSearchChanged($event)"
+    >
+      <ignt-table-column key="name" [header]="'distributors.detail.pricing.events.columns.event' | translate">
+        <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+          <span class="distributor-pricing__event">
+            @if (item.event.imageUrl) {
+              <img class="distributor-pricing__thumb" alt="" data-testid="distributor-pricing-event-image" [src]="item.event.imageUrl" />
+            } @else {
+              <span class="distributor-pricing__thumb distributor-pricing__thumb--empty" aria-hidden="true"></span>
+            }
+
+            <span class="distributor-pricing__event-text">
+              <span class="distributor-pricing__event-name" data-testid="distributor-pricing-event-name">{{ item.event.name }}</span>
+
+              @if (item.location) {
+                <span class="distributor-pricing__event-location" data-testid="distributor-pricing-event-location">{{
+                  item.location
+                }}</span>
+              }
+            </span>
+          </span>
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column key="b2bDiscount" [header]="'distributors.detail.pricing.events.columns.b2bDiscount' | translate" [width]="180">
+        <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+          <span class="distributor-pricing__discount" data-testid="distributor-pricing-event-discount">
+            @switch (item.b2bDiscount.kind) {
+              @case ('single') {
+                {{ 'distributors.detail.pricing.events.discount.single' | translate: { value: item.b2bDiscount.percentage } }}
+              }
+              @case ('range') {
+                <span class="distributor-pricing__discount-range" data-testid="distributor-pricing-event-discount-range">
+                  {{
+                    'distributors.detail.pricing.events.discount.range'
+                      | translate: { max: item.b2bDiscount.max, min: item.b2bDiscount.min }
+                  }}
+                </span>
+                <ignt-tag
+                  data-testid="distributor-pricing-event-discount-mixed"
+                  sentiment="warning"
+                  tabindex="0"
+                  variant="outline"
+                  igntTooltip
+                  [attr.aria-label]="'distributors.detail.pricing.events.discount.mixedTooltip' | translate"
+                  [tooltipLabel]="'distributors.detail.pricing.events.discount.mixedTooltip' | translate"
+                >
+                  {{ 'distributors.detail.pricing.events.discount.mixed' | translate }}
+                </ignt-tag>
+              }
+              @case ('none') {
+                {{ 'distributors.detail.pricing.events.discount.single' | translate: { value: 0 } }}
+                <ignt-icon
+                  class="distributor-pricing__discount-warning"
+                  data-testid="distributor-pricing-event-discount-warning"
+                  name="exclamation-triangle"
+                  role="img"
+                  size="caption"
+                  tabindex="0"
+                  variant="solid"
+                  igntTooltip
+                  [attr.aria-label]="'distributors.detail.pricing.events.discount.noDiscount' | translate"
+                  [tooltipLabel]="'distributors.detail.pricing.events.discount.noDiscount' | translate"
+                />
+              }
+              @case ('unknown') {
+                <span class="distributor-pricing__discount-unknown">—</span>
+              }
+            }
+          </span>
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column key="actions" columnType="secondary" [header]="''" [width]="180">
+        <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+          <span class="distributor-pricing__actions">
+            <ignt-button
+              data-testid="distributor-pricing-event-edit"
+              size="small"
+              variant="tertiary"
+              [label]="'distributors.detail.pricing.events.edit' | translate"
+              (click)="openInEvents(item)"
+            />
+          </span>
+        </ng-template>
+      </ignt-table-column>
+    </ignt-table>
+  }
+</section>

@@ -1,0 +1,58 @@
+<app-go-back [goBackTitle]="goBackTitle" [urlGoBack]="goBackUrl" />
+<app-page-title
+  [title]="
+    ((isReadOnly ? 'whitelabelManagement.viewWhitelabelConfig' : 'whitelabelManagement.editWhitelabelConfig') | translate) +
+    ' - ' +
+    (whitelabel?.name ?? whitelabelConfigId?.name ?? '')
+  "
+  class="new-design"
+/>
+
+<div class="whitelabel-edit-configuration">
+  <div class="whitelabel-edit-configuration__container">
+    <div class="whitelabel-edit-configuration__header">
+      @if (auditInformation) {
+        <app-whitelabel-audit-information [auditInfo]="auditInformation" />
+        <div class="whitelabel-edit-configuration__header-buttons">
+          @if (auditFetchParams) {
+            <ignt-button
+              (click)="toggleVersionHistory()"
+              variant="secondary"
+              class="whitelabel-version-history-toggle__button"
+              data-testid="wl-config-version-history"
+              [label]="
+                whitelabelConfigVersionHistoryShow
+                  ? ('whitelabelConfiguration.hideVersionHistory' | translate)
+                  : ('whitelabelConfiguration.showVersionHistory' | translate)
+              "
+            />
+          }
+        </div>
+      }
+    </div>
+
+    <app-whitelabel-configuration-edit-json
+      [hidden]="whitelabelConfigVersionHistoryShow"
+      [currentConfiguration]="currentConfiguration"
+      [currentLang]="currentLang"
+      [readOnly]="isReadOnly"
+    />
+
+    @if (!whitelabelConfigVersionHistoryShow && !isReadOnly) {
+      <div class="whitelabel-edit-configuration__footer">
+        <ignt-button data-testid="wl-config-save" [label]="'whitelabelConfiguration.save' | translate" (click)="confirmAndSave()" />
+      </div>
+    }
+
+    @if (auditFetchParams) {
+      <app-whitelabel-audit
+        [hidden]="!whitelabelConfigVersionHistoryShow"
+        [fetchParams]="auditFetchParams"
+        [entityConfig]="auditEntityConfig"
+        [readOnly]="isReadOnly"
+        [restorePreviewBuilder]="buildRestorePreview"
+        (recordRestored)="onRecordRestored()"
+      />
+    }
+  </div>
+</div>

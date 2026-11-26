@@ -1,0 +1,185 @@
+@let f = field();
+<div class="description-translation-field" [class.description-translation-field--display]="hideOriginal()">
+  @if (!hideOriginal()) {
+    <div class="description-translation-field__column description-translation-field__column--readonly">
+      <label class="description-translation-field__label">
+        {{ f.labelKey | translate }}
+        @if (f.required) {
+          <span data-testid="description-translation-field-required">&nbsp;*</span>
+        }
+      </label>
+      @switch (f.kind) {
+        @case ('rich-text') {
+          <app-translation-text-field [label]="''" type="html" [htmlContent]="f.baseValue" [readonly]="true"></app-translation-text-field>
+        }
+        @case ('image') {
+          <app-db-local-image-upload
+            [previewUrl]="f.baseValue"
+            [uploadCallback]="uploadFileCallback()"
+            [disabled]="true"
+          ></app-db-local-image-upload>
+        }
+        @case ('video') {
+          <app-db-local-image-upload
+            [previewUrl]="f.baseValue"
+            [uploadCallback]="uploadFileCallback()"
+            [mediaKind]="'video'"
+            [disabled]="true"
+          ></app-db-local-image-upload>
+        }
+        @case ('color') {
+          <ignt-color-picker
+            [value]="f.baseValue"
+            [presets]="f.color?.presets ?? []"
+            [defaultHex]="f.color?.defaultHex ?? ''"
+            [disabled]="true"
+          ></ignt-color-picker>
+        }
+        @case ('textarea') {
+          <app-translation-text-field [label]="''" [value]="f.baseValue" [readonly]="true" type="textarea"></app-translation-text-field>
+        }
+        @default {
+          <app-translation-text-field [label]="''" [value]="f.baseValue" [readonly]="true" type="input"></app-translation-text-field>
+        }
+      }
+    </div>
+  }
+
+  <div class="description-translation-field__column description-translation-field__column--editable">
+    <label class="description-translation-field__label">
+      {{ f.labelKey | translate }}
+      @if (f.required) {
+        <span>&nbsp;*</span>
+      }
+    </label>
+
+    @if (indicator() === 'none' || !showStatus()) {
+      <ng-container [ngTemplateOutlet]="editableWidget"></ng-container>
+    } @else {
+      <div class="description-translation-field__input-row">
+        <div class="description-translation-field__widget">
+          <ng-container [ngTemplateOutlet]="editableWidget"></ng-container>
+        </div>
+        <div class="description-translation-field__status-box">
+          @if (indicator() === 'check') {
+            <ignt-icon
+              class="description-translation-field__indicator description-translation-field__indicator--validated"
+              data-testid="description-translation-field-validated"
+              name="check-circle"
+              variant="solid"
+              aria-hidden="true"
+            ></ignt-icon>
+            <span class="visually-hidden">{{ 'planEdition.translationsEdition.descriptionBlocks.fieldTranslated' | translate }}</span>
+          } @else {
+            <ignt-icon
+              class="description-translation-field__indicator description-translation-field__indicator--warning"
+              data-testid="description-translation-field-warning"
+              name="exclamation-triangle"
+              variant="solid"
+              aria-hidden="true"
+            ></ignt-icon>
+            <span class="visually-hidden">{{ 'planEdition.translationsEdition.descriptionBlocks.fieldPending' | translate }}</span>
+          }
+        </div>
+      </div>
+    }
+
+    @if (statusTextKey() || showValidate()) {
+      <div class="description-translation-field__status-row">
+        @if (statusTextKey(); as statusText) {
+          <ignt-alert
+            class="description-translation-field__status-text"
+            data-testid="description-translation-field-status-text"
+            [sentiment]="statusAlertSentiment()"
+            [description]="statusText | translate"
+          ></ignt-alert>
+        }
+
+        @if (showValidate()) {
+          <ignt-button
+            variant="primary"
+            size="small"
+            class="description-translation-field__validate-button"
+            data-testid="description-translation-field-validate"
+            [label]="'planEdition.translationsEdition.descriptionBlocks.validate' | translate"
+            [disabled]="validateDisabled()"
+            (click)="onValidateClick()"
+          ></ignt-button>
+        }
+      </div>
+    }
+  </div>
+</div>
+
+<ng-template #editableWidget>
+  @switch (f.kind) {
+    @case ('rich-text') {
+      @if (readOnly()) {
+        <app-translation-text-field
+          [label]="''"
+          type="html"
+          [htmlContent]="f.translatedValue"
+          [readonly]="true"
+        ></app-translation-text-field>
+      } @else {
+        <app-translation-text-field
+          [label]="''"
+          type="rich-text"
+          [preserveWhitespace]="true"
+          [value]="f.translatedValue"
+          [readonly]="false"
+          [features]="blockBodyFeatures"
+          (valueChange)="onValueChange($event)"
+        ></app-translation-text-field>
+      }
+    }
+    @case ('image') {
+      <app-db-local-image-upload
+        [previewUrl]="f.translatedValue"
+        [uploadCallback]="uploadFileCallback()"
+        [disabled]="readOnly()"
+        (urlChange)="onValueChange($event)"
+        (cleared)="onValueChange('')"
+      ></app-db-local-image-upload>
+    }
+    @case ('video') {
+      <app-db-local-image-upload
+        [previewUrl]="f.translatedValue"
+        [uploadCallback]="uploadFileCallback()"
+        [mediaKind]="'video'"
+        [disabled]="readOnly()"
+        (urlChange)="onValueChange($event)"
+        (cleared)="onValueChange('')"
+      ></app-db-local-image-upload>
+    }
+    @case ('color') {
+      <ignt-color-picker
+        [value]="f.translatedValue"
+        [presets]="f.color?.presets ?? []"
+        [defaultHex]="f.color?.defaultHex ?? ''"
+        [disabled]="readOnly()"
+        (valueChange)="onValueChange($event)"
+      ></ignt-color-picker>
+    }
+    @case ('textarea') {
+      <app-translation-text-field
+        [label]="''"
+        [value]="f.translatedValue"
+        [placeholder]="f.placeholderKey ?? '' | translate: f.placeholderParams"
+        [readonly]="readOnly()"
+        type="textarea"
+        (valueChange)="onValueChange($event)"
+      ></app-translation-text-field>
+    }
+    @default {
+      <app-translation-text-field
+        [label]="''"
+        [value]="f.translatedValue"
+        [placeholder]="f.placeholderKey ?? '' | translate: f.placeholderParams"
+        [readonly]="readOnly()"
+        type="input"
+        (valueChange)="onValueChange($event)"
+      ></app-translation-text-field>
+    }
+  }
+</ng-template>

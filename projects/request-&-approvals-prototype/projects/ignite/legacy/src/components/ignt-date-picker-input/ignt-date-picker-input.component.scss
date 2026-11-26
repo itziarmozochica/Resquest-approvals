@@ -1,0 +1,159 @@
+@use 'foundations' as foundations;
+@import 'abstracts/all';
+
+// Days that fill the calendar's width: the phone overlay and the inline calendar share it.
+@mixin full-width-days {
+  /* stylelint-disable fz/no-ngbootstrap-selectors -- ng-bootstrap datepicker styling required until migration to Ignite */
+  ::ng-deep {
+    .ngb-dp-week,
+    .ngb-dp-weekdays,
+    .ngb-dp-weekday,
+    .ngb-dp-day {
+      display: flex;
+      flex: 1;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .ngb-dp-weekday,
+    .ngb-dp-day {
+      aspect-ratio: 1;
+      width: auto;
+      height: auto;
+    }
+
+    .ngb-dp-day > div {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+  }
+  /* stylelint-enable fz/no-ngbootstrap-selectors */
+}
+
+:host {
+  position: relative;
+
+  /* Ensure the input looks enabled even when readonly on touch devices */
+  .field {
+    .field__input[readonly] {
+      background-color: foundations.$color-background-main;
+      border-color: var(--input-color-border, foundations.$color-border-main);
+      color: foundations.$color-text-main;
+      cursor: pointer;
+
+      &:focus {
+        outline: none;
+        box-shadow: none;
+      }
+
+      ~ .field__label,
+      ~ .field__icon,
+      ~ .field__helper {
+        color: foundations.$color-text-subtle;
+        cursor: pointer;
+      }
+    }
+  }
+}
+
+.date-range-picker {
+  position: absolute;
+  z-index: 2;
+
+  .range-day {
+    display: inline-block;
+    height: 2rem;
+    padding: 0.185rem 0.25rem;
+    text-align: center;
+    width: 2rem;
+  }
+
+  .range-day.focused {
+    background: foundations.$color-background-subtle-weak;
+  }
+
+  .range-day.range,
+  .range-day:hover {
+    background-color: foundations.$color-action-background-primary-hover;
+    color: foundations.$color-action-text-main-contrast;
+  }
+
+  .range-day.faded {
+    background-color: foundations.$color-action-text-primary-hover;
+  }
+
+  .range-day.range-exceeded {
+    background-color: foundations.$color-background-danger-medium;
+  }
+}
+
+.oss-custom-styles {
+  @include media-breakpoint-down(sm) {
+    position: fixed;
+    inset: auto 0;
+    width: 100vw;
+    padding: foundations.$space-3-5;
+    border: 0;
+
+    @include full-width-days;
+  }
+
+  @include media-breakpoint-up(sm) {
+    transform: scale(1.5);
+    transform-origin: top left;
+  }
+}
+
+// Inline: a collapsible under the field, in the flow (the Point of Sale party sheet scrolls it with
+// the rest of the step, so the sheet's footer never ends over it). The grid-rows transition animates
+// the height that `auto` cannot; the body clips while it grows. The calendar inside keeps no overlay
+// rule: static, full width, unscaled, and it beats both `.oss-custom-styles` rules by source order.
+.date-range-picker-collapsible {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 240ms ease;
+
+  &--open {
+    grid-template-rows: 1fr;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.date-range-picker-collapsible__body {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.date-range-picker--inline {
+  position: static;
+  z-index: auto;
+  display: block;
+  width: 100%;
+  margin-block-start: foundations.$space-2;
+  padding: 0;
+  transform: none;
+
+  @include full-width-days;
+}
+
+.form-input {
+  border: 0;
+  display: block;
+  width: 100%;
+
+  &:disabled {
+    background-color: foundations.$color-background-main;
+    color: foundations.$color-text-main;
+  }
+
+  &:focus,
+  &:focus-visible {
+    outline-color: foundations.$color-action-background-main-contrast;
+  }
+}

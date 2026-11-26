@@ -1,0 +1,119 @@
+<ignt-dialog-header>
+  {{ 'leads.edit.title' | translate }}
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <form id="lead-edit-form" class="lead-edit-form" [formGroup]="form" (ngSubmit)="onSubmit()">
+    <ignt-typeahead
+      data-testid="lead-edit-event-type"
+      container="body"
+      [isInDialog]="true"
+      [collapseOnClick]="true"
+      [editable]="false"
+      [fieldLabel]="'leads.edit.eventType' | translate"
+      [emptyLabel]="'leads.edit.eventTypePlaceholder' | translate"
+      [options]="eventTypeOptions"
+      [selectedOption]="selectedEventTypeOption"
+      (selected)="onEventTypeSelected($event)"
+    ></ignt-typeahead>
+    <!-- Native date field like the create dialog's: opens the browser calendar on click and wears
+         the calendar icon itself. -->
+    <div class="lead-edit-form__date-field" (click)="onPreferredDateClick($event)">
+      <ignt-input-field
+        [id]="'preferredDate'"
+        data-testid="lead-edit-preferred-date"
+        formControlName="preferredDate"
+        type="date"
+        [label]="('leads.edit.preferredDate' | translate) + ' *'"
+        [customFormErrors]="preferredDateErrors"
+        [helperText]="preferredDateHint"
+      />
+      <ignt-icon class="lead-edit-form__date-icon" name="calendar" variant="light" aria-hidden="true" />
+    </div>
+    <ignt-input-field
+      [id]="'preferredTimeWindow'"
+      data-testid="lead-edit-preferred-time-window"
+      formControlName="preferredTimeWindow"
+      [label]="'leads.edit.preferredTimeWindow' | translate"
+      [placeholder]="'leads.edit.preferredTimeWindowPlaceholder' | translate"
+      [customFormErrors]="preferredTimeWindowErrors"
+      [helperText]="preferredTimeWindowHint"
+    />
+    <ignt-input-field
+      [id]="'guestCount'"
+      data-testid="lead-edit-guest-count"
+      formControlName="guestCount"
+      type="text"
+      [label]="('leads.edit.guestCount' | translate) + ' *'"
+      [customFormErrors]="guestCountErrors"
+      [helperText]="guestCountHint"
+      (input)="onGuestCountInput()"
+    />
+    <!-- City and venue are the lead's own location and narrow the activity choices below. All
+         three lists are built from the partner's plans, fetched once and filtered client-side, so
+         only venues carrying at least one activity are offered, besides the lead's saved ones. -->
+    <ignt-typeahead
+      data-testid="lead-edit-city"
+      container="body"
+      [isInDialog]="true"
+      [collapseOnClick]="true"
+      [fieldLabel]="'leads.edit.city' | translate"
+      [emptyLabel]="'filters.allCities' | translate"
+      [options]="cityOptions()"
+      [refreshOnlyWhenOpen]="true"
+      [refreshTrigger]="optionsRefreshTrigger$"
+      [selectedOption]="selectedCityOption()"
+      (selected)="onCitySelected($event)"
+      (userInteraction)="onCityInteraction($event)"
+    ></ignt-typeahead>
+    <ignt-typeahead
+      data-testid="lead-edit-venue"
+      container="body"
+      [isInDialog]="true"
+      [collapseOnClick]="true"
+      [fieldLabel]="'leads.edit.venue' | translate"
+      [emptyLabel]="'filters.allVenues' | translate"
+      [options]="venueOptions()"
+      [refreshOnlyWhenOpen]="true"
+      [refreshTrigger]="optionsRefreshTrigger$"
+      [selectedOption]="selectedVenueOption()"
+      (selected)="onVenueSelected($event)"
+      (userInteraction)="onVenueInteraction($event)"
+    ></ignt-typeahead>
+    <ignt-typeahead
+      data-testid="lead-edit-activity"
+      container="body"
+      [isInDialog]="true"
+      [collapseOnClick]="true"
+      [fieldLabel]="'leads.edit.activity' | translate"
+      [emptyLabel]="'leads.edit.noActivity' | translate"
+      [options]="activityOptions()"
+      [refreshOnlyWhenOpen]="true"
+      [refreshTrigger]="optionsRefreshTrigger$"
+      [selectedOption]="selectedActivityOption()"
+      [error]="showActivityError()"
+      [errorMessage]="showActivityError() ? ('common.notAvailable' | translate) : null"
+      (selected)="onActivitySelected($event)"
+      (userInteraction)="onActivityInteraction($event)"
+    ></ignt-typeahead>
+    <span class="lead-edit-form__hint" data-testid="lead-edit-activity-hint">{{ activityHint() }}</span>
+    <ignt-textarea-field
+      [id]="'notes'"
+      data-testid="lead-edit-notes"
+      formControlName="notes"
+      [label]="'leads.edit.notes' | translate"
+      [placeholder]="'leads.edit.notesPlaceholder' | translate"
+      [rows]="3"
+    />
+  </form>
+</ignt-dialog-content>
+
+<ignt-dialog-footer [hideCancelButton]="true">
+  <ignt-button data-testid="lead-edit-cancel-button" variant="secondary" [label]="'common.cancel' | translate" (click)="onCancel()" />
+  <ignt-button
+    data-testid="lead-edit-save-button"
+    [disabled]="isSubmitDisabled()"
+    [label]="'common.save' | translate"
+    (click)="onSubmit()"
+  />
+</ignt-dialog-footer>

@@ -1,0 +1,74 @@
+@use 'foundations' as foundations;
+@use 'abstracts/all' as *;
+
+.distribution-step {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: foundations.$space-6;
+
+  @include media-breakpoint-up(lg) {
+    grid-template-columns: minmax(0, 2fr) minmax(foundations.$dimension-60, 1fr);
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-3;
+    min-width: 0;
+  }
+
+  &__section-title {
+    margin: 0;
+    font: foundations.$font-h5;
+    color: foundations.$color-text-main;
+  }
+
+  &__section-subtitle {
+    margin: 0;
+    font: foundations.$font-base-regular;
+    color: foundations.$color-text-subtle;
+  }
+
+  &__methods {
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-3;
+    max-height: foundations.$dimension-80;
+    overflow-y: auto;
+
+    // A shadow at each edge, showing only while there is content past it: the two cover layers
+    // scroll with the content (`local`) and the two shadow layers stay pinned to the box, so at the
+    // top the cover sits over the shadow and hides it. No scroll listener and nothing to measure.
+    // This works here because the rows carry no background of their own — only a border — so the
+    // shadow reads through them. It is not portable to the refund-type tiles, which are opaque
+    // buttons that would cover it. The colour is the one Ignite's `$shadow-*` tokens are built from;
+    // those are `box-shadow` values, and a background layer cannot take one.
+    background:
+      linear-gradient(foundations.$color-background-main 30%, rgba(foundations.$color-background-main, 0)) top / 100% foundations.$space-6
+        no-repeat local,
+      linear-gradient(rgba(foundations.$color-background-main, 0), foundations.$color-background-main 70%) bottom / 100%
+        foundations.$space-6 no-repeat local,
+      radial-gradient(farthest-side at 50% 0, rgba(foundations.$palette-primary-900, 0.25), rgba(foundations.$palette-primary-900, 0)) top /
+        100% foundations.$space-2 no-repeat,
+      radial-gradient(farthest-side at 50% 100%, rgba(foundations.$palette-primary-900, 0.25), rgba(foundations.$palette-primary-900, 0))
+        bottom / 100% foundations.$space-2 no-repeat;
+
+    // Without this, flex squashes a row below its own content and the row's `overflow: hidden` clips the
+    // mismatch message — while the red border still shows, so it looks like it works.
+    > * {
+      flex-shrink: 0;
+    }
+  }
+
+  // Stacked, the summary leads: the operator should see what they are cancelling before the controls
+  // that change it. Side by side the reading order is already left to right, so there is nothing to
+  // impose. `order` is the whole change — the template keeps its natural source order for assistive
+  // tech and for the two-column case.
+  app-split-refund-summary {
+    order: -1;
+
+    @include media-breakpoint-up(lg) {
+      order: 0;
+    }
+  }
+}

@@ -1,0 +1,104 @@
+<section class="main-wrapper validation-page" [attr.aria-label]="'validateTickets.pageTitle' | translate">
+  <div class="validation-page__title">
+    @if (backUrl()) {
+      <a
+        class="validation-page__back"
+        data-testid="page-title-back"
+        [attr.aria-label]="'goBack.title' | translate"
+        [href]="backHref()"
+        (click)="onBackClick($event)"
+      >
+        <ignt-icon name="chevron-left" variant="regular" aria-hidden="true" />
+      </a>
+    }
+    <div class="validation-page__title-content">
+      <span class="validation-page__section">{{ 'menu.validateTickets' | translate }}</span>
+      <h1 class="validation-page__heading" data-testid="page-title">{{ 'validateTickets.pageTitle' | translate }}</h1>
+    </div>
+  </div>
+
+  <app-validation-search-bar
+    class="validation-page__search-bar"
+    (searchRequested)="onSearchRequest($event)"
+    (optionSelected)="optionSelected()"
+  />
+
+  <div class="validation-page__content" data-testid="validation-wrapper">
+    <div class="order-list validation-page__body">
+      @if (showGlobalSearchSpinner()) {
+        <app-validation-loading-spinner [spinnerTestId]="'validation-loading-search'" />
+      }
+
+      @if (showValidationBody()) {
+        @switch (validationBodySlot()) {
+          @case ('legacy') {
+            <app-validation-legacy-orders-list
+              [cartSessions]="cartSessions()"
+              [depositCarts]="depositCarts()"
+              [depositRefundFns]="depositRefundFns()"
+              [groupedOrders]="groupedOrders()"
+              [groupedOrdersLoading]="groupedOrdersLoading()"
+              [orders]="orders()"
+              [reservationStatusLookup]="legacyReservationStatusLookup"
+              [searchedQRCode]="searchedQRCode() ?? ''"
+              [searchedTicketId]="searchedTicketId() ?? 0"
+              [separateHeaderCard]="isOrderDetailRedesignEnabled()"
+              [showDepositRefundButton]="!isBusiness"
+              (openHowToValidate)="openHowToValidateTickets()"
+              (orderAction)="orderAction($event)"
+            />
+          }
+          @case ('summary-detail') {
+            @if (selectedOrder() !== null) {
+              <app-validation-summary-order-detail
+                [cartSessionsForOrder]="cartSessions().get(selectedOrder()!.id) ?? []"
+                [loadingDetail]="loadingDetail()"
+                [order]="selectedOrder()!"
+                [groupedOrders]="groupedOrders()"
+                [groupedOrdersLoading]="groupedOrdersLoading()"
+                [searchedQRCode]="searchedQRCode() ?? ''"
+                [searchedTicketId]="searchedTicketId() ?? 0"
+                [showBackButton]="showBackToSummaryListButton()"
+                [separateHeaderCard]="isOrderDetailRedesignEnabled()"
+                [depositCart]="depositCarts().get(selectedOrder()!.id) ?? null"
+                [showDepositRefundButton]="!isBusiness"
+                [depositReservationStatus]="depositReservationStatus(selectedOrder()!) ?? null"
+                [onDepositRefund]="depositRefundFns().get(selectedOrder()!.id) ?? null"
+                (backToList)="backToList()"
+                (orderAction)="orderAction($event)"
+              />
+            } @else {
+              <app-validation-loading-spinner [spinnerTestId]="'validation-loading-detail'" />
+            }
+          }
+          @case ('summary-list') {
+            <app-validation-summary-list-session
+              [filteredOrderSummaries]="filteredOrderSummaries()"
+              [summaryFilters]="summaryFilters()"
+              [loadingSearch]="loadingSearch()"
+              [summaryCurrentPage]="summaryCurrentPage()"
+              [summaryListSessionActive]="summaryListSessionActive()"
+              [summaryPageSize]="summaryPageSize"
+              [summaryTotalCount]="summaryTotalCount()"
+              (filtersChange)="onSummaryFiltersChange($event)"
+              (nextPage)="onSummaryNextPage()"
+              (openHowToValidate)="openHowToValidateTickets()"
+              (previousPage)="onSummaryPreviousPage()"
+              (rowSelect)="selectSummary($event)"
+            />
+          }
+        }
+      }
+    </div>
+  </div>
+
+  @if (showValidationBody()) {
+    <div class="validation-page__help-topic" appHideWrapperOnHelpTopicClose>
+      <app-help-topic-banner
+        [message]="'helpTopics.validation.message' | translate"
+        [ctaLabel]="'helpTopics.generic.cta.label' | translate"
+        [ctaLink]="'helpTopics.validation.cta.href' | translate"
+      />
+    </div>
+  }
+</section>

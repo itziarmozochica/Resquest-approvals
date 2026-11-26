@@ -1,0 +1,75 @@
+@let item = orderTicket();
+
+<div class="order-ticket__header">
+  <div class="order-ticket__id" data-testid="order-ticket-id">
+    @if (shouldIncludeValidationWithVSymbol()) {
+      <img
+        class="order-ticket__validation-symbol"
+        data-testid="order-ticket-validation-symbol"
+        src="assets/images/icons/validation-v-symbol.svg"
+        [attr.alt]="'cancellation.ticketCard.validationSymbolAlt' | translate"
+      />
+    }
+    <span
+      >{{ item.referenceId }}
+      @if (fullName()) {
+        <span> | {{ fullName() }}</span>
+      }
+    </span>
+    @if (isValidated() && !areAllTicketsValidated()) {
+      <ignt-tag class="order-ticket__validated-badge" data-testid="order-ticket-validated-badge" sentiment="positive" variant="solid">{{
+        'validateTicketsNew.orderHeader.validated' | translate
+      }}</ignt-tag>
+    }
+  </div>
+  @if (!hasCancelledItems()) {
+    <div class="order-ticket__checkbox-wrapper" data-testid="order-ticket-checkbox-wrapper">
+      <input
+        class="order-ticket__checkbox"
+        type="checkbox"
+        [id]="'item-checkbox-' + item.referenceId"
+        [checked]="isSelected()"
+        (change)="itemSelection.emit({ itemId: item.referenceId, selected: $event.target.checked })"
+        [disabled]="item.isCancelled || isSelectionDisabled()"
+        [attr.data-reference-id]="item.referenceId"
+        data-testid="order-ticket-checkbox"
+      />
+    </div>
+  }
+</div>
+
+@if (item.code) {
+  <div class="order-ticket__code-section" data-testid="order-ticket-code-section">
+    <fa-icon [icon]="iconForCodeType()" class="order-ticket__icon" />
+    <span class="order-ticket__code">{{ item.code.type | codeTypeTranslationKey | translate }} ID {{ item.code.code }}</span>
+  </div>
+}
+
+@if (item.seat) {
+  <div class="order-ticket__seat-section" data-testid="order-ticket-seat-section">
+    <fa-icon [icon]="['fal', 'chair']" class="order-ticket__seat-icon" />
+    <span class="order-ticket__seat-text">{{ item.seat.label }}</span>
+  </div>
+}
+
+@if (hasBreakdownItems()) {
+  <div class="order-ticket__breakdown-items-section" data-testid="order-ticket-breakdown-section">
+    <div class="order-ticket__breakdown-items-header">
+      <span class="order-ticket__breakdown-items-title">{{ 'cancellation.ticketCard.packItems' | translate }}</span>
+      <button
+        class="order-ticket__hide-breakdown-items-btn"
+        data-testid="order-ticket-toggle-breakdown-btn"
+        (click)="toggleBreakdownItems()"
+      >
+        <fa-icon class="order-ticket__expand-icon" [class.expanded]="isBreakdownItemsVisible()" [icon]="['fas', 'chevron-right']" />
+      </button>
+    </div>
+    @if (isBreakdownItemsVisible()) {
+      <div class="order-ticket__breakdown-items-list" data-testid="order-ticket-breakdown-list">
+        @for (breakdown of orderTicket().breakdownItems; track $index) {
+          <app-order-ticket-breakdown-item [breakdownItem]="breakdown" [isTicketPartiallyValidated]="isPartiallyValidated()" />
+        }
+      </div>
+    }
+  </div>
+}

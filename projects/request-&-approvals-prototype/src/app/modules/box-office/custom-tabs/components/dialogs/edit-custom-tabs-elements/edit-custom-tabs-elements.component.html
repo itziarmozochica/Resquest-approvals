@@ -1,0 +1,85 @@
+<app-centered-dialog
+  class="dialog-edit-custom-tabs-elements"
+  data-testid="edit-custom-tabs-elements-dialog"
+  [isVisible]="isVisible()"
+  [title]="
+    (isHierarchyType()
+      ? 'boxOffice.customTabs.dialogs.editCustomTabTiles.hierarchy.title'
+      : 'boxOffice.customTabs.dialogs.editCustomTabTiles.specificItems.title'
+    ) | translate
+  "
+  [footer]="{
+    cancelLabel: 'common.cancel' | translate,
+    submitLabel: submitLabelKey() | translate: { count: newlySelectedTilesCount() },
+    submitDisabled: isActionButtonDisabled(),
+  }"
+  (closed)="dismiss()"
+  (submitted)="submit()"
+  [cancelButtonSentiment]="'secondary'"
+>
+  <div class="edit-tiles-content" data-testid="edit-custom-tabs-elements-content">
+    <div class="edit-tiles-content__header" data-testid="edit-custom-tabs-elements-header">
+      <div class="edit-tiles-content__header__title" data-testid="edit-custom-tabs-elements-header-title">
+        <ignt-icon name="warehouse" variant="light" class="edit-tiles-content__header__icon"></ignt-icon>
+        {{ warehouse().name }}
+      </div>
+      <div class="edit-tiles-content__header__description" data-testid="edit-custom-tabs-elements-header-description">
+        {{
+          (isHierarchyType()
+            ? 'boxOffice.customTabs.dialogs.editCustomTabTiles.hierarchy.description'
+            : 'boxOffice.customTabs.dialogs.editCustomTabTiles.specificItems.description'
+          ) | translate
+        }}
+      </div>
+    </div>
+    <div class="edit-tiles-content__search-input">
+      <ignt-input-field
+        class="edit-tiles-content__search-input__field"
+        [label]="
+          isHierarchyType()
+            ? ('boxOffice.customTabs.dialogs.editCustomTabTiles.hierarchy.searchPlaceholder' | translate)
+            : ('boxOffice.customTabs.dialogs.editCustomTabTiles.specificItems.searchPlaceholder' | translate)
+        "
+        [ngModel]="searchTerm()"
+        (ngModelChange)="onSearchTermChange($event)"
+        data-testid="edit-custom-tabs-elements-search"
+      >
+      </ignt-input-field>
+      <ignt-icon class="edit-tiles-content__search-input__icon" name="search" variant="regular"></ignt-icon>
+    </div>
+    <div class="hierarchy-elements-list" data-testid="edit-custom-tabs-elements-list">
+      @if (isLoading()) {
+        <div class="hierarchy-elements-list__loading" data-testid="edit-custom-tabs-elements-loading">
+          <ignt-icon size="h2" name="spinner" variant="solid" class="hierarchy-elements-list__loading__icon" [spin]="true"></ignt-icon>
+        </div>
+      } @else {
+        @for (hierarchyElement of filteredHierarchyElements(); track hierarchyElement.id) {
+          <app-selectable-item
+            [attr.data-testid]="'edit-custom-tabs-elements-item-' + hierarchyElement.id"
+            [alternateBackgroundIds]="alternateBackgroundIds()"
+            [disabledIds]="initialSelectedTileIds()"
+            [expandedIds]="expandedIds()"
+            [initialExpandedIds]="initialExpandedIds()"
+            [item]="hierarchyElement"
+            [selectedIds]="selectedTileIds()"
+            [selectionMode]="selectionMode()"
+            (deselected)="onTileDeselect($event)"
+            (expandedChange)="onExpandedChange($event)"
+            (productSelected)="onProductSelect($event)"
+            (selected)="onTileSelect($event)"
+          ></app-selectable-item>
+        }
+        @if (filteredHierarchyElements().length === 0) {
+          <div class="hierarchy-elements-list__no-results" data-testid="edit-custom-tabs-elements-no-results">
+            {{
+              (isHierarchyType()
+                ? 'boxOffice.customTabs.dialogs.editCustomTabTiles.hierarchy.noSearchResults'
+                : 'boxOffice.customTabs.dialogs.editCustomTabTiles.specificItems.noSearchResults'
+              ) | translate
+            }}
+          </div>
+        }
+      }
+    </div>
+  </div>
+</app-centered-dialog>

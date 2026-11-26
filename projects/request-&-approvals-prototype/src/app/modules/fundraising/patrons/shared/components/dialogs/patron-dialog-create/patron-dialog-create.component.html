@@ -1,0 +1,164 @@
+<ignt-dialog-header>
+  {{ 'fundraising.patrons.createDialog.title' | translateTerminology }}
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  @if (step() === steps.FORM) {
+    <form class="patron-dialog-create__form" [formGroup]="createForm">
+      <ignt-input-field
+        formControlName="firstName"
+        [label]="'fundraising.patrons.createDialog.firstName' | translate"
+        [customFormErrors]="[
+          {
+            type: 'required',
+            message: ('form.error.required' | translate),
+          },
+          {
+            type: 'pattern',
+            message: ('form.error.required' | translate),
+          },
+        ]"
+        data-testid="patron-dialog-create-first-name-input"
+      ></ignt-input-field>
+
+      <ignt-input-field
+        formControlName="lastName"
+        [label]="'fundraising.patrons.createDialog.lastName' | translate"
+        [customFormErrors]="[
+          {
+            type: 'required',
+            message: ('form.error.required' | translate),
+          },
+          {
+            type: 'pattern',
+            message: ('form.error.required' | translate),
+          },
+        ]"
+        data-testid="patron-dialog-create-last-name-input"
+      ></ignt-input-field>
+
+      <ignt-input-field
+        formControlName="email"
+        [label]="'fundraising.patrons.createDialog.email' | translate"
+        [customFormErrors]="[
+          {
+            type: 'required',
+            message: ('form.error.required' | translate),
+          },
+          {
+            type: 'email',
+            message: ('form.error.invalidEmail' | translate),
+          },
+        ]"
+        data-testid="patron-dialog-create-email-input"
+      ></ignt-input-field>
+
+      <ignt-input-field
+        formControlName="phone"
+        [label]="'fundraising.patrons.createDialog.phone' | translate"
+        data-testid="patron-dialog-create-phone-input"
+      ></ignt-input-field>
+
+      @if (canManageTags) {
+        <app-multi-select
+          class="patron-dialog-create__select"
+          [options]="tagOptions()"
+          [selectedOptions]="selectedTagOptions()"
+          [placeholder]="'fundraising.patrons.createDialog.initialTag.placeholder' | translate"
+          [searchPlaceholder]="'common.selectsPlaceholder' | translate"
+          [maxSelectedOptions]="1"
+          [displayInPlaceMaximum]="1"
+          (selected)="onInitialTagChange($event)"
+        ></app-multi-select>
+      }
+
+      <ignt-textarea-field
+        formControlName="notes"
+        [label]="'fundraising.patrons.createDialog.notes' | translate"
+        [rows]="3"
+        data-testid="patron-dialog-create-notes-textarea"
+      ></ignt-textarea-field>
+    </form>
+  } @else {
+    @if (duplicates().kind === duplicateTypes.EMAIL_CONFLICT) {
+      <ignt-alert
+        sentiment="danger"
+        [title]="'fundraising.patrons.createDialog.emailConflict.title' | translate"
+        [description]="
+          'fundraising.patrons.createDialog.emailConflict.message' | translateTerminology: { name: duplicateRows()[0]?.name ?? '' }
+        "
+      ></ignt-alert>
+    }
+
+    @if (duplicates().kind === duplicateTypes.NAME_CONFLICT) {
+      <ignt-alert
+        sentiment="warning"
+        [title]="'fundraising.patrons.createDialog.nameConflict.title' | translate"
+        [description]="
+          'fundraising.patrons.createDialog.nameConflict.message' | translateTerminology: { name: duplicateRows()[0]?.name ?? '' }
+        "
+      ></ignt-alert>
+      <span class="patron-dialog-create__duplicates-label">
+        {{ 'fundraising.patrons.createDialog.didYouMean' | translate }}
+      </span>
+    }
+
+    <div
+      class="patron-dialog-create__duplicates"
+      [class.patron-dialog-create__duplicates--danger]="duplicates().kind === duplicateTypes.EMAIL_CONFLICT"
+    >
+      @for (patron of duplicateRows(); track patron.userAssociationId) {
+        <ignt-list-item
+          class="patron-dialog-create__duplicate-item"
+          [title]="patron.name"
+          [description]="patron.email"
+          [leadingIconTemplate]="avatarTpl"
+          type="unwrapped"
+        >
+          <ng-template #avatarTpl>
+            <app-avatar-initials
+              class="patron-dialog-create__duplicate-avatar"
+              [name]="patron.name"
+              [avatarUrl]="patron.imageUrl ?? undefined"
+              [size]="40"
+            />
+          </ng-template>
+          <div trailing-modifier>
+            <ignt-button
+              variant="tertiary"
+              size="small"
+              [label]="'fundraising.patrons.createDialog.viewProfile' | translate"
+              (click)="onViewProfile(patron.userAssociationId)"
+            />
+          </div>
+        </ignt-list-item>
+
+        @if (!$last) {
+          <ignt-divider [margin]="false" />
+        }
+      }
+    </div>
+  }
+</ignt-dialog-content>
+
+<ignt-dialog-footer [hideCancelButton]="true">
+  @if (step() === steps.FORM) {
+    <ignt-button
+      fill
+      variant="tertiary"
+      [label]="'common.cancel' | translate"
+      [disabled]="isSubmitting() || isChecking()"
+      (click)="dismiss()"
+    />
+  } @else {
+    <ignt-button
+      fill
+      variant="tertiary"
+      [label]="'fundraising.patrons.createDialog.backToForm' | translate"
+      [disabled]="isSubmitting()"
+      (click)="onBackToForm()"
+    />
+  }
+
+  <ignt-button fill variant="primary" [label]="footerPrimaryLabel()" [disabled]="isPrimaryDisabled()" (click)="onPrimaryAction()" />
+</ignt-dialog-footer>

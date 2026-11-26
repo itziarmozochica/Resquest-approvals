@@ -1,0 +1,88 @@
+<ng-template #sidePanelTemplate>
+  <ignt-dialog-header>
+    {{ title() }}
+  </ignt-dialog-header>
+  <ignt-dialog-content [attr.data-testid]="testIdPrefix() + '-content'">
+    <div class="entity-edit-sidebar">
+      <div class="entity-edit-sidebar__search" [attr.data-testid]="testIdPrefix() + '-search'">
+        <div class="entity-edit-sidebar__search-inner">
+          <ignt-icon class="entity-edit-sidebar__search-icon" name="search" size="sm" variant="regular" aria-hidden="true" />
+          <ignt-input-field
+            class="entity-edit-sidebar__search-field"
+            [attr.data-testid]="testIdPrefix() + '-search-input'"
+            [attr.aria-label]="searchAriaLabel()"
+            [hideErrorLabels]="true"
+            [label]="''"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="onSearchQueryChange($event)"
+            [placeholder]="searchPlaceholder()"
+            [placeholderAsEmptyValue]="true"
+            type="text"
+          />
+        </div>
+      </div>
+      <ul class="entity-edit-sidebar__list" role="list">
+        @for (item of filteredItems(); track item.id) {
+          <li class="entity-edit-sidebar__item">
+            @if (item.isLocked) {
+              <div
+                class="entity-edit-sidebar__locked-tooltip-host"
+                tabindex="0"
+                [appTemplatedTooltip]="lockedTooltipTemplate"
+                [panelClass]="'entity-edit-sidebar__tooltip-panel'"
+                [position]="{ originY: 'bottom', overlayY: 'top', offsetY: 8 }"
+              >
+                <span class="visually-hidden">{{ item.lockedTooltip }}</span>
+                <ignt-list-item
+                  [title]="item.name"
+                  [description]="''"
+                  [clickable]="false"
+                  [selected]="item.isSelected"
+                  [attr.data-testid]="testIdPrefix() + '-item'"
+                  [attr.data-id]="item.id"
+                >
+                  @if (item.lockedBadgeLabel) {
+                    <ng-container trailing-modifier>
+                      <ignt-tag sentiment="sharp" [attr.data-testid]="testIdPrefix() + '-locked-badge'">
+                        {{ item.lockedBadgeLabel }}
+                      </ignt-tag>
+                    </ng-container>
+                  }
+                </ignt-list-item>
+              </div>
+
+              <ng-template #lockedTooltipTemplate>
+                <div class="entity-edit-sidebar__tooltip" [attr.data-testid]="testIdPrefix() + '-locked-tooltip'">
+                  {{ item.lockedTooltip }}
+                </div>
+              </ng-template>
+            } @else {
+              <ignt-list-item
+                [title]="item.name"
+                [description]="''"
+                [clickable]="canEdit()"
+                [selected]="item.isSelected"
+                [attr.data-testid]="testIdPrefix() + '-item'"
+                [attr.data-id]="item.id"
+                (click)="onItemClick(item.id)"
+              />
+            }
+          </li>
+        }
+      </ul>
+    </div>
+  </ignt-dialog-content>
+  <ignt-dialog-footer>
+    <button
+      igntButton
+      fill
+      sentiment="primary"
+      type="button"
+      [attr.data-testid]="testIdPrefix() + '-save'"
+      [disabled]="!canEdit() || !hasChanges() || isSavePending()"
+      (click)="onSaveClick()"
+    >
+      {{ saveLabel() }}
+    </button>
+  </ignt-dialog-footer>
+</ng-template>

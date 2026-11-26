@@ -1,0 +1,259 @@
+<ng-container *ngIf="!loading(); else loadingTemplate">
+  <app-lateral-slider
+    [showDetails]="showCapacityTemplateSelectionLateralSheet"
+    [title]="'inventory.schedule.capacityTemplateSelectionForm.title' | translate"
+    [contentTemplate]="capacityTemplateSelectionFormTemplate"
+    (closeSlider)="closeFormSlider()"
+  >
+  </app-lateral-slider>
+
+  <ng-template #capacityTemplateSelectionFormTemplate>
+    <app-capacity-template-selection-form
+      [capacityTemplates]="capacityTemplates()"
+      [disabledSessionTypeIds]="
+        !triggerModalFromExceptionCalendar() ? immutableInitialSessionTypeIds() : immutableInitialSessionTypeIdsForExceptionCalendar()
+      "
+      [isOpen]="showCapacityTemplateSelectionLateralSheet"
+      [preselectedSessionTypeIds]="
+        !triggerModalFromExceptionCalendar() ? selectedSessionTypeIds() : selectedSessionTypeIdsForExceptionCalendar()
+      "
+      [preselectedCapacityTemplateId]="
+        !triggerModalFromExceptionCalendar() ? selectedCapacityTemplateId() : selectedCapacityTemplateIdForExceptionCalendar()
+      "
+      (formChanges)="
+        !triggerModalFromExceptionCalendar()
+          ? onCapacityTemplateSelectionFormChanges($event)
+          : onCapacityTemplateSelectionFormChangesForExceptionCalendar($event)
+      "
+    ></app-capacity-template-selection-form>
+  </ng-template>
+
+  <a class="schedule-calendar-form-back-link" data-testid="back-link" [routerLink]="['/inventory/schedule']" queryParamsHandling="preserve">
+    <ignt-icon class="schedule-calendar-form-back-link__icon" name="angle-left" variant="light" [fixedWidth]="true"></ignt-icon>
+    {{ 'inventory.schedule.scheduleForm.backLink' | translate }}
+  </a>
+
+  <div class="schedule-detail__shell wrapper-card schedule-form__accordion" data-testid="schedule-detail-shell">
+    <app-schedule-calendar-form
+      [initialConfiguration]="getInitialConfiguration(scheduleCalendar())"
+      [isDeclarativeInventory]="isDeclarativeInventory()"
+      [capacityTemplateOptions]="capacityTemplateOptions()"
+      [capacityTemplates]="capacityTemplates()"
+      [planActivityDurations]="planActivityDurations()"
+      [sessionTypeOptions]="sessionTypeOptions()"
+      [tierOptions]="tierOptions()"
+      [scheduleCalendar]="scheduleCalendar() ?? null"
+      [selectedSessionTypeIds]="selectedSessionTypeIds()"
+      [selectedCapacityTemplateId]="selectedCapacityTemplateId()"
+      [timezone]="timezone()"
+      (openCapacityTemplateModal)="onOpenCapacityTemplateModal($event)"
+      (removeSelectedSessionTypeId)="onRemoveSelectedSessionTypeId($event)"
+      (sectionValidityChange)="onMainCalendarSectionValidityChange($event)"
+      (submitChanges)="onCalendarChanges($event)"
+    ></app-schedule-calendar-form>
+
+    <hr class="schedule-form__accordion__divider" />
+
+    @if (showExceptionCalendarsSection()) {
+      <section
+        #exceptionCalendarsSection
+        class="schedule-form__accordion__section exception-calendars"
+        data-testid="exception-calendars-section"
+        [class.schedule-form__accordion__section--locked]="!isExceptionCalendarsUnlocked()"
+      >
+        <div class="schedule-form__section__header">
+          <div class="schedule-form__section__header__title">
+            <button
+              type="button"
+              class="schedule-form__section__header__title__content cell--fill pointer"
+              data-testid="exception-calendars-collapse-button"
+              [attr.aria-disabled]="!isExceptionCalendarsUnlocked() || null"
+              [disabled]="!isExceptionCalendarsUnlocked()"
+              (click)="toggleIsExceptionCalendarsCollapsed()"
+            >
+              <ignt-icon
+                [name]="!isExceptionCalendarsUnlocked() || isExceptionCalendarsCollapsed() ? 'chevron-up' : 'chevron-down'"
+                variant="solid"
+              ></ignt-icon>
+              <span>{{ 'inventory.schedule.scheduleDetail.fields.exceptionCalendars.title' | translate }}</span>
+              <span class="schedule-form__section__header__check" data-testid="exception-calendars-section-check">
+                @if (hasSavedExceptionCalendars()) {
+                  <ignt-icon name="check-circle" variant="solid"></ignt-icon>
+                }
+              </span>
+            </button>
+          </div>
+          <small>{{ 'inventory.schedule.scheduleDetail.fields.exceptionCalendars.description' | translate }}</small>
+        </div>
+
+        @if (isExceptionCalendarsUnlocked() && !isExceptionCalendarsCollapsed()) {
+          <div class="exception-calendars__section__expandable">
+            <div class="exception-calendars__body">
+              @if (canEditSchedule()) {
+                <ignt-button
+                  data-testid="add-exception-calendar-button"
+                  size="small"
+                  variant="secondary"
+                  [label]="'inventory.schedule.scheduleDetail.actions.addExceptionCalendar' | translate"
+                  [leadingIcon]="{ name: 'plus-circle', variant: 'solid' }"
+                  (click)="addExceptionCalendar()"
+                />
+              }
+
+              @if (exceptionCalendars().length > 0) {
+                <div class="exception-calendars__section__content">
+                  @for (exceptionCalendar of exceptionCalendars(); track exceptionCalendar.localId) {
+                    <div class="exception-calendars__calendar-card wrapper-card">
+                      <div class="exception-calendars__calendar-card__name-wrapper">
+                        <span class="exception-calendars__calendar-card__name cell cell--fill">{{ exceptionCalendar.name }}</span>
+                        <span class="cell cell--hug">
+                          @if (isExceptionCalendarDeletable(exceptionCalendar)) {
+                            <button
+                              type="button"
+                              class="delete-calendar"
+                              [disabled]="!canEditSchedule()"
+                              (click)="deleteExceptionCalendar(exceptionCalendar)"
+                            >
+                              <fa-icon [icon]="['fas', 'trash-alt']"></fa-icon>
+                            </button>
+                          }
+                          <button
+                            type="button"
+                            class="edit-calendar"
+                            [disabled]="!canEditSchedule()"
+                            (click)="editExceptionCalendar(exceptionCalendar)"
+                          >
+                            <fa-icon [icon]="['fas', 'edit']"></fa-icon>
+                          </button>
+                        </span>
+                      </div>
+                      <div class="exception-calendars__calendar-card__description">
+                        {{ getExceptionCalendarCardDetail(exceptionCalendar) }}
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+              @if (isExceptionCalendarEditing()) {
+                <app-schedule-calendar-form
+                  class="exception-calendar"
+                  [isExceptionCalendar]="true"
+                  [initialConfiguration]="getInitialConfiguration(exceptionCalendarToUpdate())"
+                  [isDeclarativeInventory]="isDeclarativeInventory()"
+                  [initialRestrictions]="exceptionCalendarRestrictions()"
+                  [capacityTemplateOptions]="capacityTemplateOptions()"
+                  [capacityTemplates]="capacityTemplates()"
+                  [sessionTypeOptions]="sessionTypeOptions()"
+                  [tierOptions]="tierOptions()"
+                  [scheduleCalendar]="exceptionCalendarToUpdate()"
+                  [selectedSessionTypeIds]="selectedSessionTypeIdsForExceptionCalendar()"
+                  [selectedCapacityTemplateId]="selectedCapacityTemplateIdForExceptionCalendar()"
+                  [timezone]="timezone()"
+                  [mainCalendar]="calendarToSave() ?? scheduleCalendar() ?? null"
+                  (openCapacityTemplateModal)="onOpenCapacityTemplateModalForExceptionCalendar($event)"
+                  (removeSelectedSessionTypeId)="onRemoveSelectedSessionTypeIdForExceptionCalendar($event)"
+                  (submitChanges)="onExceptionCalendarChanges($event)"
+                ></app-schedule-calendar-form>
+              }
+            </div>
+          </div>
+        }
+      </section>
+    } @else {
+      <ng-container *ngTemplateOutlet="exceptionCalendarsReservedSpace"></ng-container>
+    }
+  </div>
+
+  @if (missingSessionsTarget(); as target) {
+    <app-schedule-calendar-missing-sessions [calendarId]="target.calendarId" [planId]="target.planId" />
+  }
+
+  @if (isFooterHidden() || canAnalyzeMissingSessions()) {
+    <div class="calendar-footer-actions">
+      @if (canAnalyzeMissingSessions()) {
+        <ignt-button
+          data-testid="analyze-missing-sessions-button"
+          variant="secondary"
+          [disabled]="isMissingSessionsAnalysisRequested() || !calendarIsPristine()"
+          [label]="'inventory.schedule.missingSessions.analyze' | translate"
+          (click)="onAnalyzeMissingSessionsClick()"
+        />
+      }
+      @if (isFooterHidden()) {
+        @if (isSaveAsDraftVisible()) {
+          <ignt-button
+            variant="secondary"
+            data-testid="schedule-save-draft-button"
+            [disabled]="isCreateTicketsDisabled()"
+            [label]="'inventory.schedule.scheduleForm.saveAsDraft' | translate"
+            (click)="saveAsDraft()"
+          />
+        }
+        <ignt-button
+          variant="primary"
+          data-testid="schedule-create-tickets-button"
+          [disabled]="isCreateTicketsDisabled()"
+          [label]="'inventory.schedule.scheduleForm.createTickets' | translate"
+          [leadingIcon]="{ name: 'ticket', variant: 'solid' }"
+          (click)="createTickets()"
+        />
+      }
+    </div>
+  }
+
+  <app-centered-dialog
+    [isVisible]="confirmationDialogVisible()"
+    [title]="'inventory.schedule.messages.confirmTicketsCreation.title' | translate"
+    [footer]="{
+      cancelLabel: 'common.cancel' | translate,
+      submitLabel: 'inventory.schedule.messages.confirmTicketsCreation.submitLabel' | translate,
+    }"
+    (closed)="dismissConfirmationDialog()"
+    (submitted)="submitConfirmationDialog()"
+  >
+    <p class="confirmation-dialog__description" data-testid="schedule-create-products-dialog-description">
+      {{ 'inventory.schedule.messages.confirmTicketsCreation.description' | translate }}
+    </p>
+    <div class="confirmation-dialog__visibility">
+      <ignt-radio-group [formControl]="visibilityControl">
+        @for (option of visibilityOptions; track option.id) {
+          <ignt-radio [label]="option.title" [value]="option.id"></ignt-radio>
+        }
+      </ignt-radio-group>
+    </div>
+    <p class="confirmation-dialog__hint" data-testid="schedule-create-products-dialog-hint">
+      {{ 'inventory.schedule.messages.confirmTicketsCreation.hint' | translate }}
+    </p>
+  </app-centered-dialog>
+</ng-container>
+
+<ng-template #exceptionCalendarsReservedSpace>
+  <section
+    class="schedule-form__accordion__section schedule-form__accordion__section--locked exception-calendars exception-calendars--reserved-space"
+    data-testid="exception-calendars-reserved-space"
+    aria-hidden="true"
+  >
+    <div class="schedule-form__section__header">
+      <div class="schedule-form__section__header__title">
+        <span class="schedule-form__section__header__title__content cell--fill">
+          {{ 'inventory.schedule.scheduleDetail.fields.exceptionCalendars.title' | translate }}
+        </span>
+      </div>
+      <small>{{ 'inventory.schedule.scheduleDetail.fields.exceptionCalendars.description' | translate }}</small>
+    </div>
+  </section>
+</ng-template>
+
+<ng-template #loadingTemplate>
+  <div class="spinner">
+    <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'4x'"></fa-icon>
+  </div>
+</ng-template>
+
+<ng-template #saveErrorsBody>
+  <ul class="save-errors-toast__list">
+    @for (message of saveErrorMessages(); track message) {
+      <li>{{ message }}</li>
+    }
+  </ul>
+</ng-template>

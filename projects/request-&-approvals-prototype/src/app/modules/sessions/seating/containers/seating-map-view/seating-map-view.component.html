@@ -1,0 +1,73 @@
+<app-search-result-view
+  [currentState]="searchResultStatus()"
+  [displayContentWhileLoading]="false"
+  [noFiltersIcon]="['far', 'calendar-alt']"
+  [noFiltersMessage]="'sessions.seatingMap.noTimeslotSelected' | translate"
+  [noResultIcon]="['far', 'calendar-alt']"
+  [noResultMessage]="'sessions.seatingMap.noSeatingForTimeslot' | translate"
+>
+  @if (timeSlotDateTime(); as dateTime) {
+    <div class="seating-map-view__timeslot-banner">
+      <span class="seating-map-view__timeslot-date">{{ dateTime | momentDate: 'EEEE, d MMMM y - h:mm a' : timeZone() || 'UTC' }}</span>
+      @if (selectedTimeSlot() && partnerId() !== null && placeId() !== null && planId() !== null && manageSeatingSessionId() !== null) {
+        <div class="seating-map-view__timeslot-actions">
+          <app-sessions-per-timeslot-seating-actions
+            [allowedOptions]="manageSeatingDropdownAllowedOptions"
+            [locale]="currentLocale"
+            [partnerId]="partnerId()!"
+            [placeId]="placeId()!"
+            [planId]="planId()!"
+            [planTitle]="planTitle()"
+            [sessionId]="manageSeatingSessionId()"
+            [timeslot]="selectedTimeSlot()!"
+            [timezone]="timeZone() || 'UTC'"
+          ></app-sessions-per-timeslot-seating-actions>
+        </div>
+      }
+    </div>
+
+    @if (hasSeatingPermission()) {
+      <nav class="seating-map-view__tabs" role="tablist" [attr.aria-label]="'sessions.seatingMap.title' | translate">
+        @for (tab of tabs; track tab.id) {
+          <button
+            class="seating-map-view__tab"
+            [class.seating-map-view__tab--active]="activeTab() === tab.id"
+            [attr.aria-selected]="activeTab() === tab.id"
+            [attr.aria-controls]="'seating-tab-panel-' + tab.id"
+            [attr.id]="'seating-tab-' + tab.id"
+            [attr.tabindex]="activeTab() === tab.id ? 0 : -1"
+            role="tab"
+            (click)="onTabChange(tab.id)"
+          >
+            {{ tab.labelKey | translate }}
+          </button>
+        }
+      </nav>
+
+      <div
+        [attr.id]="'seating-tab-panel-' + activeTab()"
+        [attr.aria-labelledby]="'seating-tab-' + activeTab()"
+        class="seating-map-view__tab-content"
+        role="tabpanel"
+      >
+        @switch (activeTab()) {
+          @case ('summary') {
+            <app-seating-map-canvas tab="summary" />
+          }
+          @case ('forSale') {
+            <app-seating-map-canvas tab="forSale" />
+          }
+          @case ('categories') {
+            <app-seating-map-canvas tab="categories" />
+          }
+          @case ('channels') {
+            <app-seating-map-canvas tab="channels" />
+          }
+          @case ('objectStatuses') {
+            <app-seating-map-canvas tab="objectStatuses" />
+          }
+        }
+      </div>
+    }
+  }
+</app-search-result-view>

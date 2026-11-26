@@ -1,0 +1,80 @@
+<div class="login-full-viewport-height mfa-screen">
+  <app-login-form-container
+    class="login-form-container"
+    [title]="'mfa.verification.title' | translate"
+    [hideBackButtons]="false"
+    [logo]="null"
+    backLink="/login"
+  >
+    <p class="mfa-verification__instructions" translate>mfa.verification.instructions</p>
+
+    @if (error() !== null) {
+      <ignt-alert
+        class="external-container__banner"
+        [description]="error()! | translate"
+        sentiment="danger"
+        data-testid="mfa-verification-error"
+      />
+    }
+
+    <div class="mfa-verification">
+      <form [formGroup]="verificationForm" (ngSubmit)="verifyCode()" class="mfa-verification__form">
+        <div class="external-container__form-group mfa-verification__code-group">
+          <div class="mfa-verification__digits" role="group" aria-label="Enter 6-digit verification code">
+            @for (digit of [0, 1, 2, 3, 4, 5]; track digit; let index = $index) {
+              <input
+                #digitInput
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                maxlength="1"
+                class="mfa-verification__digit-input"
+                autocomplete="one-time-code"
+                [attr.data-testid]="index === 0 ? 'mfa-code-input' : 'mfa-digit-input-' + index"
+                [attr.aria-label]="'mfa.digitInput.label' | translate: { current: index + 1, total: 6 }"
+                (input)="onDigitInput($event, index)"
+                (keydown)="onCodeKeydown($event, index)"
+                (paste)="onCodePaste($event, index)"
+              />
+            }
+          </div>
+        </div>
+
+        @if (verificationForm.get('code'); as codeControl) {
+          <app-validation-error-messages [control]="codeControl"></app-validation-error-messages>
+        }
+
+        @if (showRememberDevice()) {
+          <ignt-checkbox
+            class="mfa-verification__remember-device"
+            [checked]="rememberDevice()"
+            [label]="'mfa.rememberDevice' | translate"
+            dataTestId="mfa-remember-device-checkbox"
+            (change)="onRememberDeviceChange($event)"
+          />
+        }
+
+        <ignt-button
+          htmlType="submit"
+          size="large"
+          variant="primary"
+          fill
+          [label]="'mfa.verification.confirm' | translate"
+          [loading]="isLoading()"
+          [disabled]="verificationForm.invalid || isLoading()"
+          data-testid="mfa-verify-button"
+        />
+      </form>
+    </div>
+
+    <button
+      type="button"
+      class="mfa-verification__link"
+      [attr.aria-label]="'mfa.verification.lostAccess' | translate"
+      (click)="onLostAccessClick()"
+    >
+      {{ 'mfa.verification.lostAccess' | translate }}
+    </button>
+  </app-login-form-container>
+</div>
+<app-footer [class.no-pointer-events]="true"></app-footer>

@@ -1,0 +1,88 @@
+<div
+  class="patron-rel-graph-external-card"
+  [class.patron-rel-graph-external-card--clickable]="isClickable()"
+  [class.patron-rel-graph-external-card--side-left]="card().side === graphSides.LEFT"
+  [class.patron-rel-graph-external-card--side-right]="card().side === graphSides.RIGHT"
+  [attr.role]="isClickable() ? 'button' : null"
+  [attr.tabindex]="isClickable() ? 0 : null"
+  (click)="onCardClick()"
+  (keydown)="onCardKeydown($event)"
+>
+  @if (isNoteButtonVisible()) {
+    <button
+      type="button"
+      ignt-icon-button
+      class="patron-rel-graph-external-card__note-btn"
+      size="small"
+      sentiment="tertiary"
+      variant="default"
+      [icon]="['fas', 'file-lines']"
+      [attr.aria-label]="'fundraising.patronDetails.relationships.graph.notes.ariaLabel' | translate"
+      (click)="onNotesClick($event)"
+    ></button>
+  }
+  @if (card().entity.ltvIndicator) {
+    <ignt-tag
+      class="patron-rel-graph-external-card__ltv-tag"
+      sentiment="info"
+      variant="solid"
+      igntTooltip
+      [tooltipTemplate]="ltvTooltipTpl"
+      tooltipPlacement="right"
+    >
+      {{ card().entity.ltvIndicator }}
+    </ignt-tag>
+    <ng-template #ltvTooltipTpl>
+      <div class="patron-rel-graph-external-card__tooltip">
+        {{ 'fundraising.patronDetails.relationships.graph.ltvTooltip' | translate: { lifetimeValue: card().entity.ltvTooltip } }}
+      </div>
+    </ng-template>
+  }
+  <app-avatar-initials
+    class="patron-rel-graph-external-card__avatar"
+    [avatarUrl]="card().entity.avatarUrl"
+    [name]="card().entity.name"
+    [size]="48"
+  />
+  <div class="patron-rel-graph-external-card__content">
+    <span class="patron-rel-graph-external-card__content__name">
+      <span class="patron-rel-graph-external-card__content__name__text">{{ card().entity.name }}</span>
+      @if (card().entity.status !== undefined && card().entity.status !== patronStatuses.ACTIVE) {
+        <ignt-icon
+          class="patron-rel-graph-external-card__content__name__status-icon"
+          name="ban"
+          variant="light"
+          size="sm"
+          igntTooltip
+          [tooltipTemplate]="statusTooltipTpl"
+          tooltipPlacement="right"
+        ></ignt-icon>
+        <ng-template #statusTooltipTpl>
+          <div class="patron-rel-graph-external-card__tooltip">{{ card().entity.statusTooltip }}</div>
+        </ng-template>
+      }
+    </span>
+    <div class="patron-rel-graph-external-card__content__badges">
+      @for (conn of card().connectorEndpoints; track conn.connectionId) {
+        <ignt-tag [sentiment]="sentimentForEdge(conn.connectionId)" variant="outline">
+          {{ edgeById(conn.connectionId)?.roleLabel ?? '' }}
+        </ignt-tag>
+      }
+    </div>
+  </div>
+  @if (canManage()) {
+    <div class="patron-rel-graph-external-card__action-container">
+      <button
+        type="button"
+        ignt-icon-button
+        class="patron-rel-graph-external-card__remove-btn"
+        size="small"
+        sentiment="tertiary"
+        variant="default"
+        [icon]="['far', 'times']"
+        [attr.aria-label]="'fundraising.patronDetails.relationships.graph.removeRelationship.ariaLabel' | translate"
+        (click)="onRemoveClick($event)"
+      ></button>
+    </div>
+  }
+</div>

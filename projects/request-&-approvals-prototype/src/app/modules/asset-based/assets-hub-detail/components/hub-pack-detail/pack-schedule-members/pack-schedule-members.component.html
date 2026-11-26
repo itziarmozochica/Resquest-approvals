@@ -1,0 +1,114 @@
+<div class="pack-schedule-members" data-testid="pack-schedule-members">
+  <ng-container *ngTemplateOutlet="memberList; context: { $implicit: rootGroup() }" />
+</div>
+
+<!--
+  Recursive: a sub-group renders its own members the same way, so nesting costs no extra markup.
+
+  The tick boxes only appear where a grouping is possible at all. Keeping two members together has
+  to leave the group a member of its own, so with two of them there is nothing to choose and the
+  boxes would be decoration that never enables the button.
+-->
+<ng-template #memberList let-group>
+  <ul class="pack-schedule-members__list">
+    @for (leg of group.legs; track leg.localId) {
+      <li class="pack-schedule-members__member">
+        @if (canGroupWithin(group.legs.length + group.subGroups.length)) {
+          <ignt-checkbox
+            size="small"
+            [checked]="isLegSelected(group.localId, leg.localId)"
+            [ariaLabel]="'assetsHubs.detail.packs.schedule.selectMember' | translate: { name: leg.name }"
+            (change)="onLegToggle(group.localId, leg.localId)"
+            dataTestId="pack-schedule-member-select"
+          />
+        }
+        <div class="pack-schedule-members__member-info">
+          <span class="pack-schedule-members__member-name" data-testid="pack-schedule-leg-name">{{ leg.name }}</span>
+          <span class="pack-schedule-members__member-meta">{{ leg.meta }}</span>
+        </div>
+        <button
+          ignt-icon-button
+          type="button"
+          class="pack-schedule-members__member-remove"
+          size="small"
+          sentiment="secondary"
+          [icon]="['fal', 'xmark']"
+          [attr.aria-label]="'assetsHubs.detail.packs.schedule.removeActivityFromStep' | translate"
+          (click)="legRemove.emit(leg.localId)"
+          data-testid="pack-schedule-leg-remove"
+        ></button>
+      </li>
+    }
+
+    @for (subGroup of group.subGroups; track subGroup.node.localId) {
+      <li class="pack-schedule-members__member pack-schedule-members__member--group" data-testid="pack-schedule-sub-group">
+        @if (canGroupWithin(group.legs.length + group.subGroups.length)) {
+          <ignt-checkbox
+            size="small"
+            [checked]="isSubGroupSelected(group.localId, subGroup.node.localId)"
+            [ariaLabel]="'assetsHubs.detail.packs.schedule.selectKeptTogether' | translate"
+            (change)="onSubGroupToggle(group.localId, subGroup.node.localId)"
+            dataTestId="pack-schedule-member-select"
+          />
+        }
+
+        <div class="pack-schedule-members__group-body">
+          <div class="pack-schedule-members__group-header">
+            <span class="pack-schedule-members__group-badge" translate>assetsHubs.detail.packs.schedule.keptTogetherBadge</span>
+            <!-- Reads against the badge beside it: these are kept together, and this separates them. -->
+            <ignt-button
+              variant="tertiary"
+              size="small"
+              [label]="'assetsHubs.detail.packs.schedule.ungroupMembers' | translate"
+              (click)="subGroupUngroup.emit(subGroup.node.localId)"
+              data-testid="pack-schedule-ungroup"
+            />
+          </div>
+
+          <ng-container
+            *ngTemplateOutlet="
+              memberList;
+              context: { $implicit: { legs: subGroup.legs, localId: subGroup.node.localId, subGroups: subGroup.subGroups } }
+            "
+          />
+
+          @if (windowFormOf(subGroup.node.localId); as windowForm) {
+            <div class="pack-schedule-members__group-window" [formGroup]="windowForm">
+              <p class="pack-schedule-members__group-window-title" translate>assetsHubs.detail.packs.schedule.internalGapTitle</p>
+              <div class="pack-schedule-members__group-window-inputs">
+                <ignt-input-field
+                  [id]="'pack-schedule-group-min-' + subGroup.node.localId"
+                  type="number"
+                  [formControl]="windowForm.controls.internalMinMinutes"
+                  [label]="'assetsHubs.detail.packs.schedule.minGapLabel' | translate"
+                  data-testid="pack-schedule-group-min"
+                ></ignt-input-field>
+                <ignt-input-field
+                  [id]="'pack-schedule-group-max-' + subGroup.node.localId"
+                  type="number"
+                  [formControl]="windowForm.controls.internalMaxMinutes"
+                  [label]="'assetsHubs.detail.packs.schedule.maxGapLabel' | translate"
+                  data-testid="pack-schedule-group-max"
+                ></ignt-input-field>
+              </div>
+            </div>
+          }
+
+          @for (messageKey of subGroup.messageKeys; track messageKey) {
+            <p class="pack-schedule-members__error" data-testid="pack-schedule-group-error">{{ messageKey | translate }}</p>
+          }
+        </div>
+      </li>
+    }
+  </ul>
+
+  @if (canGroupSelection(group.localId, group.legs.length + group.subGroups.length)) {
+    <ignt-button
+      variant="secondary"
+      size="small"
+      [label]="'assetsHubs.detail.packs.schedule.keepTogether' | translate"
+      (click)="onKeepTogether()"
+      data-testid="pack-schedule-keep-together"
+    />
+  }
+</ng-template>

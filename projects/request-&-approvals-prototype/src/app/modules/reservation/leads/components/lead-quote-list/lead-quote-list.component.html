@@ -1,0 +1,167 @@
+<section class="lead-quote-list" data-testid="lead-quote-list">
+  <header class="lead-quote-list__header">
+    <ignt-icon class="lead-quote-list__header-icon" name="shopping-cart" variant="light" aria-hidden="true" />
+    <h2 class="lead-quote-list__title" data-testid="lead-quote-list-title">
+      {{ 'leads.detail.quotes.title' | translate: { count: totalCount() } }}
+    </h2>
+  </header>
+
+  <ignt-accordion variant="list">
+    @for (row of rows(); track row.quoteId) {
+      <ignt-accordion-item
+        data-testid="lead-quote-list-item"
+        [expanded]="expandedQuoteId() === row.quoteId"
+        (expandedChange)="onExpandedChange(row.quoteId, $event)"
+      >
+        <span class="lead-quote-list__row-summary" igntAccordionTitle>
+          <span class="lead-quote-list__row-schedule" data-testid="lead-quote-list-row-schedule">
+            {{ row.sessionStartsAt | date: 'mediumDate' : offsetOf(row.sessionStartsAt) }}
+            @if (row.sessionHasTime) {
+              <span class="lead-quote-list__row-schedule-time"
+                >| {{ row.sessionStartsAt | date: 'shortTime' : offsetOf(row.sessionStartsAt) }}</span
+              >
+            }
+          </span>
+          <span class="lead-quote-list__row-total" data-testid="lead-quote-list-row-total">{{
+            row.totalToBePaid | currency: row.currency : 'symbol' : '1.2-2'
+          }}</span>
+          <span class="lead-quote-list__row-created" data-testid="lead-quote-list-row-created">
+            {{ 'leads.detail.quote.createdAt' | translate: { date: row.createdAt | date: 'medium' } }}
+          </span>
+          @if (row.sentAt; as sentAt) {
+            <span class="lead-quote-list__row-sent" data-testid="lead-quote-list-row-sent">
+              {{ 'leads.detail.quote.sentAt' | translate: { date: sentAt | date: 'medium' } }}
+            </span>
+          } @else if (notSentQuoteIds().has(row.quoteId)) {
+            <ignt-tag class="lead-quote-list__row-not-sent" data-testid="lead-quote-list-not-sent" sentiment="danger" variant="solid">
+              {{ 'leads.detail.quote.notSent' | translate }}
+            </ignt-tag>
+          }
+        </span>
+
+        <ng-template igntAccordionBody>
+          @if (row.quote; as quote) {
+            <div class="lead-quote-list__body" data-testid="lead-quote-list-quote">
+              <div class="lead-quote-list__schedule-row" data-testid="lead-quote-list-schedule-row">
+                <p class="lead-quote-list__schedule" data-testid="lead-quote-list-schedule">
+                  <ignt-icon name="calendar-day" size="sm" variant="light" aria-hidden="true" />
+                  <span>
+                    {{ quote.date }}
+                    @if (quote.time; as time) {
+                      <span class="lead-quote-list__schedule-time">| {{ time }}</span>
+                    }
+                  </span>
+                </p>
+                @if (canActOn(row)) {
+                  <ignt-button
+                    data-testid="lead-quote-list-modify"
+                    size="small"
+                    variant="tertiary"
+                    [ariaLabel]="'leads.detail.quote.edit' | translate"
+                    [disabled]="pendingQuote() !== null"
+                    [label]="'common.edit' | translate"
+                    [leadingIcon]="{ name: 'pen', variant: 'light' }"
+                    [loading]="pendingQuote()?.id === quote.id && pendingQuote()?.action === quoteAction.Modify"
+                    (click)="onModifyQuote(quote)"
+                  />
+                }
+              </div>
+
+              <ul class="lead-quote-list__lines">
+                @for (ticket of quote.tickets; track $index) {
+                  <li class="lead-quote-list__line" data-testid="lead-quote-list-line">
+                    <span class="lead-quote-list__line-quantity">{{
+                      'leads.detail.quote.quantity' | translate: { count: ticket.quantity }
+                    }}</span>
+                    <span class="lead-quote-list__line-label" data-testid="lead-quote-list-line-label">{{ ticket.label }}</span>
+                    <span class="lead-quote-list__line-price" data-testid="lead-quote-list-line-price">{{
+                      'leads.detail.quote.pricePerTicket' | translate: { price: ticket.price }
+                    }}</span>
+
+                    @if (ticket.activities.length > 0) {
+                      <ul class="lead-quote-list__line-activities">
+                        @for (activity of ticket.activities; track $index) {
+                          <li class="lead-quote-list__line-activity">
+                            {{ activity.name }}
+                            @if (activity.startsAt) {
+                              <span class="lead-quote-list__line-activity-time">
+                                {{ activity.endsAt ? activity.startsAt + ' – ' + activity.endsAt : activity.startsAt }}
+                              </span>
+                            }
+                          </li>
+                        }
+                      </ul>
+                    }
+
+                    <span class="lead-quote-list__line-fee">{{ 'leads.detail.quote.bookingFee' | translate }}</span>
+                    <span class="lead-quote-list__line-fee-value">{{ ticket.surchargePerTicket }}</span>
+                  </li>
+                }
+              </ul>
+
+              <p class="lead-quote-list__total" data-testid="lead-quote-list-total">
+                <span class="lead-quote-list__total-label">{{ 'leads.detail.quote.total' | translate }}</span>
+                <span class="lead-quote-list__total-value">{{ quote.totalToBePaid }}</span>
+              </p>
+
+              <app-notes
+                class="lead-quote-list__notes"
+                data-testid="lead-quote-list-notes"
+                [customerNotesLeadId]="leadId()"
+                [customerNotesQuoteId]="row.quoteId"
+                [customerNotesReadOnly]="!canActOn(row)"
+                [isCollapsed]="false"
+                [permissionOverride]="false"
+                (quoteCustomerNotesChangedAt)="onQuoteCustomerNotesChangedAt(row.quoteId, $event)"
+                (quoteCustomerNotesSaved)="onQuoteCustomerNotesSaved(row)"
+              />
+
+              @if (notesChangedAfterSendQuoteIds().has(row.quoteId)) {
+                <p class="lead-quote-list__notes-hint" data-testid="lead-quote-list-notes-hint" role="status">
+                  <ignt-icon name="info-circle" size="sm" variant="light" aria-hidden="true" />
+                  <span>{{ 'leads.detail.quote.notesChangedAfterSend' | translate }}</span>
+                </p>
+              }
+
+              @if (canActOn(row)) {
+                <div class="lead-quote-list__actions" data-testid="lead-quote-list-actions">
+                  <ignt-button
+                    data-testid="lead-quote-list-send"
+                    size="small"
+                    variant="secondary"
+                    [disabled]="isLeadUpdating() || pendingQuote() !== null"
+                    [label]="(row.sentAt === null ? 'leads.detail.quote.send' : 'leads.detail.quote.resend') | translate"
+                    [loading]="pendingQuote()?.id === quote.id && pendingQuote()?.action === quoteAction.Send"
+                    (click)="onSendQuote(quote)"
+                  />
+                  <ignt-button
+                    data-testid="lead-quote-list-convert"
+                    size="small"
+                    variant="primary"
+                    [disabled]="pendingQuote() !== null"
+                    [label]="'leads.detail.convertQuote' | translate"
+                    [loading]="pendingQuote()?.id === quote.id && pendingQuote()?.action === quoteAction.Convert"
+                    (click)="onConvertQuote(quote)"
+                  />
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="lead-quote-list__body-loading" data-testid="lead-quote-list-body-loading">{{ 'common.loading' | translate }}</p>
+          }
+        </ng-template>
+      </ignt-accordion-item>
+    }
+  </ignt-accordion>
+
+  @if (hasMore()) {
+    <ignt-button
+      class="lead-quote-list__show-more"
+      data-testid="lead-quote-list-show-more"
+      size="small"
+      variant="tertiary"
+      [label]="'leads.detail.quotes.showMore' | translate"
+      (click)="onShowMore()"
+    />
+  }
+</section>

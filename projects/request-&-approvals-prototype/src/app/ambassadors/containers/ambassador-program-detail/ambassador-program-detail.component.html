@@ -1,0 +1,134 @@
+<div class="ambassador-program-detail">
+  <header class="ambassador-program-detail__page-header">
+    <button class="ambassador-program-detail__back-button" (click)="goBack()" data-testid="ambassador-program-detail__back-button">
+      {{ 'common.backToHome' | translate }}
+    </button>
+    <h1 class="ambassador-program-detail__page-title">{{ program?.title }}</h1>
+  </header>
+  <div class="main-wrapper">
+    <ignt-wrapper-card>
+      <div class="ambassador-program-detail__content">
+        <div class="ambassador-program-detail__section-header">
+          <h3 class="ambassador-program-detail__section-title">{{ 'ambassadorOverview.rewards.redeemedRewards' | translate }}</h3>
+          <div class="ambassador-program-detail__filters">
+            <label class="ambassador-program-detail__search cell field cell--fill-lg cell--expanded">
+              <fa-icon class="ambassador-program-detail__search__icon" [icon]="['far', 'search']"></fa-icon>
+              <input
+                data-testid="ambassador-program-detail-search-term"
+                #searchTerm
+                type="search"
+                class="field__input ambassador-program-detail__search__input"
+                [id]="'ambassador-program-detail-search-term'"
+                [(ngModel)]="searchReward"
+                (ngModelChange)="searchSubject.next($event)"
+                [placeholder]="'ambassadorOverview.rewards.searchReward' | translate"
+              />
+              <fa-icon class="ambassador-program-detail__search__icon-clear" [icon]="['fal', 'times']"></fa-icon>
+              <span class="field__label">{{ 'ambassadorOverview.rewards.searchReward' | translate }}</span>
+            </label>
+          </div>
+        </div>
+        <h3 class="ambassador-program-detail__section-title--mobile">{{ 'ambassadorOverview.rewards.redeemedRewards' | translate }}</h3>
+        <div *ngIf="program" [ngTemplateOutlet]="redeemedRewardsTemplate"></div>
+      </div>
+    </ignt-wrapper-card>
+  </div>
+</div>
+
+<ng-template #redeemedRewardsTemplate>
+  <app-table
+    *ngIf="!isMobile()"
+    [type]="tableType.FZ_TABLE"
+    [headers]="headers"
+    [scrollable]="false"
+    [hasActions]="false"
+    [paddingHeader]="'0 1rem'"
+  >
+  </app-table>
+  <div class="ambassador-program-detail__list-content">
+    <div class="ambassador-program-detail__list-rewards" #redeemedRewardsContainer>
+      <p *ngIf="redeemedRewards()?.length === 0" class="ambassador-program-detail__no-rewards-message">
+        {{ 'ambassadorOverview.rewards.noRedeemedRewardsSubtitle' | translate }}
+      </p>
+      <ng-container *ngIf="!isMobile()">
+        <ng-container *ngFor="let redeemedReward of redeemedRewards(); trackBy: trackByRewardId">
+          <ignt-wrapper-card>
+            <div class="ambassador-program-detail__row">
+              <div class="ambassador-program-detail__col ambassador-program-detail__affiliate">
+                <div class="ambassador-program-detail__affiliate-name">
+                  {{ redeemedReward.affiliateName }}
+                </div>
+                <div class="ambassador-program-detail__affiliate-email">
+                  <a igntLink size="small" [href]="'mailto:' + redeemedReward.affiliateEmail" target="_blank">{{
+                    redeemedReward.affiliateEmail
+                  }}</a>
+                </div>
+                <div class="ambassador-program-detail__affiliate-code">
+                  {{ redeemedReward.affiliateCode }}
+                </div>
+              </div>
+              <div class="ambassador-program-detail__col ambassador-program-detail__title">
+                {{ redeemedReward.rewardTitle }}
+              </div>
+              <div class="ambassador-program-detail__col ambassador-program-detail__points">
+                {{ redeemedReward.points }}
+              </div>
+              <div class="ambassador-program-detail__col ambassador-program-detail__code">
+                {{ redeemedReward.code }}
+              </div>
+              <div class="ambassador-program-detail__col ambassador-program-detail__redeemed-at">
+                {{ redeemedReward.redeemedAt | momentDate: 'd MMM yyyy' : program?.places[0].city.timeZone }}
+              </div>
+            </div>
+          </ignt-wrapper-card>
+        </ng-container>
+      </ng-container>
+      <ng-container *ngIf="isMobile()">
+        <ng-container *ngFor="let redeemedReward of redeemedRewards(); trackBy: trackByRewardId">
+          <ignt-wrapper-card>
+            <div class="">
+              <div class="ambassador-program-detail__affiliate">
+                <div class="ambassador-program-detail__affiliate-name">
+                  {{ redeemedReward.affiliateName }}
+                </div>
+                <div class="ambassador-program-detail__affiliate-email">
+                  <a igntLink size="small" [href]="'mailto:' + redeemedReward.affiliateEmail" target="_blank">{{
+                    redeemedReward.affiliateEmail
+                  }}</a>
+                </div>
+                <div class="ambassador-program-detail__affiliate-code">
+                  {{ redeemedReward.affiliateCode }}
+                </div>
+              </div>
+              <ignt-divider />
+              <ignt-expansion-panel [variant]="'borderless'">
+                <div expansion-panel-title class="ambassador-program-detail__expansion-panel-text">
+                  <span class="ambassador-program-detail__expansion-panel-text-label">Reward</span>
+                  <span class="ambassador-program-detail__expansion-panel-text-value"> {{ redeemedReward.rewardTitle }}</span>
+                </div>
+                <ignt-divider [margin]="false"></ignt-divider>
+                <div class="ambassador-program-detail__expansion-panel-container">
+                  <div class="ambassador-program-detail__expansion-panel-text">
+                    <span class="ambassador-program-detail__expansion-panel-text-label">Points</span>
+                    <span class="ambassador-program-detail__expansion-panel-text-value"> {{ redeemedReward.points }}</span>
+                  </div>
+                  <div class="ambassador-program-detail__expansion-panel-text">
+                    <span class="ambassador-program-detail__expansion-panel-text-label">Date</span>
+                    <span class="ambassador-program-detail__expansion-panel-text-value">
+                      {{ redeemedReward.redeemedAt | momentDate: 'd MMM yyyy' : program?.places[0].city.timeZone }}
+                    </span>
+                  </div>
+                </div>
+              </ignt-expansion-panel>
+            </div>
+          </ignt-wrapper-card>
+        </ng-container>
+      </ng-container>
+    </div>
+    <ng-container *ngIf="loadingRedeemedRewards()">
+      <div class="ambassador-program-detail__list-loading">
+        <fa-icon [icon]="['fas', 'spinner']"></fa-icon>
+      </div>
+    </ng-container>
+  </div>
+</ng-template>

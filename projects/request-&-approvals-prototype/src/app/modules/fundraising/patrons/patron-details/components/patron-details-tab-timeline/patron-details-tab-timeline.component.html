@@ -1,0 +1,51 @@
+<div class="patron-details-tab-timeline">
+  <app-patron-details-timeline-filters
+    [activeFiltersCount]="activeFiltersCount()"
+    [activityTypeOptions]="activityTypeOptions()"
+    [canEdit]="canEdit()"
+    [dateFrom]="dateFrom()"
+    [dateTo]="dateTo()"
+    [searchValue]="searchValue()"
+    [selectedTypes]="selectedTypes()"
+    [timezone]="timezone"
+    (addActivity)="onOpenDialogActivity()"
+    (clearFilters)="onClearFilters()"
+    (dateFromChange)="onDateFromChange($event)"
+    (dateToChange)="onDateToChange($event)"
+    (searchChange)="onSearchChange($event)"
+    (selectedTypesChange)="onSelectedTypesChange($event)"
+  ></app-patron-details-timeline-filters>
+
+  <app-timeline
+    [giftOfficerName]="giftOfficerName()"
+    [orderDetailsTracking]="{ entryPoint: 'timeline_tab', patronId: patronId }"
+    [patronEmail]="patronEmail()"
+    [timelineItems]="timelineItems()"
+  ></app-timeline>
+  @if (isLoading() || isLoadingMore()) {
+    <div class="patron-details-tab-timeline__loading-container">
+      <ignt-icon
+        name="spinner"
+        variant="solid"
+        [spin]="true"
+        size="display"
+        class="patron-details-tab-timeline__loading-container__spinner"
+        aria-hidden="true"
+      />
+    </div>
+  }
+  @if (!isLoading() && !isLoadingMore() && timelineItems().length === 0) {
+    <div class="patron-details-tab-timeline__no-results" data-testid="patron-details-tab-timeline-no-results">
+      <ignt-icon class="patron-details-tab-timeline__no-results__icon" name="receipt" variant="regular" aria-hidden="true" />
+      @if (activeFiltersCount() > 0) {
+        {{ 'fundraising.patronDetails.activityTimeline.noResultsWithFilters' | translate }}
+      } @else {
+        {{ 'fundraising.patronDetails.activityTimeline.noResults' | translate }}
+      }
+    </div>
+  }
+  @if (!isLoading() && !isLoadingMore() && timelineItems().length > 0 && !hasMorePages()) {
+    <app-end-of-results data-testid="patron-details-tab-timeline-end-of-results" />
+  }
+  <div #scrollSentinel class="patron-details-tab-timeline__scroll-sentinel"></div>
+</div>

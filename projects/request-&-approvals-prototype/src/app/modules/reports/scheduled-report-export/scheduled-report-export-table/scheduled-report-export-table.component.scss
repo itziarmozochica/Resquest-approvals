@@ -1,0 +1,94 @@
+@use 'foundations' as foundations;
+
+// `ignt-table` owns the table/card layout, the header row, the horizontal scroll and the
+// delete button, so this file only carries the link style its cell template adds and the one
+// workaround below.
+.scheduled-report-export-table {
+  width: 100%;
+
+  // `@ignite/table` ellipsises its own header cells (`.ignt-table__header-cell-text`) but offers
+  // nothing for body cells: a column has no truncation input, and a value that outgrows its
+  // column is clipped mid-character.
+  // Scoped to `.ignt-table__cell-inner`, which exists only in the library's table layout. The
+  // card layout below the mobile breakpoint must keep wrapping: there is no hover on a phone, so
+  // an ellipsis there would put the rest of a value out of reach entirely.
+  ::ng-deep .ignt-table__cell-inner {
+    // The same declarations the library's own `.ignt-table__header-cell-text` uses.
+    .scheduled-report-export-table__ellipsis {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    // ...which on their own do nothing, because the library wraps every projected cell template
+    // in an `<ignt-table-cell-outlet>`, and that outlet is the flex item here. It keeps the
+    // default `min-width: auto`, so its automatic minimum is the min-content width of what it
+    // holds — for an unbreakable address, the whole string. The outlet therefore sat at 195px
+    // inside a 99px cell, the span filled the outlet, and `text-overflow` never had an overflow
+    // to act on. Letting the outlet shrink is what gives the ellipsis something to do; values
+    // that can wrap are unaffected, their min-content width being a single word.
+    ignt-table-cell-outlet {
+      display: block;
+      min-width: 0;
+      overflow: hidden;
+    }
+  }
+
+  &__source-link {
+    color: foundations.$color-action-text-primary;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  // B2BP-1353: `src/theme/components/containment/tables/tables.scss` still publishes the legacy
+  // hand-written table family under the `ignt-table` prefix globally, and its own comment notes
+  // that this "reaches inside every Ignite table in the app". It lands `display: table` plus a
+  // `min-width` on the library's root `<div class="ignt-table">`, which then grows to its content
+  // instead of staying put — so `.ignt-table__scroll` inside it never has anything to scroll and
+  // the whole page scrolls sideways instead. Restores the plain block box the library expects.
+  // Delete this once `ignt-table` comes off `$legacy-table-prefixes`.
+  ::ng-deep .ignt-table {
+    display: block;
+    min-width: 0;
+    width: auto;
+  }
+
+  // Export names are long and meaningful ("Demo - Graph (Tickets by Purchase Date)"), and the
+  // library's card header is one `white-space: nowrap` line at a fixed height, so the part that
+  // tells two exports apart is the part it cuts. Two lines, with the header growing to fit.
+  ::ng-deep .ignt-table__card-header {
+    height: auto;
+    max-height: none;
+    padding-bottom: foundations.$space-3;
+    padding-top: foundations.$space-3;
+  }
+
+  ::ng-deep .ignt-table__card-title {
+    /* stylelint-disable-next-line value-no-vendor-prefix -- pairs with -webkit-line-clamp, as the library's own field label does */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  // The library sizes the label from whatever the value leaves over (`flex: 1 1 0` against the
+  // value's `flex: 0 0 auto`), so a long value takes the whole row and the label vanishes —
+  // shrinking the value does not help, because a zero flex-basis absorbs none of the shrinkage.
+  // Swapping the two roles round fixes it without a magic percentage: the label takes the width
+  // of its own short text, and the value wraps into whatever is left.
+  ::ng-deep .ignt-table__card-field-label {
+    flex: 0 0 auto;
+  }
+
+  ::ng-deep .ignt-table__card-field-value {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}

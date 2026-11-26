@@ -1,0 +1,284 @@
+<div class="split-payment-progress">
+  <div class="split-payment-progress__header">
+    <div class="split-payment-progress__title" data-testid="split-payment-progress-title">
+      {{ 'boxOffice.splitPaymentProgressModal.title' | translate }}
+    </div>
+  </div>
+
+  @if (currentStep() === 'setup') {
+    <div class="split-payment-progress__setup" data-testid="setup-step">
+      <div class="split-payment-progress__setup-question">
+        {{ 'boxOffice.splitPaymentProgressModal.setupQuestion' | translate }}
+      </div>
+
+      <div class="split-payment-progress__setup-select">
+        <ng-select
+          [items]="splitTypeOptions"
+          [clearable]="false"
+          [searchable]="false"
+          bindValue="value"
+          data-testid="split-type-select"
+          [ngModel]="splitType()"
+          (ngModelChange)="onSplitTypeChange($event)"
+        >
+          <ng-template ng-label-tmp let-item="item">
+            {{ item.label }}
+          </ng-template>
+          <ng-template ng-option-tmp let-item="item">
+            <span class="split-type-option__label">{{ item.label }}.</span>
+            <span class="split-type-option__description">{{ item.description }}</span>
+          </ng-template>
+        </ng-select>
+      </div>
+
+      @if (splitType() === 'equal') {
+        <div class="split-payment-progress__setup-field-group" data-testid="equal-split-fields">
+          <label class="split-payment-progress__setup-label" for="numberOfPayments">
+            {{ 'boxOffice.splitPaymentProgressModal.numberOfPayments' | translate }}
+          </label>
+          <p class="split-payment-progress__setup-description">
+            {{ 'boxOffice.splitPaymentProgressModal.numberOfPaymentsDescription' | translate }}
+          </p>
+          <div class="split-payment-progress__setup-input-container">
+            <input
+              #numberOfPaymentsInput
+              id="numberOfPayments"
+              type="number"
+              class="form-control"
+              min="1"
+              [max]="maxNumberOfPayments()"
+              data-testid="number-of-payments-input"
+              [placeholder]="'boxOffice.splitPaymentProgressModal.numberOfPaymentsPlaceholder' | translate"
+              [value]="numberOfPayments()"
+              (input)="onNumberOfPaymentsChange($event)"
+            />
+            @if (numberOfPayments() !== null && !isNumberOfPaymentsValid()) {
+              <span class="split-payment-progress__setup-error" data-testid="too-many-payments-error">
+                {{
+                  'boxOffice.splitPaymentProgressModal.tooManyPayments'
+                    | translate: { max: maxNumberOfPayments(), min: (MINIMUM_SPLIT_AMOUNT | number: '1.2-2' : locale) }
+                }}
+              </span>
+            }
+            @if (isNumberOfPaymentsValid() && fixedSplitAmount() !== null) {
+              <span class="split-payment-progress__setup-hint" data-testid="fixed-amount-hint">
+                ≈ {{ fixedSplitAmount()! | number: '1.2-2' : locale }} —
+                {{ 'boxOffice.splitPaymentProgressModal.fixedAmountNote' | translate }}
+              </span>
+            }
+          </div>
+        </div>
+      }
+
+      <ignt-button
+        fill
+        variant="primary"
+        size="large"
+        class="split-payment-progress__action-button"
+        data-testid="continue-to-payment"
+        [label]="'boxOffice.splitPaymentProgressModal.continueToPayment' | translate"
+        [disabled]="!isSetupValid()"
+        (click)="continueToPayment()"
+      />
+
+      <ignt-button
+        fill
+        sentiment="danger"
+        variant="secondary"
+        size="large"
+        class="split-payment-progress__action-button split-payment-progress__action-button--cancel"
+        data-testid="cancel-setup"
+        [label]="'boxOffice.splitPaymentProgressModal.cancelAndRefund' | translate"
+        (click)="closeModal()"
+      />
+    </div>
+  } @else {
+    <div class="split-payment-progress__summary">
+      <div class="split-payment-progress__summary-column split-payment-progress__summary-column--total">
+        <span class="split-payment-progress__summary-label">{{ 'boxOffice.splitPaymentProgressModal.totalPayment' | translate }}</span>
+        <div class="split-payment-progress__summary-tile">
+          <span class="split-payment-progress__summary-value">{{ summaryTotal() | money: locale }}</span>
+        </div>
+      </div>
+      @if (splitType() === 'equal') {
+        <div class="split-payment-progress__summary-column" data-testid="n-payments-column">
+          <span class="split-payment-progress__summary-label split-payment-progress__summary-label--nowrap">
+            {{ 'boxOffice.splitPaymentProgressModal.nPayments' | translate }}
+          </span>
+          <div class="split-payment-progress__summary-tile">
+            <span class="split-payment-progress__summary-value">{{ numberOfPaymentsDisplay() }}</span>
+          </div>
+        </div>
+      }
+      <div class="split-payment-progress__summary-column">
+        <span class="split-payment-progress__summary-label">{{ 'boxOffice.splitPaymentProgressModal.paid' | translate }}</span>
+        <div class="split-payment-progress__summary-tile">
+          <span class="split-payment-progress__summary-value">{{ summaryPaid() | money: locale }}</span>
+        </div>
+      </div>
+      <div class="split-payment-progress__summary-column">
+        <span class="split-payment-progress__summary-label">{{ 'boxOffice.splitPaymentProgressModal.toBePaid' | translate }}</span>
+        <div class="split-payment-progress__summary-tile">
+          <span class="split-payment-progress__summary-value">{{ summaryToBePaid() | money: locale }}</span>
+        </div>
+      </div>
+    </div>
+
+    @if (splitType() === 'unequal' && splits().length === 0) {
+      <div class="split-payment-progress__empty-state" data-testid="empty-state">
+        <p class="split-payment-progress__empty-state-title">{{ 'boxOffice.splitPaymentProgressModal.noPaymentsYet' | translate }}</p>
+        <p class="split-payment-progress__empty-state-description">
+          {{ 'boxOffice.splitPaymentProgressModal.enterAmountToStart' | translate }}
+        </p>
+      </div>
+    }
+
+    @if (splits().length > 0) {
+      <div class="split-payment-progress__timeline">
+        <app-shared-timeline [dateFormat]="'LT'" [defaultExpandedItem]="'last'" [iconFramed]="false" [items]="timelineItems()">
+          <ng-template timelineItemContent="split-completed" let-item>
+            <div class="split-payment-progress__split-details">
+              <div>
+                <strong>{{ 'boxOffice.splitPaymentProgressModal.terminalDescription' | translate }}:</strong>
+                {{ item.split.terminalDescription || '-' }}
+              </div>
+              <div>
+                <strong>{{ 'boxOffice.splitPaymentProgressModal.paymentId' | translate }}:</strong> {{ item.split.id || '-' }}
+              </div>
+              @if (item.split.errorCondition) {
+                <div>
+                  <strong>{{ 'boxOffice.splitPaymentProgressModal.error' | translate }}:</strong> {{ item.split.errorCondition }}
+                </div>
+              }
+            </div>
+          </ng-template>
+          <ng-template timelineItemContent="split-in-progress" let-item>
+            <div class="split-payment-progress__split-in-progress">
+              <p class="split-payment-progress__split-question">
+                {{ 'boxOffice.splitPaymentProgressModal.didYouReceiveAnswer' | translate }}
+              </p>
+              @if (paymentInProgress() && item.split.index === splits().length && !item.split.rawStatus?.toLowerCase().includes('cancel')) {
+                <a
+                  href="#"
+                  igntLink
+                  sentiment="danger"
+                  size="small"
+                  class="split-payment-progress__cancel-split-link"
+                  data-testid="cancel-current-split"
+                  [class.split-payment-progress__cancel-split-link--disabled]="!item.split.id || isCancellingSplit()"
+                  [attr.aria-disabled]="!item.split.id || isCancellingSplit()"
+                  (click)="$event.preventDefault(); !item.split.id || isCancellingSplit() || cancelCurrentSplit(item.split)"
+                >
+                  {{ 'boxOffice.splitPaymentProgressModal.cancelSplit' | translate }}
+                </a>
+              }
+            </div>
+          </ng-template>
+        </app-shared-timeline>
+      </div>
+    }
+
+    @if (splitType() === 'unequal') {
+      <div class="split-payment-progress__custom-payment" data-testid="custom-payment-section">
+        <label class="split-payment-progress__custom-payment-label" for="customPaymentAmount">
+          {{ 'boxOffice.splitPaymentProgressModal.customPayment' | translate }}
+        </label>
+        <p class="split-payment-progress__custom-payment-description">
+          {{ 'boxOffice.splitPaymentProgressModal.customPaymentDescription' | translate }}
+        </p>
+        <input
+          #customPaymentAmountInput
+          id="customPaymentAmount"
+          appAutoformatNumericInput
+          type="text"
+          class="form-control"
+          data-testid="custom-amount-input"
+          [atmMode]="true"
+          [currency]="summaryTotal().currency"
+          [placeHolderValue]="0"
+          [atmMaxAmount]="summaryToBePaid().amount"
+          [disabled]="!paymentInProgress() || isSendingSplit() || isCancellingAndRefunding() || isLatestSplitInProgress()"
+          (rawValue)="onCustomAmountRawValue($event)"
+        />
+        @if (isCustomAmountTooLow()) {
+          <span class="split-payment-progress__custom-payment-error" data-testid="custom-amount-too-low-error">
+            {{ 'boxOffice.splitAmountInput.minimumAmount' | translate: { amount: (MINIMUM_SPLIT_AMOUNT | number: '1.2-2' : locale) } }}
+          </span>
+        }
+        @if (isCustomAmountExceeding()) {
+          <span class="split-payment-progress__custom-payment-error" data-testid="custom-amount-exceeding-error">
+            {{ 'boxOffice.splitAmountInput.exceedsRemaining' | translate }}
+          </span>
+        }
+        @if (wouldLeaveInsufficient()) {
+          <span class="split-payment-progress__custom-payment-error" data-testid="custom-amount-insufficient-remainder-error">
+            {{
+              'boxOffice.splitAmountInput.insufficientRemainder' | translate: { amount: (MINIMUM_SPLIT_AMOUNT | number: '1.2-2' : locale) }
+            }}
+          </span>
+        }
+      </div>
+    }
+
+    <div class="split-payment-progress__actions">
+      @if (displayedSplitError() && !isCancellingAndRefunding()) {
+        <div class="alert alert-danger split-payment-progress__error" data-testid="split-error">{{ displayedSplitError() }}</div>
+      }
+      <ignt-button
+        fill
+        variant="primary"
+        size="large"
+        class="split-payment-progress__action-button"
+        data-testid="send-new-payment"
+        [label]="'boxOffice.splitPaymentProgressModal.sendNewPayment' | translate"
+        [disabled]="!canSendSplit() || isCancellingAndRefunding() || fiscalFailureDetected() || fiscalSigningUnresolvable()"
+        (click)="sendNextSplit()"
+      />
+      <ignt-button
+        fill
+        sentiment="danger"
+        variant="secondary"
+        size="large"
+        class="split-payment-progress__action-button"
+        data-testid="cancel-and-refund"
+        [label]="'boxOffice.splitPaymentProgressModal.cancelAndRefund' | translate"
+        [disabled]="isCancellingAndRefunding() || fiscalFailureDetected() || fiscalSigningHeld() || fiscalSigningUnresolvable()"
+        (click)="cancelAndRefund()"
+      />
+      @if (fiscalFailureDetected() || fiscalSigningUnresolvable()) {
+        <ignt-button
+          fill
+          variant="secondary"
+          size="large"
+          class="split-payment-progress__action-button"
+          data-testid="close-after-fiscal-failure"
+          [label]="'boxOffice.splitPaymentProgressModal.fiscalFailureClose' | translate"
+          (click)="closeAfterFiscalFailure()"
+        />
+      }
+    </div>
+
+    @if (fiscalSigningUnresolvable()) {
+      <div class="alert alert-warning split-payment-progress__status" role="status" data-testid="fiscal-signing-unresolvable-message">
+        {{ 'boxOffice.splitPaymentProgressModal.fiscalSigningUnresolvableMessage' | translate }}
+      </div>
+    } @else if (fiscalFailureDetected()) {
+      <div class="alert alert-warning split-payment-progress__status" role="status" data-testid="fiscal-failure-message">
+        {{ 'boxOffice.splitPaymentProgressModal.fiscalFailureMessage' | translate }}
+      </div>
+    }
+
+    @if (isCancellingAndRefunding()) {
+      <div class="alert alert-info split-payment-progress__status split-payment-progress__status--cancelling" role="status">
+        <ignt-icon
+          name="spinner"
+          variant="solid"
+          [spin]="true"
+          aria-hidden="true"
+          class="split-payment-progress__status-spinner"
+        ></ignt-icon>
+        <span>{{ 'boxOffice.splitPaymentProgressModal.cancellingAndRefundingMessage' | translate }}</span>
+      </div>
+    }
+  }
+</div>

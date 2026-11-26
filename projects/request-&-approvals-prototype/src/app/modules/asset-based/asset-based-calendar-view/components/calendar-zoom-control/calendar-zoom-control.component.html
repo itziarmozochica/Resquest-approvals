@@ -1,0 +1,76 @@
+@let timeValue = timeLabel().key | translate: timeLabel().params;
+@let laneValue = laneNameKey() | translate;
+<div class="calendar-zoom-control">
+  <ignt-button
+    class="calendar-zoom-control__trigger"
+    size="small"
+    variant="tertiary"
+    sentiment="brand"
+    data-testid="calendar-zoom-control-trigger"
+    cdkOverlayOrigin
+    #trigger="cdkOverlayOrigin"
+    [class.calendar-zoom-control__trigger--open]="isOpen()"
+    [ariaLabel]="'bookedSlots.zoomControl.triggerLabel' | translate: { lanes: laneValue, time: timeValue }"
+    [label]="'bookedSlots.zoomControl.triggerValue' | translate: { lanes: laneValue, time: timeValue }"
+    [leadingIcon]="triggerIcon"
+    (click)="onTriggerClick()"
+  ></ignt-button>
+
+  <ng-template
+    cdkConnectedOverlay
+    cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
+    [cdkConnectedOverlayHasBackdrop]="true"
+    [cdkConnectedOverlayOpen]="isOpen()"
+    [cdkConnectedOverlayOrigin]="trigger"
+    [cdkConnectedOverlayPositions]="panelPositions"
+    [cdkConnectedOverlayViewportMargin]="8"
+    (backdropClick)="onPanelClose()"
+    (detach)="onPanelClose()"
+    (overlayKeydown)="onPanelKeydown($event)"
+  >
+    <div
+      class="calendar-zoom-control__panel"
+      role="dialog"
+      data-testid="calendar-zoom-control-panel"
+      cdkTrapFocus
+      [cdkTrapFocusAutoCapture]="true"
+      [attr.aria-label]="'bookedSlots.zoomControl.panelLabel' | translate"
+    >
+      <div class="calendar-zoom-control__axis">
+        <div class="calendar-zoom-control__axis-header">
+          <ignt-icon aria-hidden="true" class="calendar-zoom-control__axis-icon" name="arrows-up-down" variant="solid" />
+          <span class="calendar-zoom-control__axis-label">{{ 'bookedSlots.zoomControl.timeLabel' | translate }}</span>
+          <span class="calendar-zoom-control__axis-value" aria-hidden="true" data-testid="calendar-zoom-control-time-value">{{
+            timeValue
+          }}</span>
+        </div>
+        <app-calendar-zoom-slider
+          data-testid="calendar-zoom-control-time-slider"
+          [index]="timeStepIndex()"
+          [label]="'bookedSlots.zoomControl.timeLabel' | translate"
+          [stepCount]="timeStepCount"
+          [valueText]="timeValue"
+          (indexChange)="onTimeIndexChange($event)"
+        />
+      </div>
+
+      <div class="calendar-zoom-control__axis">
+        <div class="calendar-zoom-control__axis-header">
+          <ignt-icon aria-hidden="true" class="calendar-zoom-control__axis-icon" name="table-columns" variant="solid" />
+          <span class="calendar-zoom-control__axis-label">{{ 'bookedSlots.zoomControl.lanesLabel' | translate }}</span>
+          <span class="calendar-zoom-control__axis-value" aria-hidden="true" data-testid="calendar-zoom-control-lanes-value">{{
+            laneValue
+          }}</span>
+        </div>
+        <app-calendar-zoom-slider
+          data-testid="calendar-zoom-control-lanes-slider"
+          [index]="laneIndex()"
+          [label]="'bookedSlots.zoomControl.lanesLabel' | translate"
+          [stepCount]="laneStepCount"
+          [valueText]="laneValue"
+          (indexChange)="onLaneIndexChange($event)"
+        />
+      </div>
+    </div>
+  </ng-template>
+</div>

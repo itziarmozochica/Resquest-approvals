@@ -1,0 +1,95 @@
+<p class="external-container__subtitle" translate>login.explanation</p>
+<ignt-alert
+  class="external-container__banner"
+  *ngIf="currentStep !== usernameStep && banner()"
+  [description]="banner() | translate"
+  sentiment="accent"
+></ignt-alert>
+<ignt-alert
+  class="external-container__banner"
+  *ngIf="error === null && success.displayed"
+  [description]="success.message"
+  sentiment="positive"
+  data-testid="login-form-success-message"
+></ignt-alert>
+<ignt-alert
+  *ngIf="error !== null"
+  class="external-container__banner"
+  [description]="error.message | translate"
+  [sentiment]="error.type"
+  data-testid="external-container-error"
+></ignt-alert>
+<form (ngSubmit)="isLoading !== true && login()" [formGroup]="loginForm" [ngSwitch]="currentStep">
+  <div class="external-container__form-group">
+    <label for="id_username" class="external-container__form-label">
+      <fa-icon [icon]="['fal', 'user-circle']"></fa-icon>
+    </label>
+    <input
+      #usernameInput
+      class="external-container__form-input"
+      data-testid="login-username"
+      id="id_username"
+      type="email"
+      autocomplete="username"
+      [placeholder]="'login.userName' | translate"
+      name="username"
+      formControlName="username"
+      (keydown.enter)="onUsernameEnter($event)"
+      [readonly]="currentStep === passwordStep"
+    />
+    <fa-icon
+      (click)="goToPreviousStep()"
+      *ngIf="currentStep === passwordStep"
+      [icon]="['fal', 'pencil']"
+      class="external-container__form-edit-email"
+      data-testid="edit-email"
+    ></fa-icon>
+  </div>
+  <div [class.hidden]="currentStep === usernameStep" class="external-container__form-group password-field">
+    <label class="external-container__form-label">
+      <fa-icon [icon]="['fal', 'lock-alt']"></fa-icon>
+    </label>
+    <input
+      #passwordInput
+      [type]="showPassword ? 'text' : 'password'"
+      data-testid="login-password"
+      autocomplete="current-password"
+      [placeholder]="'login.password' | translate"
+      class="external-container__form-input"
+      name="password"
+      formControlName="password"
+    />
+    <fa-icon
+      class="external-container__form-show-password"
+      data-testid="show-password"
+      [icon]="['fal', showPassword ? 'eye' : 'eye-slash']"
+      (click)="changePasswordVisibility()"
+    ></fa-icon>
+    <app-validation-error-messages [control]="loginForm.get('password')!"></app-validation-error-messages>
+  </div>
+  <div *ngIf="currentStep === passwordStep" class="external-container__link external-container__link--forgot-password">
+    <a (click)="goToForgetPass()" translate>login.forgotPassword</a>
+  </div>
+  <button
+    (click)="ssoLogin()"
+    *ngSwitchCase="usernameStep"
+    [class.external-container__button--loading]="isLoading"
+    [disabled]="!isUsernameValid()"
+    [type]="'button'"
+    class="button button--large button--primary button--fill"
+    translate
+  >
+    login.continue
+  </button>
+  <ng-container *ngSwitchCase="passwordStep">
+    <button
+      [class.external-container__button--loading]="isLoading"
+      [disabled]="loginForm.invalid || isLoading === true"
+      class="button button--large button--primary button--fill"
+      translate
+      type="submit"
+    >
+      login.signIn
+    </button>
+  </ng-container>
+</form>

@@ -1,0 +1,90 @@
+<main class="main-wrapper">
+  <app-kiosk-hero
+    [title]="plan.name"
+    [supportingText]="uiRefreshEnabled ? undefined : ('kiosk.checkout.hero.supportingText' | translate)"
+    [hideLanguageSelector]="true"
+    [hideHomeButton]="true"
+  ></app-kiosk-hero>
+
+  <div class="main-wrapper--content flex-wrapper">
+    <!-- <ng-container [ngTemplateOutlet]="loadingSkeleton"> </ng-container> -->
+    <app-kiosk-purchase-details
+      [cart]="cart"
+      [eventDate]="eventDate"
+      [eventLocation]="eventLocation"
+      [isLoading]="isLoading$ | async"
+      [partner]="partner"
+      (couponChange)="onCouponChange($event)"
+    ></app-kiosk-purchase-details>
+    <ng-container *ngIf="(isLoading$ | async) === false">
+      <app-kiosk-contact
+        [hidden]="!showContactForm"
+        [contactInformationSetup]="contactInformationSetup"
+        [defaultCountry]="partner?.countryCode ?? null"
+        [hasFutureSessions]="this.cart.hasSessionsInFuture"
+        [isPhoneEnabled]="isContactInformationPhoneEnabled"
+        [requireFullName]="requiresFullName"
+        (formSubmit)="onContactFormSubmit($event)"
+        (focusin)="onContactFieldFocusIn()"
+        (focusout)="onContactFieldFocusOut($event)"
+      ></app-kiosk-contact>
+      <div class="order-confirmation-callout" [hidden]="!showContactForm">
+        @if (showCommercialCommunicationsCheckbox()) {
+          <div class="order-confirmation-callout__item order-confirmation-callout__item--informative">
+            <p
+              class="order-confirmation-callout__paragraph"
+              (click)="onContactTermsLabelClick($event)"
+              [innerHTML]="contactTermsLabelKey() | translate"
+            ></p>
+          </div>
+          <div class="order-confirmation-callout__item" (click)="onCommercialCommunicationsCheckChange()">
+            <input type="checkbox" class="order-confirmation-callout__checkbox" [checked]="acceptedCommercialCommunications" />
+            <span class="order-confirmation-callout__label" [innerHTML]="commercialCommunicationsLabelKey() | translate"></span>
+          </div>
+        } @else {
+          <div class="order-confirmation-callout__item" (click)="onTermsCheckChange()">
+            <input type="checkbox" class="order-confirmation-callout__checkbox" [checked]="acceptedTerms" />
+            <span
+              class="order-confirmation-callout__label"
+              (click)="onContactTermsLabelClick($event)"
+              [innerHTML]="contactTermsLabelKey() | translate"
+            ></span>
+          </div>
+        }
+        <div class="order-confirmation-callout__item" [hidden]="!showPartnerTermsCheckbox()" (click)="onPartnerTermsCheckChange()">
+          <input type="checkbox" class="order-confirmation-callout__checkbox" [checked]="acceptedPartnerTerms" />
+          <span
+            class="order-confirmation-callout__label"
+            (click)="onPartnerTermsLabelClick($event)"
+            [innerHTML]="partnerTermsTranslationKey() | translate"
+          ></span>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+  <app-action-footer
+    primaryButtonText="{{ 'kiosk.checkout.footer.primaryButton' | translate }}"
+    secondaryButtonText="{{ 'kiosk.checkout.footer.secondaryButton' | translate }}"
+    [primaryFill]="true"
+    (primaryButtonClick)="onContinueClicked()"
+    (secondaryButtonClick)="onBackClicked()"
+    [disablePrimary]="disablePrimaryButton() || (isLoading$ | async) || !isRealKiosk()"
+  ></app-action-footer>
+</main>
+
+<ng-template #loadingSkeleton>
+  <div class="loading-skeleton loading-skeleton__details">
+    <ignt-skeleton [type]="'header'" [animation]="true" />
+    <ignt-skeleton [type]="'item'" [animation]="true" />
+    <ignt-skeleton [type]="'card'" [animation]="true" />
+    <ignt-skeleton [type]="'image'" [animation]="true" [height]="50" />
+    <ignt-skeleton [type]="'card'" [animation]="true" />
+  </div>
+  <div class="loading-skeleton loading-skeleton__info">
+    <ignt-skeleton [type]="'item'" [animation]="true" />
+    <ignt-skeleton [type]="'image'" [animation]="true" [height]="56" [numElements]="3" />
+  </div>
+  <div class="loading-skeleton">
+    <ignt-skeleton [type]="'item'" [animation]="true" [numElements]="3" />
+  </div>
+</ng-template>

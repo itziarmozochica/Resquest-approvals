@@ -1,0 +1,88 @@
+<header class="stripe-payment-domains-header">
+  <div class="stripe-payment-domains-header__bar">
+    <div class="stripe-payment-domains-header__host">
+      <label class="stripe-payment-domains-header__label" for="stripe-payment-domains-host">
+        {{ 'whitelabelManagement.stripePaymentDomains.hostSelectorLabel' | translate }}
+      </label>
+      <ng-select
+        bindLabel="host"
+        bindValue="host"
+        class="stripe-payment-domains-header__ng-select"
+        data-testid="stripe-payment-domains-host-select"
+        labelForId="stripe-payment-domains-host"
+        [clearable]="false"
+        [items]="hostOptions()"
+        [ngModel]="selectedHost()"
+        [placeholder]="'whitelabelManagement.stripePaymentDomains.hostSelectorLabel' | translate"
+        [searchable]="true"
+        (ngModelChange)="onHostChanged($event)"
+      />
+
+      @if (normalizedHost().hostname; as hostname) {
+        <span class="stripe-payment-domains-header__target" data-testid="stripe-payment-domains-target">
+          {{ 'whitelabelManagement.stripePaymentDomains.header.domainSentToStripe' | translate }}
+          <code>{{ hostname }}</code>
+        </span>
+      }
+    </div>
+
+    <ignt-button
+      data-testid="stripe-payment-domains-verify-all"
+      [disabled]="isVerifying()"
+      [label]="'whitelabelManagement.stripePaymentDomains.header.verifyAll' | translate"
+      [loading]="isVerifying()"
+      (click)="verifyAllRequested.emit()"
+    />
+  </div>
+
+  @if (!isInitialLoading()) {
+    <div class="stripe-payment-domains-header__summary">
+      @if (attentionCount() > 0) {
+        <span class="stripe-payment-domains-header__attention" data-testid="stripe-payment-domains-attention">
+          <strong>
+            {{ 'whitelabelManagement.stripePaymentDomains.header.attention' | translate: { count: attentionCount() } }}
+          </strong>
+          {{ 'whitelabelManagement.stripePaymentDomains.header.attentionDetail' | translate: { cities: attentionCityCount() } }}
+        </span>
+      } @else {
+        <span class="stripe-payment-domains-header__all-ready" data-testid="stripe-payment-domains-all-ready">
+          {{ 'whitelabelManagement.stripePaymentDomains.header.allReady' | translate }}
+        </span>
+      }
+
+      <span class="stripe-payment-domains-header__counts">
+        {{ 'whitelabelManagement.stripePaymentDomains.header.accountsListed' | translate: { count: listedAccountCount() } }}
+        ·
+        {{ 'whitelabelManagement.stripePaymentDomains.header.lastVerified.' + verifiedAgo().key | translate: verifiedAgo().params }}
+      </span>
+    </div>
+  }
+
+  @if (isReadOnly()) {
+    <ignt-alert
+      sentiment="info"
+      data-testid="stripe-payment-domains-read-only-alert"
+      [description]="'whitelabelManagement.stripePaymentDomains.readOnlyMessage' | translate"
+    />
+  }
+
+  @if (isBlockedHost()) {
+    <ignt-alert
+      sentiment="warning"
+      data-testid="stripe-payment-domains-blocked-host-alert"
+      [description]="'whitelabelManagement.stripePaymentDomains.blockedHostMessage' | translate: { hostname: normalizedHost().hostname }"
+    />
+  }
+
+  @if (normalizedHost().hasPath) {
+    <ignt-alert
+      sentiment="info"
+      data-testid="stripe-payment-domains-path-warning-alert"
+      [description]="
+        'whitelabelManagement.stripePaymentDomains.pathWarning.message'
+          | translate: { host: normalizedHost().rawValue, hostname: normalizedHost().hostname }
+      "
+      [title]="'whitelabelManagement.stripePaymentDomains.pathWarning.title' | translate"
+    />
+  }
+</header>

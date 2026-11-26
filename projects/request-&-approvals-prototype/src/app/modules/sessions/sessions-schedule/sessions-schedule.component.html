@@ -1,0 +1,135 @@
+<ignt-alert
+  *ngIf="showRescheduleSuccessAlert"
+  @slideBounce
+  class="sessions-schedule__success-alert"
+  sentiment="positive"
+  [description]="'sessions.reschedule.successMessage' | translate"
+  data-testid="reschedule-success-alert"
+></ignt-alert>
+
+<app-sessions-datetime-picker
+  [screen]="screen.sessionSchedule"
+  [filters]="filters"
+  [resultTemplate]="sessionsScheduleTable"
+  [icon]="['fas', 'sort-alt']"
+  [showTimePicker]="false"
+  [refreshResult]="refreshSearch"
+  [loadMoreTrigger]="loadMoreTrigger"
+  (loadResult)="loadResult($event)"
+  (hasMorePagesChange)="hasMorePages = $event"
+  (loadingMoreChange)="onLoadingMoreChange($event)"
+  (nextStartsAtFromChange)="nextStartsAtFrom = $event"
+>
+  <div *ngIf="scheduleFilters$ | async as scheduleFilters" slot="schedule-filters" class="sessions-schedule__filters-form">
+    <app-sessions-schedule-filters
+      [scheduleFilters]="scheduleFilters"
+      (scheduleFiltersChanged)="onScheduleFiltersUpdated($event)"
+    ></app-sessions-schedule-filters>
+  </div>
+</app-sessions-datetime-picker>
+
+@if (!loadingMore && sessions.length > 0 && hasMorePages && nextStartsAtFrom) {
+  <ignt-button
+    variant="secondary"
+    size="small"
+    [label]="'sessions.schedule.loadMore' | translate"
+    (click)="loadMoreTrigger.next()"
+    class="sessions-schedule__load-more"
+    data-testid="sessions-schedule-load-more"
+  />
+}
+@if (loadingMore) {
+  <div class="sessions-schedule__loading-more" data-testid="sessions-schedule-loading-more">
+    <fa-icon [icon]="['fas', 'spinner']" class="loader"></fa-icon>
+  </div>
+}
+
+<ng-template #sessionsScheduleTable>
+  <ng-container *ngIf="enableTierFeatures && (tiers$ | async)"></ng-container>
+  <ng-container [ngTemplateOutlet]="sessionsScheduleHeaderTable"></ng-container>
+  <ng-container [ngTemplateOutlet]="sessionsScheduleBodyTable" [ngTemplateOutletContext]="{ sessions: sessions }"></ng-container>
+</ng-template>
+<ng-template #sessionsScheduleHeaderTable>
+  <div
+    class="sessions-schedule-table__header"
+    [class.sessions-schedule-table__header--no-edit]="!canEditSessionPermission"
+    [class.sessions-schedule-table__header--with-tier]="enableTierFeatures"
+  >
+    <div data-testid="sessions-schedule-start-date-header">
+      {{ 'sessions.schedule.columnNames.startDate' | translate }}
+    </div>
+    <div data-testid="sessions-schedule-start-datetime-header">
+      {{ 'sessions.schedule.columnNames.startDatetime' | translate }}
+    </div>
+    <ng-container *ngIf="enableTierFeatures">
+      <div data-testid="sessions-schedule-tier-header">
+        {{ 'sessions.schedule.columnNames.tier' | translate }}
+      </div>
+    </ng-container>
+    @if (canEditSessionPermission) {
+      <div data-testid="sessions-per-timeslot-edit-header">
+        {{ 'sessions.schedule.columnNames.edit' | translate }}
+      </div>
+    }
+  </div>
+</ng-template>
+<ng-template #sessionsScheduleBodyTable let-sessions="sessions">
+  <div class="sessions-schedule-table__body">
+    <div
+      class="sessions-schedule-row"
+      *ngFor="let session of sessions; trackBy: trackBySessionId"
+      [class.sessions-schedule-row--no-edit]="!canEditSessionPermission"
+      [class.sessions-schedule-row--with-tier]="enableTierFeatures"
+    >
+      <div class="sessions-schedule-row__start-date" data-testid="sessions-schedule-start-date-body">
+        {{ session.minStartsAtUtc | momentDate: 'EEE d, MMM y' : timezone }}
+      </div>
+      <div class="sessions-schedule-row__start-datetime" data-testid="sessions-schedule-start-datetime-body">
+        {{ session.minStartsAtUtc | momentDate: 'HH:mm' : timezone }}
+      </div>
+      <ng-container *ngIf="enableTierFeatures">
+        <div class="sessions-schedule-row__tier" data-testid="sessions-schedule-tier-body">
+          <span
+            *ngIf="session.tierName as tier; else noTier"
+            class="tag"
+            [ngStyle]="{
+              color: session.tierColor ?? '',
+              'border-color': session.tierColor ?? '',
+            }"
+          >
+            {{ tier }}
+          </span>
+          <ng-template #noTier>
+            <span>-</span>
+          </ng-template>
+        </div>
+      </ng-container>
+      @if (canEditSessionPermission) {
+        <div class="sessions-schedule-row__edit" data-testid="sessions-schedule-edit-body" (click)="onEditClick(session.toView())">
+          <fa-icon data-testid="sessions-schedule-edit-icon" class="sessions-schedule-row__edit-button" [icon]="['far', 'edit']"> </fa-icon>
+        </div>
+      }
+    </div>
+  </div>
+</ng-template>
+
+<app-lateral-slider
+  [showDetails]="showLateralSlider"
+  [title]="'sessions.schedule.edition.title'"
+  [contentTemplate]="editFormTemplate"
+  (closeSlider)="closeLateralSlider()"
+>
+</app-lateral-slider>
+
+<ng-template #editFormTemplate>
+  <app-schedule-edit-form
+    *ngIf="scheduleSelected && filters?.selectedPlan?.id != null && filters?.selectedPlace?.id != null"
+    [schedule]="scheduleSelected"
+    [timezone]="timezone"
+    [planId]="filters!.selectedPlan.id"
+    [placeId]="filters!.selectedPlace.id"
+    [isStartsAtLocked]="isStartsAtLocked"
+    [tiers]="(tiers$ | async) ?? []"
+    (formChanges)="updateSchedule($event)"
+  ></app-schedule-edit-form>
+</ng-template>

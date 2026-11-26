@@ -1,0 +1,239 @@
+<!--
+  The whole section in one column: the house header, then the row of controls, then the panes. It has
+  a floor and no ceiling — a screenful when there is little to show, longer than one when the preview
+  says so — and it is the column the sticky toolbar stays put inside. It is a div rather than the
+  component host because the app layout forces `display: block` on every routed host through an
+  `::ng-deep` rule an ID makes unbeatable — see `layout.component.scss`.
+-->
+<div class="static-html">
+  <!--
+    The house page header, the same one every sibling page under `whitelabels/` opens with: the back
+    affordance first, then the title bar. The page owns no `<h1>`, so navigation and page chrome stay
+    out of the section's own markup. Both sit outside the load-error branch, so a configuration that
+    failed to read can still be navigated away from.
+
+    One line, not a crumb trail: the trail said "Whitelabel configuration" a second time, which the
+    back link above already says, and the whitelabel it named belongs in the title of the page about
+    it. The joined title comes from a key rather than a concatenation here, because the separator and
+    the word order are the translator's to decide.
+  -->
+  <app-go-back [goBackTitle]="'staticHtml.backToConfiguration' | translate" [urlGoBack]="goBackUrl" />
+  <app-page-title class="new-design" [title]="titleKey | translate: { name: whitelabelName }" />
+
+  @if (loadError(); as error) {
+    <ignt-alert class="static-html__error" sentiment="danger" data-testid="static-html-load-error" [description]="error | translate" />
+  } @else {
+    <!--
+      One row for the two things that are true of every unsaved edit at once, plus the switch that
+      decides whether any of it is served. It sticks to the top of the viewport while the page
+      scrolls past it, so an author deep in a document never has to scroll back up to reach Save —
+      which is the whole of how the controls stay reachable, now that nothing else is pinned.
+    -->
+    <div class="static-html__toolbar">
+      <!--
+        The switch and the sentence beside it are one control: colour alone never says whether the
+        pages are being served, because "off" here means every one of them 404s.
+      -->
+      <span
+        igntTooltip
+        class="static-html__serve"
+        role="group"
+        [attr.aria-label]="'staticHtml.enabled' | translate"
+        [class.static-html__serve--off]="!enabled()"
+        [tooltipLabel]="'staticHtml.enabledDescription' | translate"
+      >
+        <!--
+          Whether the pages are served is worth reading on a visit that may not change it, so the
+          sentence stays and only the switch goes. A disabled switch would have said the same thing
+          less clearly, and a `for` pointing at an input that is no longer rendered says nothing at
+          all — which is why the read-only branch carries its own element rather than a bare `@if`
+          around the toggle.
+        -->
+        @if (isReadOnly) {
+          <span class="static-html__serve-label" data-testid="static-html-enabled-readonly">
+            {{ (enabled() ? 'staticHtml.serving' : 'staticHtml.notServing') | translate }}
+          </span>
+        } @else {
+          <!--
+            `[id]` bound, never written as a plain `id="…"` attribute. `IgntToggleComponent` takes the
+            id as an `@Input` and puts it on the checkbox it wraps, but Angular *also* writes a static
+            attribute onto the host element it matched — so the literal form leaves two elements
+            carrying the id, and `for` resolves to the first, an `ignt-toggle` custom element that is
+            not labelable. The property binding sets the input alone, which leaves the checkbox as the
+            only holder of the id and the only thing the sentence below can point at.
+          -->
+          <ignt-toggle
+            data-testid="static-html-enabled"
+            [checked]="enabled()"
+            [id]="enabledToggleId"
+            (change)="setEnabled(toggleChecked($event))"
+          />
+          <label class="static-html__serve-label" [for]="enabledToggleId">
+            {{ (enabled() ? 'staticHtml.serving' : 'staticHtml.notServing') | translate }}
+          </label>
+        }
+      </span>
+
+      <!--
+        Nothing in this row survives a read-only visit: the dirty flag, Discard and Save all speak
+        about unsaved work, and there is none to be had when no edit can be made in the first place.
+      -->
+      @if (!isReadOnly) {
+        <div class="static-html__actions">
+          @if (isDirty()) {
+            <span class="static-html__dirty" data-testid="static-html-dirty">
+              <span class="static-html__dirty-dot" aria-hidden="true"></span>
+              {{ 'staticHtml.unsavedChanges' | translate }}
+            </span>
+          }
+
+          <ignt-button
+            sentiment="neutral"
+            size="small"
+            variant="secondary"
+            data-testid="static-html-discard"
+            [disabled]="!canDiscard()"
+            [label]="'staticHtml.discard' | translate"
+            (click)="discard()"
+          />
+
+          <ignt-button
+            size="small"
+            data-testid="static-html-save"
+            [disabled]="!canSave()"
+            [label]="'staticHtml.savePage' | translate"
+            (click)="save()"
+          />
+        </div>
+      }
+    </div>
+
+    <!--
+      Read while the button is still unpressed: what a save is about to do, and what stops it. One
+      quiet line each rather than a stack of alert blocks — they sit above everything the author is
+      working on, so the taller they are the more of that work they push off the screen.
+    -->
+    @if (isReadOnly || routingSourcesIncomplete() || (!isReadOnly && (isBlocked() || pendingAssetCount() > 0))) {
+      <ul class="static-html__notices">
+        <!--
+          Why there is no Save button, said once and where the button used to be, rather than left for
+          the author to infer from an absence. It leads the list: every other line here is about work
+          in progress, and this one is about what the whole visit can do.
+        -->
+        @if (isReadOnly) {
+          <li class="static-html__notice" data-testid="static-html-read-only">
+            {{ 'staticHtml.readOnly' | translate }}
+          </li>
+        }
+        @if (routingSourcesIncomplete()) {
+          <li class="static-html__notice static-html__notice--warning" data-testid="static-html-routing-incomplete">
+            {{ 'staticHtml.routingSourcesIncomplete' | translate }}
+          </li>
+        }
+        <!--
+          Both of these are statements about a save, so neither is worth making to someone who has no
+          save to make. The per-page errors themselves are still reported in the editor, which is where
+          a reader would go looking for them.
+        -->
+        @if (!isReadOnly && isBlocked()) {
+          <li class="static-html__notice static-html__notice--danger" data-testid="static-html-blocked">
+            {{ 'staticHtml.blockedByErrors' | translate }}
+          </li>
+        }
+        @if (!isReadOnly && pendingAssetCount() > 0) {
+          <li class="static-html__notice" data-testid="static-html-pending-assets">
+            {{ pendingAssetsKey() | translate: { count: pendingAssetCount() } }}
+          </li>
+        }
+      </ul>
+    }
+
+    <!--
+      Two panels, in the order the work runs in: the section the author works in — pick a page, write
+      it — and the preview that shows the result. The preview is a column rather than a row below the
+      editor so an edit and its result share a screen. The preview is what sets their shared height, so
+      the pair can be several screens tall when the render is, and the jump button below offers its
+      shortcut whenever too little of the preview is on screen — below the three-column width, where
+      it is a row under the editor, and above it too when the render is long enough to leave only a
+      sliver of the column showing.
+    -->
+    <div class="static-html__workspace">
+      <!--
+        One panel around the rail and the editor, not two beside each other: picking a page and
+        writing it are one activity, and two bordered cards said they were unrelated things. The
+        border and the radius belong to this element, and a divider separates the two regions inside
+        it — both as tall as the panel, each scrolling what it holds rather than lengthening it.
+      -->
+      <div class="static-html__section">
+        <aside class="static-html__rail">
+          <!-- Read-only reaches the rail so it can drop the add form; picking a page is a read. -->
+          <app-static-html-page-list
+            [isReadOnly]="isReadOnly"
+            [isServing]="enabled()"
+            [issues]="issues()"
+            [locales]="locales()"
+            [pages]="pages()"
+            [selectedIndex]="selectedIndex()"
+            (pageAdded)="addPage($event)"
+            (pageSelected)="selectedIndex.set($event)"
+          />
+        </aside>
+
+        @if (selectedPage(); as page) {
+          <app-static-html-editor
+            class="static-html__editor"
+            [assetAttentionCount]="assetAttentionCount()"
+            [documentId]="page.id"
+            [host]="previewHost"
+            [isReadOnly]="isReadOnly"
+            [issues]="selectedIssues()"
+            [locales]="locales()"
+            [page]="page"
+            (deleted)="deleteSelectedPage()"
+            (htmlChanged)="updateSelectedPage({ html: $event })"
+            (localeSlugChanged)="updateSelectedPage({ localeSlug: $event })"
+            (slugChanged)="updateSelectedPage({ slug: $event })"
+          >
+            <!--
+              The panel is a write surface end to end — pick, upload, replace, delete from the library —
+              with the one exception of the list itself, which says which references are stored and
+              which are not. So it is made inert rather than dropped: the reading survives, every
+              control in it stops answering. `inert` is the house answer here, the same one the media
+              gallery gates its two panels with.
+
+              Bound as an attribute rather than a property, which the media gallery does not do and
+              should: `inert` is in no Angular element schema, so a plain `[inert]` on a component
+              element logs NG0303 on every change detection in dev before setting it anyway. As a
+              boolean attribute it is presence that counts, hence `''` against `null` rather than
+              `false` — `inert="false"` would still be inert.
+            -->
+            <app-static-html-assets
+              [attr.inert]="isReadOnly ? '' : null"
+              [html]="page.html"
+              [hosts]="whitelabelHosts"
+              [whitelabelId]="whitelabelId"
+            />
+          </app-static-html-editor>
+        } @else {
+          <p class="static-html__empty">{{ 'staticHtml.noPageSelected' | translate }}</p>
+        }
+      </div>
+
+      <!-- The result, and the only thing here that is genuinely a separate object, so it keeps its own panel. -->
+      @if (selectedPage(); as page) {
+        <div #previewCard class="static-html__preview">
+          <app-static-html-preview
+            [assetOverrides]="previewOverrides()"
+            [html]="page.html"
+            [host]="previewHost"
+            [isDirty]="isDirty()"
+            [servedPath]="servedPath(page)"
+          />
+        </div>
+
+        <!-- Floats over the page while the preview is out of sight, and scrolls to that same card. -->
+        <app-static-html-preview-jump [target]="previewCard" />
+      }
+    </div>
+  }
+</div>

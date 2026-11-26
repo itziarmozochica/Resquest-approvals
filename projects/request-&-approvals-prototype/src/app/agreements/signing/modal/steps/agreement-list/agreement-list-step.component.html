@@ -1,0 +1,65 @@
+<div class="agreement-list-step">
+  <p class="agreement-list-step__subtitle" data-testid="agreement-list-subtitle">
+    {{ 'agreements.signing.modal.list.subtitle' | translate }}
+  </p>
+
+  @switch (store.listState()) {
+    @case ('error') {
+      <p class="agreement-list-step__state agreement-list-step__state--error" role="alert" data-testid="agreement-list-error">
+        {{ store.errorKey() | translate }}
+      </p>
+    }
+    @case ('loaded') {
+      @if (store.entities().length === 0) {
+        <p class="agreement-list-step__state" data-testid="agreement-list-empty">
+          {{ 'agreements.signing.modal.list.empty' | translate }}
+        </p>
+      } @else {
+        <div class="agreement-list-step__list" role="list">
+          @for (agreement of store.entities(); track agreement.id) {
+            <div role="listitem">
+              <div
+                class="agreement-list-step__row"
+                role="button"
+                tabindex="0"
+                [attr.data-testid]="'agreement-row-' + agreement.id"
+                (click)="openDocument(agreement.id)"
+                (keydown.enter)="activateRow($event, agreement.id)"
+                (keydown.space)="activateRow($event, agreement.id)"
+              >
+                <ignt-list-item
+                  clickable
+                  [title]="agreement.agreement.title"
+                  [description]="
+                    signerLabels()[agreement.id] ?? agreement.participant?.label ?? ('agreements.signing.modal.list.wholeOrder' | translate)
+                  "
+                >
+                  <ng-container leading-modifier>
+                    <span class="agreement-list-step__icon" data-testid="agreement-row-icon">
+                      <ignt-icon name="file-alt" variant="light" size="base" aria-hidden="true" />
+                    </span>
+                  </ng-container>
+                  @if (agreement.signerRole === signerRole.guardian) {
+                    <p class="agreement-list-step__guardian-hint" [attr.data-testid]="'agreement-row-guardian-hint-' + agreement.id">
+                      {{ 'agreements.signing.modal.list.guardianHint' | translate }}
+                    </p>
+                  }
+                  <ng-container trailing-modifier>
+                    <div class="agreement-list-step__trailing">
+                      <app-agreement-status-tag [status]="agreement.status" />
+                    </div>
+                  </ng-container>
+                </ignt-list-item>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    }
+    @default {
+      <p class="agreement-list-step__state" data-testid="agreement-list-loading">
+        {{ 'agreements.signing.modal.list.loading' | translate }}
+      </p>
+    }
+  }
+</div>

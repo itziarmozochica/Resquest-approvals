@@ -1,0 +1,342 @@
+<ignt-dialog-header class="patron-details-add-relationship-form-dialog__header">
+  {{ formTitle }}
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <form class="patron-details-add-relationship-form-dialog" [formGroup]="relationshipForm" (ngSubmit)="onSubmit()">
+    @if (isProfessional()) {
+      <ignt-tabs
+        class="patron-details-add-relationship-form-dialog__tabs"
+        [hasExtraLine]="false"
+        [selectedIndex]="professionalTabIndex()"
+        (selectedIndexChange)="onProfessionalTabChange($event)"
+      >
+        @for (tab of professionalRelationshipTabOrder; track tab) {
+          <ignt-tabs-item [label]="'fundraising.patronDetails.relationships.addDialog.tabs.' + tab | translateTerminology"></ignt-tabs-item>
+        }
+      </ignt-tabs>
+
+      @switch (professionalTab()) {
+        @case (professionalRelationshipTabs.PATRON) {
+          <ignt-wrapper-card [title]="'fundraising.patronDetails.relationships.addDialog.relatedPatron.label' | translate">
+            <div class="patron-details-add-relationship-form-dialog__section">
+              <app-multi-select
+                class="patron-details-add-relationship-form-dialog__select"
+                [options]="relatedPatronOptions()"
+                [selectedOptions]="selectedPatronOptions()"
+                [placeholder]="'fundraising.patronDetails.relationships.addDialog.relatedPatron.placeholder' | translateTerminology"
+                [searchPlaceholder]="'common.selectsPlaceholder' | translate"
+                [maxSelectedOptions]="1"
+                [displayInPlaceMaximum]="1"
+                [optionTemplate]="patronOptionTpl"
+                (selected)="onRelatedPatronChange($event)"
+                (searchChange)="onPatronSearch($event)"
+              ></app-multi-select>
+              <ignt-alert
+                sentiment="neutral"
+                class="patron-details-add-relationship-form-dialog__hint"
+                [description]="'fundraising.patronDetails.relationships.addDialog.relatedPatron.hint' | translateTerminology"
+              />
+            </div>
+          </ignt-wrapper-card>
+
+          <ignt-wrapper-card [title]="'fundraising.patronDetails.relationships.addDialog.relationship' | translate">
+            <div class="patron-details-add-relationship-form-dialog__section">
+              <app-multi-select
+                class="patron-details-add-relationship-form-dialog__select"
+                [options]="relationshipTypeOptions"
+                [selectedOptions]="selectedPatronRelationshipTypeOptions()"
+                [placeholder]="patronRelationshipLabel"
+                [searchPlaceholder]="'common.selectsPlaceholder' | translate"
+                [maxSelectedOptions]="1"
+                [displayInPlaceMaximum]="1"
+                (selected)="onPatronRelationshipTypeChange($event)"
+              ></app-multi-select>
+            </div>
+
+            <div class="patron-details-add-relationship-form-dialog__section">
+              <app-multi-select
+                class="patron-details-add-relationship-form-dialog__select"
+                [options]="relationshipTypeOptions"
+                [selectedOptions]="selectedRelatedRelationshipTypeOptions()"
+                [placeholder]="relatedRelationshipLabel()"
+                [searchPlaceholder]="'common.selectsPlaceholder' | translate"
+                [maxSelectedOptions]="1"
+                [displayInPlaceMaximum]="1"
+                (selected)="onRelatedRelationshipTypeChange($event)"
+              ></app-multi-select>
+            </div>
+          </ignt-wrapper-card>
+        }
+        @case (professionalRelationshipTabs.EXTERNAL) {
+          <ignt-wrapper-card [title]="'fundraising.patronDetails.relationships.addDialog.external.sectionTitle' | translate">
+            <div class="patron-details-add-relationship-form-dialog__section">
+              <ignt-input-field
+                class="patron-details-add-relationship-form-dialog__input-field"
+                formControlName="contactName"
+                [customFormErrors]="requiredFieldErrors()"
+                [label]="'fundraising.patronDetails.relationships.addDialog.external.contactName' | translate"
+                type="text"
+              />
+              <ignt-input-field
+                class="patron-details-add-relationship-form-dialog__input-field"
+                formControlName="companyName"
+                [customFormErrors]="requiredFieldErrors()"
+                [label]="'fundraising.patronDetails.relationships.addDialog.external.companyName' | translate"
+                type="text"
+              />
+              <ignt-input-field
+                class="patron-details-add-relationship-form-dialog__input-field"
+                formControlName="jobTitle"
+                [customFormErrors]="requiredFieldErrors()"
+                [label]="'fundraising.patronDetails.relationships.addDialog.external.jobTitle' | translate"
+                type="text"
+              />
+            </div>
+          </ignt-wrapper-card>
+
+          <ignt-wrapper-card [title]="'fundraising.patronDetails.relationships.addDialog.relationship' | translate">
+            <div class="patron-details-add-relationship-form-dialog__section">
+              <app-multi-select
+                class="patron-details-add-relationship-form-dialog__select"
+                [options]="relationshipTypeOptions"
+                [selectedOptions]="selectedPatronRelationshipTypeOptions()"
+                [placeholder]="patronRelationshipLabel"
+                [searchPlaceholder]="'common.selectsPlaceholder' | translate"
+                [maxSelectedOptions]="1"
+                [displayInPlaceMaximum]="1"
+                (selected)="onPatronRelationshipTypeChange($event)"
+              ></app-multi-select>
+            </div>
+
+            <div class="patron-details-add-relationship-form-dialog__section">
+              <app-multi-select
+                class="patron-details-add-relationship-form-dialog__select"
+                [options]="relationshipTypeOptions"
+                [selectedOptions]="selectedRelatedRelationshipTypeOptions()"
+                [placeholder]="relatedRelationshipLabel()"
+                [searchPlaceholder]="'common.selectsPlaceholder' | translate"
+                [maxSelectedOptions]="1"
+                [displayInPlaceMaximum]="1"
+                (selected)="onRelatedRelationshipTypeChange($event)"
+              ></app-multi-select>
+            </div>
+          </ignt-wrapper-card>
+        }
+        @case (professionalRelationshipTabs.ORGANIZATION) {
+          <ignt-wrapper-card [title]="'fundraising.patronDetails.relationships.addDialog.organization.sectionTitle' | translate">
+            <div class="patron-details-add-relationship-form-dialog__section">
+              <ignt-input-field
+                class="patron-details-add-relationship-form-dialog__input-field"
+                formControlName="companyName"
+                [customFormErrors]="requiredFieldErrors()"
+                [label]="'fundraising.patronDetails.relationships.addDialog.external.companyName' | translate"
+                type="text"
+              />
+              <ignt-input-field
+                class="patron-details-add-relationship-form-dialog__input-field"
+                formControlName="jobTitle"
+                [customFormErrors]="requiredFieldErrors()"
+                [label]="'fundraising.patronDetails.relationships.addDialog.external.jobTitle' | translate"
+                type="text"
+              />
+            </div>
+          </ignt-wrapper-card>
+        }
+      }
+    } @else {
+      <ignt-wrapper-card [title]="'fundraising.patronDetails.relationships.addDialog.relatedPatron.label' | translate">
+        <div class="patron-details-add-relationship-form-dialog__section">
+          <app-multi-select
+            class="patron-details-add-relationship-form-dialog__select"
+            [options]="relatedPatronOptions()"
+            [selectedOptions]="selectedPatronOptions()"
+            [placeholder]="'fundraising.patronDetails.relationships.addDialog.relatedPatron.placeholder' | translateTerminology"
+            [searchPlaceholder]="'common.selectsPlaceholder' | translate"
+            [maxSelectedOptions]="1"
+            [displayInPlaceMaximum]="1"
+            [optionTemplate]="patronOptionTpl"
+            (selected)="onRelatedPatronChange($event)"
+            (searchChange)="onPatronSearch($event)"
+          ></app-multi-select>
+          <ignt-alert
+            sentiment="neutral"
+            class="patron-details-add-relationship-form-dialog__hint"
+            [description]="'fundraising.patronDetails.relationships.addDialog.relatedPatron.hint' | translateTerminology"
+          />
+        </div>
+      </ignt-wrapper-card>
+
+      <ignt-wrapper-card [title]="'fundraising.patronDetails.relationships.addDialog.relationship' | translate">
+        <div class="patron-details-add-relationship-form-dialog__section">
+          <app-multi-select
+            class="patron-details-add-relationship-form-dialog__select"
+            [options]="relationshipTypeOptions"
+            [selectedOptions]="selectedPatronRelationshipTypeOptions()"
+            [placeholder]="patronRelationshipLabel"
+            [searchPlaceholder]="'common.selectsPlaceholder' | translate"
+            [maxSelectedOptions]="1"
+            [displayInPlaceMaximum]="1"
+            (selected)="onPatronRelationshipTypeChange($event)"
+          ></app-multi-select>
+        </div>
+
+        <div class="patron-details-add-relationship-form-dialog__section">
+          <app-multi-select
+            class="patron-details-add-relationship-form-dialog__select"
+            [options]="relationshipTypeOptions"
+            [selectedOptions]="selectedRelatedRelationshipTypeOptions()"
+            [placeholder]="relatedRelationshipLabel()"
+            [searchPlaceholder]="'common.selectsPlaceholder' | translate"
+            [maxSelectedOptions]="1"
+            [displayInPlaceMaximum]="1"
+            (selected)="onRelatedRelationshipTypeChange($event)"
+          ></app-multi-select>
+        </div>
+      </ignt-wrapper-card>
+
+      @if (showHouseholdSection()) {
+        <ignt-wrapper-card [title]="'fundraising.patronDetails.relationships.addDialog.household.label' | translate">
+          @if (householdConflict(); as conflict) {
+            <ignt-alert
+              class="patron-details-add-relationship-form-dialog__hint"
+              sentiment="warning"
+              [title]="'fundraising.patronDetails.relationships.addDialog.householdConflict.title' | translate"
+            >
+              <ng-template #igntAlertContent>
+                @if (conflict.isHead) {
+                  <span
+                    [innerHTML]="
+                      'fundraising.patronDetails.relationships.addDialog.householdConflict.messageWithHead'
+                        | translate: { householdName: conflict.householdName, name: selectedRelatedPatronName() }
+                    "
+                  ></span>
+                } @else {
+                  <span
+                    [innerHTML]="
+                      'fundraising.patronDetails.relationships.addDialog.householdConflict.message'
+                        | translate: { name: selectedRelatedPatronName(), householdName: conflict.householdName }
+                    "
+                  ></span>
+                }
+              </ng-template>
+            </ignt-alert>
+
+            <ignt-alert
+              sentiment="neutral"
+              class="patron-details-add-relationship-form-dialog__hint"
+              [description]="
+                'fundraising.patronDetails.relationships.addDialog.household.headOfHousehold.disclaimer' | translateTerminology
+              "
+            />
+          } @else {
+            <div class="patron-details-add-relationship-form-dialog__subsection" (change)="onCreateHouseholdToggle($event)">
+              <div class="patron-details-add-relationship-form-dialog__toggle-row">
+                <div>
+                  <div class="patron-details-add-relationship-form-dialog__toggle-row__title">
+                    {{ 'fundraising.patronDetails.relationships.addDialog.household.createHousehold.title' | translate }}
+                  </div>
+                  <div class="patron-details-add-relationship-form-dialog__toggle-row__description">
+                    {{
+                      (isCreatingHousehold()
+                        ? 'fundraising.patronDetails.relationships.addDialog.household.createHousehold.descriptionOn'
+                        : 'fundraising.patronDetails.relationships.addDialog.household.createHousehold.descriptionOff'
+                      ) | translateTerminology: { name: patronName }
+                    }}
+                  </div>
+                </div>
+                <ignt-toggle [id]="createHouseholdToggleId" [checked]="isCreatingHousehold()" />
+              </div>
+
+              @if (isCreatingHousehold()) {
+                <div class="patron-details-add-relationship-form-dialog__subsection--nested">
+                  <ignt-input-field
+                    class="patron-details-add-relationship-form-dialog__input-field"
+                    formControlName="householdName"
+                    [customFormErrors]="requiredFieldErrors()"
+                    [label]="'fundraising.patronDetails.relationships.addDialog.household.householdName.label' | translate"
+                    type="text"
+                  />
+
+                  @if (canPromoteRelatedAsHead()) {
+                    <div class="patron-details-add-relationship-form-dialog__toggle-row" (change)="onHeadOfHouseholdToggle($event)">
+                      <div>
+                        <div class="patron-details-add-relationship-form-dialog__toggle-row__title">
+                          {{ 'fundraising.patronDetails.relationships.addDialog.household.headOfHousehold.title' | translate }}
+                        </div>
+                        <div class="patron-details-add-relationship-form-dialog__toggle-row__description">
+                          {{
+                            'fundraising.patronDetails.relationships.addDialog.household.headOfHousehold.description'
+                              | translate: { name: patronName }
+                          }}
+                        </div>
+                      </div>
+                      <ignt-toggle [id]="headOfHouseholdToggleId" [checked]="isHeadOfHousehold()" />
+                    </div>
+
+                    <ignt-alert
+                      sentiment="neutral"
+                      class="patron-details-add-relationship-form-dialog__hint"
+                      data-testid="head-of-household-disclaimer"
+                      [description]="
+                        'fundraising.patronDetails.relationships.addDialog.household.headOfHousehold.disclaimer' | translateTerminology
+                      "
+                    />
+                  }
+                </div>
+              }
+            </div>
+          }
+        </ignt-wrapper-card>
+      }
+    }
+
+    <ignt-wrapper-card [title]="'fundraising.patronDetails.relationships.addDialog.notes.label' | translate">
+      <ignt-textarea-field
+        label=""
+        class="patron-details-add-relationship-form-dialog__textarea"
+        formControlName="note"
+        [rows]="3"
+        [placeholderAsEmptyValue]="true"
+        [placeholder]="'fundraising.patronDetails.relationships.addDialog.notes.placeholder' | translate"
+      ></ignt-textarea-field>
+    </ignt-wrapper-card>
+  </form>
+</ignt-dialog-content>
+
+<ignt-dialog-footer [hideCancelButton]="true">
+  <button type="button" igntButton sentiment="tertiary" (click)="dismiss()">{{ 'common.cancel' | translate }}</button>
+  <button
+    type="button"
+    igntButton
+    sentiment="primary"
+    [disabled]="relationshipForm.invalid || isSubmitting() || isHouseholdConflict()"
+    (click)="onSubmit()"
+  >
+    {{ 'fundraising.patronDetails.relationships.addDialog.submit' | translate }}
+  </button>
+</ignt-dialog-footer>
+
+<ng-template #patronOptionTpl let-option let-disabled="disabled">
+  @if (getPatronSuggestion(option.id); as suggestion) {
+    <div class="patron-option" [class.patron-option--disabled]="disabled">
+      <app-avatar-initials
+        class="patron-option__avatar"
+        [name]="option.title"
+        [avatarUrl]="suggestion.imageUrl ?? undefined"
+        [size]="40"
+      ></app-avatar-initials>
+      <div class="patron-option__info">
+        <span class="patron-option__name">{{ option.title }}</span>
+        @if (suggestion.email) {
+          <span class="patron-option__email">{{ suggestion.email }}</span>
+        }
+      </div>
+      @if (suggestion.status && suggestion.status !== 'active') {
+        <ignt-tag class="patron-option__status-tag" variant="outline" sentiment="info">
+          {{ 'fundraising.patronDetails.profile.systemInfo.statusOptions.' + suggestion.status | translate }}
+        </ignt-tag>
+      }
+    </div>
+  }
+</ng-template>

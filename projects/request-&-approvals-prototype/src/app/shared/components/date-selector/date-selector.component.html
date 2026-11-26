@@ -1,0 +1,280 @@
+<div class="content">
+  @if (shouldShowTitle) {
+    <div class="content__title" data-testid="date-selector-title">
+      {{ titleText | translate }}
+    </div>
+  }
+
+  <ignt-date-picker-input
+    *ngIf="selectedAvailabilityFromDate !== null"
+    class="availability-from-date"
+    [label]="'reservations.showAvailabilityFrom' | translate"
+    [attr.data-testid]="'date-selector'"
+    (changeDate)="handleShowAvailabilityFromDatePickerChanges($event)"
+    [startDate]="selectedAvailabilityFromDate"
+    [timezone]="timezone"
+  >
+  </ignt-date-picker-input>
+
+  <div
+    class="dates"
+    [hidden]="hideDateSelector"
+    (scroll)="onScroll($event)"
+    *ngIf="regularSessionAvailabilitySummaryByDate?.length > 0 || datesAvailability?.length > 0"
+  >
+    <ng-container *ngIf="displayedSessionType === sessionAvailabilitySummaryByDateType.Regular">
+      <ng-container
+        *ngFor="
+          let sessionAvailabilityByDate of datesAvailability?.length > 0 ? datesAvailability : regularSessionAvailabilitySummaryByDate
+        "
+      >
+        <ng-container
+          *ngTemplateOutlet="
+            datesAvailability?.length > 0 ? dateAvailability : date;
+            context: {
+              sessionAvailabilityByDate: sessionAvailabilityByDate,
+              label1: (sessionAvailabilityByDate.date | date: 'EEE' : timezone : locale),
+              label2: formatLocalDate(sessionAvailabilityByDate.date),
+            }
+          "
+        ></ng-container>
+      </ng-container>
+    </ng-container>
+    <div class="dates--loader">
+      <div class="dates--loader__active" *ngIf="loading">
+        <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'4x'"></fa-icon>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="selectedSession" class="hours">
+    <ng-container *ngIf="$any(selectedSession).morningSessions?.length > 0">
+      <ng-container
+        *ngTemplateOutlet="
+          hourBlockDescription;
+          context: {
+            title: 'boxOffice.morning',
+            description: !hideSessionDuration && !isOperatingDayGrouping ? 'boxOffice.morningHours' : '',
+            dataTestId: 'morning-sessions-hour-block-description',
+            timeRangeSection: 'morning',
+            timeRangeSessions: $any(selectedSession).morningSessions,
+            isSessionsRangeVisible:
+              openedTimeRangeSections.has('morning') || isSelectedSessionInHoursRange($any(selectedSession).morningSessions),
+          }
+        "
+      ></ng-container>
+      <div
+        class="hours"
+        data-testid="morning-session"
+        *ngIf="openedTimeRangeSections.has('morning') || isSelectedSessionInHoursRange($any(selectedSession).morningSessions)"
+      >
+        <ng-container *ngFor="let sessionAvailabilityByDatetime of $any(selectedSession).morningSessions">
+          <ng-container
+            *ngTemplateOutlet="
+              hour;
+              context: {
+                session: sessionAvailabilityByDatetime,
+                ticketTypes: ticketTypes,
+                label: sessionAvailabilityByDatetime.datetime | momentDate: 'H:mm' : timezone,
+              }
+            "
+          ></ng-container>
+        </ng-container>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="$any(selectedSession).afternoonSessions?.length > 0">
+      <ng-container
+        *ngTemplateOutlet="
+          hourBlockDescription;
+          context: {
+            title: 'boxOffice.afternoon',
+            description: !hideSessionDuration && !isOperatingDayGrouping ? 'boxOffice.afternoonHours' : '',
+            dataTestId: 'afternoon-sessions-hour-block-description',
+            timeRangeSection: 'afternoon',
+            timeRangeSessions: $any(selectedSession).afternoonSessions,
+            isSessionsRangeVisible:
+              openedTimeRangeSections.has('afternoon') || isSelectedSessionInHoursRange($any(selectedSession).afternoonSessions),
+          }
+        "
+      ></ng-container>
+      <div
+        class="hours"
+        data-testid="afternoon-session"
+        *ngIf="openedTimeRangeSections.has('afternoon') || isSelectedSessionInHoursRange($any(selectedSession).afternoonSessions)"
+      >
+        <ng-container *ngFor="let sessionAvailabilityByDatetime of $any(selectedSession).afternoonSessions">
+          <ng-container
+            *ngTemplateOutlet="
+              hour;
+              context: {
+                session: sessionAvailabilityByDatetime,
+                ticketTypes: ticketTypes,
+                label: sessionAvailabilityByDatetime.datetime | momentDate: 'H:mm' : timezone,
+              }
+            "
+          ></ng-container>
+        </ng-container>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="$any(selectedSession).eveningSessions?.length > 0">
+      <ng-container
+        *ngTemplateOutlet="
+          hourBlockDescription;
+          context: {
+            title: 'boxOffice.evening',
+            description: !hideSessionDuration && !isOperatingDayGrouping ? 'boxOffice.eveningHours' : '',
+            dataTestId: 'evening-sessions-hour-block-description',
+            timeRangeSection: 'evening',
+            timeRangeSessions: $any(selectedSession).eveningSessions,
+            isSessionsRangeVisible:
+              openedTimeRangeSections.has('evening') || isSelectedSessionInHoursRange($any(selectedSession).eveningSessions),
+          }
+        "
+      ></ng-container>
+      <div
+        class="hours"
+        data-testid="evening-session"
+        *ngIf="openedTimeRangeSections.has('evening') || isSelectedSessionInHoursRange($any(selectedSession).eveningSessions)"
+      >
+        <ng-container *ngFor="let sessionAvailabilityByDatetime of $any(selectedSession).eveningSessions">
+          <ng-container
+            *ngTemplateOutlet="
+              hour;
+              context: {
+                session: sessionAvailabilityByDatetime,
+                ticketTypes: ticketTypes,
+                label: sessionAvailabilityByDatetime.datetime | momentDate: 'H:mm' : timezone,
+              }
+            "
+          ></ng-container>
+        </ng-container>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="$any(selectedSession).nightSessions?.length > 0">
+      <ng-container
+        *ngTemplateOutlet="
+          hourBlockDescription;
+          context: {
+            title: 'boxOffice.night',
+            description: !hideSessionDuration && !isOperatingDayGrouping ? 'boxOffice.nightHours' : '',
+            dataTestId: 'night-sessions-hour-block-description',
+            timeRangeSection: 'night',
+            timeRangeSessions: $any(selectedSession).nightSessions,
+            isSessionsRangeVisible:
+              openedTimeRangeSections.has('night') || isSelectedSessionInHoursRange($any(selectedSession).nightSessions),
+          }
+        "
+      ></ng-container>
+      <div
+        class="hours"
+        data-testid="night-session"
+        *ngIf="openedTimeRangeSections.has('night') || isSelectedSessionInHoursRange($any(selectedSession).nightSessions)"
+      >
+        <ng-container *ngFor="let sessionAvailabilityByDatetime of $any(selectedSession).nightSessions">
+          <ng-container
+            *ngTemplateOutlet="
+              hour;
+              context: {
+                session: sessionAvailabilityByDatetime,
+                ticketTypes: ticketTypes,
+                label: sessionAvailabilityByDatetime.datetime | momentDate: 'H:mm' : timezone,
+              }
+            "
+          ></ng-container>
+        </ng-container>
+      </div>
+    </ng-container>
+  </div>
+</div>
+
+<ng-template #date let-sessionAvailabilityByDate="sessionAvailabilityByDate" let-label1="label1" let-label2="label2">
+  <div
+    class="dates-item"
+    data-testid="date-item"
+    [class.dates-item--selected]="isDateSelected(sessionAvailabilityByDate)"
+    [class.dates-item--disabled]="isDateDisabled(sessionAvailabilityByDate)"
+    (click)="selectDate(sessionAvailabilityByDate)"
+  >
+    <div class="dates-item__check" data-testid="date-item-check">
+      <fa-icon class="dates-item__check-icon" [icon]="['fal', 'check']"></fa-icon>
+    </div>
+    <span class="dates-item__label">{{ label1 }} </span>
+    <span class="dates-item__label">{{ label2 }}</span>
+  </div>
+</ng-template>
+
+<ng-template #dateAvailability let-sessionAvailabilityByDate="sessionAvailabilityByDate" let-label1="label1" let-label2="label2">
+  <div
+    class="dates-item"
+    data-testid="date-item"
+    [class.dates-item--selected]="isDateAvailabilitySelected(sessionAvailabilityByDate)"
+    [class.dates-item--disabled]="isDateAvailabilityDisabled(sessionAvailabilityByDate)"
+    (click)="selectDateAvailability(sessionAvailabilityByDate)"
+  >
+    <div class="dates-item__check" data-testid="date-item-check">
+      <fa-icon class="dates-item__check-icon" [icon]="['fal', 'check']"></fa-icon>
+    </div>
+    <span class="dates-item__label">{{ label1 }} </span>
+    <span class="dates-item__label">{{ label2 }}</span>
+  </div>
+</ng-template>
+
+<ng-template
+  #hourBlockDescription
+  let-title="title"
+  let-description="description"
+  let-timeRangeSection="timeRangeSection"
+  let-timeRangeSessions="timeRangeSessions"
+  let-isSessionsRangeVisible="isSessionsRangeVisible"
+  let-dataTestId="dataTestId"
+>
+  <div
+    class="hours__block"
+    [ngClass]="{ 'hours__block--disabled': timeRangeSessions && isSelectedSessionInHoursRange(timeRangeSessions) }"
+    [attr.data-testid]="dataTestId"
+    (click)="toggleTimeRangeSection(timeRangeSection, timeRangeSessions)"
+  >
+    {{ title | translate }}
+    <button
+      data-testid="toggle-sessions-range-button"
+      class="icon-button icon-button--small icon-button--sharp-tertiary"
+      [disabled]="timeRangeSessions && isSelectedSessionInHoursRange(timeRangeSessions)"
+    >
+      <fa-icon [icon]="['fas', isSessionsRangeVisible ? 'chevron-up' : 'chevron-down']"></fa-icon>
+    </button>
+  </div>
+  @if (description) {
+    <div class="hours__sub-block">
+      {{ description | translate }}
+    </div>
+  }
+</ng-template>
+
+<ng-template #hour let-session="session" let-ticketTypes="ticketTypes" let-label="label">
+  <div
+    class="hours-item"
+    data-testid="hour-item"
+    [class.hours-item--selected]="
+      session.isAvailable(ticketTypes, maxLimitField, 0, allowMultiTimeSlot, ongoingTicketTypeNamesSet) &&
+      session === selectedSession.selectedDatetime
+    "
+    [class.hours-item--disabled]="
+      disabled || !session.isAvailable(ticketTypes, maxLimitField, excludeNextHours, allowMultiTimeSlot, ongoingTicketTypeNamesSet)
+    "
+    (click)="selectHour(session)"
+  >
+    <div class="dates-item__check">
+      <fa-icon class="dates-item__check-icon" [icon]="['fal', 'check']"></fa-icon>
+    </div>
+    <div class="hours-label" data-testid="hour-label">
+      {{ label }}
+    </div>
+    <div *ngIf="showCapacity && session.capacity !== null" class="hours-capacity" data-testid="hour-capacity">
+      {{ session.capacity }}
+      <fa-icon [icon]="['fal', 'ticket-alt']"></fa-icon>
+    </div>
+  </div>
+</ng-template>

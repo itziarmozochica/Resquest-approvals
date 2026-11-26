@@ -1,0 +1,71 @@
+<div class="schedule-calendar" data-testid="schedule-bulk-calendar">
+  <header class="schedule-calendar__header">
+    <button
+      type="button"
+      class="schedule-calendar__nav"
+      (click)="prevMonth()"
+      data-testid="schedule-calendar-prev"
+      aria-label="Previous month"
+    >
+      ‹
+    </button>
+    <span class="schedule-calendar__month" data-testid="schedule-calendar-month">{{ monthLabel() }}</span>
+    <button type="button" class="schedule-calendar__nav" (click)="nextMonth()" data-testid="schedule-calendar-next" aria-label="Next month">
+      ›
+    </button>
+  </header>
+
+  <div class="schedule-calendar__weekdays" aria-hidden="true">
+    @for (label of weekdayLabels; track label) {
+      <span class="schedule-calendar__weekday">{{ label }}</span>
+    }
+  </div>
+
+  <div class="schedule-calendar__grid" role="grid">
+    @for (week of weeks(); track $index) {
+      <div class="schedule-calendar__week" role="row">
+        @for (cell of week; track cell.ymd) {
+          <div
+            class="schedule-calendar__cell"
+            role="gridcell"
+            [class.schedule-calendar__cell--out]="!cell.inMonth"
+            [class.schedule-calendar__cell--open]="cell.open"
+            [class.schedule-calendar__cell--closed]="!cell.open && cell.inMonth"
+            [class.schedule-calendar__cell--in-period]="cell.bandIndex >= 0"
+            [class.schedule-calendar__cell--clickable]="cell.open"
+            [attr.data-band]="cell.open ? (cell.bandIndex >= 0 ? cell.bandIndex % 7 : 'none') : null"
+            [attr.data-testid]="'schedule-calendar-cell-' + cell.ymd"
+            [attr.tabindex]="cell.open ? 0 : null"
+            [attr.aria-label]="cell.open ? cell.bandName + ' ' + cell.ymd : null"
+            (click)="cell.open && openDay(cell.ymd)"
+            (keydown.enter)="cell.open && openDay(cell.ymd)"
+          >
+            <span class="schedule-calendar__day">{{ cell.day }}</span>
+            @if (cell.open) {
+              @if (cell.bandName) {
+                <span class="schedule-calendar__band" data-testid="schedule-calendar-band">{{ cell.bandName }}</span>
+              }
+              @if (cell.sessions.length) {
+                <span class="schedule-calendar__sessions"
+                  >{{ cell.sessions.slice(0, 2).join(' · ') }}{{ cell.sessions.length > 2 ? ' +' + (cell.sessions.length - 2) : '' }}</span
+                >
+              }
+              @for (line of cell.tiers; track line.name) {
+                <span
+                  class="schedule-calendar__tier"
+                  [class.schedule-calendar__tier--peak]="line.tier === 'Peak'"
+                  [class.schedule-calendar__tier--valley]="line.tier === 'Valley'"
+                  >{{ line.name }} · {{ line.tier }}{{ line.price ? ' · ' + line.price : '' }}</span
+                >
+              }
+            }
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  @if (selectedDetail(); as detail) {
+    <app-ir-schedule-day-detail-dialog [detail]="detail" (close)="closeDay()" />
+  }
+</div>

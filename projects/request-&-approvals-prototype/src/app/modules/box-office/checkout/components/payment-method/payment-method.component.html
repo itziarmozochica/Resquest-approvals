@@ -1,0 +1,56 @@
+<div class="content" data-testid="payment-method-container">
+  <div class="content__title">
+    {{ 'boxOffice.paymentMethod' | translate }}
+
+    @if (paymentMethodForm?.controls['paymentType'].value; as selectedType) {
+      <span>{{ paymentMethods.get(selectedType)?.label }}</span>
+    }
+  </div>
+  <ng-container *ngIf="paymentMethodForm">
+    <form [formGroup]="paymentMethodForm">
+      <div class="form__content" *ngIf="paymentMethodOptionList?.length > 0">
+        <ng-container
+          *ngFor="let paymentMethod of paymentMethodOptionList"
+          [ngTemplateOutlet]="paymentMethodTemplate"
+          [ngTemplateOutletContext]="{ paymentMethod: paymentMethod }"
+        >
+        </ng-container>
+        <ng-template #paymentMethodTemplate let-paymentMethod="paymentMethod">
+          <label
+            [for]="paymentMethod.method"
+            [attr.data-testid]="'payment-method-' + paymentMethod.method"
+            class="payment-method-option"
+            [class.payment-method-option--checked]="paymentMethodForm.controls['paymentType'].value === paymentMethod.method"
+            [class.payment-method-option--disabled]="paymentMethod.disabled"
+            [title]="paymentMethod.disabled && paymentMethod.disabledTooltip ? (paymentMethod.disabledTooltip | translate) : null"
+          >
+            <input
+              [id]="paymentMethod.method"
+              class="payment-method-option__input"
+              [attr.data-testid]="'payment-method-' + paymentMethod.method + '-button'"
+              type="radio"
+              formControlName="paymentType"
+              [value]="paymentMethod.method"
+              [attr.disabled]="paymentMethod.disabled ? true : null"
+            />
+            <span class="payment-method-option__icon" *ngIf="paymentMethod.icon">
+              <fa-icon [icon]="paymentMethod.icon"></fa-icon>
+            </span>
+            @if (paymentMethod.imageUrl) {
+              <img class="payment-method-option__img" alt="" [src]="paymentMethod.imageUrl" />
+            }
+            <span class="payment-method-option__label">{{ paymentMethod.label }}</span>
+          </label>
+        </ng-template>
+      </div>
+    </form>
+  </ng-container>
+  <app-receipt-document-banner
+    *ngIf="showReceiptDocumentBanner"
+    data-testid="receipt-document-banner"
+    class="content__receipt-document"
+    [helperText]="helperTextKey"
+    [titleText]="titleKey"
+    (receiptDocumentChange)="onReceiptDocumentChange($event)"
+  ></app-receipt-document-banner>
+</div>

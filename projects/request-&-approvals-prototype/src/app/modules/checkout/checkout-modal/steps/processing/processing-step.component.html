@@ -1,0 +1,62 @@
+@if (store.isSplitFlow()) {
+  <div class="processing-step processing-step--split" data-testid="checkout-processing-split">
+    <app-split-summary-panel
+      class="processing-step__summary"
+      [toPay]="store.remainingAmount()"
+      [paid]="store.paidAmount()"
+      [locale]="store.context().locale"
+      [toPayLabelKey]="store.summaryToPayLabelKey()"
+      [activeRow]="'toPay'"
+      (paidClick)="onViewHistory()"
+    />
+
+    <div class="processing-step__vertical-divider"></div>
+
+    <div class="processing-step__center">
+      <ignt-icon name="spinner" variant="solid" size="display" class="processing-step__spinner" [spin]="true" aria-hidden="true" />
+      <h3 class="processing-step__title">{{ 'checkout.processing.title' | translate }}</h3>
+      <p class="processing-step__message">{{ 'checkout.processing.message' | translate }}</p>
+      @if (!store.isDelegatedPayment()) {
+        <ignt-button
+          variant="secondary"
+          sentiment="danger"
+          data-testid="checkout-cancel-split"
+          [leadingIcon]="{ name: 'times-circle', variant: 'solid' }"
+          [disabled]="cancelDisabled()"
+          [label]="(tapToPayCancelling() ? 'checkout.tapToPay.cancelling' : 'checkout.processing.cancelCurrent') | translate"
+          (click)="onCancelCurrentSplit()"
+        />
+      }
+    </div>
+
+    <div class="processing-step__vertical-divider"></div>
+
+    <app-payment-summary-panel
+      class="processing-step__payment-summary"
+      [amountToPay]="store.currentSplitAmount()"
+      [currentSplitNumber]="store.currentSplitNumber()"
+      [splitCount]="store.context().splitCount"
+      [total]="store.context().cartTotal ?? store.remainingAmount()"
+      [paymentMethodLabel]="paymentMethodLabel()"
+      [paymentMethodLabelSuffixKey]="paymentMethodLabelSuffixKey()"
+      [locale]="store.context().locale"
+    />
+  </div>
+} @else {
+  <div class="processing-step">
+    <ignt-icon name="spinner" variant="solid" size="display" class="processing-step__spinner" [spin]="true" aria-hidden="true" />
+    <h3 class="processing-step__title">{{ 'checkout.processing.title' | translate }}</h3>
+    <p class="processing-step__message">{{ 'checkout.processing.message' | translate }}</p>
+    @if (!store.isDelegatedPayment()) {
+      <ignt-button
+        variant="secondary"
+        sentiment="danger"
+        data-testid="checkout-cancel-payment"
+        [leadingIcon]="{ name: 'times-circle', variant: 'solid' }"
+        [disabled]="cancelDisabled()"
+        [label]="(tapToPayCancelling() ? 'checkout.tapToPay.cancelling' : 'checkout.processing.cancel') | translate"
+        (click)="onCancelPayment()"
+      />
+    }
+  </div>
+}

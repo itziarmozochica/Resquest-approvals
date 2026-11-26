@@ -1,0 +1,184 @@
+<td
+  data-testid="session-per-timeslot-row-label"
+  class="sessions-per-timeslot-table__body-cell session-per-timeslot-base-row__label session-per-timeslot-base-row__label--bold"
+>
+  <span class="session-per-timeslot-row-label">
+    <div class="session-per-timeslot-row-label__icon-fold-container">
+      <fa-icon
+        data-testid="session-per-timeslot-row-activate-fold"
+        class="session-per-timeslot-row-label__icon-fold"
+        [class.session-per-timeslot-row-label__icon-fold--folded]="isFolded"
+        [icon]="['fas', 'chevron-down']"
+      ></fa-icon>
+    </div>
+    <div class="session-per-timeslot-row-label__value">
+      <div class="session-per-timeslot-row-label__value-group" *ngIf="rowValues?.id !== 0">
+        {{ 'sessions.sessionsPerTimeslot.capacityGroup' | translate }}
+      </div>
+      <div class="session-per-timeslot-row-label__value-name">
+        {{ rowValues?.label }}
+        <span
+          *ngIf="displayIgnoreCapacityHint && ignoreTimeSlotCapacity"
+          class="session-per-timeslot-row-label__value-ignore"
+          [attr.data-testid]="'session-per-timeslot-row-label__value-ignore-' + rowValues?.id"
+        >
+          <fa-icon [icon]="['fas', 'asterisk']"> </fa-icon>
+        </span>
+        <ng-container
+          *ngIf="hasSharedCapacity"
+          [ngTemplateOutlet]="warningIconTemplate"
+          [ngTemplateOutletContext]="{
+            text: 'sessions.sessionsPerTimeslot.sharedCapacityTooltip',
+            placement: 'left',
+            args: { mainPlanIds: sharedMainPlanIdsLabel },
+          }"
+        >
+        </ng-container>
+      </div>
+    </div>
+  </span>
+</td>
+<td data-testid="session-per-timeslot-row-status"></td>
+<td data-testid="session-per-timeslot-row-visibility"></td>
+<td *ngIf="isPricesColumnVisible" data-testid="session-per-timeslot-row-price"></td>
+
+<td
+  data-testid="session-per-timeslot-row-sold"
+  [class.sessions-per-timeslot-table__body-cell--highlighted]="isSoldExpanded"
+  [class.sessions-per-timeslot-table__body-cell--collapsed]="!isSoldExpanded"
+  class="sessions-per-timeslot-table__body-cell session-per-timeslot-base-row__sold"
+>
+  <div class="session-per-timeslot-base-row-sold">
+    <span data-testid="session-per-timeslot-row-sold-value">
+      {{ rowValues?.sold - reservedUnpaidTickets }}
+    </span>
+  </div>
+</td>
+
+<td
+  data-testid="session-per-timeslot-row-reserved"
+  [class.sessions-per-timeslot-table__body-cell--highlighted]="isSoldExpanded"
+  [class.sessions-per-timeslot-table__body-cell--collapsed]="!isSoldExpanded"
+  class="sessions-per-timeslot-table__body-cell session-per-timeslot-base-row__sold"
+>
+  <div class="session-per-timeslot-base-row-sold">
+    <span data-testid="session-per-timeslot-row-reserved-value">
+      {{ reservedUnpaidTickets }}
+    </span>
+  </div>
+</td>
+
+<td
+  [class.sessions-per-timeslot-table__body-cell--collapsed]="isSoldExpanded"
+  data-testid="session-per-timeslot-row-issued"
+  class="sessions-per-timeslot-table__body-cell session-per-timeslot-base-row__sold"
+>
+  <ng-container *ngTemplateOutlet="issuedTemplate; context: { sold: rowValues?.sold }"> </ng-container>
+</td>
+
+<td
+  data-testid="session-per-timeslot-row-available"
+  class="sessions-per-timeslot-table__body-cell session-per-timeslot-base-row__available"
+>
+  <ng-container *ngIf="!isUnrestricted" [ngTemplateOutlet]="availableTemplate" [ngTemplateOutletContext]="availableValues"></ng-container>
+</td>
+<td
+  data-testid="session-per-timeslot-row-blocked"
+  class="sessions-per-timeslot-table__body-cell session-per-timeslot-base-row__blocked"
+  *ngIf="isBlockedColumnVisible"
+>
+  <div class="session-per-timeslot-base-row-blocked" *ngIf="!isUnrestricted">
+    <span data-testid="session-per-timeslot-row-blocked-value">
+      {{ rowValues.blockedTickets ?? 0 }}
+    </span>
+  </div>
+</td>
+<td data-testid="session-per-timeslot-row-max-qty" class="sessions-per-timeslot-table__body-cell session-per-timeslot-base-row__max-qty">
+  <span *ngIf="!isUnrestricted" data-testid="session-per-timeslot-row-max-qty-value">
+    {{ maxQty }}
+  </span>
+</td>
+<td
+  data-testid="session-per-timeslot-row-occupancy"
+  class="sessions-per-timeslot-table__body-cell session-per-timeslot-base-row__occupancy"
+>
+  <ng-container
+    *ngIf="!isUnrestricted"
+    [ngTemplateOutlet]="occupancyTemplate"
+    [ngTemplateOutletContext]="{ occupancy: this.rowValues?.occupancyPercentage }"
+  ></ng-container>
+</td>
+@if (canEditSession()) {
+  <td data-testid="session-per-timeslot-row-edit" class="sessions-per-timeslot-table__body-cell session-per-timeslot-base-row__edit">
+    @if (!isUnrestricted) {
+      <ng-container [ngTemplateOutlet]="editTemplate"></ng-container>
+    }
+  </td>
+}
+
+<ng-template #issuedTemplate let-sold="sold">
+  <div class="session-per-timeslot-base-row-sold">
+    <span data-testid="session-per-timeslot-row-issued-value">
+      {{ sold }}
+    </span>
+    <ng-container
+      *ngIf="!isUnrestricted && soldTicketsFromOtherEvents > 0"
+      [ngTemplateOutlet]="warningIconTemplate"
+      [ngTemplateOutletContext]="{
+        text: issuedTooltipText,
+        placement: 'left',
+        args: { ticketsSold: soldTicketsFromOtherEvents },
+      }"
+    >
+    </ng-container>
+  </div>
+</ng-template>
+
+<ng-template #availableTemplate let-cappedAvailability="cappedAvailability" let-availability="availability">
+  <div class="session-per-timeslot-base-row-availability">
+    <span data-testid="session-per-timeslot-row-availability-value">{{ cappedAvailability }}</span>
+    <span
+      *ngIf="!isUnrestricted && cappedAvailability < availability"
+      [ngTemplateOutlet]="warningIconTemplate"
+      [ngTemplateOutletContext]="{
+        text: 'sessions.sessionsPerTimeslot.cappedAvailableTooltip',
+        placement: 'left',
+        args: { maxQty: maxQty, cappedAvailable: cappedAvailability },
+      }"
+    >
+    </span>
+  </div>
+</ng-template>
+
+<ng-template #occupancyTemplate let-occupancy="occupancy">
+  <div class="session-per-timeslot-base-row__occupancy-wrapper" data-testid="session-per-timeslot-row-occupancy-value">
+    {{ occupancy }}%
+  </div>
+</ng-template>
+
+<ng-template #editTemplate>
+  <button
+    class="icon-button icon-button--small"
+    (click)="$event.stopPropagation(); clickOnEdit(rowInput)"
+    data-testid="session-per-timeslot-row-activate-edit__button"
+  >
+    <fa-icon
+      data-testid="session-per-timeslot-row-activate-edit"
+      class="session-per-timeslot-base-row__edit-button"
+      [icon]="['far', 'edit']"
+    >
+    </fa-icon>
+  </button>
+</ng-template>
+
+<ng-template #warningIconTemplate let-text="text" let-args="args" let-placement="placement">
+  <span data-testid="session-per-timeslot-row-warning-icon" class="session-per-timeslot-base-row-warning__icon">
+    <fa-icon
+      [icon]="['fas', 'exclamation-triangle']"
+      igntTooltip
+      [tooltipLabel]="text | translate: args"
+      [tooltipPlacement]="placement"
+      tooltipTrigger="hover-focus-click"
+    ></fa-icon>
+  </span>
+</ng-template>

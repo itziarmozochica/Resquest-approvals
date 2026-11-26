@@ -1,0 +1,115 @@
+<div class="printed-tickets">
+  <div class="printed-tickets__header">
+    <h2 class="printed-tickets__title">{{ 'onsiteAppearance.printedTickets.title' | translate }}</h2>
+    @if (canEdit()) {
+      <button igntButton sentiment="primary" size="large" [routerLink]="['new']" data-testid="printed-tickets-create-btn">
+        {{ 'onsiteAppearance.printedTickets.createNew' | translate }}
+      </button>
+    }
+  </div>
+
+  @if (hasError() && bundles().length > 0) {
+    <div class="printed-tickets__load-error">
+      <ignt-alert
+        sentiment="danger"
+        showCloseButton
+        data-testid="printed-tickets-load-error"
+        [description]="'onsiteAppearance.printedTickets.loadError' | translate"
+        [closeButtonAriaLabel]="'common.close' | translate"
+        (closeAlert)="dismissError()"
+      />
+    </div>
+  }
+
+  @if (deleteError()) {
+    <div class="printed-tickets__delete-error">
+      <ignt-alert
+        sentiment="danger"
+        showCloseButton
+        data-testid="printed-tickets-delete-error"
+        [description]="deleteErrorMessage() | translate"
+        [closeButtonAriaLabel]="'common.close' | translate"
+        (closeAlert)="dismissDeleteError()"
+      />
+    </div>
+  }
+
+  @if (duplicateError()) {
+    <div class="printed-tickets__duplicate-error">
+      <ignt-alert
+        sentiment="danger"
+        showCloseButton
+        data-testid="printed-tickets-duplicate-error"
+        [description]="'onsiteAppearance.printedTickets.duplicateError' | translate"
+        [closeButtonAriaLabel]="'common.close' | translate"
+        (closeAlert)="dismissDuplicateError()"
+      />
+    </div>
+  }
+
+  @if (isLoading()) {
+    <ignt-skeleton
+      type="image"
+      [numElements]="3"
+      [animation]="true"
+      [contrast]="true"
+      [height]="100"
+      data-testid="printed-tickets-loading"
+    ></ignt-skeleton>
+  } @else if (bundles().length > 0) {
+    <ul class="printed-tickets__list" data-testid="printed-tickets-list">
+      @for (bundle of bundles(); track bundle.id) {
+        <li class="printed-tickets__item" data-testid="printed-tickets-item">
+          <div class="printed-tickets__item-info">
+            <span class="printed-tickets__item-name">{{ bundle.name }}</span>
+          </div>
+          @if (canEdit()) {
+            <div class="printed-tickets__item-actions">
+              <button
+                ignt-icon-button
+                size="small"
+                sentiment="tertiary"
+                [icon]="['fas', 'edit']"
+                [attr.aria-label]="'onsiteAppearance.printedTickets.edit' | translate"
+                (click)="onEdit(bundle)"
+                data-testid="printed-tickets-edit-btn"
+              ></button>
+              <button
+                ignt-icon-button
+                size="small"
+                sentiment="tertiary"
+                [icon]="['fas', 'copy']"
+                [attr.aria-label]="'onsiteAppearance.printedTickets.duplicate' | translate"
+                (click)="onDuplicate(bundle)"
+                data-testid="printed-tickets-duplicate-btn"
+              ></button>
+              <button
+                ignt-icon-button
+                size="small"
+                sentiment="tertiary"
+                variant="danger"
+                [icon]="['fas', 'trash']"
+                [attr.aria-label]="'onsiteAppearance.printedTickets.delete' | translate"
+                (click)="onDelete(bundle)"
+                data-testid="printed-tickets-delete-btn"
+              ></button>
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  } @else if (hasError()) {
+    <div class="printed-tickets__empty" data-testid="printed-tickets-error">
+      <ignt-icon name="exclamation-triangle" variant="light" [fixedWidth]="true" aria-hidden="true"></ignt-icon>
+      <p class="printed-tickets__empty-label">{{ 'onsiteAppearance.printedTickets.loadError' | translate }}</p>
+      <button igntButton sentiment="tertiary" size="large" (click)="retry()" data-testid="printed-tickets-retry-btn">
+        {{ 'common.retry' | translate }}
+      </button>
+    </div>
+  } @else {
+    <div class="printed-tickets__empty" data-testid="printed-tickets-empty">
+      <ignt-icon name="print" variant="light" [fixedWidth]="true" aria-hidden="true"></ignt-icon>
+      <p class="printed-tickets__empty-label">{{ 'onsiteAppearance.printedTickets.emptyState' | translate }}</p>
+    </div>
+  }
+</div>

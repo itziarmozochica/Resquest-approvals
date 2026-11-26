@@ -1,0 +1,170 @@
+@let v = view();
+<div class="editor-item editor-item--font" [class.editor-item--font-collapsed]="!open()">
+  <div class="editor-item__row">
+    <div class="editor-item__content">
+      <div class="editor-item__label">{{ 'whitelabelEditor.items.' + item().key | translate }}</div>
+      @if (item().key | editorItemHint; as hint) {
+        <p class="editor-item__hint">{{ hint }}</p>
+      }
+      @if (!open() && v.isSet && v.familyName) {
+        <span class="editor-item__font-summary">{{ v.familyName }}</span>
+      }
+    </div>
+    <div class="editor-item__row-action">
+      <button
+        type="button"
+        ignt-icon-button
+        [icon]="open() ? ['fal', 'chevron-up'] : ['fal', 'chevron-down']"
+        sentiment="tertiary"
+        size="medium"
+        [attr.aria-expanded]="open()"
+        [attr.aria-label]="'common.details' | translate"
+        [attr.title]="'common.details' | translate"
+        (click)="toggleOpen()"
+        data-testid="editor-item-font-toggle"
+      ></button>
+    </div>
+  </div>
+
+  @if (open()) {
+    @if (!v.isSet) {
+      <div class="editor-item__sources">
+        <app-editor-item-file-upload
+          [accept]="accept()"
+          [label]="'whitelabelEditor.uploadFile' | translate"
+          (fileChosen)="onFileChosen($event)"
+        />
+        <button
+          type="button"
+          igntButton
+          sentiment="secondary"
+          size="small"
+          [leadingIcon]="['fal', 'folder']"
+          [disabled]="!whitelabelId()"
+          (click)="onPickFromLibrary()"
+          data-testid="editor-item-font-pick-from-library"
+        >
+          {{ 'whitelabelEditor.pickFromLibrary' | translate }}
+        </button>
+        <button
+          type="button"
+          igntButton
+          sentiment="secondary"
+          size="small"
+          [leadingIcon]="['fal', 'link']"
+          [disabled]="!whitelabelId() || !styleId()"
+          (click)="onAddGoogleFont()"
+          data-testid="editor-item-font-add-google"
+        >
+          {{ 'whitelabelEditor.fonts.addGoogleFont' | translate }}
+        </button>
+      </div>
+    } @else {
+      <div class="editor-item__font-fields">
+        <div class="editor-item__font-field">
+          <ignt-input-field
+            [id]="'font-' + item().key"
+            [label]="'whitelabelEditor.fonts.familyName' | translate"
+            [readonly]="v.familyLocked"
+            [ngModel]="v.familyName"
+            (ngModelChange)="onFontFamilyChange($event)"
+          />
+        </div>
+        <div class="editor-item__font-field">
+          <ignt-input-field
+            [id]="'font-fallback-' + item().key"
+            [label]="'whitelabelEditor.fonts.fallbackFontFamily' | translate"
+            [ngModel]="v.fallback || 'sans-serif'"
+            (ngModelChange)="onFallbackFontFamilyChange($event)"
+          />
+        </div>
+      </div>
+
+      @if (v.isUpload) {
+        <div class="editor-item__faces">
+          @for (face of v.files; track $index) {
+            @let displayName = displayFileName(face.url, face.fileName);
+            <div class="editor-item__face-row">
+              @if (isRemoteUrl(face.url)) {
+                <a class="editor-item__face-name" [href]="face.url" [title]="displayName" target="_blank" rel="noopener">{{
+                  displayName
+                }}</a>
+              } @else {
+                <span class="editor-item__face-name" [title]="displayName">{{ displayName }}</span>
+              }
+              <div class="editor-item__face-controls">
+                <label class="visually-hidden" [for]="'face-weight-' + item().key + '-' + $index">
+                  {{ 'whitelabelEditor.fonts.weight' | translate }}
+                </label>
+                <select
+                  [id]="'face-weight-' + item().key + '-' + $index"
+                  class="editor-item__face-select"
+                  (change)="updateFace($index, { weight: $any($event.target).value })"
+                >
+                  @for (w of fontWeightOptions; track w.value) {
+                    <option [value]="w.value" [selected]="w.value === face.weight">{{ w.labelKey | translate }}</option>
+                  }
+                </select>
+                <label class="visually-hidden" [for]="'face-style-' + item().key + '-' + $index">
+                  {{ 'whitelabelEditor.fonts.style' | translate }}
+                </label>
+                <select
+                  [id]="'face-style-' + item().key + '-' + $index"
+                  class="editor-item__face-select"
+                  (change)="updateFace($index, { style: $any($event.target).value })"
+                >
+                  @for (s of fontStyleOptions; track s.value) {
+                    <option [value]="s.value" [selected]="s.value === face.style">{{ s.labelKey | translate }}</option>
+                  }
+                </select>
+                <button
+                  type="button"
+                  class="editor-item__face-remove"
+                  [attr.aria-label]="'common.remove' | translate"
+                  [attr.title]="'common.remove' | translate"
+                  (click)="removeFace($index)"
+                >
+                  <ignt-icon aria-hidden="true" name="times" variant="light" size="sm" />
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+
+        <label class="editor-item__add-face-btn">
+          <input type="file" class="d-none" [accept]="accept()" (change)="onAddFaceFileChange($event)" />
+          <ignt-icon aria-hidden="true" name="plus" variant="light" size="sm" />
+          {{ 'whitelabelEditor.fonts.addFile' | translate }}
+        </label>
+      }
+    }
+  }
+
+  @if (v.isSet || hasEdits()) {
+    <div class="editor-item__footer">
+      @if (hasEdits()) {
+        <span class="editor-item__status editor-item__status--pending">{{ 'whitelabelEditor.unsavedChanges' | translate }}</span>
+      }
+      @if (v.isSet) {
+        <ignt-button
+          variant="tertiary"
+          sentiment="neutral"
+          size="small"
+          data-testid="editor-item-font-clear"
+          [label]="'whitelabelEditor.reset' | translate"
+          (click)="onClearFont()"
+        />
+      }
+      @if (hasEdits()) {
+        <ignt-button
+          variant="tertiary"
+          sentiment="neutral"
+          size="small"
+          data-testid="editor-item-font-undo"
+          [label]="'common.undo' | translate"
+          (click)="onUndoPending()"
+        />
+      }
+    </div>
+  }
+</div>

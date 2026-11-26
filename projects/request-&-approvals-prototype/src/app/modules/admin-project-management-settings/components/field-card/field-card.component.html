@@ -1,0 +1,124 @@
+<div class="field-card">
+  <div class="field-card__header">
+    <input
+      type="text"
+      class="form-control field-card__label"
+      [ngModel]="label"
+      (ngModelChange)="onLabelChange($event)"
+      [attr.data-testid]="'field-card-label-' + fieldId"
+    />
+    <select
+      class="form-control field-card__type-select"
+      [ngModel]="type"
+      (ngModelChange)="onTypeChange($event)"
+      [attr.data-testid]="'field-card-type-' + fieldId"
+    >
+      @for (t of typeOptions; track t) {
+        <option [ngValue]="t">{{ t }}</option>
+      }
+    </select>
+    @if (isCustom) {
+      <span class="field-card__custom-badge">{{ 'adminServiceCatalog.editor.custom' | translate }}</span>
+    }
+  </div>
+
+  <div class="field-card__controls">
+    <label class="field-card__toggle">
+      <input type="checkbox" [checked]="enabled" [disabled]="isCustom" (change)="onEnabledChange($any($event.target).checked)" />
+      {{ 'adminServiceCatalog.editor.enabled' | translate }}
+    </label>
+
+    <label class="field-card__toggle">
+      <input type="checkbox" [checked]="required" [disabled]="requiredLocked" (change)="onRequiredChange($any($event.target).checked)" />
+      {{ 'adminServiceCatalog.editor.required' | translate }}
+    </label>
+
+    @if (!isCustom) {
+      <label class="field-card__toggle">
+        <input
+          type="checkbox"
+          [checked]="requiredLocked"
+          (change)="onRequiredLockedChange($any($event.target).checked)"
+          [attr.data-testid]="'field-card-required-locked-' + fieldId"
+        />
+        {{ 'adminServiceCatalog.editor.lockFlags.alwaysRequired' | translate }}
+      </label>
+
+      <label class="field-card__toggle">
+        <input
+          type="checkbox"
+          [checked]="removalLocked"
+          (change)="onRemovalLockedChange($any($event.target).checked)"
+          [attr.data-testid]="'field-card-removal-locked-' + fieldId"
+        />
+        {{ 'adminServiceCatalog.editor.lockFlags.cannotBeHidden' | translate }}
+      </label>
+    }
+
+    <label class="field-card__section-label">
+      {{ 'adminServiceCatalog.editor.section' | translate }}
+      <input type="text" class="form-control field-card__section-input" [ngModel]="row.section" (ngModelChange)="onSectionChange($event)" />
+    </label>
+
+    @if (isCustom && !removalLocked) {
+      <button type="button" class="field-card__remove" igntButton sentiment="tertiary" size="small" variant="danger" (click)="onRemove()">
+        {{ 'adminServiceCatalog.editor.remove' | translate }}
+      </button>
+    }
+  </div>
+
+  <label class="field-card__help-label">
+    {{ 'adminServiceCatalog.editor.helpText' | translate }}
+    <input
+      type="text"
+      class="form-control field-card__help-input"
+      [ngModel]="helpText"
+      (ngModelChange)="onHelpTextChange($event)"
+      [attr.data-testid]="'field-card-help-' + fieldId"
+    />
+  </label>
+
+  @if (numericKey) {
+    <label class="field-card__numeric-label">
+      @if (numericKey === 'faqMinPairs') {
+        {{ 'adminServiceCatalog.editor.minPairs' | translate }}
+      } @else {
+        {{ 'adminServiceCatalog.editor.minRows' | translate }}
+      }
+      <input
+        type="number"
+        class="form-control field-card__numeric-input"
+        min="1"
+        [max]="numericMax"
+        [ngModel]="numericValue"
+        (ngModelChange)="onNumericChange($event)"
+        [attr.data-testid]="'field-card-numeric-' + fieldId"
+      />
+    </label>
+  }
+
+  @if (supportsOptions) {
+    <div class="field-card__options">
+      <span class="field-card__options-label">{{ 'adminServiceCatalog.editor.options' | translate }}</span>
+      <app-picklist-option-editor
+        [options]="options"
+        [helpers]="helpers"
+        [askDetail]="askDetail"
+        [supportsAskDetail]="true"
+        (optionsChange)="onPicklistChange($event)"
+      />
+    </div>
+  }
+
+  @if (showGridColumns) {
+    <div class="field-card__grid">
+      <app-grid-column-editor [columns]="gridColumns" [picklists]="gridPicklists" (columnsChange)="onGridColumnsChange($event)" />
+    </div>
+  }
+
+  @if (showTicketHeader) {
+    <div class="field-card__ticket-header">
+      <app-ticket-header-fields-editor [fields]="ticketHeaderFields" (fieldsChange)="onTicketHeaderChange($event)" />
+    </div>
+  }
+</div>

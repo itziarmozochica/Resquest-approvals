@@ -1,0 +1,130 @@
+<div class="plan-content-edit">
+  <div *ngIf="isLoading()" class="plan-content-edit__loading">
+    <ignt-icon name="spinner" variant="solid" [spin]="true" aria-hidden="true"></ignt-icon>
+    <p>{{ 'common.loading' | translate }}</p>
+  </div>
+
+  <app-plan-error *ngIf="error()" [showRetryButton]="!!planId" (retry)="retryLoadPlan()"></app-plan-error>
+
+  <ng-container *ngIf="planLoaded() && !isLoading() && !error()">
+    <app-plan-stepper
+      *ngIf="planId"
+      [planId]="planId"
+      [currentStepId]="'content'"
+      [includeInventory]="shouldShowInventory()"
+      [planCreationStatus]="planCreationStatus()"
+    ></app-plan-stepper>
+
+    <div class="plan-content-edit__content">
+      <ul class="plan-content-edit__tabs" role="tablist">
+        <ng-container *ngFor="let tab of tabs()">
+          <ng-container *optimizelyFeature="tab.optimizely; enabled: true">
+            <li
+              role="tab"
+              [attr.tabindex]="selectedTab() === tab.id ? 0 : -1"
+              [attr.aria-selected]="selectedTab() === tab.id"
+              [attr.id]="'tab-' + tab.id"
+              [attr.aria-controls]="'tabpanel-' + tab.id"
+              class="plan-content-edit__tab"
+              [class.plan-content-edit__tab--active]="selectedTab() === tab.id"
+              (click)="onTabClick(tab.id)"
+              (keydown.enter)="onTabClick(tab.id)"
+              (keydown.space)="onTabClick(tab.id); $event.preventDefault()"
+              data-testid="plan-edition-tab"
+            >
+              {{ tab.label | translate }}
+            </li>
+          </ng-container>
+        </ng-container>
+      </ul>
+
+      <div class="plan-content-edit__tab-content">
+        <div
+          *ngIf="selectedTab() === PlanEditionTabEnum.Content"
+          role="tabpanel"
+          [attr.id]="'tabpanel-' + PlanEditionTabEnum.Content"
+          [attr.aria-labelledby]="'tab-' + PlanEditionTabEnum.Content"
+        >
+          <app-plan-content-edition
+            [isDraftMode]="true"
+            [isLastTab]="isLastEditableTab(PlanEditionTabEnum.Content)"
+            (saved)="onTabSaved()"
+            (saveFailed)="onTabSaveFailed()"
+          ></app-plan-content-edition>
+        </div>
+        <div
+          *ngIf="selectedTab() === PlanEditionTabEnum.Gallery"
+          role="tabpanel"
+          [attr.id]="'tabpanel-' + PlanEditionTabEnum.Gallery"
+          [attr.aria-labelledby]="'tab-' + PlanEditionTabEnum.Gallery"
+        >
+          <app-plan-gallery-edition
+            [isDraftMode]="true"
+            [isLastTab]="isLastEditableTab(PlanEditionTabEnum.Gallery)"
+            (saved)="onTabSaved()"
+            (saveFailed)="onTabSaveFailed()"
+          ></app-plan-gallery-edition>
+        </div>
+        <div
+          *ngIf="selectedTab() === PlanEditionTabEnum.Venue"
+          role="tabpanel"
+          [attr.id]="'tabpanel-' + PlanEditionTabEnum.Venue"
+          [attr.aria-labelledby]="'tab-' + PlanEditionTabEnum.Venue"
+        >
+          <app-plan-venue-edition
+            [isDraftMode]="true"
+            [isLastTab]="isLastEditableTab(PlanEditionTabEnum.Venue)"
+            (saved)="onTabSaved()"
+            (saveFailed)="onTabSaveFailed()"
+          ></app-plan-venue-edition>
+        </div>
+        <div
+          *ngIf="selectedTab() === PlanEditionTabEnum.TermsAndConditions"
+          role="tabpanel"
+          [attr.id]="'tabpanel-' + PlanEditionTabEnum.TermsAndConditions"
+          [attr.aria-labelledby]="'tab-' + PlanEditionTabEnum.TermsAndConditions"
+        >
+          <app-plan-terms-and-conditions-edition
+            [htmlContent]="termsAndConditionsHtml()"
+            (htmlContentChange)="onTermsAndConditionsHtmlChange($event)"
+            [planId]="planId"
+          ></app-plan-terms-and-conditions-edition>
+        </div>
+        <div
+          *ngIf="selectedTab() === PlanEditionTabEnum.Translations"
+          role="tabpanel"
+          [attr.id]="'tabpanel-' + PlanEditionTabEnum.Translations"
+          [attr.aria-labelledby]="'tab-' + PlanEditionTabEnum.Translations"
+        >
+          <app-plan-translations-edition (saved)="onTabSaved()" (saveFailed)="onTabSaveFailed()"></app-plan-translations-edition>
+        </div>
+        @if (selectedTab() === PlanEditionTabEnum.Tags) {
+          <div role="tabpanel" [attr.id]="'tabpanel-' + PlanEditionTabEnum.Tags" [attr.aria-labelledby]="'tab-' + PlanEditionTabEnum.Tags">
+            <app-plan-tags-edition [isDraftMode]="true" (saved)="onTabSaved()" (saveFailed)="onTabSaveFailed()"></app-plan-tags-edition>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div *ngIf="showCompatibilityNote()" class="information-banner" data-testid="information-banner">
+      <ignt-icon class="information-banner__icon" name="info-circle" variant="regular" aria-hidden="true"></ignt-icon>
+      <div class="information-banner__title">
+        <span [innerHTML]="'planEdition.compatibleDevicesNote' | translate"></span>
+      </div>
+    </div>
+  </ng-container>
+</div>
+<app-actions-bar
+  *ngIf="planLoaded() && !isLoading() && !error()"
+  [showBackButton]="showBackButton()"
+  [continueButtonLabel]="continueButtonLabel()"
+  [saveDraftDisabled]="!canEditPlan"
+  [continueButtonDisabled]="!canEditPlan"
+  (saveDraft)="onSaveDraft()"
+  (back)="onBack()"
+  (continue)="onContinue()"
+  continueButtonTestId="plan-content-edit-continue"
+  backButtonTestId="plan-content-edit-back"
+  saveDraftTestId="plan-content-edit-save-draft"
+  saveDraftTranslationKey="planEdition.saveDraft"
+></app-actions-bar>

@@ -1,0 +1,50 @@
+<div class="move-customers-seats" data-testid="move-seats">
+  <header class="move-customers-seats__header" data-testid="move-seats-header">
+    <h3 class="move-customers-seats__title" data-testid="move-seats-title">
+      {{ 'seatingManagement.moveSeats' | translate }}
+    </h3>
+    <p data-testid="move-seats-description">
+      {{ 'seatingManagement.moveSeatsSubheader' | translate }}
+    </p>
+  </header>
+
+  @if (isLoading() || isLoadingConfig()) {
+    <div class="move-customers-seats__loader">
+      <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'3x'"></fa-icon>
+    </div>
+  }
+
+  @if (orders().length && !isLoadingConfig()) {
+    <app-move-seats-accordion>
+      @for (order of orders(); track order.orderId) {
+        <app-move-seats-accordion-item
+          [headerActionLabel]="hasGoToOrderEnabled() ? ('seatingManagement.goToOrder' | translate) : ''"
+          [labelHeader]="('common.order' | translate) + ' #' + order.orderId"
+          [isOpened]="true"
+          (headerAction)="goToOrder(order.orderId)"
+        >
+          @if (eventKey() && secretKey()) {
+            <app-move-seats-order
+              [order]="order"
+              [eventKey]="eventKey()"
+              [secretKey]="secretKey()"
+              [focusTicketId]="focusTicketId"
+              (displayStaffNoteToastAfterSeatChange)="onSeatChangeSavedForStaffNoteToast()"
+            />
+          }
+        </app-move-seats-accordion-item>
+      }
+    </app-move-seats-accordion>
+  }
+
+  @if (showPaginator()) {
+    <app-pagination-with-numbers
+      (numPageSelected)="setNewPagination($event, pageSize)"
+      [totalCountResults]="pagination().totalCount"
+      [selectedPage]="pagination().currentPage"
+      [previousPage]="pagination().previousPage"
+      [nextPage]="pagination().nextPage"
+      [pageSize]="pageSize"
+    />
+  }
+</div>

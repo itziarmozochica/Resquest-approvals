@@ -1,0 +1,184 @@
+<div class="group-prices" data-testid="group-prices">
+  @switch (state()) {
+    @case ('loading') {
+      <div class="group-prices__loading" aria-busy="true" aria-live="polite" data-testid="group-prices-loading">
+        <ignt-skeleton type="list" [animation]="true" [numElements]="4" />
+      </div>
+    }
+    @case ('error') {
+      <div class="group-prices__failure" role="alert" data-testid="group-prices-error">
+        <p class="group-prices__message">{{ 'marketplaceEvents.details.prices.loadError' | translate }}</p>
+        <ignt-button
+          data-testid="group-prices-retry"
+          size="small"
+          variant="secondary"
+          [label]="'marketplaceEvents.retry' | translate"
+          (click)="load()"
+        />
+      </div>
+    }
+    @default {
+      <ignt-alert
+        data-testid="group-prices-taxes"
+        sentiment="info"
+        [description]="'marketplaceEvents.details.prices.taxesDescription' | translate"
+        [title]="'marketplaceEvents.details.prices.taxesTitle' | translate"
+      />
+
+      @if (blocks().length === 0) {
+        <p class="group-prices__message" data-testid="group-prices-empty">{{ 'marketplaceEvents.details.prices.empty' | translate }}</p>
+      } @else {
+        @if (blocks().length > 1) {
+          <p class="group-prices__message" data-testid="group-prices-priority-note">
+            {{ 'marketplaceEvents.details.prices.priorityNote' | translate: { count: blocks().length } }}
+          </p>
+        }
+        @for (block of blocks(); track block.id) {
+          <ignt-accordion variant="panel">
+            <ignt-accordion-item [attr.data-testid]="'group-price-list-' + block.id">
+              <span class="group-prices__list-title" igntAccordionTitle>
+                <span class="group-prices__list-name" data-testid="group-price-list-name">{{ block.name }}</span>
+                <span class="group-prices__priority">
+                  {{ 'marketplaceEvents.details.prices.priority' | translate: { priority: block.priority } }}
+                </span>
+              </span>
+              <ng-template igntAccordionBody>
+                <div class="group-prices__table-scroll" data-testid="group-price-list-scroll">
+                  <ignt-table layout="table" [attr.data-testid]="'group-price-list-table-' + block.id" [data]="block.rows">
+                    <ignt-table-column
+                      key="name"
+                      columnType="primary"
+                      [header]="'marketplaceEvents.details.prices.columns.ticketType' | translate"
+                    >
+                      <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+                        <span class="group-prices__text" [attr.data-testid]="'group-price-' + block.id + '-' + item.id">
+                          <span class="group-prices__name" [class.group-prices__name--not-sold]="!item.isSold">{{ item.name }}</span>
+                          <span class="group-prices__category">
+                            {{ item.category }}
+                            @if (!item.isSold) {
+                              <span data-testid="group-price-not-sold">{{ 'marketplaceEvents.details.prices.notSold' | translate }}</span>
+                            }
+                            @if (item.hasNoDiscount) {
+                              <ignt-icon
+                                class="group-prices__warning"
+                                data-testid="group-price-no-discount"
+                                name="exclamation-triangle"
+                                role="img"
+                                size="caption"
+                                tabindex="0"
+                                variant="solid"
+                                igntTooltip
+                                [attr.aria-label]="'marketplaceEvents.details.prices.noDiscount' | translate"
+                                [tooltipLabel]="'marketplaceEvents.details.prices.noDiscount' | translate"
+                              />
+                            }
+                          </span>
+                        </span>
+                      </ng-template>
+                    </ignt-table-column>
+
+                    <ignt-table-column
+                      key="ticketPrice"
+                      [header]="'marketplaceEvents.details.prices.columns.retail' | translate"
+                      [width]="140"
+                    >
+                      <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+                        <span class="group-prices__amount" [class.group-prices__amount--not-sold]="!item.isSold">
+                          <span [attr.data-testid]="'group-price-retail-' + block.id + '-' + item.id">{{
+                            item.ticketPrice | currency: block.currency
+                          }}</span>
+                          @if (item.surcharge > 0) {
+                            <span class="group-prices__surcharge">
+                              {{
+                                'marketplaceEvents.details.prices.surcharge'
+                                  | translate: { amount: (item.surcharge | currency: block.currency) }
+                              }}
+                            </span>
+                          }
+                        </span>
+                      </ng-template>
+                    </ignt-table-column>
+
+                    <ignt-table-column
+                      key="b2bDiscountPercentage"
+                      [header]="'marketplaceEvents.details.prices.columns.discount' | translate"
+                      [width]="112"
+                    >
+                      <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+                        <span
+                          class="group-prices__amount"
+                          [attr.data-testid]="'group-price-discount-' + block.id + '-' + item.id"
+                          [class.group-prices__amount--not-sold]="!item.isSold"
+                          >{{
+                            'marketplaceEvents.details.prices.discountValue' | translate: { percentage: item.b2bDiscountPercentage ?? 0 }
+                          }}</span
+                        >
+                      </ng-template>
+                    </ignt-table-column>
+
+                    <ignt-table-column
+                      key="wholesaleTicketPrice"
+                      [header]="'marketplaceEvents.details.prices.columns.wholesale' | translate"
+                      [width]="172"
+                    >
+                      <ng-template igntTableHeaderTemplate>
+                        <span
+                          class="group-prices__header"
+                          data-testid="group-prices-wholesale-header"
+                          igntTooltip
+                          [tooltipMaxWidth]="240"
+                          [tooltipTemplate]="wholesaleInfo"
+                        >
+                          {{ 'marketplaceEvents.details.prices.columns.wholesale' | translate }}
+                          <ignt-icon
+                            class="group-prices__header-info"
+                            data-testid="group-prices-wholesale-info"
+                            name="info-circle"
+                            role="img"
+                            size="caption"
+                            tabindex="0"
+                            variant="solid"
+                            [attr.aria-label]="'marketplaceEvents.details.prices.wholesaleInfo.ariaLabel' | translate"
+                          />
+                        </span>
+                      </ng-template>
+                      <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+                        <span class="group-prices__amount" [class.group-prices__amount--not-sold]="!item.isSold">
+                          <span [attr.data-testid]="'group-price-wholesale-' + block.id + '-' + item.id">{{
+                            item.wholesaleTicketPrice | currency: block.currency
+                          }}</span>
+                          @if (item.surcharge > 0) {
+                            <span class="group-prices__surcharge">
+                              {{
+                                'marketplaceEvents.details.prices.surcharge'
+                                  | translate: { amount: (item.surcharge | currency: block.currency) }
+                              }}
+                            </span>
+                          }
+                        </span>
+                      </ng-template>
+                    </ignt-table-column>
+                  </ignt-table>
+                </div>
+              </ng-template>
+            </ignt-accordion-item>
+          </ignt-accordion>
+        }
+      }
+    }
+  }
+</div>
+
+<ng-template #wholesaleInfo>
+  <span class="group-prices__tooltip" data-testid="group-prices-wholesale-info-content">
+    <span>{{ 'marketplaceEvents.details.prices.wholesaleInfo.intro' | translate }}</span>
+    <span>
+      <strong>{{ 'marketplaceEvents.details.prices.wholesaleInfo.wholesaleTitle' | translate }}</strong
+      >{{ 'marketplaceEvents.details.prices.wholesaleInfo.wholesale' | translate }}
+    </span>
+    <span>
+      <strong>{{ 'marketplaceEvents.details.prices.wholesaleInfo.commissionTitle' | translate }}</strong
+      >{{ 'marketplaceEvents.details.prices.wholesaleInfo.commission' | translate }}
+    </span>
+  </span>
+</ng-template>

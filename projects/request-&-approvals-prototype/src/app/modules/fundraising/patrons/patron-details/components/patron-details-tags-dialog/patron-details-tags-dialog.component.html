@@ -1,0 +1,97 @@
+<ignt-dialog-header>{{ dialogTitle() }}</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="patron-details-tags-dialog__body">
+    @if (isLoading()) {
+      <div class="patron-details-tags-dialog__loading" data-testid="patron-details-tags-dialog-loading">
+        <ignt-icon name="spinner" variant="solid" size="h1" [spin]="true" aria-hidden="true" />
+      </div>
+    } @else {
+      @if (hasManageLayout()) {
+        <section class="patron-details-tags-dialog__section" aria-labelledby="patron-details-tags-dialog-patrons-tags-heading">
+          <h2 class="patron-details-tags-dialog__section-heading" id="patron-details-tags-dialog-patrons-tags-heading">
+            <ignt-icon class="patron-details-tags-dialog__section-heading-icon" name="tag" variant="light" size="base" aria-hidden="true" />
+            <span>{{ 'fundraising.patronDetails.tagsDialog.patronsTagsHeading' | translateTerminology }}</span>
+          </h2>
+          <div class="patron-details-tags-dialog__tag-list" data-testid="patron-details-tags-dialog-tag-list">
+            @for (row of computedRows(); track row.id) {
+              <ignt-list-item class="patron-details-tags-dialog__tag-list-item" [title]="row.tag" [divider]="false" type="unwrapped">
+                <ng-container trailing-modifier>
+                  <span class="patron-details-tags-dialog__computed-tag-badge">{{
+                    'fundraising.patronDetails.tagsDialog.computedTagBadge' | translate
+                  }}</span>
+                </ng-container>
+              </ignt-list-item>
+              <ignt-divider class="patron-details-tags-dialog__tag-list-divider" [margin]="false" />
+            }
+            @for (row of manualRows(); track row.id; let last = $last) {
+              <ignt-list-item class="patron-details-tags-dialog__tag-list-item" [title]="row.name" [divider]="false" type="unwrapped">
+                <ng-container trailing-modifier>
+                  <button
+                    type="button"
+                    class="patron-details-tags-dialog__row-action"
+                    [attr.aria-label]="'fundraising.patronDetails.tagsDialog.removeTagAria' | translate"
+                    data-testid="patron-details-tags-dialog-remove-manual"
+                    (click)="onManualRowRemove(row)"
+                  >
+                    <ignt-icon name="trash-alt" variant="light" size="base" aria-hidden="true" />
+                  </button>
+                </ng-container>
+              </ignt-list-item>
+              @if (!last) {
+                <ignt-divider class="patron-details-tags-dialog__tag-list-divider" [margin]="false" />
+              }
+            }
+          </div>
+
+          @if (!warningDismissed()) {
+            <ignt-alert
+              class="patron-details-tags-dialog__warning"
+              sentiment="warning"
+              [showCloseButton]="true"
+              data-testid="patron-details-tags-dialog-warning"
+              [description]="'fundraising.patronDetails.tagsDialog.deletionWarning' | translate"
+              (closeAlert)="onWarningClose()"
+            ></ignt-alert>
+          }
+        </section>
+
+        <ignt-divider [margin]="false" />
+      }
+
+      <div class="patron-details-tags-dialog__add-section">
+        @if (hasManageLayout()) {
+          <h2 class="patron-details-tags-dialog__add-heading" id="patron-details-tags-dialog-add-more-heading">
+            <ignt-icon
+              class="patron-details-tags-dialog__section-heading-icon"
+              name="plus"
+              variant="light"
+              size="base"
+              aria-hidden="true"
+            />
+            <span>{{ 'fundraising.patronDetails.tagsDialog.addMoreHeading' | translateTerminology }}</span>
+          </h2>
+        }
+        <app-multi-select
+          class="patron-details-tags-dialog__select"
+          [options]="dropdownOptions()"
+          [selectedOptions]="selectedTagOption()"
+          [searchPlaceholder]="'common.selectsPlaceholder' | translate"
+          [placeholder]="'fundraising.patronDetails.tagsDialog.tagFieldLabel' | translate"
+          [displayInPlaceMaximum]="1"
+          (selected)="onTagDropdownChange($event)"
+          data-testid="patron-details-tags-dialog-tag-select"
+        ></app-multi-select>
+      </div>
+    }
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer [hideCancelButton]="true">
+  @if (footerConfig(); as footer) {
+    <button type="button" igntButton sentiment="tertiary" (click)="dismiss()">{{ footer.cancelLabel }}</button>
+    <button type="button" igntButton sentiment="primary" [disabled]="footer.submitDisabled" (click)="onSubmit()">
+      {{ footer.submitLabel }}
+    </button>
+  }
+</ignt-dialog-footer>

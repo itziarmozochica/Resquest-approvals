@@ -1,0 +1,165 @@
+<form
+  class="create-venue-form"
+  [class.create-venue-form--advanced]="variant() === 'advanced'"
+  [class.create-venue-form--quick]="variant() === 'quick'"
+  [formGroup]="form"
+  (ngSubmit)="onSubmit()"
+>
+  @if (hasDuplicateVenue()) {
+    @if (canSelectExistingDuplicateVenue()) {
+      <ignt-alert
+        class="create-venue-form__duplicate-alert"
+        data-testid="create-venue-duplicate-alert"
+        sentiment="danger"
+        [actionLabel]="'venues.createModal.duplicate.useExistingVenue' | translate"
+        [closeButtonAriaLabel]="'common.close' | translate"
+        [description]="'venues.createModal.duplicate.description' | translate"
+        [showCloseButton]="true"
+        [title]="'venues.createModal.duplicate.title' | translate"
+        (actionClicked)="onUseExistingVenue()"
+        (closeAlert)="onDuplicateVenueDismissed()"
+      />
+    } @else {
+      <ignt-alert
+        class="create-venue-form__duplicate-alert"
+        data-testid="create-venue-duplicate-alert"
+        sentiment="danger"
+        [closeButtonAriaLabel]="'common.close' | translate"
+        [showCloseButton]="true"
+        [title]="'venues.createModal.duplicate.title' | translate"
+        (closeAlert)="onDuplicateVenueDismissed()"
+      >
+        <ng-template #igntAlertContent>
+          <p
+            class="ignt-alert__description create-venue-form__duplicate-alert-description"
+            [innerHTML]="'venues.createModal.duplicate.unreachableDescription' | translate: { supportEmail: partnersSupportEmail }"
+          ></p>
+        </ng-template>
+      </ignt-alert>
+    }
+  }
+
+  <div class="create-venue-form__field create-venue-form__field--search">
+    <ignt-input-field
+      #googlePlacesSearch
+      formControlName="googlePlaceSearch"
+      (keydown.enter)="$event.preventDefault()"
+      id="create-venue-place-search"
+      data-testid="create-venue-place-search"
+      type="text"
+      [customFormErrors]="googlePlaceSearchErrors()"
+      [disabled]="isSaving()"
+      [helperText]="'venues.createModal.googlePlaceSearchHelp' | translate"
+      [hideErrorLabels]="!isCityNotSupported()"
+      [label]="'venues.createModal.googlePlaceSearchPlaceholder' | translate"
+      [placeholder]="'venues.createModal.googlePlaceSearchPlaceholder' | translate"
+      (input)="onFormChanged()"
+    />
+  </div>
+
+  <div class="create-venue-form__field create-venue-form__field--place-id">
+    <ignt-input-field
+      id="create-venue-google-place-id"
+      data-testid="create-venue-google-place-id"
+      formControlName="googlePlaceId"
+      type="text"
+      [readonly]="true"
+      [customFormErrors]="googlePlaceIdErrors()"
+      [hideErrorLabels]="!hasDuplicateVenue()"
+      [label]="'venues.createModal.googlePlaceId' | translate"
+    />
+  </div>
+
+  <div class="create-venue-form__field create-venue-form__field--city">
+    <ignt-typeahead
+      data-testid="create-venue-city"
+      [container]="variant() === 'quick' ? 'body' : null"
+      [disabled]="true"
+      [emptyLabel]="'venues.createModal.chooseCity' | translate"
+      [fieldLabel]="'venues.createModal.selectCity' | translate"
+      [isInDialog]="variant() === 'quick'"
+      [options]="cityOptions()"
+      [selectedOption]="selectedCity()"
+    />
+  </div>
+
+  <div class="create-venue-form__coordinates">
+    <div class="create-venue-form__field">
+      <ignt-input-field
+        id="create-venue-latitude"
+        data-testid="create-venue-latitude"
+        formControlName="latitude"
+        type="text"
+        [hideErrorLabels]="true"
+        [label]="'venues.createModal.latitude' | translate"
+      />
+    </div>
+    <div class="create-venue-form__field">
+      <ignt-input-field
+        id="create-venue-longitude"
+        data-testid="create-venue-longitude"
+        formControlName="longitude"
+        type="text"
+        [hideErrorLabels]="true"
+        [label]="'venues.createModal.longitude' | translate"
+      />
+    </div>
+  </div>
+
+  <div class="create-venue-form__field create-venue-form__field--name">
+    <ignt-input-field
+      id="create-venue-name"
+      data-testid="create-venue-name"
+      formControlName="name"
+      type="text"
+      [hideErrorLabels]="true"
+      [label]="'venues.createModal.name' | translate"
+    />
+  </div>
+
+  <div class="create-venue-form__field create-venue-form__field--address">
+    <ignt-input-field
+      id="create-venue-address"
+      data-testid="create-venue-address"
+      formControlName="address"
+      type="text"
+      [hideErrorLabels]="true"
+      [label]="'venues.createModal.address' | translate"
+    />
+  </div>
+
+  <div class="create-venue-form__field create-venue-form__field--zip-code">
+    <ignt-input-field
+      id="create-venue-zip-code"
+      data-testid="create-venue-zip-code"
+      formControlName="zipCode"
+      type="text"
+      [hideErrorLabels]="true"
+      [label]="'venues.createModal.zipCode' | translate"
+    />
+  </div>
+
+  @if (isCityNotSupported()) {
+    <p class="create-event-quick-setup-wizard__venue-support" data-testid="create-venue-support-error">
+      {{ 'venues.createModal.cityNotSupported' | translate }}
+      <a class="create-event-quick-setup-wizard__venue-support-link" [href]="'mailto:' + partnersSupportEmail">
+        {{ 'createEvent.quickSetupWizard.step1.venueSupportLink' | translate }}
+      </a>
+    </p>
+  } @else if (errorMessageKey()) {
+    <p class="create-venue-form__error" role="alert" data-testid="create-venue-error">
+      {{ errorMessageKey() | translate }}
+    </p>
+  }
+
+  <div class="create-venue-form__actions">
+    <ignt-button
+      data-testid="create-venue-submit"
+      htmlType="submit"
+      variant="secondary"
+      [disabled]="isSubmitDisabled()"
+      [label]="'venues.createModal.createVenue' | translate"
+      [loading]="isSaving()"
+    />
+  </div>
+</form>

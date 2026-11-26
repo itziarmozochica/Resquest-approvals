@@ -1,0 +1,193 @@
+<div class="features">
+  <div class="features__header">
+    <div>
+      <h3>{{ 'featureManagement.features' | translate }}</h3>
+      <p class="features__description">{{ 'featureManagement.description' | translate }}</p>
+    </div>
+    <button igntButton (click)="toggleFeatures()" [disabled]="featuresLoading" data-testid="grant-feature-button">
+      {{ 'featureManagement.grantFeature' | translate }}
+    </button>
+  </div>
+
+  @if (loading) {
+    <div class="features__loading">
+      <ignt-icon name="spinner" variant="solid" [spin]="true" size="base"></ignt-icon>
+      {{ 'common.loading' | translate }}
+    </div>
+  }
+
+  <div *ngIf="error" class="features__error">
+    <ignt-icon name="exclamation-triangle" variant="solid" size="base"></ignt-icon>
+    {{ error }}
+  </div>
+
+  <div *ngIf="permissionsData && allRoles.length > 0 && !loading" class="features__content">
+    <div class="features__permissions-list">
+      <div
+        *ngFor="let permission of getUniquePermissions(); trackBy: trackByPermission"
+        class="features__permission-row"
+        [class.features__permission-row--expanded]="isPermissionExpanded(permission)"
+      >
+        <div class="features__permission-header">
+          <div class="features__permission-expand" (click)="togglePermissionExpansion(permission)">
+            <ignt-icon
+              [name]="permissionExpandChevronName(permission)"
+              variant="solid"
+              class="features__expand-icon"
+              size="base"
+            ></ignt-icon>
+          </div>
+          <div class="features__permission-main" (click)="togglePermissionExpansion(permission)">
+            <span class="features__permission-title">
+              {{ permission }}
+            </span>
+          </div>
+          <div class="features__permission-actions">
+            <span class="features__role-count">{{ getPermissionRoleCount(permission) }} {{ 'common.roles' | translate }}</span>
+            <button
+              igntButton
+              sentiment="secondary"
+              size="small"
+              (click)="openGrantModal(permission)"
+              [disabled]="loading"
+              [title]="'featureManagement.grantPermissionToRoles' | translate"
+              data-testid="add-role-button"
+            >
+              {{ 'featureManagement.addRole' | translate }}
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="isPermissionExpanded(permission)" class="features__roles-table">
+          <div *ngIf="getRolesWithGrantedPermission(permission).length > 0; else noGrantedRoles" class="features__granted-roles">
+            <div
+              *ngFor="let roleAccess of getRolesWithGrantedPermission(permission); trackBy: trackByRole"
+              class="features__granted-role-item"
+              [class.features__granted-role-item--revoked]="roleAccess.isRevoked"
+            >
+              <div class="features__role-content">
+                <span class="features__role-name">{{ roleAccess.roleLabel }}</span>
+                <span *ngIf="roleAccess.isRevoked" class="features__revoked-label">({{ 'featureManagement.revoked' | translate }})</span>
+              </div>
+              <button
+                *ngIf="!roleAccess.isRevoked"
+                class="features__revoke-btn"
+                (click)="revokePermissionFromRole(roleAccess.roleId, permission)"
+                [disabled]="loading"
+                [title]="'featureManagement.revokePermissionFromRole' | translate"
+              >
+                <span class="features__btn-icon">−</span>
+              </button>
+              <button
+                *ngIf="roleAccess.isRevoked"
+                class="features__grant-btn-inline"
+                (click)="grantPermissionToRole(roleAccess.roleId, permission)"
+                [disabled]="loading"
+                [title]="'featureManagement.grantPermissionToRole' | translate"
+              >
+                <span class="features__btn-icon">+</span>
+              </button>
+            </div>
+          </div>
+
+          <ng-template #noGrantedRoles>
+            <div class="features__no-granted-roles">
+              <ignt-icon name="info-circle" variant="solid" size="base"></ignt-icon>
+              <span>{{ 'featureManagement.noRolesGranted' | translate }}</span>
+            </div>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="showGrantModal" class="features__modal-overlay" (click)="closeGrantModal()">
+    <div class="features__modal" (click)="$event.stopPropagation()">
+      <div class="features__modal-header">
+        <h4>{{ 'featureManagement.grantFeature' | translate }}: {{ selectedPermission }}</h4>
+        <button class="features__modal-close" (click)="closeGrantModal()">×</button>
+      </div>
+
+      <div class="features__modal-content">
+        <p>{{ 'featureManagement.selectRolesToGrantFeature' | translate }}</p>
+
+        <div class="features__role-list">
+          <div *ngFor="let role of getAvailableRolesForGrant()" class="features__role-option">
+            <input type="checkbox" [id]="'role-' + role.id" [(ngModel)]="role.selected" class="features__role-checkbox-modal" />
+            <label [for]="'role-' + role.id" class="features__role-label">
+              {{ getTranslatedRoleLabel(role.label) }}
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="features__modal-actions">
+        <button class="features__modal-cancel" (click)="closeGrantModal()" [disabled]="loading">
+          {{ 'common.cancel' | translate }}
+        </button>
+        <button class="features__modal-confirm" (click)="confirmGrantPermissions()" [disabled]="loading || !hasSelectedRoles()">
+          @if (loading) {
+            <ignt-icon name="spinner" variant="solid" [spin]="true" size="sm"></ignt-icon>
+          }
+          {{ 'featureManagement.grantSelected' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="showFeaturesModal" class="features__modal-overlay" (click)="closeFeaturesModal()">
+  <div class="features__modal" (click)="$event.stopPropagation()">
+    <div class="features__modal-header">
+      <h4>{{ 'featureManagement.selectFeature' | translate }}</h4>
+      <button class="features__modal-close" (click)="closeFeaturesModal()">×</button>
+    </div>
+
+    <div class="features__modal-content">
+      <div class="features__search-container">
+        <input
+          type="text"
+          [(ngModel)]="featureSearch"
+          (input)="filterFeatures()"
+          [placeholder]="'featureManagement.searchFeatures' | translate"
+          class="features__search-input"
+        />
+        <ignt-icon name="search" variant="regular" class="features__search-icon" size="base"></ignt-icon>
+      </div>
+
+      <div *ngIf="featuresLoading" class="features__modal-loading">
+        <ignt-icon name="spinner" variant="solid" [spin]="true" size="base"></ignt-icon>
+        {{ 'common.loading' | translate }}
+      </div>
+
+      <div *ngIf="featuresError" class="features__modal-error">
+        <ignt-icon name="exclamation-triangle" variant="light" size="base"></ignt-icon>
+        {{ 'error.title' | translate }}
+      </div>
+
+      <div *ngIf="!featuresLoading && !featuresError" class="features__features-list">
+        <div *ngIf="filteredFeatures.length === 0" class="features__no-results">
+          <ignt-icon name="info-circle" variant="regular" size="base"></ignt-icon>
+          <span *ngIf="featureSearch">{{ 'featureManagement.noFeaturesMatch' | translate }}</span>
+          <span *ngIf="!featureSearch">{{ 'featureManagement.noFeaturesAvailable' | translate }}</span>
+        </div>
+
+        <div
+          *ngFor="let feature of filteredFeatures"
+          class="features__feature-item"
+          tabindex="0"
+          (click)="selectFeature(feature.key)"
+          (keydown.enter)="selectFeature(feature.key)"
+        >
+          <span class="features__feature-name">{{ feature.name }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="features__modal-actions">
+      <button class="features__cancel-btn" (click)="closeFeaturesModal()">
+        {{ 'common.cancel' | translate }}
+      </button>
+    </div>
+  </div>
+</div>

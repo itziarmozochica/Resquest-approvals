@@ -1,0 +1,272 @@
+<article class="schedule-inference-calendar-card wrapper-card">
+  <header class="schedule-inference-calendar-card__header">
+    <h3 class="schedule-inference-calendar-card__name font-h5" data-testid="inference-calendar-name">{{ calendar().name }}</h3>
+    <ul class="schedule-inference-calendar-card__chips" data-testid="inference-session-types">
+      @for (sessionType of calendar().sessionTypes; track sessionType.id) {
+        <li class="schedule-inference-calendar-card__chip" data-testid="inference-session-type-chip">{{ sessionType.label }}</li>
+      }
+    </ul>
+  </header>
+
+  <dl class="schedule-inference-calendar-card__facts">
+    <div class="schedule-inference-calendar-card__fact">
+      <dt>{{ 'inventory.schedule.inference.card.dateRange' | translate }}</dt>
+      <dd data-testid="inference-date-range">
+        {{ calendar().startDate | date: dateFormat }} - {{ calendar().endDate | date: dateFormat }}
+      </dd>
+    </div>
+    <div class="schedule-inference-calendar-card__fact">
+      <dt>{{ 'inventory.schedule.inference.card.duration' | translate }}</dt>
+      <dd data-testid="inference-duration">
+        {{ 'inventory.schedule.inference.card.minutes' | translate: { minutes: calendar().durationInMinutes } }}
+      </dd>
+    </div>
+    <div class="schedule-inference-calendar-card__fact">
+      <dt>{{ 'inventory.schedule.inference.card.expiration.title' | translate }}</dt>
+      <dd data-testid="inference-expiration">
+        {{ expirationKey() | translate: { minutes: calendar().salesActivation.deltaEndInMinutes } }}
+      </dd>
+    </div>
+  </dl>
+
+  @if (calendar().blockers.length > 0) {
+    <app-schedule-inference-blockers
+      [blockers]="calendar().blockers"
+      [title]="'inventory.schedule.inference.card.blockers' | translate"
+      data-testid="inference-calendar-blockers"
+    />
+  }
+
+  <ignt-table
+    class="schedule-inference-calendar-card__time-table"
+    layout="table"
+    [data]="timeTable().rows"
+    data-testid="inference-time-table"
+  >
+    <ignt-table-column key="startTime" columnType="primary" [header]="'inventory.schedule.inference.card.startTime' | translate">
+      <ng-template [igntTableColumnTemplateType]="timeTableRowSample()" let-item="item">
+        <span data-testid="inference-time-row-start">{{ item.startTime }}</span>
+      </ng-template>
+    </ignt-table-column>
+    @for (weekday of timeTable().weekdays; track weekday; let weekdayIndex = $index) {
+      <ignt-table-column [key]="weekday" [header]="'inventory.schedule.scheduleForm.weekDays.labels.' + weekday | translate">
+        <ng-template [igntTableColumnTemplateType]="timeTableRowSample()" let-item="item">
+          <span class="schedule-inference-calendar-card__cell" data-testid="inference-time-cell">
+            @if (item.cells[weekdayIndex]; as cell) {
+              <span class="schedule-inference-calendar-card__tier" data-testid="inference-tier">
+                <span
+                  class="schedule-inference-calendar-card__tier-color"
+                  [style.background-color]="cell.tier.color"
+                  aria-hidden="true"
+                ></span>
+                {{ cell.tier.name }}
+              </span>
+              @if (!cell.isVisible) {
+                <ignt-icon
+                  class="schedule-inference-calendar-card__hidden"
+                  name="eye-slash"
+                  variant="light"
+                  size="sm"
+                  role="img"
+                  [attr.aria-label]="'inventory.schedule.inference.card.hidden' | translate"
+                  data-testid="inference-hidden-marker"
+                />
+              }
+              @if (cell.capacityTemplateKey !== null && cell.capacityTemplateKey !== calendar().capacityTemplateKey) {
+                @let templateKey = cell.capacityTemplateKey;
+                @let slotTemplateName = slotTemplateNamesByKey().get(templateKey) ?? templateKey;
+                <span
+                  class="schedule-inference-calendar-card__slot-template"
+                  [title]="slotTemplateName"
+                  data-testid="inference-slot-template"
+                >
+                  {{ slotTemplateName }}
+                </span>
+              }
+            } @else {
+              <span class="schedule-inference-calendar-card__empty-cell" aria-hidden="true">—</span>
+            }
+          </span>
+        </ng-template>
+      </ignt-table-column>
+    }
+  </ignt-table>
+
+  @if (overrideViews().length > 0) {
+    <section class="schedule-inference-calendar-card__overrides" data-testid="inference-overrides">
+      <h4 class="schedule-inference-calendar-card__overrides-title font-h6">
+        {{ 'inventory.schedule.inference.card.overrides.title' | translate }}
+      </h4>
+      @for (override of overrideViews(); track $index) {
+        <article class="schedule-inference-calendar-card__override" data-testid="inference-override">
+          <header class="schedule-inference-calendar-card__override-header">
+            <h5 class="schedule-inference-calendar-card__override-name" data-testid="inference-override-name">{{ override.name }}</h5>
+            @if (override.startDate !== null && override.endDate !== null) {
+              <span class="schedule-inference-calendar-card__override-dates" data-testid="inference-override-date-range">
+                {{ override.startDate | date: dateFormat }} - {{ override.endDate | date: dateFormat }}
+              </span>
+            }
+          </header>
+          <dl class="schedule-inference-calendar-card__override-rows">
+            @for (row of override.rows; track $index) {
+              <div class="schedule-inference-calendar-card__override-row" data-testid="inference-override-row">
+                <dt class="schedule-inference-calendar-card__override-row-label" data-testid="inference-override-row-label">
+                  @if (row.weekday !== null) {
+                    {{ 'inventory.schedule.scheduleForm.weekDays.labels.' + row.weekday | translate }}
+                  } @else {
+                    {{ row.date | date: dateFormat }}
+                  }
+                </dt>
+                <dd class="schedule-inference-calendar-card__override-row-slots">
+                  <ul class="schedule-inference-calendar-card__override-slots">
+                    @for (timeSlot of row.timeSlots; track timeSlot.startTime) {
+                      <li
+                        class="schedule-inference-calendar-card__override-slot"
+                        [class.schedule-inference-calendar-card__override-slot--removed]="timeSlot.tier === null"
+                        data-testid="inference-override-slot"
+                      >
+                        <span
+                          class="schedule-inference-calendar-card__override-slot-time"
+                          [class.schedule-inference-calendar-card__override-slot-time--removed]="timeSlot.tier === null"
+                          data-testid="inference-override-slot-time"
+                        >
+                          {{ timeSlot.startTime }}
+                        </span>
+                        @if (timeSlot.tier; as tier) {
+                          <span class="schedule-inference-calendar-card__tier" data-testid="inference-override-tier">
+                            <span
+                              class="schedule-inference-calendar-card__tier-color"
+                              [style.background-color]="tier.color"
+                              aria-hidden="true"
+                            ></span>
+                            {{ tier.name }}
+                          </span>
+                          @if (!timeSlot.isVisible) {
+                            <ignt-icon
+                              class="schedule-inference-calendar-card__hidden"
+                              name="eye-slash"
+                              variant="light"
+                              size="sm"
+                              role="img"
+                              [attr.aria-label]="'inventory.schedule.inference.card.hidden' | translate"
+                              data-testid="inference-override-hidden-marker"
+                            />
+                          }
+                          @if (timeSlot.capacityTemplateKey !== null && timeSlot.capacityTemplateKey !== calendar().capacityTemplateKey) {
+                            @let templateKey = timeSlot.capacityTemplateKey;
+                            @let overrideSlotTemplateName = slotTemplateNamesByKey().get(templateKey) ?? templateKey;
+                            <span
+                              class="schedule-inference-calendar-card__slot-template"
+                              [title]="overrideSlotTemplateName"
+                              data-testid="inference-override-slot-template"
+                            >
+                              {{ overrideSlotTemplateName }}
+                            </span>
+                          }
+                        } @else {
+                          <span
+                            class="schedule-inference-calendar-card__override-slot-removed"
+                            data-testid="inference-override-slot-removed"
+                          >
+                            {{ 'inventory.schedule.inference.card.overrides.removed' | translate }}
+                          </span>
+                        }
+                      </li>
+                    }
+                  </ul>
+                </dd>
+              </div>
+            }
+          </dl>
+        </article>
+      }
+    </section>
+  }
+
+  <section class="schedule-inference-calendar-card__capacity" data-testid="inference-capacity">
+    @if (capacityTemplate(); as template) {
+      <h4 class="schedule-inference-calendar-card__capacity-title font-h6">
+        {{ 'inventory.schedule.inference.card.capacity.title' | translate }}:
+        <span data-testid="inference-capacity-template-name">{{ template.name }}</span>
+      </h4>
+      @if (sharedWithCalendarNames().length > 0) {
+        <p class="schedule-inference-calendar-card__capacity-note" data-testid="inference-capacity-shared">
+          {{ 'inventory.schedule.inference.card.capacity.sharedWith' | translate: { calendars: sharedWithCalendarNamesText() } }}
+        </p>
+      }
+      @if (template.existingCapacityTemplateId !== null) {
+        <p class="schedule-inference-calendar-card__capacity-note" data-testid="inference-capacity-reuse">
+          {{ 'inventory.schedule.inference.card.capacity.reuseExisting' | translate }}
+        </p>
+      }
+      <ng-container
+        [ngTemplateOutlet]="capacityRowsTemplate"
+        [ngTemplateOutletContext]="{
+          $implicit: capacityRows(),
+          rowTestIds: capacityRowTestIds,
+          timeSlotCapacityTestId: 'inference-time-slot-capacity',
+        }"
+      />
+    } @else {
+      <h4 class="schedule-inference-calendar-card__capacity-title font-h6">
+        {{ 'inventory.schedule.inference.card.capacity.title' | translate }}
+      </h4>
+      <p class="schedule-inference-calendar-card__capacity-note" data-testid="inference-capacity-missing">
+        {{ 'inventory.schedule.inference.card.capacity.missing' | translate: { key: calendar().capacityTemplateKey } }}
+      </p>
+    }
+    @for (view of slotCapacityViews(); track view.template.key) {
+      <div class="schedule-inference-calendar-card__slot-capacity" data-testid="inference-slot-capacity">
+        <h5 class="schedule-inference-calendar-card__slot-capacity-title">
+          <span data-testid="inference-slot-capacity-template-name">{{ view.template.name }}</span>
+          <span class="schedule-inference-calendar-card__slot-capacity-times" data-testid="inference-slot-capacity-times">
+            {{ view.startTimesText }}
+          </span>
+        </h5>
+        @if (view.template.existingCapacityTemplateId !== null) {
+          <p class="schedule-inference-calendar-card__capacity-note" data-testid="inference-slot-capacity-reuse">
+            {{ 'inventory.schedule.inference.card.capacity.reuseExisting' | translate }}
+          </p>
+        }
+        <ng-container
+          [ngTemplateOutlet]="capacityRowsTemplate"
+          [ngTemplateOutletContext]="{
+            $implicit: view.capacityRows,
+            rowTestIds: slotCapacityRowTestIds,
+            timeSlotCapacityTestId: 'inference-slot-time-slot-capacity',
+          }"
+        />
+      </div>
+    }
+  </section>
+</article>
+
+<ng-template #capacityRowsTemplate let-rows let-rowTestIds="rowTestIds" let-timeSlotCapacityTestId="timeSlotCapacityTestId">
+  <dl class="schedule-inference-calendar-card__capacities">
+    @for (row of rows; track $index) {
+      <div
+        class="schedule-inference-calendar-card__capacity-row"
+        [class.schedule-inference-calendar-card__capacity-row--level-1]="row.level === 1"
+        [class.schedule-inference-calendar-card__capacity-row--level-2]="row.level === 2"
+        [attr.data-testid]="rowTestIds[row.kind]"
+      >
+        <dt>
+          @if (row.kind === capacityRowKind.TimeSlot) {
+            {{ 'inventory.schedule.inference.card.capacity.timeSlotCapacity' | translate }}
+          } @else {
+            {{ row.label }}
+          }
+        </dt>
+        <dd [attr.data-testid]="row.kind === capacityRowKind.TimeSlot ? timeSlotCapacityTestId : null">
+          @if (row.capacity !== null) {
+            {{ row.capacity }}
+          } @else if (row.kind === capacityRowKind.SessionType) {
+            {{ 'inventory.schedule.inference.card.capacity.unlimited' | translate }}
+          } @else {
+            <span aria-hidden="true">—</span>
+          }
+        </dd>
+      </div>
+    }
+  </dl>
+</ng-template>

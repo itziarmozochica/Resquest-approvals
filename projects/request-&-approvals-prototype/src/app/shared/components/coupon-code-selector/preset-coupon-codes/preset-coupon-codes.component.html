@@ -1,0 +1,58 @@
+<div class="preset-coupon-codes-section">
+  <div class="preset-coupon-codes-body__section-title">{{ 'boxOffice.couponSelector.presetCouponsSectionTitle' | translate }}</div>
+  <div class="preset-coupon-codes-body">
+    @if ((error() | async) !== null && !errorDismissed()) {
+      <ignt-alert
+        class="preset-coupon-codes-body__alert"
+        sentiment="danger"
+        showCloseButton
+        [closeButtonAriaLabel]="'common.close' | translate"
+        (closeAlert)="errorDismissed.set(true)"
+      >
+        <ng-template #igntAlertContent>
+          <div
+            class="preset-coupon-codes-body__alert-text"
+            [innerHTML]="'boxOffice.couponSelector.presetCouponsError' | translate: { couponCode: lastCouponCodeApplied }"
+          ></div>
+        </ng-template>
+      </ignt-alert>
+    }
+    @if (showSearchBar()) {
+      <ignt-input-field
+        class="preset-coupon-codes-body__search"
+        id="coupon-selector-preset-search"
+        type="search"
+        [formControl]="searchFormControl"
+        [label]="'boxOffice.couponSelector.presetCouponsModalSearchPlaceholder' | translate"
+        [leadIcon]="['far', 'search']"
+        [placeholder]="'boxOffice.couponSelector.presetCouponsModalSearchPlaceholder' | translate"
+      ></ignt-input-field>
+    }
+    @if (presetCouponsFiltered().length > 0) {
+      <div class="preset-coupon-codes-body__cards">
+        @for (presetCoupon of presetCouponsFiltered(); track presetCoupon.code) {
+          <app-coupon-card
+            [code]="presetCoupon.code"
+            [title]="presetCoupon.title"
+            (cardClick)="couponCardClicked($event)"
+          ></app-coupon-card>
+        }
+      </div>
+    } @else if (showSearchBar()) {
+      <ignt-alert
+        class="preset-coupon-codes-body__cards-empty"
+        showCloseButton
+        [description]="'boxOffice.couponSelector.presetCouponsModalSearchNoResults' | translate"
+        [closeButtonAriaLabel]="'common.close' | translate"
+        (closeAlert)="clearSearch()"
+      />
+    }
+    @if (isLoading()) {
+      <div class="spinner-container">
+        <div class="spinner">
+          <ignt-icon class="loader" name="spinner" variant="solid" size="display" [spin]="true" aria-hidden="true"></ignt-icon>
+        </div>
+      </div>
+    }
+  </div>
+</div>

@@ -1,0 +1,98 @@
+<section class="language-tabs-bar" data-testid="language-tabs-bar">
+  <header class="language-tabs-bar__header">
+    <span class="language-tabs-bar__label" data-testid="language-tabs-bar-label">
+      {{ 'planEdition.translationsEdition.availableLanguages' | translate }}
+    </span>
+
+    @if (hasTranslations()) {
+      <button
+        igntButton
+        sentiment="primary"
+        size="small"
+        data-testid="language-tabs-bar-edit-button"
+        type="button"
+        [disabled]="!canEdit()"
+        (click)="onEditClick()"
+      >
+        {{ 'planEdition.translationsEdition.editButton' | translate }}
+      </button>
+    } @else {
+      <button
+        igntButton
+        sentiment="primary"
+        size="small"
+        data-testid="language-tabs-bar-add-language-button"
+        type="button"
+        [disabled]="!canEdit()"
+        (click)="onAddLanguageClick()"
+      >
+        {{ 'planEdition.translationsEdition.addLanguageButton' | translate }}
+      </button>
+    }
+  </header>
+
+  <div class="language-tabs-bar__tabs" role="tablist">
+    @for (tab of languages(); track tab.code) {
+      <button
+        class="language-tabs-bar__tab"
+        [class.language-tabs-bar__tab--selected]="isSelected(tab.code)"
+        [attr.data-testid]="'language-tab-' + tab.code"
+        [attr.aria-selected]="isSelected(tab.code)"
+        role="tab"
+        type="button"
+        (click)="onLanguageClick(tab.code)"
+      >
+        <span class="language-tabs-bar__tab-name">{{ tab.name }}</span>
+
+        @if (tab.isDefault) {
+          <ignt-tag class="language-tabs-bar__tab-default" data-testid="language-tab-default-badge" sentiment="sharp" variant="solid">
+            {{ 'planEdition.translationsEdition.defaultBadge' | translate }}
+          </ignt-tag>
+        }
+
+        @if (tab.status === 'complete') {
+          <ignt-icon
+            class="language-tabs-bar__tab-status language-tabs-bar__tab-status--complete"
+            [attr.data-testid]="'language-tab-status-' + tab.code"
+            name="check-circle"
+            variant="solid"
+            size="base"
+            aria-hidden="true"
+          ></ignt-icon>
+        } @else if (tab.status === 'missing') {
+          <ignt-icon
+            class="language-tabs-bar__tab-status language-tabs-bar__tab-status--missing"
+            [attr.data-testid]="'language-tab-status-' + tab.code"
+            name="exclamation-triangle"
+            variant="solid"
+            size="base"
+            aria-hidden="true"
+            [appTemplatedTooltip]="missingTooltipTemplate"
+          ></ignt-icon>
+        }
+      </button>
+    }
+  </div>
+
+  @if (!hasTranslations()) {
+    <ignt-alert
+      class="language-tabs-bar__no-translations"
+      data-testid="language-tabs-bar-no-translations-banner"
+      sentiment="accent"
+      [description]="'planEdition.translationsEdition.noTranslationsYet' | translate"
+    ></ignt-alert>
+  } @else if (hasMissingTranslations()) {
+    <ignt-alert
+      class="language-tabs-bar__missing-warning"
+      data-testid="language-tabs-bar-missing-warning"
+      sentiment="warning"
+      [description]="'planEdition.translationsEdition.missingTranslationsWarning' | translate"
+    ></ignt-alert>
+  }
+</section>
+
+<ng-template #missingTooltipTemplate>
+  <div class="language-tabs-bar__tooltip" data-testid="language-tab-missing-tooltip">
+    {{ 'planEdition.translationsEdition.languageStatus.missing' | translate }}
+  </div>
+</ng-template>

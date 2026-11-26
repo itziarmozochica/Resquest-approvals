@@ -1,0 +1,83 @@
+<div class="ir-available-questions">
+  <ignt-button
+    class="ir-available-questions__toggle"
+    variant="tertiary"
+    sentiment="neutral"
+    size="small"
+    [leadingIcon]="expanded() ? collapseIcon : expandIcon"
+    [label]="'informationRequests.detail.fieldConfig.availableTitle' | translate: { count: questions().length }"
+    [attr.aria-expanded]="expanded()"
+    (click)="toggleExpanded()"
+    data-testid="ir-available-questions-toggle"
+  />
+
+  @if (expanded()) {
+    <div class="ir-available-questions__body" data-testid="ir-available-questions-body">
+      @for (group of groups(); track group.section) {
+        <h4 class="ir-available-questions__section">
+          {{ group.section ?? ('informationRequests.new.customize.sectionOther' | translate) }}
+        </h4>
+
+        @for (question of group.questions; track question.id) {
+          <div
+            class="ir-available-questions__item"
+            [class.is-pending]="isPendingAdd(question.id)"
+            [attr.data-testid]="'ir-available-question-' + question.id"
+          >
+            <div class="ir-available-questions__row">
+              @if (isPendingAdd(question.id)) {
+                <div
+                  class="ir-available-questions__pills"
+                  role="group"
+                  [attr.aria-label]="'informationRequests.detail.fieldConfig.required' | translate"
+                >
+                  <ignt-pill-button
+                    [value]="'required'"
+                    [label]="'informationRequests.detail.fieldConfig.required' | translate"
+                    [checked]="required(question)"
+                    (checkedChange)="setRequired(question, true)"
+                    [attr.data-testid]="'ir-available-required-' + question.id"
+                  ></ignt-pill-button>
+                  <ignt-pill-button
+                    [value]="'optional'"
+                    [label]="'informationRequests.detail.fieldConfig.optional' | translate"
+                    [checked]="!required(question)"
+                    (checkedChange)="setRequired(question, false)"
+                    [attr.data-testid]="'ir-available-optional-' + question.id"
+                  ></ignt-pill-button>
+                </div>
+                <span class="ir-available-questions__note">
+                  {{ 'informationRequests.detail.fieldConfig.willBeAdded' | translate }}
+                </span>
+                <ignt-button
+                  variant="secondary"
+                  sentiment="brand"
+                  size="small"
+                  [label]="'common.undo' | translate"
+                  [ariaLabel]="'informationRequests.detail.fieldConfig.undoAddQuestion' | translate: { label: question.label }"
+                  (click)="undoAdd(question)"
+                  [attr.data-testid]="'ir-available-undo-add-' + question.id"
+                />
+              } @else {
+                <ignt-button
+                  variant="tertiary"
+                  sentiment="brand"
+                  size="small"
+                  [label]="'informationRequests.detail.fieldConfig.add' | translate"
+                  [ariaLabel]="'informationRequests.detail.fieldConfig.addQuestion' | translate: { label: question.label }"
+                  [leadingIcon]="addIcon"
+                  (click)="add(question)"
+                  [attr.data-testid]="'ir-available-add-' + question.id"
+                />
+              }
+            </div>
+
+            <div class="ir-available-questions__preview" aria-hidden="true" [attr.data-testid]="'ir-available-preview-' + question.id">
+              <app-information-request-question [question]="question" [control]="previewControl(question)" />
+            </div>
+          </div>
+        }
+      }
+    </div>
+  }
+</div>

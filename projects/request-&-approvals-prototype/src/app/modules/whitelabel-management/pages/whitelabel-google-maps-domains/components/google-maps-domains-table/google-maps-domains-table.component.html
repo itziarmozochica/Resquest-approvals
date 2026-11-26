@@ -1,0 +1,82 @@
+<div class="google-maps-domains-table">
+  <ignt-table data-testid="google-maps-domains-table" [data]="tableRows()" [isLoading]="isLoading()">
+    <ignt-table-column key="host" [header]="i18n + '.columns.host' | translate">
+      <ng-template igntTableColumnTemplateType let-item="item">
+        <span class="google-maps-domains-table__host" [attr.data-testid]="'google-maps-domains-row-' + item.host">{{ item.host }}</span>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column key="status" [header]="i18n + '.columns.status' | translate" [width]="columnWidths.status">
+      <ng-template igntTableColumnTemplateType let-item="item">
+        <span class="google-maps-domains-table__status-cell">
+          @if (item.isBusy) {
+            <span
+              aria-live="polite"
+              class="google-maps-domains-table__status google-maps-domains-table__status--busy"
+              [attr.data-testid]="'google-maps-domains-busy-' + item.host"
+            >
+              <ignt-icon aria-hidden="true" name="spinner-third" size="caption" variant="duotone" [spin]="true" />
+              {{ i18n + '.busy.register' | translate }}
+            </span>
+          } @else {
+            <span
+              class="google-maps-domains-table__status google-maps-domains-table__status--{{ statusKey(item) }}"
+              [attr.data-testid]="'google-maps-domains-status-' + item.host"
+            >
+              <ignt-icon
+                aria-hidden="true"
+                size="caption"
+                [name]="statusIcons[statusKey(item)].name"
+                [variant]="statusIcons[statusKey(item)].variant"
+              />
+              {{ i18n + '.status.' + statusKey(item) | translate }}
+            </span>
+          }
+
+          @if (item.errorMessage; as errorMessage) {
+            <p class="google-maps-domains-table__error" role="alert" [attr.data-testid]="'google-maps-domains-error-' + item.host">
+              {{ errorMessage }}
+            </p>
+          }
+        </span>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column columnType="action" [header]="i18n + '.columns.actions' | translate" [width]="columnWidths.actions">
+      <ng-template igntTableColumnTemplateType let-item="item">
+        <div class="google-maps-domains-table__actions">
+          @if (isReadOnly()) {
+            <span class="google-maps-domains-table__read-only" [attr.data-testid]="'google-maps-domains-read-only-' + item.host">
+              {{ i18n + '.readOnlyRow' | translate }}
+            </span>
+          } @else {
+            <span class="google-maps-domains-table__action" igntTooltip [tooltipLabel]="registerTooltip(item)">
+              <button
+                ignt-icon-button
+                sentiment="tertiary"
+                size="small"
+                [attr.aria-label]="registerLabel(item)"
+                [attr.data-testid]="'google-maps-domains-register-' + item.host"
+                [disabled]="!canRegister(item) || item.isBusy"
+                [icon]="actionIcons.register"
+                (click)="onRegister(item)"
+              ></button>
+            </span>
+          }
+
+          <span class="google-maps-domains-table__action" igntTooltip [tooltipLabel]="i18n + '.actions.details' | translate">
+            <button
+              ignt-icon-button
+              sentiment="tertiary"
+              size="small"
+              [attr.aria-label]="detailsLabel(item)"
+              [attr.data-testid]="'google-maps-domains-details-' + item.host"
+              [icon]="actionIcons.details"
+              (click)="detailsRequested.emit(item)"
+            ></button>
+          </span>
+        </div>
+      </ng-template>
+    </ignt-table-column>
+  </ignt-table>
+</div>

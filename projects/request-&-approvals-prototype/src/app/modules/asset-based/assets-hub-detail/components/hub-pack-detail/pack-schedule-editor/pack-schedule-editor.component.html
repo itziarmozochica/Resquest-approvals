@@ -1,0 +1,107 @@
+<div class="pack-schedule-editor" data-testid="pack-schedule-editor">
+  <div class="pack-schedule-editor__picker">
+    <ignt-typeahead
+      class="pack-schedule-editor__activity-select"
+      [editable]="true"
+      [emptyLabel]="'assetsHubs.detail.packs.form.activitiesPlaceholder' | translate"
+      [fieldLabel]="'assetsHubs.detail.packs.form.activityToAddLabel' | translate"
+      [minSearchLength]="0"
+      [options]="activityOptions()"
+      [selectedOption]="activityToAddOption()"
+      data-testid="pack-activity-select"
+      (selected)="onActivityToAddChange($event)"
+      (userInteraction)="onActivityPickerInteraction($event)"
+    />
+    <ignt-typeahead
+      class="pack-schedule-editor__target-select"
+      [editable]="false"
+      [fieldLabel]="'assetsHubs.detail.packs.schedule.addToStepLabel' | translate"
+      [minSearchLength]="0"
+      [options]="targetOptions()"
+      [selectedOption]="targetOption()"
+      data-testid="pack-schedule-target-select"
+      (selected)="onTargetChange($event)"
+    />
+    <ignt-button
+      variant="secondary"
+      [label]="'assetsHubs.detail.packs.form.addActivity' | translate"
+      [disabled]="!canAddActivity()"
+      (click)="onAddActivity()"
+      data-testid="pack-activity-add"
+    />
+  </div>
+
+  <!-- Whatever no step box can claim, so nothing blocks Save without a message on screen. -->
+  @for (messageKey of unplacedMessageKeys(); track messageKey) {
+    <p class="pack-schedule-editor__error" data-testid="pack-schedule-error">{{ messageKey | translate }}</p>
+  }
+
+  @if (canvasViews().length > 0) {
+    <!-- A wide fork scrolls sideways rather than squeezing the boxes out of usability. -->
+    <div class="pack-schedule-editor__scroll">
+      <div class="pack-schedule-editor__canvas" [style.grid-template-columns]="columnTemplate()" data-testid="pack-schedule-canvas">
+        @for (view of canvasViews(); track view.step.node.localId) {
+          @if (view.connectorRow !== null && view.step.incomingEdge !== null) {
+            <app-pack-schedule-connector
+              class="pack-schedule-editor__connector"
+              [style.grid-column]="view.column"
+              [style.grid-row]="view.connectorRow"
+              [edge]="view.step.incomingEdge"
+              [isBranch]="view.step.isBranch"
+              [messageKeys]="view.step.edgeMessageKeys"
+              [predecessorLabel]="view.step.predecessorLabel"
+              (windowChange)="onEdgeWindowChange(view.step.node.localId, $event)"
+            />
+          }
+
+          <!-- The line leaving this step, and the bar spreading it across everything it feeds. -->
+          @if (view.childRow !== null) {
+            <span
+              class="pack-schedule-editor__stub"
+              aria-hidden="true"
+              [style.grid-column]="view.column"
+              [style.grid-row]="view.childRow"
+            ></span>
+          }
+          @if (view.forkColumn !== null && view.childRow !== null) {
+            <span
+              class="pack-schedule-editor__fork"
+              aria-hidden="true"
+              data-testid="pack-schedule-fork"
+              [style.grid-column]="view.forkColumn"
+              [style.grid-row]="view.childRow"
+            ></span>
+          }
+
+          <app-pack-schedule-node-card
+            class="pack-schedule-editor__step"
+            [style.grid-column]="view.column"
+            [style.grid-row]="view.row"
+            [isInvalid]="view.step.isInvalid"
+            [legs]="view.step.legs"
+            [messageKeys]="view.step.messageKeys"
+            [node]="view.step.node"
+            [position]="view.step.position"
+            [predecessorLocalId]="view.step.incomingEdge?.predecessorLocalId ?? null"
+            [predecessorOptions]="view.step.predecessorOptions"
+            [subGroups]="view.step.subGroups"
+            [title]="view.step.title"
+            (groupWindowChange)="onGroupWindowChange($event)"
+            (internalWindowChange)="onInternalWindowChange(view.step.node.localId, $event)"
+            (legRemove)="onLegRemove($event)"
+            (membersGroup)="onMembersGroup($event)"
+            (nodeRemove)="onNodeRemove(view.step.node.localId)"
+            (predecessorChange)="onPredecessorChange(view.step.node.localId, $event)"
+            (startOffsetChange)="onStartOffsetChange(view.step.node.localId, $event)"
+            (subGroupUngroup)="onSubGroupUngroup($event)"
+          />
+        }
+      </div>
+    </div>
+  } @else {
+    <div class="pack-schedule-editor__empty">
+      <p class="pack-schedule-editor__empty-title" translate>assetsHubs.detail.packs.form.activitiesEmptyTitle</p>
+      <p class="pack-schedule-editor__empty-hint" translate>assetsHubs.detail.packs.form.activitiesEmptyHint</p>
+    </div>
+  }
+</div>

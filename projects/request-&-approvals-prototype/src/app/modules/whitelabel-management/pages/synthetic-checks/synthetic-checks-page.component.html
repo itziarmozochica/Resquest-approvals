@@ -1,0 +1,97 @@
+<app-go-back [goBackTitle]="'menu.whitelabel' | translate" [urlGoBack]="'/whitelabels'"></app-go-back>
+
+<div class="synthetic-checks-page">
+  <header class="synthetic-checks-page__header">
+    <div class="synthetic-checks-page__header-text">
+      <div class="synthetic-checks-page__title-row">
+        <h1 class="synthetic-checks-page__title">
+          {{ 'whitelabelManagement.syntheticChecks.header.title' | translate }}
+        </h1>
+        <app-synthetic-service-status-badge></app-synthetic-service-status-badge>
+      </div>
+
+      <p class="synthetic-checks-page__description font-small-regular">
+        {{ 'whitelabelManagement.syntheticChecks.header.description' | translate }}
+      </p>
+    </div>
+
+    @if (!isReadOnly) {
+      <div class="synthetic-checks-page__header-actions">
+        <app-synthetic-checks-actions
+          [loading]="facade.loading()"
+          [baselineSyncing]="baselineBusy()"
+          [locked]="bulkBusy()"
+          [showMonitoringSettings]="canEditMonitoringConfig()"
+          (createClick)="onCreateCheck()"
+          (createBaselineClick)="onCreateBaseline()"
+          (monitoringSettingsClick)="onMonitoringSettings()"
+        ></app-synthetic-checks-actions>
+      </div>
+    }
+  </header>
+
+  @if (facade.monitoringConfig()?.enabled === false) {
+    <app-monitoring-paused-banner [change]="pausedBannerChange()"></app-monitoring-paused-banner>
+  }
+
+  @if (facade.error()) {
+    <ignt-alert sentiment="danger" [showCloseButton]="false">
+      <p>{{ 'whitelabelManagement.syntheticChecks.toast.loadError' | translate }}</p>
+      <ignt-button size="small" variant="secondary" [label]="'common.retry' | translate" (click)="facade.refresh()" />
+    </ignt-alert>
+  }
+
+  <!--
+    One grid, two rows: the status cards sit above the search and type pills, the overview cards
+    above nothing. Both components render into it with `display: contents`, so the columns are shared
+    tracks rather than two independent rows that each size themselves and nearly line up.
+  -->
+  <div class="synthetic-checks-page__filter-grid">
+    <app-synthetic-checks-stats
+      [loading]="facade.loading()"
+      [summary]="facade.summary()"
+      [statusFilter]="facade.statusFilter()"
+      (statusFilterChange)="facade.setStatusFilter($event)"
+    ></app-synthetic-checks-stats>
+
+    <app-synthetic-checks-filters
+      [searchTerm]="facade.searchTerm()"
+      [checkTypeFilter]="facade.checkTypeFilter()"
+      (searchTermChange)="facade.setSearchTerm($event)"
+      (checkTypeFilterChange)="facade.setCheckTypeFilter($event)"
+    ></app-synthetic-checks-filters>
+  </div>
+
+  @if (!isReadOnly && selectedCount() > 0) {
+    <app-synthetic-checks-bulk-actions
+      class="synthetic-checks-page__bulk-actions"
+      [selectedCount]="selectedCount()"
+      [pausedCount]="selectedPausedCount()"
+      [busy]="bulkBusy()"
+      (pauseClick)="onBulkPause()"
+      (resumeClick)="onBulkResume()"
+      (deleteClick)="onBulkDelete()"
+      (clearClick)="facade.clearSelection()"
+    ></app-synthetic-checks-bulk-actions>
+  }
+
+  <div appInfiniteScrollLoader [pageRequestCallback]="facade.loadPage" [active]="facade.activatePagination$">
+    <app-synthetic-checks-table
+      [rows]="facade.rows()"
+      [loading]="facade.loading()"
+      [loadingMore]="facade.loadingMore()"
+      [hasActiveFilters]="facade.hasActiveFilters()"
+      [isReadOnly]="isReadOnly"
+      [selectable]="!isReadOnly"
+      [selectedIds]="facade.selectedIds()"
+      [selectAllChecked]="facade.allVisibleSelected()"
+      [selectionDisabled]="bulkBusy()"
+      (selectionToggle)="facade.toggleSelection($event.check.id)"
+      (selectAllToggle)="facade.toggleSelectAllVisible()"
+      (toggleClick)="onToggle($event)"
+      (deleteClick)="onDelete($event)"
+      (viewClick)="onView($event)"
+      (editClick)="onEdit($event)"
+    ></app-synthetic-checks-table>
+  </div>
+</div>

@@ -1,0 +1,372 @@
+@use 'foundations' as foundations;
+@use 'sass:map';
+@use '../../booking-card-tag-surfaces' as tag-surfaces;
+@use '../../../../../shared/tags/styles/tag-colors' as tag-colors;
+@use '../../booking-card-v3' as card;
+
+$compact-line-height: foundations.$size-3;
+$dot-size: foundations.$size-1-5;
+$dot-gap: foundations.$size-px2;
+$note-line-height: 0.78125rem;
+$move-mode-padding-block-end: foundations.$space-4;
+$finished-glyph-offset: 0.09375rem;
+$bar-radius: calc(#{foundations.$radii-1} - #{foundations.$size-px});
+
+:host {
+  display: block;
+  block-size: 100%;
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.booking-card-v3 {
+  @include card.state-variables('data-state');
+
+  // The tag takes the fill, bar and ink; the glyph keeps the state colour. Finished stays quiet.
+  @each $color, $surface in tag-surfaces.$booking-card-tag-surfaces {
+    &[data-tag-color='#{$color}']:not([data-state='finished']) {
+      --booking-card-v3-bar: #{map.get(tag-surfaces.$booking-card-tag-bars, $color)};
+      --booking-card-v3-edge: #{map.get(tag-surfaces.$booking-card-tag-bars, $color)};
+      --booking-card-v3-card: #{$surface};
+      --booking-card-v3-count: #{tag-surfaces.$booking-card-tag-count};
+      --booking-card-v3-title: #{tag-surfaces.$booking-card-tag-title};
+    }
+  }
+
+  &[data-colored-by-tags]:not([data-tag-color]):not([data-state='finished']) {
+    --booking-card-v3-bar: #{tag-surfaces.$booking-card-untagged-bar};
+    --booking-card-v3-edge: #{tag-surfaces.$booking-card-untagged-bar};
+    --booking-card-v3-card: #{tag-surfaces.$booking-card-untagged-surface};
+    --booking-card-v3-count: #{tag-surfaces.$booking-card-untagged-ink};
+    --booking-card-v3-title: #{tag-surfaces.$booking-card-untagged-ink};
+  }
+
+  background-color: var(--booking-card-v3-card);
+  block-size: 100%;
+  border: foundations.$size-px solid var(--booking-card-v3-edge, var(--booking-card-v3-bar));
+  border-radius: foundations.$radii-1;
+  box-sizing: border-box;
+  color: var(--booking-card-v3-title);
+  display: flex;
+  font-family: card.$font-stack;
+  inline-size: 100%;
+  overflow: hidden;
+  position: relative;
+  text-transform: none;
+
+  &[data-state='playing'] {
+    --booking-card-v3-edge: #{card.$drained-color};
+  }
+
+  &--move-mode[data-state='noShow'] {
+    --booking-card-v3-edge: #{foundations.$palette-danger-300};
+  }
+
+  &__bar {
+    background-color: var(--booking-card-v3-bar);
+    border-radius: $bar-radius 0 0 $bar-radius;
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    inline-size: card.$bar-width;
+    overflow: hidden;
+  }
+
+  &__bar-drained {
+    background-color: card.$drained-color;
+    display: block;
+    flex: none;
+  }
+
+  &__body {
+    box-sizing: border-box;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: space-between;
+    min-inline-size: 0;
+    padding: foundations.$space-2 foundations.$space-3;
+  }
+
+  &--one-row &__body {
+    align-items: center;
+    flex-direction: row;
+    gap: foundations.$space-1;
+    padding-block: 0;
+  }
+
+  &__top {
+    display: flex;
+    min-inline-size: 0;
+  }
+
+  &--one-row &__top {
+    display: contents;
+  }
+
+  &--one-row[data-width-tier='56'] &__body,
+  &[data-width-tier='56'] &__top {
+    justify-content: center;
+  }
+
+  &__row {
+    align-items: center;
+    block-size: card.$row-height;
+    display: flex;
+    flex: none;
+    gap: foundations.$space-1;
+    inline-size: 100%;
+    min-inline-size: 0;
+  }
+
+  &__middle {
+    align-items: center;
+    display: flex;
+    flex: 1;
+    gap: foundations.$space-4;
+    min-inline-size: 0;
+
+    &--nameless {
+      gap: 0;
+    }
+  }
+
+  &__name {
+    flex: 1;
+    font-size: foundations.$size-caption;
+    font-weight: card.$weight-semibold;
+    line-height: card.$row-height;
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__count {
+    color: var(--booking-card-v3-count);
+    font-size: foundations.$size-caption;
+    font-weight: card.$weight-medium;
+    line-height: card.$row-height;
+    white-space: nowrap;
+  }
+
+  &__group {
+    align-items: center;
+    display: inline-flex;
+    flex: none;
+    gap: foundations.$space-1;
+  }
+
+  &__icon-box {
+    align-items: center;
+    block-size: card.$icon-box-size;
+    display: inline-flex;
+    flex: none;
+    inline-size: card.$icon-box-size;
+    justify-content: center;
+  }
+
+  &__glyph {
+    color: var(--booking-card-v3-glyph);
+  }
+
+  &__signal {
+    color: var(--booking-card-v3-count);
+  }
+
+  &__bottom {
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-2;
+    inline-size: 100%;
+    min-inline-size: 0;
+  }
+
+  &__tags {
+    block-size: foundations.$size-5;
+    display: flex;
+    flex: none;
+    gap: foundations.$space-1;
+  }
+
+  &__signals {
+    align-items: center;
+    display: inline-flex;
+    flex: none;
+    gap: foundations.$space-4;
+    margin-inline-start: auto;
+  }
+
+  &__chip {
+    align-items: center;
+    block-size: foundations.$size-5;
+    border-radius: foundations.$radii-1;
+    box-sizing: border-box;
+    display: inline-flex;
+    flex: none;
+    inline-size: foundations.$size-5;
+    justify-content: center;
+
+    @include tag-colors.tag-color-modifiers;
+
+    &--counter {
+      background-color: foundations.$palette-neutral-100;
+      color: foundations.$palette-neutral-800;
+      font-size: foundations.$size-tiny;
+      font-weight: card.$weight-semibold;
+      line-height: foundations.$size-5;
+      min-inline-size: foundations.$size-5;
+      mix-blend-mode: multiply;
+    }
+  }
+
+  &__lead-dots {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    gap: $dot-gap;
+  }
+
+  &__dot-row {
+    block-size: $dot-size;
+    display: flex;
+    flex: none;
+    gap: $dot-gap;
+    inline-size: 100%;
+  }
+
+  &[data-width-tier='20'] &__dot-row,
+  &[data-width-tier='32'] &__dot-row,
+  &[data-width-tier='56'] &__dot-row {
+    justify-content: center;
+  }
+
+  &__dot {
+    block-size: $dot-size;
+    border-radius: 50%;
+    flex: none;
+    inline-size: $dot-size;
+
+    @include tag-colors.tag-color-property(tag-colors.$tag-color-marks, background-color);
+  }
+
+  &[data-state='finished'] &__glyph {
+    transform: translateY($finished-glyph-offset);
+  }
+
+  &[data-state='finished'] &__chip {
+    background-color: foundations.$palette-neutral-100;
+    color: foundations.$palette-neutral-800;
+  }
+
+  &[data-state='finished'] &__dot {
+    background-color: foundations.$palette-neutral-400;
+  }
+
+  &__note {
+    align-items: flex-start;
+    block-size: foundations.$size-4;
+    display: flex;
+    gap: foundations.$size-px2;
+    min-inline-size: 0;
+  }
+
+  &__note-text {
+    color: var(--booking-card-v3-count);
+    font-size: foundations.$size-tiny;
+    font-style: italic;
+    font-weight: card.$weight-regular;
+    line-height: $note-line-height;
+    min-inline-size: 0;
+    overflow: hidden;
+    padding-block-start: foundations.$size-px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &[data-width-tier='12'] &__body,
+  &[data-height-tier='8'] &__body {
+    display: none;
+  }
+
+  &[data-width-tier='20'] &__body,
+  &[data-width-tier='32'] &__body {
+    padding: foundations.$space-2 foundations.$space-1;
+  }
+
+  &[data-width-tier='20'] &__top,
+  &[data-width-tier='32'] &__top {
+    block-size: card.$icon-box-size;
+    display: flex;
+    justify-content: center;
+  }
+
+  &--one-row[data-width-tier='20'] &__body,
+  &--one-row[data-width-tier='32'] &__body {
+    justify-content: center;
+    padding: 0 foundations.$space-1;
+  }
+
+  &[data-height-tier='12'] &__body {
+    padding: 0 foundations.$space-3;
+  }
+
+  &[data-height-tier='12'] &__row {
+    block-size: $compact-line-height;
+    gap: 0;
+  }
+
+  &--has-lead-dots[data-height-tier='12'] &__body {
+    padding-inline-start: foundations.$space-2;
+  }
+
+  &[data-height-tier='12'] &__lead-dots {
+    margin-inline-end: foundations.$space-2;
+  }
+
+  &[data-height-tier='12'] &__name,
+  &[data-height-tier='12'] &__count {
+    font-size: foundations.$size-tiny;
+    font-weight: card.$weight-bold;
+    line-height: $compact-line-height;
+  }
+
+  &--move-mode &__bar {
+    display: none;
+  }
+
+  &--move-mode &__body {
+    padding-block-end: $move-mode-padding-block-end;
+  }
+
+  &--move-mode.booking-card-v3--one-row &__body {
+    align-items: flex-start;
+    padding-block: foundations.$space-1 0;
+  }
+
+  &--move-mode[data-height-tier='22'] &__body,
+  &--move-mode[data-height-tier='12'] &__body {
+    align-items: center;
+    padding-block-start: 0;
+  }
+
+  &--move-mode[data-height-tier='12']:not([data-width-tier='240']) &__body > * {
+    display: none;
+  }
+
+  &--move-mode[data-width-tier='56'] &__dot-row {
+    margin-block-end: foundations.$space-1;
+  }
+
+  &--move-mode[data-width-tier='12'],
+  &--move-mode[data-width-tier='20'],
+  &--move-mode[data-width-tier='32'] {
+    background-color: var(--booking-card-v3-bar);
+  }
+
+  &--move-mode[data-width-tier='12'] &__body,
+  &--move-mode[data-width-tier='20'] &__body,
+  &--move-mode[data-width-tier='32'] &__body {
+    display: none;
+  }
+}

@@ -1,0 +1,52 @@
+<div class="wait-for-payment">
+  <div class="wait-for-payment__title" data-testid="wait-for-payment-title">
+    {{ 'boxOffice.waitPaymentModal.title' | translate }}
+  </div>
+  @if (!paymentInProgress) {
+    <div class="wait-for-payment__message" data-testid="wait-for-payment-message">
+      {{ 'boxOffice.waitPaymentModal.cancellingTransactionMessage' | translate }}
+    </div>
+  }
+  <div class="wait-for-payment__spinner">
+    <ignt-icon name="spinner" variant="solid" size="display" class="loader" [spin]="true" aria-hidden="true" />
+  </div>
+  @if (paymentInProgress) {
+    <div class="wait-for-payment__warning">
+      <ignt-icon name="exclamation-triangle" variant="solid" [attr.aria-hidden]="true" class="wait-for-payment__warning-icon" />
+      <div class="wait-for-payment__warning-content">
+        <strong class="wait-for-payment__warning-title">{{ 'boxOffice.waitPaymentModal.messageFooter' | translate }}</strong>
+        <p class="wait-for-payment__warning-text">{{ 'boxOffice.waitPaymentModal.messageFooterDetail' | translate }}</p>
+      </div>
+    </div>
+  }
+
+  <div class="modal__actions">
+    @if (paymentInProgress) {
+      <button
+        igntButton
+        sentiment="secondary"
+        class="modal__actions-button modal__actions-button--cancel"
+        (click)="cancelTransaction()"
+        (keydown.enter)="$event.preventDefault()"
+        (keydown.space)="$event.preventDefault()"
+      >
+        {{ 'boxOffice.waitPaymentModal.cancel' | translate }}
+      </button>
+      @if (isSplitPayment()) {
+        @if (totalAmount()) {
+          <app-split-amount-input [remainingAmount]="totalAmount()!" [currency]="currency()"></app-split-amount-input>
+        }
+        <button
+          igntButton
+          [fill]="true"
+          class="modal__actions-button"
+          (click)="sendNextSplit()"
+          [disabled]="isSendingSplit()"
+          data-testid="modal-send-next-split"
+        >
+          {{ (isSendingSplit() ? 'boxOffice.waitPaymentModal.sending' : 'boxOffice.waitPaymentModal.sendNextPayment') | translate }}
+        </button>
+      }
+    }
+  </div>
+</div>

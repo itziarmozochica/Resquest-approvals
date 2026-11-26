@@ -1,0 +1,17 @@
+export enum DualScreenPrinterStatus {
+  printerSuccess = 'printer-success',
+  jsonNullError = 'json-null-error',
+  jsonParseError = 'json-parse-error',
+  printerNotFoundError = 'printer-not-found-error',
+  printerConnectionError = 'printer-connection-error',
+  printerGetInstanceError = 'printer-get-instance-error',
+  printerNotReadyPaperOutError = 'printer-not-ready-paper-out-error',
+  printerNotReadyPausedError = 'printer-not-ready-paused-error',
+  printerNotReadyBufferFulledError = 'printer-not-ready-buffer-fulled-error',
+  printerNotReadyHeadTooHotError = 'printer-not-ready-head-too-hot-error',
+  printerNotReadyHeadOpenError = 'printer-not-ready-head-open-error',
+  printerNotReadyRibbonOutError = 'printer-not-ready-ribbon-out-error',
+  printerNotReadyUnknownError = 'printer-not-ready-unknown-error',
+  bitmapError = 'bitmap-error',
+  printerUnknownError = 'printer-unknown-error',
+}

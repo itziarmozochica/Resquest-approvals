@@ -1,0 +1,100 @@
+<div class="pack-schedule-node-card" data-testid="pack-schedule-node">
+  <form [formGroup]="formGroup">
+    @if (isRoot()) {
+      <p class="pack-schedule-node-card__origin" data-testid="pack-schedule-origin">
+        <span class="pack-schedule-node-card__origin-dot" aria-hidden="true"></span>
+        <span translate>assetsHubs.detail.packs.schedule.startsThePack</span>
+      </p>
+    }
+
+    <div class="pack-schedule-node-card__box" [class.pack-schedule-node-card__box--invalid]="isInvalid()">
+      <div class="pack-schedule-node-card__header">
+        <span class="pack-schedule-node-card__position">{{ position() }}</span>
+        <span class="pack-schedule-node-card__title">{{ title() }}</span>
+        @if (isAnyOrder()) {
+          <span class="pack-schedule-node-card__kind" data-testid="pack-schedule-node-any-order" translate>
+            assetsHubs.detail.packs.schedule.anyOrderBadge
+          </span>
+        }
+        <button
+          ignt-icon-button
+          type="button"
+          class="pack-schedule-node-card__remove"
+          size="small"
+          sentiment="secondary"
+          [icon]="['fal', 'trash']"
+          [attr.aria-label]="'assetsHubs.detail.packs.schedule.removeStep' | translate"
+          (click)="nodeRemove.emit()"
+          data-testid="pack-schedule-node-remove"
+        ></button>
+      </div>
+
+      <app-pack-schedule-members
+        class="pack-schedule-node-card__members"
+        [legs]="legs()"
+        [ownerLocalId]="node().localId"
+        [subGroups]="subGroups()"
+        (groupWindowChange)="groupWindowChange.emit($event)"
+        (legRemove)="legRemove.emit($event)"
+        (membersGroup)="membersGroup.emit($event)"
+        (subGroupUngroup)="subGroupUngroup.emit($event)"
+      />
+
+      @if (isAnyOrder()) {
+        <div class="pack-schedule-node-card__window">
+          <p class="pack-schedule-node-card__window-title" translate>assetsHubs.detail.packs.schedule.internalGapTitle</p>
+          <div class="pack-schedule-node-card__window-inputs">
+            <ignt-input-field
+              [id]="'pack-schedule-internal-min-' + node().localId"
+              type="number"
+              [formControl]="formGroup.controls.internalMinMinutes"
+              [label]="'assetsHubs.detail.packs.schedule.minGapLabel' | translate"
+              data-testid="pack-schedule-internal-min"
+            ></ignt-input-field>
+            <ignt-input-field
+              [id]="'pack-schedule-internal-max-' + node().localId"
+              type="number"
+              [formControl]="formGroup.controls.internalMaxMinutes"
+              [label]="'assetsHubs.detail.packs.schedule.maxGapLabel' | translate"
+              data-testid="pack-schedule-internal-max"
+            ></ignt-input-field>
+          </div>
+        </div>
+      }
+
+      <!-- Secondary to the drawn tree: the connector already says what this runs after, this changes it. -->
+      <div class="pack-schedule-node-card__field">
+        <ignt-typeahead
+          [editable]="false"
+          [fieldLabel]="'assetsHubs.detail.packs.schedule.startsAfterLabel' | translate"
+          [minSearchLength]="0"
+          [options]="predecessorOptions()"
+          [selectedOption]="selectedPredecessorOption()"
+          data-testid="pack-schedule-predecessor-select"
+          (selected)="onPredecessorChange($event)"
+        />
+      </div>
+
+      <!-- Reads as a qualifier on the predecessor above it: what it starts after, then how long after. -->
+      @if (isRoot()) {
+        <div class="pack-schedule-node-card__field">
+          <ignt-input-field
+            [id]="'pack-schedule-offset-' + node().localId"
+            type="number"
+            [formControl]="formGroup.controls.startOffsetMinutes"
+            [label]="'assetsHubs.detail.packs.schedule.startOffsetLabel' | translate"
+            [helperText]="'assetsHubs.detail.packs.schedule.minutesStepHint' | translate"
+            data-testid="pack-schedule-start-offset"
+          ></ignt-input-field>
+        </div>
+      }
+
+      <!-- Always rendered, so `aria-describedby` has a target before the first defect does. -->
+      <div [id]="errorId()">
+        @for (messageKey of messageKeys(); track messageKey) {
+          <p class="pack-schedule-node-card__error" data-testid="pack-schedule-node-error">{{ messageKey | translate }}</p>
+        }
+      </div>
+    </div>
+  </form>
+</div>

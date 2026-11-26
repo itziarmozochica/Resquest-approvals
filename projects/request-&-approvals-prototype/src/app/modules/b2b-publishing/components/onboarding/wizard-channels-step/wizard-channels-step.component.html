@@ -1,0 +1,58 @@
+<div class="wizard-channels-step">
+  <ignt-alert
+    data-testid="onboarding-channels-up-next"
+    sentiment="info"
+    [description]="'marketplaceEvents.onboarding.channels.upNext' | translate"
+  />
+
+  @if (isLoading()) {
+    <div class="wizard-channels-step__loading" aria-busy="true" aria-live="polite" data-testid="onboarding-channels-loading">
+      <span class="wizard-channels-step__message">{{ 'marketplaceEvents.onboarding.channels.loading' | translate }}</span>
+      <ignt-skeleton type="list" [animation]="true" [numElements]="3" />
+    </div>
+  } @else if (hasError()) {
+    <div class="wizard-channels-step__failure" role="alert" data-testid="onboarding-channels-error">
+      <p class="wizard-channels-step__message">{{ 'marketplaceEvents.onboarding.channels.error' | translate }}</p>
+      <ignt-button
+        data-testid="onboarding-channels-retry"
+        variant="secondary"
+        [label]="'marketplaceEvents.onboarding.channels.retry' | translate"
+        (click)="retried.emit()"
+      />
+    </div>
+  } @else {
+    <ignt-table data-testid="onboarding-channels-list" layout="table" [data]="rows()" [hasPagination]="true" [pageSize]="pageSize">
+      <ignt-table-column [header]="''" [width]="48">
+        <ng-template igntTableHeaderTemplate>
+          <ignt-checkbox
+            dataTestId="onboarding-channels-keep-all"
+            [ariaLabel]="'marketplaceEvents.onboarding.channels.keepAll' | translate"
+            [checked]="areAllKept()"
+            (change)="allToggled.emit(!areAllKept())"
+          />
+        </ng-template>
+        <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+          <ignt-checkbox
+            [ariaLabel]="item.name"
+            [checked]="keptIds().has(item.id)"
+            [dataTestId]="'onboarding-channel-checkbox-' + item.id"
+            (change)="toggled.emit(item.id)"
+          />
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column key="name" columnType="primary" [header]="'marketplaceEvents.onboarding.channels.columns.channel' | translate">
+        <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+          <span
+            class="wizard-channels-step__text"
+            [attr.data-selected]="keptIds().has(item.id) ? '' : null"
+            [attr.data-testid]="'onboarding-channel-' + item.id"
+          >
+            <span class="wizard-channels-step__name">{{ item.name }}</span>
+            <span class="wizard-channels-step__summary">{{ item.summary }}</span>
+          </span>
+        </ng-template>
+      </ignt-table-column>
+    </ignt-table>
+  }
+</div>

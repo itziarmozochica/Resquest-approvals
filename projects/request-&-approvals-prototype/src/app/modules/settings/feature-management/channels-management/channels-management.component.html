@@ -1,0 +1,109 @@
+<div class="channels-management">
+  <h3 class="channels-management__title" data-testid="channels-management-title">{{ 'channelsManagement.title' | translate }}</h3>
+  <p>{{ 'channelsManagement.description' | translate }}</p>
+  <div class="channels-management__filters">
+    <app-channel-selector-filter
+      [inline]="true"
+      [channels]="(channels$ | async) ?? []"
+      (filteredChannels)="onFilteredChannelsChange($event)"
+    >
+    </app-channel-selector-filter>
+    <div class="channels-management__filters-actions">
+      <button
+        *ngIf="!isEditing()"
+        data-testid="channels-management-edit-button"
+        igntButton
+        size="large"
+        sentiment="primary"
+        (click)="isEditing.set(!isEditing())"
+      >
+        {{ 'channelsManagement.editSelection' | translate }}
+      </button>
+      <div *ngIf="isEditing()" class="channels-management__filters-buttons">
+        <button
+          data-testid="channels-management-exit-button"
+          igntButton
+          size="large"
+          sentiment="tertiary"
+          variant="danger"
+          (click)="onExitWithoutSaving()"
+        >
+          {{ 'channelsManagement.exitWithoutSaving' | translate }}
+        </button>
+        <button
+          data-testid="channels-management-save-button"
+          [disabled]="!hasChanges()"
+          igntButton
+          size="large"
+          sentiment="primary"
+          (click)="onSaveSelection()"
+        >
+          {{ 'channelsManagement.saveSelection' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+  <form [formGroup]="channelsForm">
+    <div *ngIf="isLoadingChannels()" class="channels-management__loading" data-testid="channels-management-loading">
+      <ignt-icon class="loader" name="spinner" variant="solid" [spin]="true" size="display"></ignt-icon>
+    </div>
+    <div *ngIf="!isLoadingChannels() && channelsForm.controls as controls" class="channels-management__content">
+      <div
+        *ngIf="isEditing() && hasFilteredChannels && !isFiltered()"
+        class="channels-management__select-all"
+        data-testid="channels-management-select-all-container"
+      >
+        <ignt-checkbox
+          [formControl]="controls.selectAll"
+          [dataTestId]="'channels-management-select-all-checkbox'"
+          [label]="'channelsManagement.selectAll' | translate"
+        ></ignt-checkbox>
+      </div>
+      <div class="channels-management__groups">
+        <ng-container *ngFor="let group of filteredChannels() | keyvalue; trackBy: trackByType">
+          <div class="channels-management__group">
+            <div
+              class="channels-management__group-header"
+              [ngClass]="{ 'channels-management__group-header--disabled': !isEditing() }"
+              [attr.data-testid]="'channels-management-group-header-' + group.key"
+              (click)="toggleGroup(group.key)"
+            >
+              <ignt-checkbox
+                *ngIf="controls.groupIds.controls[group.key] as groupControl"
+                [formControl]="groupControl"
+                [dataTestId]="'channels-management-group-checkbox-' + group.key"
+                (click)="onCheckboxClick($event)"
+              ></ignt-checkbox>
+              <div class="channels-management__group-header-content">
+                <div class="channels-management__group-header-icon">
+                  <ignt-icon [name]="group.value.open ? 'chevron-down' : 'chevron-right'" variant="light" size="base"></ignt-icon>
+                </div>
+                <div class="channels-management__group-header-text">
+                  <div class="channels-management__group-name">{{ group.key }}</div>
+                  <div class="channels-management__group-label">{{ 'orders.filterLabels.channelType' | translate }}</div>
+                </div>
+              </div>
+            </div>
+            <div *ngIf="group.value.open" class="channels-management__channels">
+              <div
+                *ngFor="let channel of group.value.channels; trackBy: trackById; let first = first"
+                class="channels-management__channel"
+                [class.channels-management__channel--first]="first"
+                [ngClass]="{ 'channels-management__channel--disabled': !isEditing() }"
+              >
+                <ignt-checkbox
+                  *ngIf="controls.channelIds.controls[channel.id] as channelControl"
+                  [id]="'status-checkbox-' + channel.id"
+                  [dataTestId]="'status-checkbox-' + channel.id"
+                  [label]="channel.name ?? ''"
+                  [formControl]="channelControl"
+                  (click)="onCheckboxClick($event)"
+                ></ignt-checkbox>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,129 @@
+<app-modal-content [title]="'reservation.paymentUrlModal.title' | translate">
+  <div class="modal__body">
+    <div class="modal__section" *ngIf="paymentUrlOptions.length > 1">
+      <div class="modal__subsection">
+        <div class="modal__section-description">
+          <div class="modal__section-title">
+            {{ 'reservation.paymentUrlModal.selectApplicationTitle' | translate }}
+          </div>
+          <div class="modal__section-subtitle">
+            {{ 'reservation.paymentUrlModal.selectApplicationSubtitle' | translate }}
+          </div>
+        </div>
+      </div>
+      <ignt-typeahead
+        [fieldLabel]="'reservation.paymentUrlModal.typeaheadLabelTitle' | translate"
+        [selectedOption]="paymentUrlOptions[paymentUrlIndexSelected()]"
+        [options]="paymentUrlOptions"
+        (selected)="selectPaymentApplication($event)"
+        [editable]="false"
+      ></ignt-typeahead>
+    </div>
+
+    <div class="modal__section" *ngIf="_availableLanguages.length > 0">
+      <div class="modal__subsection">
+        <div class="modal__section-description">
+          <div class="modal__section-title">
+            {{ 'reservation.paymentUrlModal.selectLanguageTitle' | translate }}
+          </div>
+          <div class="modal__section-subtitle">
+            {{ 'reservation.paymentUrlModal.selectLanguageSubtitle' | translate }}
+          </div>
+        </div>
+      </div>
+      <app-language-code-selector
+        [availableLanguageCodes]="_availableLanguages"
+        [selectedOption]="initialLanguage ?? ''"
+        (selected)="selectLanguage($event)"
+      />
+    </div>
+
+    <div class="modal__section">
+      <div class="modal__subsection">
+        <div class="modal__section-description">
+          <div class="modal__section-title">
+            {{ 'reservation.paymentUrlModal.sendPaymentLinkTitle' | translate }}
+          </div>
+        </div>
+      </div>
+      <ignt-input-field
+        class="ellipsis-input-field"
+        data-testid="payment-url-modal-send-to"
+        [label]="'reservation.paymentUrlModal.sendToLabel' | translate"
+        [readonly]="true"
+        [disabled]="hasPlaceholderEmail()"
+        type="text"
+        [ngModel]="hasPlaceholderEmail() ? ('reservation.paymentUrlModal.emailNotProvided' | translate) : reservationEmail"
+      />
+      <div class="modal__payment-link-container">
+        <ignt-input-field
+          class="ellipsis-input-field"
+          [label]="'reservation.paymentUrlModal.labelInput' | translate"
+          [readonly]="true"
+          type="text"
+          [ngModel]="paymentUrlSelected()"
+          (mousedown)="$event.preventDefault()"
+        />
+        <button
+          igntButton
+          sentiment="secondary"
+          [leadingIcon]="['fal', 'copy']"
+          ngxClipboard
+          [cbContent]="paymentUrlSelected() ?? ''"
+          (cbOnSuccess)="onCopy()"
+          [loading]="isLoadingPaymentUrls()"
+          [disabled]="isLoadingPaymentUrls()"
+        >
+          {{ 'common.copy' | translate }}
+        </button>
+      </div>
+
+      <span *ngIf="showCopiedMessage()" class="modal__message">
+        <fa-icon [icon]="['fas', 'check-circle']" size="sm"></fa-icon>
+        {{ 'copiedToClipboard' | translate }}
+      </span>
+    </div>
+
+    <ng-container *ngIf="(mailStatus | async) === PaymentUrlSendEmailStatus.ERROR">
+      <div class="modal__section">
+        <ignt-alert data-testid="payment-url-modal-email-error" sentiment="danger">
+          <ng-template #igntAlertContent>
+            <span
+              [innerHTML]="
+                (isNonRecoverableEmailError
+                  ? 'reservation.paymentUrlModal.emailErrorNonRecoverable'
+                  : 'reservation.paymentUrlModal.emailError'
+                ) | translate: { errorCode: mailStatusErrorCode() }
+              "
+            ></span>
+          </ng-template>
+        </ignt-alert>
+      </div>
+    </ng-container>
+
+    <div class="modal__section" *ngIf="hasPlaceholderEmail()">
+      <ignt-alert
+        data-testid="payment-url-modal-placeholder-warning"
+        sentiment="warning"
+        [description]="'reservation.paymentUrlModal.placeholderEmailWarning' | translate"
+      />
+    </div>
+  </div>
+
+  <div class="modal__actions">
+    <button
+      igntButton
+      sentiment="primary"
+      [fill]="true"
+      data-testid="payment-url-modal-send-button"
+      (click)="handleSendEmail(applicationIdSelected())"
+      [loading]="isSendingEmail() || isLoadingPaymentUrls()"
+      [disabled]="isSendingEmail() || isLoadingPaymentUrls() || hasPlaceholderEmail()"
+    >
+      {{ 'reservation.paymentUrlModal.sendButton' | translate }}
+    </button>
+    <button igntButton sentiment="secondary" [fill]="true" (click)="onClose()">
+      {{ 'reservation.paymentUrlModal.closeButton' | translate }}
+    </button>
+  </div>
+</app-modal-content>

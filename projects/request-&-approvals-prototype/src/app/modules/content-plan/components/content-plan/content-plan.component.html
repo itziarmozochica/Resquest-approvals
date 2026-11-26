@@ -1,0 +1,64 @@
+<section [fzAssistantHost]="assistantHostConfig" class="content-plan-host content-page" [attr.aria-label]="'menu.contentPlan' | translate">
+  <app-event-selection-band
+    data-testid="content-plan-selectors"
+    [foldWhenComplete]="false"
+    [summary]="selectedPlanTitle() || ('planDetail.searchFilters' | translate)"
+  >
+    <app-search-bar
+      data-testid="content-plan-search-bar"
+      [mandatoryFilters]="mandatoryFilters"
+      [screen]="screen.contentPlan"
+      [searchOnChange]="true"
+      (searchEmitter)="loadNewSearch($event)"
+    ></app-search-bar>
+  </app-event-selection-band>
+
+  <div class="content-page__title">
+    <span class="content-page__section">{{ 'menu.events' | translate }}</span>
+    <h1 class="content-page__heading" data-testid="page-title">{{ 'menu.contentPlan' | translate }}</h1>
+  </div>
+
+  @if (loading) {
+    <div class="content-page__state" data-testid="content-plan-loading">
+      <ignt-icon aria-hidden="true" name="spinner" size="h1" variant="solid" [spin]="true" />
+    </div>
+  }
+  @if (error && !loading) {
+    <ignt-alert
+      sentiment="danger"
+      [description]="'planDetail.error' | translate"
+      showCloseButton
+      [closeButtonAriaLabel]="'common.close' | translate"
+      (closeAlert)="error = false"
+      data-testid="content-plan-error"
+    />
+  }
+  @if (!selectedPlan && !loading && !error) {
+    <div class="content-page__state" data-testid="content-plan-empty">
+      <ignt-icon aria-hidden="true" name="pen" size="h1" variant="solid" />
+      <span>{{ 'planDetail.noDataSelected' | translate }}</span>
+    </div>
+  }
+  @if (!error && planDetail) {
+    <div class="content-plan" data-testid="content-plan-details">
+      @if (showImmersiveTab) {
+        @if (headerPlanDetail) {
+          <app-plan-header-card [planDetail]="headerPlanDetail" [hasUnsavedChanges]="areChangesUnsavedFn"></app-plan-header-card>
+        }
+        <ignt-tabs class="content-page__tabs" [keepAlive]="true">
+          <ignt-tabs-item [label]="'planDetail.eventDescription' | translate">
+            <app-content-plan-details [plan]="planDetail" [partner]="partner" [showTitle]="false"></app-content-plan-details>
+          </ignt-tabs-item>
+          <ignt-tabs-item [label]="'planEdition.immersivePlanLayoutTab' | translate">
+            <app-immersive-plan-layout-edition data-testid="content-plan-immersive-tab"></app-immersive-plan-layout-edition>
+          </ignt-tabs-item>
+        </ignt-tabs>
+      } @else {
+        @if (!loading) {
+          <h2 class="content-plan__heading" data-testid="content-plan-legacy-heading">{{ 'planDetail.eventDescription' | translate }}</h2>
+        }
+        <app-content-plan-details [plan]="planDetail" [partner]="partner"></app-content-plan-details>
+      }
+    </div>
+  }
+</section>

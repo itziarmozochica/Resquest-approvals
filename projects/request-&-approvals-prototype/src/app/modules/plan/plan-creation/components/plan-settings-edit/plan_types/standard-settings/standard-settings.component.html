@@ -1,0 +1,201 @@
+@if (mode() === 'creation') {
+  <app-plan-stepper
+    [planId]="planId()"
+    [currentStepId]="'settings'"
+    [includeInventory]="true"
+    [planCreationStatus]="planCreationStatus()"
+  />
+}
+
+@if (mode() === 'edit') {
+  <div class="standard-settings standard-settings--edit">
+    <ng-container *ngTemplateOutlet="tabsNavTemplate" />
+    <ng-container *ngTemplateOutlet="bannerTemplate" />
+    <div class="standard-settings__body">
+      @if (activeTab() !== 'customFields' && activeTab() !== 'customerQuestions' && activeTab() !== 'agreements') {
+        <div class="standard-settings__sidebar">
+          <app-settings-sidebar-nav [navigationItems]="navigationItems()" [activeSection]="activeSection()" />
+        </div>
+      }
+      <div class="standard-settings__main">
+        <ng-container *ngTemplateOutlet="tabContentTemplate" />
+      </div>
+    </div>
+  </div>
+} @else {
+  <div class="standard-settings__content">
+    <ng-container *ngTemplateOutlet="tabsNavTemplate" />
+    <ng-container *ngTemplateOutlet="bannerTemplate" />
+    <ng-container *ngTemplateOutlet="tabContentTemplate" />
+  </div>
+}
+
+<ng-template #tabsNavTemplate>
+  @if (tabs().length > 0) {
+    <ul class="standard-settings__tabs" role="tablist">
+      @for (tab of tabs(); track tab.id) {
+        <li
+          class="standard-settings__tab"
+          [id]="tab.elementId"
+          role="tab"
+          tabindex="0"
+          [class.standard-settings__tab--active]="activeTab() === tab.id"
+          [attr.aria-selected]="activeTab() === tab.id"
+          [attr.aria-controls]="tab.ariaControlsId"
+          (click)="setActiveTab(tab.id)"
+          (keydown)="onTabKeyDown($event, tab.id)"
+          [attr.data-testid]="tab.elementId"
+        >
+          {{ tab.labelKey | translate }}
+        </li>
+      }
+    </ul>
+  }
+</ng-template>
+
+<ng-template #bannerTemplate>
+  @if (showMainTab() && activeTab() === 'main' && isPlanDraft() !== null) {
+    <ignt-alert
+      class="standard-settings__banner"
+      sentiment="accent"
+      [description]="(isPlanDraft() ? 'planSettings.bannerDescription' : 'planSettings.bannerDescriptionReady') | translate"
+      [icon]="isPlanDraft() ? 'lock-open' : 'lock-alt'"
+      [title]="(isPlanDraft() ? 'planSettings.bannerTitle' : 'planSettings.bannerTitleReady') | translate"
+    />
+  }
+
+  @if (showOptionalTab() && activeTab() === 'optional') {
+    <ignt-alert class="standard-settings__banner" [description]="'planSettings.optionalBannerDescription' | translate" />
+  }
+</ng-template>
+
+<ng-template #tabContentTemplate>
+  @if (showMainTab() && activeTab() === 'main') {
+    <div id="main-settings-panel" class="standard-settings__tab-content" role="tabpanel" [attr.aria-labelledby]="'tab-main-settings'">
+      <app-main-settings-form
+        [canEditPlan]="canEditPlan()"
+        [form]="mainSettingsForm"
+        [generalConfig]="settingsConfigs().general"
+        [validationConfig]="settingsConfigs().validation"
+        [contractConfig]="contractConfig()"
+        [pricesConfig]="settingsConfigs().prices"
+        [planType]="planType()"
+        [mainPlanId]="planId()"
+      />
+    </div>
+  }
+
+  @if (showOptionalTab() && activeTab() === 'optional') {
+    <div
+      id="optional-settings-panel"
+      class="standard-settings__tab-content"
+      role="tabpanel"
+      [attr.aria-labelledby]="'tab-optional-settings'"
+    >
+      <app-optional-settings-form
+        [canEditPlan]="canEditPlan()"
+        [form]="otherSettingsForm"
+        [selectorConfig]="settingsConfigs().selector"
+        [externalPlatformsConfig]="externalPlatformsSectionConfig()"
+        [postPurchaseConfig]="settingsConfigs().postPurchase"
+        [disallowIndexingConfig]="settingsConfigs().disallowIndexing"
+        [eventRedirectConfig]="settingsConfigs().eventRedirect"
+        [allowPublishingInOta]="allowPublishingInOtaValue()"
+        [overrideCapacityConfig]="overrideCapacitySectionConfig()"
+        [cancellationsConfig]="cancellationSettingsSectionConfig()"
+        [onFormDirtyChange]="onFormDirtyChange()"
+        [overrideCapacityEnabled]="overrideCapacityEnabled()"
+        [transportConfig]="transportSectionConfig()"
+        [transportProviders]="transportProviders()"
+        [bundleDiscountApplicationModeVisible]="bundleDiscountApplicationModeVisible()"
+        [declarativeInventoryState]="declarativeInventoryState()"
+        [selfServiceSettingsVisible]="selfServiceSettingsVisible()"
+        (allowPublishingInOtaChange)="onAllowPublishingInOtaChange($event)"
+        (overrideCapacityEnabledChange)="onOverrideCapacityEnabledChange($event)"
+        (overrideCapacityLimitChange)="onOverrideCapacityLimitChange($event)"
+        (redirectEnabledChange)="onRedirectEnabledChange($event)"
+        (redirectConfigChange)="onRedirectConfigChange($event)"
+        (transportEnabledChange)="onTransportEnabledChange($event)"
+      />
+    </div>
+  }
+
+  @if (showTicketTab() && activeTab() === 'ticket') {
+    <div id="ticket-settings-panel" class="standard-settings__tab-content" role="tabpanel" [attr.aria-labelledby]="'tab-ticket-settings'">
+      <app-ticket-settings-form
+        [canEditPlan]="canEditPlan()"
+        [form]="ticketSettingsForm"
+        [resaleConfig]="resaleSectionConfig()"
+        [delayedTicketReleaseVisible]="delayedTicketReleaseVisible"
+        [ticketDeliveryRule]="ticketDeliveryRule()"
+        [fallbackTimezone]="fallbackTimezone()"
+        [fallbackFirstActiveTimeSlot]="fallbackFirstActiveTimeSlot()"
+        [planId]="planId()"
+        [planName]="planName"
+        [onFormDirtyChange]="onFormDirtyChange()"
+      />
+    </div>
+  }
+
+  @if (showCustomFieldsTab() && activeTab() === 'customFields') {
+    <div id="custom-fields-panel" class="standard-settings__tab-content" [attr.aria-labelledby]="'tab-custom-fields'">
+      <app-plan-dynamic-fields
+        [canEditPlan]="canEditPlan()"
+        [continueTranslationKey]="'planSettings.continueOptional'"
+        [mode]="mode()"
+        (continued)="onCustomFieldsContinued()"
+        (dirtyChange)="onCustomFieldsDirtyChange($event)"
+      ></app-plan-dynamic-fields>
+    </div>
+  }
+
+  @if (showCustomerQuestionsTab() && activeTab() === 'customerQuestions') {
+    <div id="customer-questions-panel" class="standard-settings__tab-content" [attr.aria-labelledby]="'tab-customer-questions'">
+      <app-event-customer-questions [planId]="planId()" />
+    </div>
+  }
+
+  @if (showAgreementsTab() && activeTab() === 'agreements') {
+    <div id="agreements-panel" class="standard-settings__tab-content" [attr.aria-labelledby]="'tab-agreements'">
+      <app-event-agreements
+        [canEditPlan]="canEditPlan()"
+        [planId]="planId()"
+        [planBaseLocale]="settings()?.baseLocale ?? null"
+        [onFormDirtyChange]="onAgreementsDirtyChange"
+      />
+    </div>
+  }
+</ng-template>
+
+@if (activeTab() !== 'customFields' && activeTab() !== 'customerQuestions' && activeTab() !== 'agreements') {
+  <app-actions-bar
+    [showSaveDraftButton]="mode() === 'creation'"
+    [showBackButton]="mode() === 'creation' && activeTab() !== 'main'"
+    [continueButtonTranslationKey]="
+      mode() === 'edit'
+        ? 'common.saveSettings'
+        : !showCustomFieldsTab() && (activeTab() === 'ticket' || (activeTab() === 'optional' && !showTicketTab()))
+          ? 'planSettings.continueOptional'
+          : 'planSettings.continue'
+    "
+    [continueButtonDisabled]="
+      !canEditPlan() ||
+      isSaving() ||
+      (mode() === 'edit' && !mainSettingsForm.dirty && !otherSettingsForm.dirty && !ticketSettingsForm.dirty)
+    "
+    [continueButtonLoading]="isSaving()"
+    [saveDraftDisabled]="!canEditPlan()"
+    (saveDraft)="onSaveDraft()"
+    (back)="onBack()"
+    (continue)="mode() === 'edit' ? onSaveSettings() : onContinueAction()"
+    [continueButtonTestId]="
+      activeTab() === 'ticket'
+        ? 'plan-settings-continue-ticket'
+        : activeTab() === 'optional'
+          ? 'plan-settings-continue-optional'
+          : 'plan-settings-continue'
+    "
+    backButtonTestId="plan-settings-back"
+    saveDraftTestId="plan-settings-save-draft"
+  />
+}

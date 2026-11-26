@@ -1,0 +1,120 @@
+<ng-template #viewSwitchTemplate let-labelClass="labelClass" let-toggleId="toggleId" let-wrapperClass="wrapperClass">
+  <div [class]="wrapperClass">
+    <span [class]="labelClass">{{ 'roleManagement.newViewToggle' | translate }}</span>
+    <ignt-toggle [id]="toggleId" [checked]="showNewView()" (change)="onToggleView()" data-testid="role-management-view-switch" />
+  </div>
+</ng-template>
+
+@if (showNewView()) {
+  <div class="role-management">
+    <header class="role-management__header">
+      <div class="role-management__title-row">
+        <div class="role-management__title">
+          <span class="role-management__section">{{ 'menu.settings' | translate }}</span>
+          <h1 class="role-management__heading" data-testid="page-title">{{ 'roleManagement.title' | translate }}</h1>
+        </div>
+        <div class="role-management__header-actions">
+          @if (isViewSwitchEnabled) {
+            <ng-container [ngTemplateOutlet]="viewSwitchTemplateRef()" [ngTemplateOutletContext]="viewSwitchHeaderContext" />
+          }
+          @if (canManageRoles) {
+            <button igntButton [size]="isMobile() ? 'small' : 'large'" (click)="onCreateRole()" data-testid="role-management-create-button">
+              {{ 'roleManagement.createRole' | translate }}
+            </button>
+          }
+        </div>
+      </div>
+      <p class="role-management__description">{{ 'roleManagement.description' | translate }}</p>
+    </header>
+
+    <div class="role-management__content">
+      <app-role-list-panel
+        [roles]="roles()"
+        [searchResetNonce]="roleListSearchResetNonce()"
+        [selectedRoleId]="selectedRoleId()"
+        (selectedRoleIdChange)="onSelectedRoleIdChange($event)"
+      />
+      <div #roleDetailsScrollTarget class="role-management__details">
+        <app-role-details-panel
+          [canManageRoles]="canManageRoles"
+          [selectedRole]="selectedRole()"
+          (deleteRole)="onDeleteRole()"
+          (editRole)="onEditRoleFromDetails()"
+          (savePermissions)="onSavePermissions($event)"
+        />
+      </div>
+    </div>
+  </div>
+} @else {
+  @if (isViewSwitchEnabled) {
+    <ng-container [ngTemplateOutlet]="viewSwitchTemplateRef()" [ngTemplateOutletContext]="viewSwitchLegacyContext" />
+  }
+  <app-role-management />
+}
+
+<ng-template #roleFormSidePanelTemplate>
+  <ignt-dialog-header>{{ roleFormSidePanelTitleKey() | translate }}</ignt-dialog-header>
+  @if (isCreatingRoleForm() || sidebarRoleToEdit() !== null) {
+    <ignt-dialog-content>
+      <app-role-form-sidebar
+        #roleFormSidebar
+        [isSubmitting]="isCreatingRole()"
+        [roleToEdit]="sidebarRoleToEdit()"
+        [roles]="roles()"
+        (formCancel)="onRoleFormCancel()"
+        (formSubmit)="onRoleFormSubmit($event)"
+      />
+    </ignt-dialog-content>
+    <ignt-dialog-footer [hideCancelButton]="true">
+      <button
+        igntButton
+        [fill]="true"
+        sentiment="secondary"
+        type="button"
+        [disabled]="isCreatingRole()"
+        (click)="roleFormSidebar.cancelForm()"
+      >
+        {{ 'common.cancel' | translate }}
+      </button>
+      <button
+        igntButton
+        [fill]="true"
+        sentiment="primary"
+        type="button"
+        data-testid="role-form-submit"
+        [disabled]="roleFormSidebar.isSubmitDisabled()"
+        (click)="roleFormSidebar.submitForm()"
+      >
+        @if (sidebarRoleToEdit() !== null) {
+          {{ 'common.save' | translate }}
+        } @else {
+          {{ 'roleManagement.createRole' | translate }}
+        }
+      </button>
+    </ignt-dialog-footer>
+  }
+</ng-template>
+
+<ng-template #deleteRoleConfirmationTemplate>
+  <ignt-dialog-header>{{ 'roleManagement.deleteRoleTitle' | translate }}</ignt-dialog-header>
+  <ignt-dialog-content>
+    <p>
+      {{ 'roleManagement.deleteRoleConfirmation' | translate }}
+      <strong>{{ selectedRole()?.label }}</strong>
+      {{ 'roleManagement.deleteRoleWarning' | translate }}
+    </p>
+  </ignt-dialog-content>
+  <ignt-dialog-footer>
+    <button
+      type="button"
+      igntButton
+      sentiment="primary"
+      variant="danger"
+      [disabled]="isDeletingRole()"
+      [igntDialogClose]="true"
+      data-testid="role-management-delete-confirm-button"
+    >
+      {{ 'common.delete' | translate }}
+    </button>
+  </ignt-dialog-footer>
+</ng-template>

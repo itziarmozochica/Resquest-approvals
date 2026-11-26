@@ -1,0 +1,60 @@
+<label [ngClass]="'field ' + class" [class.field--warning]="warning()">
+  <input
+    #input
+    class="field__input"
+    [class.has-error]="shouldAddHasErrorCSSClass()"
+    [class.no-label]="label.length === 0"
+    [attr.data-testid]="dataTestId()"
+    [attr.data-placeholder-as-empty-value]="placeholderAsEmptyValue"
+    [readonly]="readonly()"
+    [disabled]="disabled"
+    [id]="id()"
+    [attr.maxlength]="maxlength()"
+    [attr.min]="minValue()"
+    [placeholder]="placeholder || ''"
+    [type]="type"
+    [(ngModel)]="inputValue"
+    [ngModelOptions]="{ standalone: true }"
+    (blur)="onBlur()"
+  />
+  @if (leadIcon()) {
+    <fa-icon class="field__icon field__icon--lead" [icon]="leadIcon()!" />
+  }
+  @if (trailIconAction(); as icon) {
+    @if (isTrailIconLoading()) {
+      <span class="field__icon field__icon--trail field__icon--loading" aria-hidden="true">
+        <ignt-icon name="spinner-third" variant="duotone" [spin]="true" />
+      </span>
+    } @else {
+      <button
+        class="field__icon field__icon--trail field__icon--action"
+        ignt-icon-button
+        type="button"
+        sentiment="tertiary"
+        size="medium"
+        variant="default"
+        [attr.aria-label]="trailIconAriaLabel()"
+        [disabled]="disabled || readonly() || isTrailIconDisabled()"
+        [icon]="icon"
+        (mousedown)="$event.preventDefault()"
+        (click)="onTrailIconClick($event)"
+      ></button>
+    }
+  }
+  @if (label.length > 0) {
+    <span class="field__label" [class.field__label--readonly]="readonly()"><ng-content select="[field-label-prefix]" />{{ label }}</span>
+  }
+  @if (shouldShowErrorLabels()) {
+    <ignt-field-error *ngFor="let error of igntErrors()" [formControlValue]="formControl" [errorName]="error.type">
+      {{ error.message }}
+    </ignt-field-error>
+  }
+  @if (helperText.length > 0 && !hasErrors() && warning()) {
+    <span class="field__helper field__helper--warning">
+      <fa-icon [icon]="['far', 'triangle-exclamation']" />
+      {{ helperText }}
+    </span>
+  } @else if (helperText.length > 0 && !hasErrors()) {
+    <span class="field__helper">{{ helperText }}</span>
+  }
+</label>

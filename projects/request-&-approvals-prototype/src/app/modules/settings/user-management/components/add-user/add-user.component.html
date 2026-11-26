@@ -1,0 +1,214 @@
+<ignt-wrapper-card [elevation]="3" class="user-management__form">
+  <h2 class="font-h2 content__title" translate>userManagement.addUserTitle</h2>
+  <h6 class="font-base-regular content__subtle">{{ 'userManagement.description' | translate }}</h6>
+  <form [formGroup]="userForm">
+    <div class="form-group">
+      <h4 class="font-h4">{{ 'userManagement.userInfo' | translate }}</h4>
+      <div class="form-group__fields">
+        <ignt-input-field
+          id="fullName"
+          data-testid="add-user-full-name"
+          formControlName="fullName"
+          placeholder="Gabriel"
+          class="cell cell--fill-md"
+          [customFormErrors]="[
+            {
+              type: 'required',
+              message: 'form.error.mandatoryField' | translate,
+            },
+            {
+              type: 'minlength',
+              message: 'form.error.minLength' | translate: { value: userNameMinLength },
+            },
+            {
+              type: 'maxlength',
+              message: 'form.error.maxLength' | translate: { value: userNameMaxLength },
+            },
+          ]"
+          [label]="('form.field.fullName' | translate) + '*'"
+        ></ignt-input-field>
+        <ignt-input-field
+          id="email"
+          data-testid="add-user-full-name"
+          formControlName="email"
+          placeholder="Gabriel"
+          class="cell cell--fill-md"
+          [customFormErrors]="[
+            {
+              type: 'required',
+              message: 'form.error.mandatoryField' | translate,
+            },
+          ]"
+          [label]="('form.field.email' | translate) + '*'"
+        ></ignt-input-field>
+      </div>
+    </div>
+    <div class="form-group">
+      <div class="user-management__role-title">
+        <h4 class="font-h4">{{ 'form.field.role' | translate }}</h4>
+        <a *ngIf="showRolesLink" igntLink (click)="showRoles()" data-testid="add-user-see-roles">
+          {{ 'userManagement.seeRoles' | translate }}
+        </a>
+      </div>
+      <div data-testid="add-user-role" class="form-group__fields">
+        <ignt-typeahead
+          class="app-typeahead-input"
+          id="role"
+          [selectedOption]="selectedOrganizationRolesOption"
+          [options]="organizationRolesOptions"
+          [preloadedOption]="initialOrganizationRolesOption"
+          [editable]="false"
+          (selected)="selectOrganizationRole($event)"
+          [fieldLabel]="'form.field.role' | translate"
+        >
+        </ignt-typeahead>
+      </div>
+    </div>
+    <div
+      *ngIf="showPermissions && selectedOrganizationRolesOption !== null && selectedOrganizationRolesOption?.description !== 'admin'"
+      class="form-group"
+    >
+      <h4 class="font-h4">{{ 'userManagement.permissions' | translate }}</h4>
+      <div class="form-group__fields form-group__fields--one">
+        <div class="form-group__fields">
+          <ignt-toggle-card
+            *ngIf="hasReservationsModule && selectedOrganizationRolesOption?.description === 'box-office'"
+            data-testid="add-user-reservations-toggle"
+            [title]="'userManagement.reservationsTitle' | translate"
+            [description]="
+              canMakeReservationsAvailable
+                ? ('userManagement.reservationsDescription' | translate)
+                : ('userManagement.reservationsUnavailableDescription' | translate)
+            "
+            [disabled]="!canMakeReservationsAvailable"
+            (click)="$event.stopPropagation()"
+            [checked]="userForm?.get('canMakeReservations')?.value"
+            (change)="toggleCanMakeReservations()"
+          ></ignt-toggle-card>
+        </div>
+        <div
+          *ngIf="selectedAccessTypeOption !== null"
+          class="form-group__fields"
+          [ngClass]="{
+            'form-group__fields--one': selectedAccessTypeOption.id !== 'all-resources' && cityOptions.length > 1,
+          }"
+        >
+          <ignt-wrapper-card>
+            <h5 class="font-base-bold content__title">{{ 'userManagement.grantAccessBy' | translate }}</h5>
+            <h6 class="font-small-regular content__subtle">{{ 'userManagement.permissionsDescription' | translate }}</h6>
+            <div
+              [ngClass]="{
+                'form-group__fields form-group__fields--three': selectedAccessTypeOption?.id !== 'all-resources' && cityOptions.length > 1,
+              }"
+            >
+              <div data-testid="add-user-access-type">
+                <ignt-typeahead
+                  id="resourceAccessType"
+                  [selectedOption]="selectedAccessTypeOption"
+                  [options]="accessTypeOptions"
+                  [preloadedOption]="initialAccessTypeOption"
+                  [editable]="false"
+                  (selected)="selectAccessType($event)"
+                  [fieldLabel]="'userManagement.access' | translate"
+                >
+                </ignt-typeahead>
+              </div>
+              <div data-testid="add-user-city-filter" *ngIf="selectedAccessTypeOption?.id !== 'all-resources' && cityOptions.length > 1">
+                <ignt-typeahead
+                  id="cityFilter"
+                  [selectAllLabel]="'filters.allCities' | translate"
+                  [options]="cityFilterOptions"
+                  (selected)="selectCity($event)"
+                  [fieldLabel]="'common.city' | translate"
+                >
+                </ignt-typeahead>
+              </div>
+              <div data-testid="add-user-access-resources" class="cell cell--fill-md">
+                <app-multi-select
+                  [options]="planOptions"
+                  [selectedOptions]="selectedPlanOptions"
+                  (selected)="selectPlans($event)"
+                  [displayInPlaceMaximum]="2"
+                  *ngIf="selectedAccessTypeOption?.id === 'specific-plan'"
+                  [placeholder]="'userManagement.events' | translate"
+                >
+                </app-multi-select>
+                <app-multi-select
+                  [options]="placeOptions"
+                  [selectedOptions]="selectedPlaceOptions"
+                  (selected)="selectPlaces($event)"
+                  [displayInPlaceMaximum]="2"
+                  *ngIf="selectedAccessTypeOption?.id === 'specific-venue'"
+                  [placeholder]="'userManagement.venues' | translate"
+                >
+                </app-multi-select>
+                <ng-container *ngTemplateOutlet="validationErrors; context: { error: getControlError(userForm) }"> </ng-container>
+              </div>
+            </div>
+          </ignt-wrapper-card>
+        </div>
+      </div>
+    </div>
+    <div class="form-group" *ngIf="selectedAccessTypeOption?.id !== 'all-resources' && resourceList.length > 0">
+      <h4 class="font-h4">{{ 'userManagement.accessToSelected' | translate }}</h4>
+      <app-resources
+        [resourceAccessType]="selectedAccessTypeOption?.id"
+        [resources]="resourceList"
+        [resourcesMap]="resourceListMap"
+      ></app-resources>
+    </div>
+    @if (whitelabelOptions.length > 0) {
+      <div class="form-group">
+        <h4 class="font-h4">{{ 'userManagement.whitelabelGrants' | translate }}</h4>
+        <div class="form-group__fields form-group__fields--one">
+          <ignt-wrapper-card>
+            <h5 class="font-base-bold content__title">{{ 'userManagement.whitelabels' | translate }}</h5>
+            <h6 class="font-small-regular content__subtle">{{ 'userManagement.whitelabelGrantsDescription' | translate }}</h6>
+            <div class="form-group__fields form-group__fields--one">
+              <div data-testid="add-user-whitelabel-resources" class="cell cell--fill-md">
+                <app-multi-select
+                  [options]="whitelabelOptions"
+                  [selectedOptions]="selectedWhitelabelOptions"
+                  (selected)="selectWhitelabels($event)"
+                  [displayInPlaceMaximum]="2"
+                  [placeholder]="'userManagement.whitelabels' | translate"
+                >
+                </app-multi-select>
+              </div>
+            </div>
+          </ignt-wrapper-card>
+        </div>
+      </div>
+    }
+    @if (whitelabelResourceList.length > 0) {
+      <div class="form-group">
+        <h4 class="font-h4">{{ 'userManagement.accessToSelected' | translate }}</h4>
+        <app-whitelabel-resources [resources]="whitelabelResourceList"></app-whitelabel-resources>
+      </div>
+    }
+  </form>
+  <ignt-alert class="my-4 d-block" [description]="'userManagement.addUserMessage' | translate"></ignt-alert>
+
+  <div class="content__buttons only-in-desktop">
+    <button igntButton sentiment="secondary" (click)="cancelChanges.emit()" data-testid="add-user-cancel-button">
+      {{ 'common.cancel' | translate }}
+    </button>
+    <button igntButton (click)="saveChanges.emit()" [disabled]="!userForm?.valid" data-testid="add-user-save-button">
+      {{ 'userManagement.addUser' | translate }}
+    </button>
+  </div>
+</ignt-wrapper-card>
+
+<ng-template #validationErrors let-error="error">
+  <ng-container *ngIf="error">
+    <div class="form-error" [ngSwitch]="error">
+      <ignt-icon class="form-error--icon" name="exclamation-circle" variant="solid" size="base"></ignt-icon>
+      <span class="form-error--message" *ngSwitchCase="'required'" data-testid="contact-information-error-mandatory-field">
+        {{ 'form.error.mandatoryField' | translate }}
+      </span>
+      <span class="form-error--message" *ngSwitchCase="'resourcesValidator'" data-testid="contact-information-error-invalid-resources">
+        {{ 'form.error.minSelection' | translate }}
+      </span>
+    </div>
+  </ng-container>
+</ng-template>

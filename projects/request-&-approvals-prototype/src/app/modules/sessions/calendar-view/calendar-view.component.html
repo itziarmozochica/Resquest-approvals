@@ -1,0 +1,303 @@
+<div class="calendar-header-row">
+  <span class="calendar-header-row__group">
+    {{ (hasTimeSlotsCapacity ? 'sessions.calendar.headerText' : 'sessions.calendar.headerTextWithoutCapacity') | translate }}
+    <span *ngIf="calendarLegend" class="calendar-header-row__format-explanation" [innerHtml]="calendarLegend"></span>
+  </span>
+  <div class="calendar-header-row__group">
+    @if (!isDeletionMode) {
+      @if (isCancelDatesCalendarButtonShown()) {
+        <ignt-button
+          class="calendar-extend-dates-button"
+          [fill]="isMobile()"
+          data-testid="enter-deletion-mode-button"
+          (click)="enterDeletionMode()"
+          sentiment="danger"
+          size="small"
+          [label]="'sessions.calendar.deleteTimeslots' | translate"
+        />
+      }
+      @if (isGoToExtendDatesCalendarButtonShown()) {
+        <ignt-button
+          class="calendar-extend-dates-button"
+          [fill]="isMobile()"
+          data-testid="goto-extend-dates-calendar-view-button"
+          (click)="goToExtendDatesCalendar()"
+          variant="secondary"
+          size="small"
+          [label]="'sessions.calendar.goToExtendDatesCalendarView' | translate"
+        />
+      }
+    } @else {
+      <button type="button" class="calendar-deletion-actions__close" data-testid="exit-deletion-mode-button" (click)="exitDeletionMode()">
+        {{ 'sessions.calendar.close' | translate }}
+      </button>
+      <ignt-button
+        class="calendar-extend-dates-button"
+        [fill]="isMobile()"
+        data-testid="confirm-deletion-button"
+        [disabled]="isConfirmDeletionDisabled()"
+        [loading]="isConfirmingDeletion"
+        (click)="onConfirmDeletion()"
+        sentiment="danger"
+        size="small"
+        [label]="'sessions.calendar.confirmDeletion' | translate"
+      />
+    }
+  </div>
+</div>
+
+<div class="calendar-header-row">
+  <app-time-slots-calendar-filters
+    class="calendar-header-row__filters"
+    [dateSelected]="dateSelected"
+    (dateSelectedChange)="setDateSelected($event)"
+    (dateRangeSelectedChange)="dateRangeSelected = $event"
+    [timezone]="filters?.timezone"
+    [isDisabled]="!filters?.selectedPlan || !filters.selectedPlace || !filters.selectedCity"
+  >
+  </app-time-slots-calendar-filters>
+
+  <span class="calendar-explanation-legend">
+    <app-percentage-color-legend-tooltip
+      *ngIf="hasTimeSlotsCapacity"
+      triggerText="Colors"
+      colorScheme="capacity"
+      [displayHiddenAndSoldOut]="true"
+      data-testid="capacity-percentage-color-legend-tooltip"
+    ></app-percentage-color-legend-tooltip>
+  </span>
+</div>
+
+<ng-template #daySummatory let-day="day">
+  <div class="calendar-item-header" *ngIf="!isDeletionMode && dayTotals[day] as totals">
+    <ng-container
+      [ngTemplateOutlet]="countDisplay"
+      [ngTemplateOutletContext]="{ issuedUnits: totals.issuedUnits, capacity: totals.capacity, soldAddOns: totals.soldAddOns }"
+    >
+    </ng-container>
+  </div>
+</ng-template>
+
+<ng-template #dayHeaderPrepend let-day="day">
+  @if (isDeletionMode) {
+    <div class="calendar-day-header-prepend">
+      <button
+        type="button"
+        class="calendar-selection-indicator"
+        data-testid="calendar-column-checkbox"
+        [attr.aria-pressed]="isDaySelected(day)"
+        [class.calendar-selection-indicator--checked]="isDaySelected(day)"
+        (click)="toggleDay(day)"
+      ></button>
+    </div>
+  }
+</ng-template>
+
+<ng-template #hourHint let-slot>
+  <div class="calendar-hour-hint">
+    <button
+      type="button"
+      class="calendar-selection-indicator"
+      data-testid="calendar-row-checkbox"
+      [attr.aria-pressed]="isHourSelected(slot)"
+      [class.calendar-selection-indicator--checked]="isHourSelected(slot)"
+      (click)="toggleHour(slot)"
+    ></button>
+    <div class="calendar-hour-hint__time">
+      <div class="hour-hint__content">
+        {{ slot | momentDate: 'shortTime' : filters?.timezone }}
+      </div>
+      <div class="hour-hint__content hour-hint__content--small">
+        {{ slot | momentDate: 'h a' : filters?.timezone }}
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #readonlyTimeslot let-props let-isClamped="isClamped" let-asLink="asLink" let-isDisabled="isDisabled">
+  @if (asLink) {
+    <a
+      data-testid="calendar-view-item-link"
+      (click)="trackClickOnTimeslot(props)"
+      class="calendar-item-container"
+      [class.calendar-item-container--clamped]="isClamped"
+      routerLink="/sessions/tickets-per-timeslot"
+      [ngClass]="{ 'calendar-item-container--clamped': isClamped }"
+      [queryParams]="{
+        timeslot: props.linkQuery,
+        selectedDate: null,
+      }"
+      queryParamsHandling="merge"
+    >
+      <app-calendar-time-slot
+        data-testid="calendar-view-item"
+        class="calendar-item-container__timeslot"
+        [ratio]="props.capacity?.capacity > 0 ? props.issuedUnits / props.capacity.capacity : 0"
+        [isSoldOut]="props?.soldOut && !props?.isCancelled"
+        [useStatusStyling]="false"
+      >
+        <div class="calendar-item-readonly">
+          <ng-container
+            [ngTemplateOutlet]="countDisplay"
+            [ngTemplateOutletContext]="{
+              issuedUnits: props.issuedUnits,
+              capacity: props.capacity?.capacity ?? null,
+              soldAddOns: props.soldAddOns,
+              isHidden: props.isHidden,
+              isCancelled: props.isCancelled,
+              isDisabled: false,
+            }"
+          >
+          </ng-container>
+        </div>
+      </app-calendar-time-slot>
+    </a>
+  } @else {
+    <div
+      data-testid="calendar-view-item-readonly"
+      class="calendar-item-container"
+      [class.calendar-item-container--clamped]="isClamped"
+      [class.calendar-item-container--disabled]="isDisabled"
+    >
+      <app-calendar-time-slot
+        data-testid="calendar-view-item"
+        class="calendar-item-container__timeslot"
+        [ratio]="props.capacity?.capacity > 0 ? props.issuedUnits / props.capacity.capacity : 0"
+        [isSoldOut]="props?.soldOut && !props?.isCancelled"
+        [useStatusStyling]="false"
+      >
+        <div class="calendar-item-readonly">
+          <ng-container
+            [ngTemplateOutlet]="countDisplay"
+            [ngTemplateOutletContext]="{
+              issuedUnits: props.issuedUnits,
+              capacity: props.capacity?.capacity ?? null,
+              soldAddOns: props.soldAddOns,
+              isHidden: props.isHidden,
+              isCancelled: props.isCancelled,
+              isDisabled: isDisabled,
+            }"
+          >
+          </ng-container>
+        </div>
+      </app-calendar-time-slot>
+    </div>
+  }
+</ng-template>
+
+<ng-template #timeslotCell let-props let-isClamped="isClamped">
+  @if (!isDeletionMode) {
+    <ng-container
+      [ngTemplateOutlet]="readonlyTimeslot"
+      [ngTemplateOutletContext]="{ $implicit: props, isClamped: isClamped, asLink: true, isDisabled: false }"
+    ></ng-container>
+  } @else if (isTimeSlotSelectable(props)) {
+    <button
+      type="button"
+      data-testid="calendar-view-selectable-item"
+      class="calendar-item-container calendar-item-container--selectable"
+      [class.calendar-item-container--clamped]="isClamped"
+      [class.calendar-item-container--selected]="selectedTimeSlots.has(props.id)"
+      (click)="toggleSlot(props)"
+    >
+      <app-calendar-time-slot
+        data-testid="calendar-view-item"
+        class="calendar-item-container__timeslot"
+        [ratio]="props.capacity?.capacity > 0 ? props.issuedUnits / props.capacity.capacity : 0"
+        [isSoldOut]="props?.soldOut && !props?.isCancelled"
+        [useStatusStyling]="false"
+      >
+        <div class="calendar-item-selectable">
+          <span
+            class="calendar-selection-indicator calendar-selection-indicator--cell"
+            [class.calendar-selection-indicator--checked]="selectedTimeSlots.has(props.id)"
+          ></span>
+          <ng-container
+            [ngTemplateOutlet]="countDisplay"
+            [ngTemplateOutletContext]="{
+              issuedUnits: props.issuedUnits,
+              capacity: props.capacity?.capacity ?? null,
+              soldAddOns: props.soldAddOns,
+              isHidden: props.isHidden,
+              isCancelled: props.isCancelled,
+              isDisabled: false,
+            }"
+          >
+          </ng-container>
+        </div>
+      </app-calendar-time-slot>
+    </button>
+  } @else {
+    <ng-container
+      [ngTemplateOutlet]="readonlyTimeslot"
+      [ngTemplateOutletContext]="{ $implicit: props, isClamped: isClamped, asLink: false, isDisabled: true }"
+    ></ng-container>
+  }
+</ng-template>
+
+<app-time-slots-calendar
+  [filters]="timeSlotsRequestParams$ | async"
+  [slotTemplate]="timeslotCell"
+  [headerTemplate]="daySummatory"
+  [dayHeaderPrependTemplate]="dayHeaderPrepend"
+  [hourHintTemplate]="isDeletionMode ? hourHint : null"
+  [timezone]="filters?.timezone"
+  [selectedDateRange]="dateRangeSelected"
+  [minEventHeightInPixels]="80"
+  [minRowHeightInPixels]="80"
+  [request]="request"
+  [checkHasMandatoryFilters]="hasMandatoryParams"
+>
+</app-time-slots-calendar>
+
+<app-lateral-slider
+  [showDetails]="showCancelSheet"
+  [title]="'sessions.cancelDatesCalendar.sheet.title' | translate"
+  [contentTemplate]="cancelSheetTemplate"
+  (closeSlider)="closeCancelSheet()"
+>
+</app-lateral-slider>
+<ng-template #cancelSheetTemplate>
+  @if (sessionsData) {
+    <app-cancel-time-slots-sheet
+      [isLoading]="isSubmittingCancellation"
+      [sessionsData]="sessionsData"
+      [showInternalCommentsField]="showCancellationInternalCommentsField"
+      [timezone]="filters?.timezone ?? 'UTC'"
+      (confirm)="onConfirmCancellation($event)"
+      (discard)="closeCancelSheet()"
+    />
+  }
+</ng-template>
+
+<ng-template
+  #countDisplay
+  let-issuedUnits="issuedUnits"
+  let-capacity="capacity"
+  let-soldAddOns="soldAddOns"
+  let-isHidden="isHidden"
+  let-isCancelled="isCancelled"
+  let-isDisabled="isDisabled"
+>
+  <div class="calendar-item">
+    <span>
+      <strong>{{ issuedUnits }}</strong
+      ><ng-container *ngIf="capacity !== null"> {{ ' / ' }}{{ capacity }}</ng-container
+      >{{ soldAddOns !== null ? ' [' + soldAddOns + ']' : '' }}
+    </span>
+
+    @if (isCancelled) {
+      <span
+        class="calendar-item__status-badge calendar-item__status-badge--cancelled"
+        [class.calendar-item__status-badge--disabled]="isDisabled"
+      >
+        {{ 'validateTickets.cancelled' | translate }}
+      </span>
+    } @else if (isHidden) {
+      <span class="calendar-item__status-badge calendar-item__status-badge--hidden">
+        <fa-icon [icon]="['fal', 'eye-slash']"></fa-icon>
+        {{ 'sessions.calendar.hidden' | translate }}
+      </span>
+    }
+  </div>
+</ng-template>

@@ -1,0 +1,120 @@
+<ignt-dialog-header focusCloseButton>{{ 'orders.filtersPanel.sheetTitle' | translate }}</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="unified-order-filters">
+    @if (data.showFullName) {
+      <section class="unified-order-filters__group">
+        <h3 class="unified-order-filters__title">{{ 'orders.filtersPanel.userDetails' | translate }}</h3>
+        <ignt-input-field
+          id="unified-order-filters-full-name"
+          data-testid="unified-order-filters-full-name"
+          type="text"
+          [label]="'orders.filterLabels.fullName' | translate"
+          [placeholder]="'orders.filterLabels.fullnameFilter' | translate"
+          [maxlength]="maxFullNameLength"
+          [ngModel]="fullName()"
+          (ngModelChange)="fullName.set($event)"
+        />
+      </section>
+    }
+
+    <section class="unified-order-filters__group">
+      <h3 class="unified-order-filters__title">{{ 'orders.filtersPanel.purchaseDetails' | translate }}</h3>
+
+      @if (data.showIncludeCancelled) {
+        <ignt-switch
+          data-testid="unified-order-filters-include-cancelled"
+          [label]="'orders.filterLabels.includeCancelled' | translate"
+          [checked]="includeCancelled()"
+          (checkedChange)="changeIncludeCancelled($event)"
+        />
+      }
+
+      @if (data.showChannel) {
+        <ignt-typeahead
+          data-testid="unified-order-filters-channel-type"
+          [selectAllLabel]="'orders.channelFilterAll' | translate"
+          [fieldLabel]="'orders.filterLabels.channelType' | translate"
+          [options]="channelTypeOptions()"
+          [selectedOption]="selectedChannelTypeOption()"
+          [editable]="false"
+          (selected)="selectChannelType($event)"
+        />
+
+        @if (showChannelNameSelector()) {
+          <ignt-typeahead
+            data-testid="unified-order-filters-channel-name"
+            [selectAllLabel]="data.allowChannelTypeOnly ? ('orders.channelFilterAll' | translate) : undefined"
+            [fieldLabel]="'orders.filterLabels.channelName' | translate"
+            [options]="channelOptions()"
+            [selectedOption]="selectedChannelOption()"
+            [editable]="false"
+            (selected)="selectChannel($event)"
+          />
+        }
+      }
+
+      <app-date-range
+        class="unified-order-filters__date-range"
+        data-testid="unified-order-filters-purchase-date"
+        [class.unified-order-filters__date-range--empty]="!purchaseDateRange()?.startDate && !purchaseDateRange()?.endDate"
+        [initialDateShown]="false"
+        [queryDateRange]="purchaseDateRange()"
+        [maxDateRange]="maxDateRange"
+        [allowClearDate]="true"
+        (selected)="selectPurchaseDateRange($event)"
+      />
+    </section>
+
+    <section class="unified-order-filters__group">
+      <h3 class="unified-order-filters__title">{{ 'orders.filtersPanel.eventDetails' | translate }}</h3>
+
+      <app-date-range
+        class="unified-order-filters__date-range"
+        data-testid="unified-order-filters-event-date"
+        [class.unified-order-filters__date-range--empty]="!eventDateRange()?.startDate && !eventDateRange()?.endDate"
+        [initialDateShown]="false"
+        [queryDateRange]="eventDateRange()"
+        [maxDateRange]="maxDateRange"
+        [allowClearDate]="true"
+        (selected)="selectEventDateRange($event)"
+      />
+
+      @if (data.showTicketType) {
+        <ignt-input-field
+          id="unified-order-filters-ticket-type"
+          data-testid="unified-order-filters-ticket-type"
+          type="text"
+          [label]="'orders.filterLabels.ticketType' | translate"
+          [placeholder]="'orders.filterLabels.ticketTypeFilter' | translate"
+          [maxlength]="maxKeywordLength"
+          [ngModel]="ticketTypeSearch()"
+          (ngModelChange)="ticketTypeSearch.set($event)"
+        />
+      }
+
+      @if (data.showSeats) {
+        <ignt-input-field
+          id="unified-order-filters-seat-label"
+          data-testid="unified-order-filters-seat-label"
+          type="text"
+          [label]="'orders.filterLabels.seatLabel' | translate"
+          [placeholder]="'orders.filterLabels.seatLabelFilter' | translate"
+          [maxlength]="maxKeywordLength"
+          [ngModel]="seatLabelSearch()"
+          (ngModelChange)="seatLabelSearch.set($event)"
+        />
+      }
+    </section>
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer [hideCancelButton]="true">
+  <ignt-button
+    variant="tertiary"
+    data-testid="unified-order-filters-clear"
+    [label]="'orders.filtersPanel.clearFilters' | translate"
+    (click)="clear()"
+  />
+  <ignt-button data-testid="unified-order-filters-apply" [label]="'orders.filtersPanel.applyFilters' | translate" (click)="apply()" />
+</ignt-dialog-footer>

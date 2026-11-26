@@ -1,0 +1,105 @@
+<article class="report-card">
+  <div class="report-card__info">
+    <div class="report-card__title">
+      <div
+        class="report-card__title-value"
+        [class.report-card__title-value--created]="reportSignal()?.status === 'created'"
+        [class.report-card__title-value--error]="reportSignal()?.status === 'error'"
+      >
+        <a *ngIf="isDownloadEnabled()" href="javascript:void(0)" class="report-card__title-download" (click)="download()">
+          {{ reportSignal()?.id }}
+        </a>
+        <ng-container *ngIf="!isDownloadEnabled()">
+          {{ reportSignal()?.id }}
+        </ng-container>
+      </div>
+
+      <a *ngIf="isDownloadEnabled()" href="javascript:void(0)" class="report-card__title-download" (click)="download()">
+        <fa-icon [icon]="[reportSignal()?.status === 'created' ? 'fas' : 'fal', 'cloud-download']" />
+      </a>
+    </div>
+    <div class="report-card__location">
+      <fa-icon [icon]="['fal', 'map-marker-alt']" />
+      {{ location() }}
+    </div>
+    <div class="report-card__deadline" *ngIf="shouldDisplayDeadline()">
+      <div class="report-card__deadline-label">{{ 'boxOffice.cashRegisterReports.countdown' | translate }}</div>
+      <div
+        class="report-card__deadline-value"
+        [class.report-card__deadline-value--warning]="countdownWarning()"
+        [class.report-card__deadline-value--danger]="countdownDanger()"
+      >
+        {{ countdownText() }}
+        <fa-icon
+          *ngIf="countdownWarning() || countdownDanger()"
+          class="report-card__exclamation-icon"
+          icon="exclamation-circle"
+          igntTooltip
+          [tooltipLabel]="countdownTooltipText()"
+          tooltipPlacement="left"
+          [class.report-card__exclamation-icon--warning]="countdownWarning()"
+          [class.report-card__exclamation-icon--danger]="countdownDanger()"
+        />
+      </div>
+    </div>
+    <div class="report-card__status">
+      <ignt-tag [sentiment]="statusTagSentiment()" [variant]="statusTagVariant()">{{ statusText() }}</ignt-tag>
+    </div>
+    <div class="report-card__created">
+      <div class="report-card__created-label">{{ 'boxOffice.cashRegisterReports.created' | translate }}</div>
+      <div class="report-card__created-value">{{ reportSignal()?.createdAt ?? '' | momentDate: dateFormat : timezone }}</div>
+    </div>
+    <div class="report-card__updated">
+      <div class="report-card__updated-label">{{ 'boxOffice.cashRegisterReports.updated' | translate }}</div>
+      <div class="report-card__updated-value">{{ reportSignal()?.updatedAt ?? '' | momentDate: dateFormat : timezone }}</div>
+    </div>
+  </div>
+
+  <div class="report-card__footer">
+    <ng-container [ngSwitch]="reportSignal()?.status">
+      <button
+        *ngSwitchCase="'created'"
+        igntButton
+        sentiment="secondary"
+        [fill]="true"
+        [loading]="reportSignal()?.loading ?? false"
+        [disabled]="reportSignal()?.loading ?? false"
+        (click)="download()"
+      >
+        {{ 'boxOffice.cashRegisterReports.downloadReportButton' | translate }}
+      </button>
+      <button
+        *ngSwitchCase="'in_review'"
+        igntButton
+        sentiment="primary"
+        [loading]="reportSignal()?.loading ?? false"
+        [disabled]="reportSignal()?.loading ?? false"
+        [fill]="true"
+        (click)="approve()"
+      >
+        {{ 'boxOffice.cashRegisterReports.validateReportButton' | translate }}
+      </button>
+      <button
+        *ngSwitchCase="'error'"
+        igntButton
+        sentiment="primary"
+        [loading]="reportSignal()?.loading ?? false"
+        [disabled]="reportSignal()?.loading ?? false"
+        variant="danger"
+        [fill]="true"
+        (click)="flagReport()"
+      >
+        {{ 'boxOffice.cashRegisterReports.contactFeverReportButton' | translate }}
+      </button>
+    </ng-container>
+
+    <p *ngIf="reportSignal()?.status === 'in_review'" class="report-card__request-change">
+      {{ 'boxOffice.cashRegisterReports.anyErrorInReport' | translate }}
+      <a href="javascript:void(0)" class="report-card__request-change-link" role="button" tabindex="0" (click)="flagReport()">
+        {{ 'boxOffice.cashRegisterReports.requestChange' | translate }}
+      </a>
+    </p>
+
+    <p *ngIf="statusDescription()" class="report-card__status-description">{{ statusDescription() }}</p>
+  </div>
+</article>

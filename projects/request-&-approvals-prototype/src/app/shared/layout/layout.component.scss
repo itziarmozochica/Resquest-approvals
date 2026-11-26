@@ -1,0 +1,201 @@
+@use '../../../theme/components/navigation/headerbar/tokens' as headerbar;
+@use '../../../theme/components/navigation/aside-menu/tokens' as aside-menu;
+@use 'foundations/font/font-properties' as font-properties;
+@import '../../../theme/abstracts/all';
+
+.bl-main {
+  /* stylelint-disable-next-line length-zero-no-unit */
+  --impersonation-banner-height: 0px;
+  /* stylelint-disable-next-line length-zero-no-unit */
+  --mfa-setup-required-banner-height: 0px;
+  --fz-assistant-dock-sticky-top: calc(
+    #{headerbar.$dimensions-height-large} + var(--impersonation-banner-height) + var(--mfa-setup-required-banner-height)
+  );
+
+  @media (max-width: 1200px) {
+    --fz-assistant-dock-sticky-top: calc(
+      #{headerbar.$dimensions-height} + var(--impersonation-banner-height) + var(--mfa-setup-required-banner-height)
+    );
+  }
+
+  --fz-assistant-dock-viewport-column-height: calc(100dvh - var(--fz-assistant-dock-sticky-top) - env(safe-area-inset-bottom, 0px));
+
+  @media (min-width: 1440px) {
+    background: $gray-200;
+  }
+  min-height: 100vh;
+
+  &--dual-screen {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &--impersonating {
+    --impersonation-banner-height: 88px;
+
+    @media (min-width: 1200px) {
+      --impersonation-banner-height: 56px;
+    }
+  }
+
+  /* Fallback until the banner reports its measured height (Figma 13:8670). */
+  &--mfa-setup-required {
+    --mfa-setup-required-banner-height: 72px;
+  }
+
+  &--logged {
+    background: $color-background-main-contrast;
+  }
+
+  &--kiosk-logged {
+    background: $gray-200;
+  }
+
+  .full-height {
+    height: calc(100vh - 80px);
+    @media (min-width: 1200px) {
+      overflow: hidden;
+    }
+  }
+
+  section {
+    &.no-pointer-events {
+      overflow-y: hidden;
+      position: fixed;
+      right: 0;
+      width: 100%;
+
+      @include media-breakpoint-up(aside-menu.$breakpoint-menu) {
+        overflow-y: auto;
+        position: initial;
+        right: auto;
+        width: auto;
+      }
+    }
+  }
+}
+
+/* stylelint-disable selector-max-id */
+.bl-main__content-with-dock {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: row;
+  min-height: 0;
+  min-width: 0;
+}
+
+.bl-main__content-with-dock--dock-open {
+  /*
+   * Short pages: row at least one viewport-column tall so `position: sticky` is not clipped by a
+   * too-short parent. The dock host uses a fixed viewport-relative height (`--fz-assistant-dock-viewport-column-height`).
+   */
+  align-items: stretch;
+  min-height: var(--fz-assistant-dock-viewport-column-height);
+}
+
+/*
+ * Kiosk never renders the dock, and its `<section>` was previously a direct child of `.bl-main`. The
+ * wrapper now exists on both layouts so the router outlet is never destroyed, so take it back out of
+ * the box model here to keep the kiosk geometry byte-identical to before.
+ */
+.bl-main__content-with-dock--kiosk {
+  display: contents;
+}
+
+.bl-main__content-with-dock section#main-content {
+  flex: 1 1 0;
+  min-width: 0;
+
+  ::ng-deep > :not(router-outlet) {
+    display: block;
+  }
+}
+
+.bl-main__content-with-dock--dock-open section#main-content {
+  position: relative;
+  z-index: 1;
+}
+
+section#main-content,
+app-footer {
+  transition: margin 260ms cubic-bezier(0.1, 0, 0, 1);
+}
+
+section#main-content {
+  flex: 1;
+  padding-block-start: calc(
+    #{headerbar.$dimensions-height-large} + var(--impersonation-banner-height) + var(--mfa-setup-required-banner-height)
+  );
+  @media (max-width: 1200px) {
+    padding-block-start: calc(
+      #{headerbar.$dimensions-height} + var(--impersonation-banner-height) + var(--mfa-setup-required-banner-height)
+    );
+  }
+}
+
+.bl-main--dual-screen section#main-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+
+  /* Routed views fill remaining height so nested flex (e.g. box-office) can stretch to the viewport. */
+  > router-outlet {
+    flex: 0 0 0;
+  }
+}
+
+section#main-content\ kiosk-layout {
+  margin-left: 0;
+}
+
+.sidebar-is-open {
+  @include media-breakpoint-up(aside-menu.$breakpoint-menu) {
+    margin-inline-start: aside-menu.$dimensions-width-expanded;
+  }
+}
+
+.oss-mode.sidebar-is-open,
+footer.oss-mode.sidebar-is-open {
+  @include media-breakpoint-up(aside-menu.$breakpoint-menu) {
+    margin-inline-start: 0;
+  }
+}
+
+/*
+ * Fixed MFA banner spans the viewport by default (see mfa-setup-required-banner :host).
+ * Match the content push: inset under the open sidebar at the menu breakpoint, except OSS
+ * (overlay sidebar, same as .oss-mode.sidebar-is-open).
+ */
+.bl-main--sidebar-open {
+  @include media-breakpoint-up(aside-menu.$breakpoint-menu) {
+    app-mfa-setup-required-banner {
+      inset-inline-start: aside-menu.$dimensions-width-expanded;
+    }
+  }
+
+  &.bl-main--oss-mode {
+    @include media-breakpoint-up(aside-menu.$breakpoint-menu) {
+      app-mfa-setup-required-banner {
+        inset-inline-start: 0;
+      }
+    }
+  }
+}
+
+.footer {
+  display: block;
+}
+
+/* Keep the page footer under fixed UI (sidebar z-index: $sidebar) so the nav can extend over it when scrolled. */
+app-footer.footer {
+  position: relative;
+  z-index: 0;
+}
+
+.sidebar__top-actions {
+  padding-inline: $space-4;
+  padding-block: $space-4;
+  margin-inline-start: -$space-4;
+  border-block-end: $size-px solid aside-menu.$menu-item-section-color-border;
+  flex-shrink: 0;
+}

@@ -1,0 +1,160 @@
+<section class="asc">
+  <header class="asc__header">
+    <h1>{{ 'adminProjectManagement.title' | translate }}</h1>
+    <button type="button" igntButton sentiment="primary" [disabled]="saving() || loading()" (click)="save()">
+      @if (saving()) {
+        {{ 'adminProjectManagement.saving' | translate }}
+      } @else {
+        {{ 'adminProjectManagement.save' | translate }}
+      }
+    </button>
+  </header>
+
+  <nav class="asc__tabs" role="tablist">
+    @if (canAdminInformationRequest) {
+      <button
+        type="button"
+        class="asc__tab"
+        [class.asc__tab--active]="tab() === 'IR'"
+        role="tab"
+        [attr.aria-selected]="tab() === 'IR'"
+        (click)="selectTab('IR')"
+        data-testid="admin-pm-tab-ir"
+      >
+        {{ 'adminProjectManagement.tabs.ir' | translate }}
+      </button>
+    }
+    @if (canAdminApproval) {
+      <button
+        type="button"
+        class="asc__tab"
+        [class.asc__tab--active]="tab() === 'APPROVAL'"
+        role="tab"
+        [attr.aria-selected]="tab() === 'APPROVAL'"
+        (click)="selectTab('APPROVAL')"
+        data-testid="admin-pm-tab-approval"
+      >
+        {{ 'adminProjectManagement.tabs.approval' | translate }}
+      </button>
+    }
+    @if (canAdminInformationRequest) {
+      <button
+        type="button"
+        class="asc__tab"
+        [class.asc__tab--active]="tab() === 'STEPPER'"
+        role="tab"
+        [attr.aria-selected]="tab() === 'STEPPER'"
+        (click)="selectTab('STEPPER')"
+        data-testid="admin-pm-tab-stepper"
+      >
+        {{ 'adminProjectManagement.tabs.stepper' | translate }}
+      </button>
+    }
+  </nav>
+
+  @if (banner() === 'loadFailed') {
+    <div class="asc__alert asc__alert--danger" role="alert">
+      {{ 'adminProjectManagement.alerts.loadFailed' | translate }}
+    </div>
+  }
+  @if (banner() === 'saveFailed') {
+    <div class="asc__alert asc__alert--danger" role="alert">
+      {{ 'adminProjectManagement.alerts.saveFailed' | translate }}
+    </div>
+  }
+  @if (banner() === 'saved') {
+    <div class="asc__alert asc__alert--success" role="status">
+      {{ 'adminProjectManagement.alerts.saved' | translate }}
+    </div>
+  }
+
+  @if (loading()) {
+    <p class="asc__placeholder">{{ 'adminProjectManagement.loading' | translate }}</p>
+  } @else if (tab() === 'STEPPER') {
+    <app-stepper-catalog-panel
+      [templates]="stepperCatalog()"
+      [selectedKey]="selectedStepperKey()"
+      [loadingKey]="stepperLoadingKey()"
+      (selected)="openStepperTemplate($event)"
+      (created)="openCreateStepperDialog()"
+      (deleted)="onDeleteStepperTemplate($event)"
+    />
+
+    @if (selectedStepperKey() && currentStepperTemplate()) {
+      <div class="asc__editor-wrapper">
+        <app-stepper-template-editor
+          [template]="currentStepperTemplate()"
+          [availableStepperTemplates]="stepperTemplates()"
+          (back)="closeStepperEditor()"
+          (save)="saveStepperTemplate($event)"
+        />
+      </div>
+    } @else if (selectedStepperKey() && !stepperLoadingKey()) {
+      <div class="asc__editor-wrapper">
+        <p class="asc__alert asc__alert--danger" role="alert" data-testid="admin-pm-stepper-editor-error">
+          {{ 'adminProjectManagement.alerts.loadFailed' | translate }}
+        </p>
+      </div>
+    }
+  } @else {
+    <div class="asc__toolbar">
+      <label class="asc__global-order">
+        <input type="checkbox" [checked]="currentGloballyOrdered()" (change)="toggleGlobalOrder()" data-testid="admin-pm-global-order" />
+        {{ 'adminProjectManagement.globalOrder' | translate }}
+      </label>
+      <button type="button" igntButton sentiment="secondary" (click)="openCreateTemplateDialog()" data-testid="admin-pm-add-template">
+        {{ 'adminProjectManagement.createTemplate.action' | translate }}
+      </button>
+    </div>
+
+    <app-template-list-panel
+      [templates]="currentTemplates()"
+      [expandedKey]="expandedKey()"
+      [loadingKey]="templateLoading()"
+      [hiddenKeys]="currentHiddenKeys()"
+      (toggled)="toggleTemplate($event)"
+      (hideToggled)="toggleTemplateHidden($event)"
+      (deleted)="onDeleteTemplate($event)"
+    />
+
+    @if (expandedKey() && mergedByTemplate()[expandedKey()!]) {
+      <div class="asc__editor-wrapper">
+        <app-template-editor
+          [templateKey]="expandedKey()!"
+          [merged]="mergedByTemplate()[expandedKey()!]"
+          [customFields]="currentCustomFields()[expandedKey()!] ?? []"
+          [overrides]="currentOverrides()[expandedKey()!] ?? {}"
+          [layout]="currentLayouts()[expandedKey()!] ?? null"
+          (layoutChange)="onLayoutChange(expandedKey()!, $event)"
+          (overridePatch)="onOverridePatch(expandedKey()!, $event.questionId, $event.patch)"
+          (customFieldPatch)="onCustomFieldPatch(expandedKey()!, $event.fieldId, $event.patch)"
+          (removeCustomField)="onRemoveCustomField(expandedKey()!, $event)"
+          (reorder)="onReorder($event.templateKey, $event.rows, $event.fromIndex, $event.toIndex)"
+          (addField)="openCreateDialog()"
+        />
+      </div>
+    } @else if (expandedKey() && !templateLoading()) {
+      <div class="asc__editor-wrapper">
+        <p class="asc__alert asc__alert--danger" role="alert" data-testid="admin-pm-template-editor-error">
+          {{ 'adminProjectManagement.alerts.loadFailed' | translate }}
+        </p>
+      </div>
+    }
+  }
+
+  @if (createDialogOpen()) {
+    <app-create-field-dialog
+      [availableStepperTemplates]="stepperTemplates()"
+      (confirm)="confirmCreateField($event)"
+      (cancelled)="closeCreateDialog()"
+    />
+  }
+
+  @if (createTemplateDialogOpen()) {
+    <app-create-template-dialog (confirm)="confirmCreateTemplate($event)" (cancelled)="closeCreateTemplateDialog()" />
+  }
+
+  @if (createStepperDialogOpen()) {
+    <app-create-template-dialog (confirm)="confirmCreateStepperTemplate($event)" (cancelled)="closeCreateStepperDialog()" />
+  }
+</section>

@@ -1,0 +1,94 @@
+<section class="main-wrapper" [attr.aria-label]="'menu.fundraisingPipeline' | translate">
+  <app-fundraising-page-title
+    [section]="'menu.fundraising' | translate"
+    [subsections]="[{ title: ('menu.fundraisingPipeline' | translate), link: '/fundraising/pipeline' }]"
+    [title]="opportunity()?.name ?? ''"
+  >
+    @if (dropdownActionsOptions().length > 0) {
+      <ignt-button-dropdown
+        [options]="dropdownActionsOptions()"
+        [sentiment]="'secondary'"
+        [variant]="'default'"
+        [trailingIconClosed]="['fas', 'chevron-down']"
+        [trailingIconOpened]="['fas', 'chevron-up']"
+        [attr.aria-label]="('fundraising.pipeline.details.actions.title' | translate) + ' ' + opportunity()?.name"
+        (optionClick)="onDropdownOptionClick($event)"
+        data-testid="pipeline-details-actions-dropdown"
+        class="pipeline-details__actions-dropdown"
+      >
+        {{ 'fundraising.pipeline.details.actions.title' | translate }}
+      </ignt-button-dropdown>
+    }
+  </app-fundraising-page-title>
+
+  <div class="pipeline-details" [attr.aria-busy]="isLoading()">
+    @if (!isLoading() && opportunity(); as opportunity) {
+      <app-pipeline-details-header [opportunity]="opportunity"></app-pipeline-details-header>
+
+      <div class="pipeline-details__content">
+        <div class="pipeline-details__content-left">
+          <div class="pipeline-details__card wrapper-card wrapper-card--elevation-75">
+            <h3 class="pipeline-details__card-title">{{ 'fundraising.pipeline.details.overview.title' | translate }}</h3>
+            <div class="pipeline-details__overview-row">
+              <app-patron-details-info-section
+                [title]="'fundraising.pipeline.details.overview.askAmount' | translate"
+                [value]="(opportunity.amount | currency: currencyCode() : 'symbol' : '1.0-0') ?? ''"
+                [subtitle]="
+                  'fundraising.pipeline.details.overview.weighted'
+                    | translate: { amount: opportunity.weightedAmount | currency: currencyCode() : 'symbol' : '1.0-0' }
+                "
+              ></app-patron-details-info-section>
+              <app-patron-details-info-section
+                [title]="'fundraising.pipeline.details.overview.expectedClose' | translate"
+                [value]="(opportunity.expectedCloseDate | date: 'MMM d, y') ?? ''"
+                [subtitle]="'fundraising.pipeline.details.overview.created' | translate: { date: opportunity.createdAt | date: 'MMM d, y' }"
+              ></app-patron-details-info-section>
+              <app-patron-details-info-section
+                [title]="'fundraising.pipeline.details.overview.probability' | translate"
+                [value]="'fundraising.pipeline.details.overview.probabilityValue' | translate: { value: opportunity.probability }"
+                valueSize="h6"
+                [centered]="true"
+              ></app-patron-details-info-section>
+            </div>
+          </div>
+
+          <div class="pipeline-details__card wrapper-card wrapper-card--elevation-75">
+            <div class="pipeline-details__card-header">
+              <h3 class="pipeline-details__card-title">{{ 'fundraising.pipeline.details.recentActivity.title' | translate }}</h3>
+              <a
+                igntLink
+                size="small"
+                sentiment="primary"
+                [routerLink]="['/guest-profiles/profiles', opportunity.userAssociationId]"
+                [queryParams]="patronTimelineQueryParams"
+                data-testid="pipeline-details-go-to-timeline"
+              >
+                {{ 'fundraising.pipeline.details.recentActivity.goToTimeline' | translate }}
+              </a>
+            </div>
+            @if (opportunity.recentActivities.length) {
+              <app-timeline [customItems]="recentActivityItems()"></app-timeline>
+            } @else {
+              <p class="pipeline-details__activity-empty">{{ 'fundraising.pipeline.details.recentActivity.empty' | translate }}</p>
+            }
+          </div>
+        </div>
+
+        <div class="pipeline-details__content-right">
+          <div class="pipeline-details__card wrapper-card wrapper-card--elevation-75">
+            <h3 class="pipeline-details__card-title">{{ 'fundraising.pipeline.details.stage.title' | translate }}</h3>
+            <app-pipeline-stage-stepper [currentStage]="opportunity.stage" [stageDates]="opportunity.stageDates" />
+          </div>
+
+          @if (nextStage()) {
+            <app-pipeline-actions-card (actionSelected)="onDropdownOptionClick($event)"></app-pipeline-actions-card>
+          }
+        </div>
+      </div>
+    } @else if (!isLoading()) {
+      <p class="pipeline-details__not-found" data-testid="pipeline-details-not-found">
+        {{ 'fundraising.pipeline.details.notFound' | translate }}
+      </p>
+    }
+  </div>
+</section>

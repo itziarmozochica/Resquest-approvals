@@ -1,0 +1,105 @@
+@if (isOpen() && waterfallUrl()) {
+  <div
+    class="synthetic-check-waterfall-viewer__overlay"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="i18n + '.waterfallPreviewTitle' | translate"
+    data-testid="synthetic-check-waterfall-overlay"
+    (click)="close()"
+  >
+    <div class="synthetic-check-waterfall-viewer__dialog" (click)="$event.stopPropagation()">
+      <div class="synthetic-check-waterfall-viewer__header">
+        <h4 class="synthetic-check-waterfall-viewer__title">{{ i18n + '.waterfallPreviewTitle' | translate }}</h4>
+        <button type="button" igntButton sentiment="tertiary" data-testid="synthetic-check-waterfall-close" (click)="close()">
+          {{ i18n + '.waterfallClose' | translate }}
+        </button>
+      </div>
+
+      @if (loadState() === 'loading') {
+        <p class="synthetic-check-waterfall-viewer__message" data-testid="synthetic-check-waterfall-loading">
+          {{ i18n + '.waterfallLoading' | translate }}
+        </p>
+      } @else if (loadState() === 'error') {
+        <p
+          class="synthetic-check-waterfall-viewer__message synthetic-check-waterfall-viewer__message--error"
+          data-testid="synthetic-check-waterfall-error"
+        >
+          {{ i18n + '.waterfallLoadError' | translate }}
+        </p>
+      } @else if (loadState() === 'empty') {
+        <p class="synthetic-check-waterfall-viewer__message" data-testid="synthetic-check-waterfall-empty">
+          {{ i18n + '.waterfallEmpty' | translate }}
+        </p>
+      } @else {
+        @if (viewModel(); as model) {
+          <div class="synthetic-check-waterfall-viewer__summary" data-testid="synthetic-check-waterfall-summary">
+            {{ i18n + '.waterfallSummary' | translate: { count: model.requests.length, ms: model.totalDurationMs } }}
+          </div>
+
+          <div class="synthetic-check-waterfall-viewer__scroll">
+            <div class="synthetic-check-waterfall-viewer__table" role="table">
+              <div class="synthetic-check-waterfall-viewer__row synthetic-check-waterfall-viewer__row--header" role="row">
+                <div class="synthetic-check-waterfall-viewer__cell synthetic-check-waterfall-viewer__cell--name" role="columnheader">
+                  {{ i18n + '.waterfallColumnName' | translate }}
+                </div>
+                <div class="synthetic-check-waterfall-viewer__cell synthetic-check-waterfall-viewer__cell--meta" role="columnheader">
+                  {{ i18n + '.waterfallColumnStatus' | translate }}
+                </div>
+                <div class="synthetic-check-waterfall-viewer__cell synthetic-check-waterfall-viewer__cell--size" role="columnheader">
+                  {{ i18n + '.waterfallColumnSize' | translate }}
+                </div>
+                <div class="synthetic-check-waterfall-viewer__cell synthetic-check-waterfall-viewer__cell--duration" role="columnheader">
+                  {{ i18n + '.waterfallColumnDuration' | translate }}
+                </div>
+                <div class="synthetic-check-waterfall-viewer__cell synthetic-check-waterfall-viewer__cell--timeline" role="columnheader">
+                  <span>{{ i18n + '.waterfallColumnTimeline' | translate }}</span>
+                  <div class="synthetic-check-waterfall-viewer__timeline-scale">
+                    @for (marker of timelineMarkers(model.totalDurationMs); track marker) {
+                      <span>{{ marker }}ms</span>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              @for (row of model.requests; track row.id) {
+                <div
+                  class="synthetic-check-waterfall-viewer__row"
+                  role="row"
+                  [attr.data-testid]="'synthetic-check-waterfall-row-' + row.id"
+                >
+                  <div class="synthetic-check-waterfall-viewer__cell synthetic-check-waterfall-viewer__cell--name" role="cell">
+                    <span class="synthetic-check-waterfall-viewer__type synthetic-check-waterfall-viewer__type--{{ row.resourceType }}">
+                      {{ row.resourceType }}
+                    </span>
+                    <span class="synthetic-check-waterfall-viewer__name" [title]="row.url">{{ row.displayName }}</span>
+                  </div>
+                  <div class="synthetic-check-waterfall-viewer__cell synthetic-check-waterfall-viewer__cell--meta" role="cell">
+                    {{ row.statusCode ?? '—' }}
+                  </div>
+                  <div class="synthetic-check-waterfall-viewer__cell synthetic-check-waterfall-viewer__cell--size" role="cell">
+                    {{ formatBytes(row.transferSize) }}
+                  </div>
+                  <div class="synthetic-check-waterfall-viewer__cell synthetic-check-waterfall-viewer__cell--duration" role="cell">
+                    {{ i18n + '.waterfallDurationValue' | translate: { ms: row.durationMs } }}
+                  </div>
+                  <div class="synthetic-check-waterfall-viewer__cell synthetic-check-waterfall-viewer__cell--timeline" role="cell">
+                    <div class="synthetic-check-waterfall-viewer__timeline-track">
+                      <span
+                        class="synthetic-check-waterfall-viewer__timeline-bar synthetic-check-waterfall-viewer__timeline-bar--{{
+                          row.resourceType
+                        }}"
+                        [style.margin-left.%]="row.startPercent"
+                        [style.width.%]="row.widthPercent"
+                        [attr.aria-label]="i18n + '.waterfallDurationValue' | translate: { ms: row.durationMs }"
+                      ></span>
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      }
+    </div>
+  </div>
+}

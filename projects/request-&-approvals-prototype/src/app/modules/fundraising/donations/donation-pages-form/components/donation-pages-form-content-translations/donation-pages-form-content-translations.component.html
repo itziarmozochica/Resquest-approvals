@@ -1,0 +1,226 @@
+<div class="donation-pages-form-content-translations">
+  <app-donation-language-pill-selector
+    [activeLanguages]="activeLanguages()"
+    [invalidLanguages]="invalidLanguages()"
+    [(selectedLanguage)]="selectedLanguageCode"
+    testIdPrefix="donation-pages-form-content-translations"
+    (addLanguageClick)="onAddLanguageClick()"
+  />
+
+  <form [formGroup]="contentForm()" class="donation-pages-form-content-translations__form">
+    <ignt-wrapper-card>
+      <app-expandable-content
+        [label]="'fundraising.donationPages.form.contentTranslations.heroAndPageIdentity.title' | translate"
+        [description]="'fundraising.donationPages.form.contentTranslations.fieldsCount' | translate: { count: 3 }"
+        variant="presentation"
+        [isChecked]="sections.isExpanded('hero')"
+        (checkedChange)="sections.toggle('hero', $event)"
+      >
+        <div class="donation-pages-form-content-translations__card-content">
+          <ignt-wrapper-card
+            class="donation-pages-form-content-translations__image-card"
+            [title]="'fundraising.donationPages.form.contentTranslations.heroAndPageIdentity.heroImage' | translate"
+          >
+            <ignt-tag
+              [startIcon]="['fal', 'info-circle']"
+              class="donation-pages-form-content-translations__same-image-tag"
+              sentiment="info"
+              variant="outline"
+            >
+              {{ 'fundraising.donationPages.form.contentTranslations.sameImageForAllLanguages' | translate }}
+            </ignt-tag>
+
+            <app-image-upload-zone
+              [photos]="heroPhotos()"
+              [uploadFileCallback]="uploadImageCallback()"
+              (photosChange)="onHeroPhotosChange($event)"
+            />
+          </ignt-wrapper-card>
+
+          <ignt-input-field
+            id="donation-pages-form-content-translations-page-title"
+            [formControl]="formControls().title.controls[activeLanguageCode()]"
+            [label]="'fundraising.donationPages.form.contentTranslations.heroAndPageIdentity.pageTitle' | translate"
+            type="text"
+            [customFormErrors]="[
+              {
+                type: 'required',
+                message: ('form.error.required' | translate),
+              },
+            ]"
+          />
+
+          <ignt-textarea-field
+            id="donation-pages-form-content-translations-page-subtitle"
+            [formControl]="formControls().subtitle.controls[activeLanguageCode()]"
+            [label]="'fundraising.donationPages.form.contentTranslations.heroAndPageIdentity.pageSubtitle' | translate"
+            [rows]="2"
+            [customFormErrors]="[
+              {
+                type: 'required',
+                message: ('form.error.required' | translate),
+              },
+            ]"
+          />
+        </div>
+      </app-expandable-content>
+    </ignt-wrapper-card>
+
+    @if (showImpactSection()) {
+      <ignt-wrapper-card>
+        <app-expandable-content
+          [label]="'fundraising.donationPages.form.contentTranslations.donationCopy.title' | translate"
+          [description]="'fundraising.donationPages.form.contentTranslations.fieldsCount' | translate: { count: donationCopyFieldsCount() }"
+          variant="presentation"
+          [isChecked]="sections.isExpanded('donationCopy')"
+          (checkedChange)="sections.toggle('donationCopy', $event)"
+        >
+          <ignt-tabs
+            [hasExtraLine]="false"
+            [selectedIndex]="activeDonationCopyTabIndex()"
+            (selectedIndexChange)="onDonationCopyTabChange($event)"
+          >
+            @for (frequency of enabledFrequencies(); track frequency) {
+              <ignt-tabs-item [label]="donationPageFrequencyCadenceOptionTranslationKeys[frequency] | translate">
+                <div class="donation-pages-form-content-translations__card-content">
+                  <ignt-textarea-field
+                    id="donation-pages-form-content-translations-low-impact-line"
+                    [formControl]="formControls().donationCopy.controls[frequency].controls.lowImpactLine.controls[activeLanguageCode()]"
+                    [label]="'fundraising.donationPages.form.contentTranslations.donationCopy.lowImpactLine' | translate"
+                    [rows]="2"
+                  />
+
+                  <ignt-textarea-field
+                    id="donation-pages-form-content-translations-mid-impact-line"
+                    [formControl]="formControls().donationCopy.controls[frequency].controls.midImpactLine.controls[activeLanguageCode()]"
+                    [label]="'fundraising.donationPages.form.contentTranslations.donationCopy.midImpactLine' | translate"
+                    [rows]="2"
+                  />
+
+                  <ignt-textarea-field
+                    id="donation-pages-form-content-translations-high-impact-line"
+                    [formControl]="formControls().donationCopy.controls[frequency].controls.highImpactLine.controls[activeLanguageCode()]"
+                    [label]="'fundraising.donationPages.form.contentTranslations.donationCopy.highImpactLine' | translate"
+                    [rows]="2"
+                  />
+
+                  @if (allowCustomAmounts()) {
+                    <ignt-textarea-field
+                      id="donation-pages-form-content-translations-custom-amount-impact-copy"
+                      [formControl]="
+                        formControls().donationCopy.controls[frequency].controls.customAmountImpactCopy.controls[activeLanguageCode()]
+                      "
+                      [label]="'fundraising.donationPages.form.contentTranslations.donationCopy.customAmountImpactCopy' | translate"
+                      [rows]="2"
+                    />
+                  }
+                </div>
+              </ignt-tabs-item>
+            }
+          </ignt-tabs>
+        </app-expandable-content>
+      </ignt-wrapper-card>
+    }
+
+    <ignt-wrapper-card>
+      <app-expandable-content
+        [label]="'fundraising.donationPages.form.contentTranslations.callToAction.title' | translate"
+        [description]="'fundraising.donationPages.form.contentTranslations.fieldsCount' | translate: { count: callToActionFieldsCount() }"
+        variant="presentation"
+        [isChecked]="sections.isExpanded('callToAction')"
+        (checkedChange)="sections.toggle('callToAction', $event)"
+      >
+        <div class="donation-pages-form-content-translations__card-content">
+          <ignt-input-field
+            id="donation-pages-form-content-translations-cta-button-text"
+            [formControl]="formControls().ctaButtonText.controls[activeLanguageCode()]"
+            [label]="'fundraising.donationPages.form.contentTranslations.callToAction.ctaButtonText' | translate"
+            type="text"
+            [customFormErrors]="[
+              {
+                type: 'required',
+                message: ('form.error.required' | translate),
+              },
+            ]"
+          />
+
+          @if (allowRecurringDonations()) {
+            <ignt-textarea-field
+              id="donation-pages-form-content-translations-recurring-legal-note"
+              [formControl]="formControls().recurringLegalText.controls[activeLanguageCode()]"
+              [label]="'fundraising.donationPages.form.contentTranslations.callToAction.recurringLegalNote' | translate"
+              [rows]="2"
+              [customFormErrors]="[
+                {
+                  type: 'required',
+                  message: ('form.error.required' | translate),
+                },
+              ]"
+            />
+          }
+        </div>
+      </app-expandable-content>
+    </ignt-wrapper-card>
+
+    <ignt-wrapper-card>
+      <app-expandable-content
+        [label]="'fundraising.donationPages.form.contentTranslations.whyDonate.title' | translate"
+        [description]="'fundraising.donationPages.form.contentTranslations.fieldsCount' | translate: { count: 9 }"
+        variant="presentation"
+        [isChecked]="sections.isExpanded('whyDonate')"
+        (checkedChange)="sections.toggle('whyDonate', $event)"
+      >
+        <ignt-input-field
+          id="donation-pages-form-content-translations-why-donate-section-title"
+          [formControl]="formControls().incentiveTitle.controls[activeLanguageCode()]"
+          [label]="'fundraising.donationPages.form.contentTranslations.whyDonate.sectionTitle' | translate"
+          type="text"
+        />
+
+        <ignt-tabs [hasExtraLine]="false" [selectedIndex]="activeWhyDonateTabIndex()" (selectedIndexChange)="onWhyDonateTabChange($event)">
+          @for (card of formControls().incentiveCards.controls; track $index; let cardIndex = $index) {
+            <ignt-tabs-item
+              [label]="'fundraising.donationPages.form.contentTranslations.whyDonate.cardTab' | translate: { index: cardIndex + 1 }"
+            >
+              <div class="donation-pages-form-content-translations__card-content">
+                <ignt-wrapper-card
+                  class="donation-pages-form-content-translations__image-card"
+                  [title]="'fundraising.donationPages.form.contentTranslations.whyDonate.cardImage' | translate"
+                >
+                  <ignt-tag
+                    [startIcon]="['fal', 'info-circle']"
+                    class="donation-pages-form-content-translations__same-image-tag"
+                    sentiment="info"
+                    variant="outline"
+                  >
+                    {{ 'fundraising.donationPages.form.contentTranslations.sameImageForAllLanguages' | translate }}
+                  </ignt-tag>
+
+                  <app-image-upload-zone
+                    [photos]="incentiveCardsPhotos()[cardIndex] ?? []"
+                    [uploadFileCallback]="uploadImageCallback()"
+                    (photosChange)="onIncentiveCardPhotosChange(cardIndex, $event)"
+                  />
+                </ignt-wrapper-card>
+
+                <ignt-input-field
+                  id="donation-pages-form-content-translations-why-donate-card-title"
+                  [formControl]="formControls().incentiveCards.at(cardIndex).controls.title.controls[activeLanguageCode()]"
+                  [label]="'fundraising.donationPages.form.contentTranslations.whyDonate.cardTitle' | translate"
+                  type="text"
+                />
+
+                <ignt-textarea-field
+                  id="donation-pages-form-content-translations-why-donate-card-description"
+                  [formControl]="formControls().incentiveCards.at(cardIndex).controls.description.controls[activeLanguageCode()]"
+                  [label]="'fundraising.donationPages.form.contentTranslations.whyDonate.cardDescription' | translate"
+                  [rows]="2"
+                />
+              </div>
+            </ignt-tabs-item>
+          }
+        </ignt-tabs>
+      </app-expandable-content>
+    </ignt-wrapper-card>
+  </form>
+</div>

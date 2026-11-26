@@ -1,0 +1,196 @@
+<app-filters class="new-design" [class.filters--surface]="surfaceLayout()">
+  @if (showDistributorPartnersFilter()) {
+    <div class="filters-block filters-block--city" [class]="getDualScreenClass('city')" data-testid="search-distributor-partner-filter">
+      <app-typeahead
+        [editable]="false"
+        [floatingLabel]="true"
+        [floatingLabelText]="'common.partner' | translate"
+        [disabled]="disabled"
+        [emptyLabel]="'common.partner' | translate"
+        [selectedOption]="selectedDistributorPartner()"
+        [screen]="screen"
+        [options]="distributorPartners()"
+        (selected)="selectDistributorPartner($event)"
+      >
+      </app-typeahead>
+    </div>
+  }
+  <div
+    class="filters-block filters-block--city"
+    [class]="getDualScreenClass('city')"
+    *ngIf="showPartners && partnersDropdownOptions.length > 1"
+  >
+    <app-typeahead
+      [floatingLabel]="true"
+      [floatingLabelText]="'common.partner' | translate"
+      [disabled]="disabled || (partnersDropdownOptions && partnersDropdownOptions.length === 0)"
+      [ngClass]="{ 'search-bar__typeahead--placeholder-all-selected': isSelectAllCities() }"
+      [emptyLabel]="'common.partner' | translate"
+      [selectedOption]="selectedPartner"
+      [inputType]="selectOptionTypeaheadInput.partner"
+      [screen]="screen"
+      [options]="partnersDropdownOptions"
+      [preloadedOption]="initialPartnerOption"
+      (selected)="selectPartner($event)"
+    >
+    </app-typeahead>
+  </div>
+  <div
+    class="filters-block filters-block--city"
+    [class]="getDualScreenClass('city')"
+    *ngIf="showChannels && channelsDropdownOptions.length > 1"
+    data-testid="search-city-filter"
+  >
+    <app-typeahead
+      [floatingLabel]="true"
+      [floatingLabelText]="'common.channel' | translate"
+      [disabled]="disabled || (channelsDropdownOptions && channelsDropdownOptions.length === 0)"
+      [ngClass]="{ 'search-bar__typeahead--placeholder-all-selected': isSelectAllCities() }"
+      [emptyLabel]="'common.channel' | translate"
+      [selectedOption]="selectedChannel"
+      [inputType]="selectOptionTypeaheadInput.channel"
+      [screen]="screen"
+      [options]="channelsDropdownOptions"
+      [preloadedOption]="initialChannelOption"
+      [clean]="cleanChannel$"
+      (selected)="selectChannel($event)"
+    >
+    </app-typeahead>
+  </div>
+  <div
+    class="filters-block filters-block--city"
+    [class]="getDualScreenClass('city')"
+    data-testid="search-city-filter"
+    [hidden]="citiesDropdownOptions.length <= 1"
+  >
+    <app-typeahead
+      [floatingLabel]="true"
+      [floatingLabelText]="'common.city' | translate"
+      [disabled]="disabled || isFilterLocked(filterType.city) || (citiesDropdownOptions && citiesDropdownOptions.length === 0)"
+      [selectAllLabel]="isSelectAllCities() ? ('filters.allCities' | translate) : undefined"
+      [emptyLabel]="'common.city' | translate"
+      [selectedOption]="selectedCity"
+      [inputType]="selectOptionTypeaheadInput.city"
+      [screen]="screen"
+      [options]="citiesDropdownOptions"
+      [preloadedOption]="initialCityOption"
+      [clean]="cleanCity$"
+      (selected)="selectCity($event)"
+      (userInteraction)="checkSelectedCity($event)"
+    >
+    </app-typeahead>
+  </div>
+
+  <ng-container *ngIf="extendedFiltersLayout">
+    <ng-container *ngTemplateOutlet="venueFilter"></ng-container>
+    <ng-container *ngIf="showPlanListFilters">
+      <div class="filters-block filters-block--city">
+        <app-typeahead
+          [editable]="false"
+          [emptyLabel]="'listPlan.selectProductType' | translate"
+          [floatingLabel]="true"
+          [floatingLabelText]="'listPlan.productTypeLabel' | translate"
+          [options]="planListKindOptions"
+          [selectAllLabel]="isSelectAllPlanListKind() ? ('common.all' | translate) : undefined"
+          [selectedOption]="selectedPlanListKind ?? undefined"
+          (selected)="onPlanListKindSelected($event)"
+          data-testid="list-plan-kind-filter"
+        ></app-typeahead>
+      </div>
+      <div class="filters-block filters-block--city">
+        <app-typeahead
+          [editable]="false"
+          [emptyLabel]="'listPlan.selectStatus' | translate"
+          [floatingLabel]="true"
+          [floatingLabelText]="'listPlan.statusLabel' | translate"
+          [options]="planListStatusOptions"
+          [selectAllLabel]="isSelectAllPlanListStatus() ? ('common.all' | translate) : undefined"
+          [selectedOption]="selectedPlanListStatus ?? undefined"
+          (selected)="onPlanListStatusSelected($event)"
+          data-testid="list-plan-status-filter"
+        ></app-typeahead>
+      </div>
+    </ng-container>
+    <ng-content></ng-content>
+    <ng-container *ngTemplateOutlet="planFilter"></ng-container>
+  </ng-container>
+
+  <ng-container *ngIf="!extendedFiltersLayout">
+    <ng-container *ngTemplateOutlet="planFilter"></ng-container>
+    <ng-container *ngTemplateOutlet="venueFilter"></ng-container>
+  </ng-container>
+
+  <div class="filters-block filters-block--date" [class]="getDualScreenClass('date')" *ngIf="showCalendar" data-testid="search-date-filter">
+    <app-date-range
+      class="left-placement"
+      (selected)="selectDate($event)"
+      [initialDateShown]="false"
+      [allowClearDate]="!mandatoryFilters.includes(filterType.dateRange)"
+      [queryDateRange]="initialDateRange"
+      [maxDateRange]="maxDateRange"
+      [resetDate]="cleanDate$"
+    >
+    </app-date-range>
+  </div>
+
+  @if (!searchOnChange) {
+    <div class="filters-block filters-block--button" [class]="getDualScreenClass('button')" data-testid="search-button-filter">
+      <button
+        class="button button--large button--sharp-secondary-contrast button--fill"
+        data-testid="search-button"
+        [disabled]="searchButtonIsDisabled()"
+        (click)="clickOnSearchButton()"
+      >
+        <span translate>{{ searchButtonLabel | translate }}</span>
+      </button>
+    </div>
+  }
+</app-filters>
+
+<ng-template #venueFilter>
+  <div class="filters-block filters-block--venue" [class]="getDualScreenClass('venue')" *ngIf="showVenue" data-testid="search-venue-filter">
+    <app-typeahead
+      [floatingLabel]="true"
+      [floatingLabelText]="'common.venue' | translate"
+      [disabled]="isFilterLocked(filterType.place) || isFilterDisabled(filterType.place)"
+      [selectAllLabel]="isSelectAllPlaces() ? ('filters.allVenues' | translate) : undefined"
+      [emptyLabel]="'common.venue' | translate"
+      [options]="placesDropdownOptions"
+      [inputType]="selectOptionTypeaheadInput.venue"
+      [screen]="screen"
+      [preloadedOption]="initialPlaceOption"
+      [selectedOption]="selectedPlace"
+      [useIdInSearch]="useIdInSearch"
+      (selected)="selectPlace($event)"
+      [clean]="cleanPlace$"
+      (userInteraction)="checkSelectedPlace($event)"
+    >
+    </app-typeahead>
+  </div>
+</ng-template>
+
+<ng-template #planFilter>
+  <div class="filters-block filters-block--plan" [class]="getDualScreenClass('plan')" *ngIf="showPlan" data-testid="search-plan-filter">
+    <app-typeahead
+      [floatingLabel]="true"
+      [floatingLabelText]="
+        (citiesDropdownOptions.length <= 1 ? 'filters.searchOrTypeEventSingleCity' : 'filters.searchOrTypeEvent') | translate
+      "
+      [disabled]="isFilterLocked(filterType.plan) || isFilterDisabled(filterType.plan)"
+      [selectAllLabel]="isSelectAllPlans() ? ('filters.allEvents' | translate) : undefined"
+      [emptyLabel]="(citiesDropdownOptions.length <= 1 ? 'filters.searchOrTypeEventSingleCity' : 'filters.searchOrTypeEvent') | translate"
+      [inactiveLabel]="'common.inactive' | translate"
+      [selectedOption]="selectedPlan"
+      [options]="planDropdownOptions"
+      [inputType]="selectOptionTypeaheadInput.plan"
+      [screen]="screen"
+      [preloadedOption]="initialPlanOption"
+      [clean]="cleanPlan$"
+      [useIdInSearch]="useIdInSearch"
+      [showId]="showId"
+      (selected)="selectPlan($event)"
+      (userInteraction)="checkSelectedPlan($event)"
+    >
+    </app-typeahead>
+  </div>
+</ng-template>

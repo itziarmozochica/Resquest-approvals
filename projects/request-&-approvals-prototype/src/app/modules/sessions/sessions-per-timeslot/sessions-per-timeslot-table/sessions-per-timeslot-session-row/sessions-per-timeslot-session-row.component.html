@@ -1,0 +1,288 @@
+<td data-testid="session-per-timeslot-row-label" class="sessions-per-timeslot-table__body-cell session-per-timeslot-base-row__label">
+  <span
+    [ngClass]="{
+      'session-per-timeslot-row-label--padded': hasPacks,
+      'session-per-timeslot-row-label--padded-no-packs': !hasPacks,
+    }"
+    class="session-per-timeslot-row-label"
+  >
+    <ng-container *ngIf="hasPacks">
+      <fa-icon
+        data-testid="session-per-timeslot-row-label-fold"
+        class="session-per-timeslot-row-label__fold"
+        [class.session-per-timeslot-row-label__fold--folded]="isPackFolded"
+        [icon]="['fal', 'chevron-down']"
+      ></fa-icon>
+    </ng-container>
+    <ng-container *ngTemplateOutlet="iconLabelTemplate; context: { ticketType: ticketType }"></ng-container>
+    <span class="session-per-timeslot-row-label__value-name">
+      {{ rowValues?.label }}
+      <span
+        *ngIf="isIgnoringTimeSlotCapacity"
+        class="session-per-timeslot-row-label__value-ignore"
+        [attr.data-testid]="'session-per-timeslot-row-ignore-capacity-' + rowValues?.id"
+      >
+        <fa-icon [icon]="['fas', 'asterisk']"> </fa-icon>
+      </span>
+    </span>
+    <ng-container *ngIf="rowInput?.outgoingRules !== null || rowInput?.incomingRules !== null">
+      <ng-container
+        *ngTemplateOutlet="
+          rulesTemplate;
+          context: { hasIncomingRules: rowInput?.incomingRules !== null, hasOutgoingRules: rowInput?.outgoingRules !== null }
+        "
+      ></ng-container>
+    </ng-container>
+  </span>
+</td>
+<td data-testid="session-per-timeslot-row-status" class="sessions-per-timeslot-table__body-cell session-per-timeslot-base-row__status">
+  <ng-container *ngTemplateOutlet="statusTemplate; context: { status: rowInput?.status }"></ng-container>
+</td>
+<td
+  data-testid="session-per-timeslot-row-visibility"
+  class="sessions-per-timeslot-table__body-cell session-per-timeslot-base-row__visibility"
+>
+  <ng-container *ngTemplateOutlet="visibilityTemplate; context: { isVisible: rowValues?.isVisible }"></ng-container>
+</td>
+<td
+  *ngIf="isPricesColumnVisible"
+  data-testid="session-per-timeslot-row-price"
+  class="sessions-per-timeslot-table__body-cell session-per-timeslot-base-row__price"
+>
+  {{ priceString }}
+</td>
+
+<td
+  data-testid="session-per-timeslot-row-sold"
+  [class.sessions-per-timeslot-table__body-cell--highlighted]="isSoldExpanded"
+  [class.sessions-per-timeslot-table__body-cell--collapsed]="!isSoldExpanded"
+  class="sessions-per-timeslot-table__body-cell session-per-timeslot-base-row__sold"
+>
+  <div class="session-per-timeslot-base-row-sold">
+    <span data-testid="session-per-timeslot-row-sold-value">
+      {{ rowValues?.sold - rowValues?.reservedUnpaid }}
+    </span>
+  </div>
+</td>
+
+<td
+  data-testid="session-per-timeslot-row-reserved"
+  [class.sessions-per-timeslot-table__body-cell--highlighted]="isSoldExpanded"
+  [class.sessions-per-timeslot-table__body-cell--collapsed]="!isSoldExpanded"
+  class="sessions-per-timeslot-table__body-cell session-per-timeslot-base-row__sold"
+>
+  <div class="session-per-timeslot-base-row-sold">
+    <span data-testid="session-per-timeslot-row-reserved-value">
+      {{ rowValues?.reservedUnpaid }}
+    </span>
+  </div>
+</td>
+
+<td
+  data-testid="session-per-timeslot-row-issued"
+  [class.sessions-per-timeslot-table__body-cell--collapsed]="isSoldExpanded"
+  class="sessions-per-timeslot-table__body-cell session-per-timeslot-base-row__sold"
+>
+  <div class="session-per-timeslot-base-row-sold">
+    <span data-testid="session-per-timeslot-row-issued-value">
+      {{ rowValues?.sold }}
+    </span>
+  </div>
+</td>
+
+<td
+  data-testid="session-per-timeslot-row-available"
+  class="sessions-per-timeslot-table__body-cell session-per-timeslot-base-row__available"
+>
+  <ng-container *ngTemplateOutlet="availableTemplate; context: availableValues"></ng-container>
+</td>
+<td
+  *ngIf="isBlockedColumnVisible"
+  data-testid="session-per-timeslot-row-blocked"
+  class="sessions-per-timeslot-table__body-cell session-per-timeslot-base-row__blocked"
+>
+  <div class="session-per-timeslot-base-row-blocked">
+    <span data-testid="session-per-timeslot-row-blocked-value">
+      {{ rowValues.blockedTickets ?? 0 }}
+    </span>
+  </div>
+</td>
+<td data-testid="session-per-timeslot-row-max-qty" class="sessions-per-timeslot-table__body-cell session-per-timeslot-base-row__max-qty">
+  <span data-testid="session-per-timeslot-row-max-qty-value">
+    {{ maxQty }}
+  </span>
+</td>
+<td
+  data-testid="session-per-timeslot-row-occupancy"
+  class="sessions-per-timeslot-table__body-cell session-per-timeslot-base-row__occupancy"
+>
+  <ng-container *ngTemplateOutlet="occupancyTemplate; context: { occupancy: this.rowValues?.occupancyPercentage }"></ng-container>
+</td>
+@if (canEditSession()) {
+  <td data-testid="session-per-timeslot-row-edit" class="sessions-per-timeslot-table__body-cell session-per-timeslot-base-row__edit">
+    <ng-container [ngTemplateOutlet]="editTemplate"></ng-container>
+  </td>
+}
+
+<ng-template #statusTemplate let-status="status">
+  <ignt-tag
+    [attr.data-testid]="'session-per-timeslot-row-status-label'"
+    class="session-per-timeslot-base-row__status-label"
+    [attr.data-status]="status"
+    [sentiment]="sessionStatusTagSentiment[status]?.sentiment"
+    [variant]="sessionStatusTagSentiment[status]?.variant"
+  >
+    {{ 'sessions.sessionsPerTimeslot.status.' + status | translate }}
+  </ignt-tag>
+</ng-template>
+
+<ng-template #visibilityTemplate let-isVisible="isVisible">
+  <ignt-tag
+    data-testid="session-per-timeslot-row-visibility-label"
+    [attr.data-visible]="isVisible"
+    [startIcon]="isVisible ? ['fas', 'eye'] : ['fas', 'eye-slash']"
+    [sentiment]="'sharp'"
+    [variant]="isVisible ? 'outline' : 'solid'"
+  >
+    {{ (isVisible ? 'sessions.sessionsPerTimeslot.visibility.visible' : 'sessions.sessionsPerTimeslot.visibility.hidden') | translate }}
+  </ignt-tag>
+</ng-template>
+
+<ng-template #availableTemplate let-cappedAvailability="cappedAvailability" let-availability="availability">
+  <div class="session-per-timeslot-base-row-availability">
+    <span data-testid="session-per-timeslot-row-availability-value">{{ cappedAvailability }}</span>
+    <span
+      *ngIf="!isUnrestricted && cappedAvailability < availability"
+      [ngTemplateOutlet]="warningIconTemplate"
+      [ngTemplateOutletContext]="{
+        text: 'sessions.sessionsPerTimeslot.cappedAvailableTooltip',
+        placement: 'left',
+        args: { maxQty: maxQty, cappedAvailable: cappedAvailability },
+      }"
+    >
+    </span>
+  </div>
+</ng-template>
+
+<ng-template #occupancyTemplate let-occupancy="occupancy">
+  <div data-testid="session-per-timeslot-row-occupancy-value" class="session-per-timeslot-base-row__occupancy-wrapper-opacity">
+    {{ occupancy }}%
+  </div>
+</ng-template>
+
+<ng-template #editTemplate>
+  <button
+    class="icon-button"
+    (click)="$event.stopPropagation(); clickOnEdit(rowInput)"
+    data-testid="session-per-timeslot-row-activate-edit__button"
+  >
+    <fa-icon
+      data-testid="session-per-timeslot-row-activate-edit"
+      class="session-per-timeslot-base-row__edit-button"
+      [icon]="['far', 'edit']"
+    >
+    </fa-icon>
+  </button>
+</ng-template>
+
+<ng-template #warningIconTemplate let-text="text" let-args="args" let-placement="placement">
+  <span data-testid="session-per-timeslot-row-warning-icon" class="session-per-timeslot-base-row-warning__icon">
+    <fa-icon
+      [icon]="['fas', 'exclamation-triangle']"
+      igntTooltip
+      [tooltipLabel]="text | translate: args"
+      [tooltipPlacement]="placement"
+      tooltipTrigger="hover-focus-click"
+    ></fa-icon>
+  </span>
+</ng-template>
+
+<ng-template #iconLabelTemplate let-ticketType="ticketType">
+  <span class="session-per-timeslot-row-label__icon" data-testid="session-per-timeslot-row-label__icon" [attr.data-ticketType]="ticketType">
+    <fa-icon *ngIf="ticketType === 'regular'" [icon]="['fal', 'ticket-alt']" data-testid="session-per-timeslot-row-label-regular-icon">
+    </fa-icon>
+    <fa-icon *ngIf="ticketType === 'addOn'" [icon]="['fal', 'cart-plus']" data-testid="session-per-timeslot-row-label-addon-icon">
+    </fa-icon>
+    <fa-icon *ngIf="ticketType === 'pack'" [icon]="['fal', 'box-open']" data-testid="session-per-timeslot-row-label-pack-icon"> </fa-icon>
+  </span>
+</ng-template>
+
+<ng-template #rulesTemplate let-hasIncomingRules="hasIncomingRules" let-hasOutgoingRules="hasOutgoingRules">
+  @if (canViewSessionActionRules) {
+    <span>
+      <a
+        *ngIf="filters$ | async as filters"
+        [routerLink]="['/sessions/rules']"
+        [queryParams]="{ planId: filters.selectedPlan?.id, venueId: filters.selectedPlace?.id }"
+        class="session-per-timeslot-row-label__rule"
+        data-testid="session-per-timeslot-row-label-rules"
+      >
+        {{ 'sessions.sessionsPerTimeslot.rules.seeRule' | translate }}
+        <div class="session-per-timeslot-row-label__rule__container">
+          <ng-container *ngIf="hasIncomingRules">
+            <ng-container
+              *ngTemplateOutlet="
+                ruleArrowTemplate;
+                context: {
+                  tooltipTemplate: incomingRuleTooltipTemplate,
+                  icon: ['fal', 'long-arrow-left'],
+                  type: RuleType.Incoming,
+                }
+              "
+            ></ng-container>
+          </ng-container>
+          <ng-container *ngIf="hasOutgoingRules">
+            <ng-container
+              *ngTemplateOutlet="
+                ruleArrowTemplate;
+                context: {
+                  tooltipTemplate: outgoingRuleTooltipTemplate,
+                  icon: ['fal', 'long-arrow-right'],
+                  type: RuleType.Outgoing,
+                }
+              "
+            ></ng-container>
+          </ng-container>
+        </div>
+      </a>
+    </span>
+  }
+</ng-template>
+
+<ng-template #ruleArrowTemplate let-tooltipTemplate="tooltipTemplate" let-icon="icon" let-type="type">
+  <div
+    igntTooltip
+    [tooltipTemplate]="tooltipTemplate"
+    class="session-per-timeslot-row-label__rule__container__arrow"
+    [attr.data-testid]="'session-per-timeslot-rule-tooltip-content-' + type"
+  >
+    <fa-icon
+      [icon]="icon"
+      class="session-per-timeslot-row-label__rule__icon"
+      [attr.data-testid]="'session-per-timeslot-rule-tooltip-icon-' + type"
+    ></fa-icon>
+  </div>
+</ng-template>
+
+<ng-template #outgoingRuleTooltipTemplate>
+  <ng-container *ngIf="getRuleTooltipData(RuleType.Outgoing) as tooltipData">
+    <ng-container *ngTemplateOutlet="ruleTooltipContent; context: { tooltipData: tooltipData, type: RuleType.Outgoing }"></ng-container>
+  </ng-container>
+</ng-template>
+
+<ng-template #incomingRuleTooltipTemplate>
+  <ng-container *ngIf="getRuleTooltipData(RuleType.Incoming) as tooltipData">
+    <ng-container *ngTemplateOutlet="ruleTooltipContent; context: { tooltipData: tooltipData, type: RuleType.Incoming }"></ng-container>
+  </ng-container>
+</ng-template>
+
+<ng-template #ruleTooltipContent let-tooltipData="tooltipData" let-type="type">
+  {{ 'sessions.sessionsPerTimeslot.rules.' + type + 'RuleTooltip' | translate }}
+  <ul class="session-per-timeslot-rule-tooltip__list">
+    <li>{{ tooltipData.when }}</li>
+    <li *ngFor="let then of tooltipData.then; trackBy: trackByID">{{ then }}</li>
+  </ul>
+  <ng-container *ngIf="tooltipData.remainingRules">
+    {{ 'sessions.sessionsPerTimeslot.rules.moreRulesMessage' | translate: { remainingRules: tooltipData.remainingRules } }}
+  </ng-container>
+</ng-template>

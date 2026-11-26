@@ -1,0 +1,278 @@
+<div class="entitlements-form-page">
+  <div class="entitlements-form-page__header">
+    <div class="entitlements-form-page__title">
+      <span class="entitlements-form-page__section">{{ 'entitlements.create.section' | translate }}</span>
+      <h1 class="entitlements-form-page__heading" data-testid="page-title">{{ 'entitlements.create.title' | translate }}</h1>
+    </div>
+    <div class="entitlements-form-page__actions">
+      <ignt-button
+        variant="secondary"
+        data-testid="entitlement-create-cancel-desktop"
+        [label]="'common.cancel' | translate"
+        (click)="goBack()"
+      />
+      <ignt-button
+        [disabled]="form.invalid || isSubmitting()"
+        data-testid="entitlement-create-submit-desktop"
+        [label]="(isSubmitting() ? 'entitlements.create.submitting' : 'entitlements.create.submit') | translate"
+        (click)="onSubmit()"
+      />
+    </div>
+  </div>
+
+  <div class="entitlements-form-page__body">
+    <form class="entitlements-create-form" [formGroup]="form" (ngSubmit)="onSubmit()">
+      <div class="entitlements-create-form__field">
+        <ignt-input-field
+          data-testid="entitlement-create-name"
+          type="text"
+          formControlName="name"
+          [helperText]="'entitlements.create.fields.name.helper' | translate"
+          [label]="'entitlements.create.fields.name.label' | translate"
+          [placeholder]="'entitlements.create.fields.name.placeholder' | translate"
+          [required]="true"
+        ></ignt-input-field>
+      </div>
+
+      <div class="entitlements-create-form__field">
+        <label class="entitlements-create-form__label" for="entitlement-create-type">
+          {{ 'entitlements.create.fields.type.label' | translate }}
+        </label>
+        <p class="entitlements-create-form__helper">{{ 'entitlements.create.fields.type.helper' | translate }}</p>
+        <select
+          id="entitlement-create-type"
+          class="entitlements-create-form__select"
+          data-testid="entitlement-create-type"
+          formControlName="type"
+        >
+          <option [ngValue]="EntitlementTypeEnum.PURCHASE_FOR_FREE">
+            {{ 'entitlements.create.fields.type.optionPurchaseForFree' | translate }}
+          </option>
+          <option [ngValue]="EntitlementTypeEnum.RESCHEDULE_FOR_FREE">
+            {{ 'entitlements.create.fields.type.optionRescheduleForFree' | translate }}
+          </option>
+          <option [ngValue]="EntitlementTypeEnum.SHOPS">
+            {{ 'entitlements.create.fields.type.optionShops' | translate }}
+          </option>
+        </select>
+      </div>
+
+      @if (form.controls.type.value === EntitlementTypeEnum.SHOPS) {
+        <div class="entitlements-create-form__field">
+          <label class="entitlements-create-form__label">
+            {{ 'entitlements.create.fields.shops.benefitKind.label' | translate }}
+          </label>
+          <p class="entitlements-create-form__helper">{{ 'entitlements.create.fields.shops.benefitKind.helper' | translate }}</p>
+          <app-multi-select
+            class="entitlements-create-form__multi-select"
+            [options]="benefitKindOptions()"
+            [selectedOptions]="selectedBenefitKindOptions()"
+            [placeholder]="'entitlements.create.fields.shops.benefitKind.label' | translate"
+            [displayInPlaceMaximum]="1"
+            [maxSelectedOptions]="1"
+            (selected)="onSelectBenefitKindOptions($event)"
+            data-testid="entitlement-create-benefit-kind"
+          ></app-multi-select>
+        </div>
+
+        <div class="entitlements-create-form__field">
+          <ignt-input-field
+            data-testid="entitlement-create-benefit-value"
+            type="number"
+            formControlName="benefitValue"
+            [helperText]="'entitlements.create.fields.shops.benefitValue.helper' | translate"
+            [label]="'entitlements.create.fields.shops.benefitValue.label' | translate"
+            [placeholder]="'entitlements.create.fields.shops.benefitValue.placeholder' | translate"
+            [required]="true"
+          ></ignt-input-field>
+        </div>
+
+        <div class="entitlements-create-form__field">
+          <label class="entitlements-create-form__label">
+            {{ 'entitlements.create.fields.shops.restriction.label' | translate }}
+            <span class="text-danger" aria-hidden="true">*</span>
+          </label>
+          <p class="entitlements-create-form__helper">
+            {{ 'entitlements.create.fields.shops.restriction.helper' | translate }}
+          </p>
+          <div class="entitlements-create-form__ticket-type-selectors">
+            @if (retailSetupOptions().length !== 1) {
+              <app-multi-select
+                class="entitlements-create-form__multi-select"
+                [options]="retailSetupOptions()"
+                [selectedOptions]="selectedRetailSetupOptions()"
+                [placeholder]="'entitlements.create.fields.shops.retailSetup.placeholder' | translate"
+                [displayInPlaceMaximum]="1"
+                [maxSelectedOptions]="1"
+                (selected)="onSelectRetailSetupOptions($event)"
+                data-testid="entitlement-create-retail-setup"
+              ></app-multi-select>
+            }
+            @if (warehouseOptions().length !== 1) {
+              <app-multi-select
+                class="entitlements-create-form__multi-select"
+                [options]="warehouseOptions()"
+                [selectedOptions]="selectedWarehouseOptions()"
+                [placeholder]="'entitlements.create.fields.shops.warehouse.placeholder' | translate"
+                [displayInPlaceMaximum]="1"
+                [maxSelectedOptions]="1"
+                [disabled]="selectedRetailSetupId() === null"
+                (selected)="onSelectWarehouseOptions($event)"
+                data-testid="entitlement-create-warehouse"
+              ></app-multi-select>
+            }
+            <app-multi-select
+              class="entitlements-create-form__multi-select"
+              [options]="restrictionModelOptions()"
+              [selectedOptions]="selectedRestrictionModelOptions()"
+              [placeholder]="'entitlements.create.fields.shops.restrictionModel.label' | translate"
+              [displayInPlaceMaximum]="1"
+              [maxSelectedOptions]="1"
+              (selected)="onSelectRestrictionModelOptions($event)"
+              data-testid="entitlement-create-restriction-model"
+            ></app-multi-select>
+            <app-multi-select
+              class="entitlements-create-form__multi-select"
+              [options]="restrictionTargetOptions()"
+              [selectedOptions]="selectedRestrictionTargetOptions()"
+              [placeholder]="'entitlements.create.fields.shops.restrictionId.placeholder' | translate"
+              [displayInPlaceMaximum]="1"
+              [maxSelectedOptions]="1"
+              [disabled]="selectedWarehouseId() === null || restrictionModel() === null"
+              [showItemsDescriptions]="true"
+              (selected)="onSelectRestrictionTargetOptions($event)"
+              data-testid="entitlement-create-restriction-id"
+            ></app-multi-select>
+          </div>
+          <div class="entitlements-create-form__time-window">
+            <label class="entitlements-create-form__label">
+              {{ 'entitlements.create.fields.shops.timeWindow.label' | translate }}
+            </label>
+            <p class="entitlements-create-form__helper">
+              {{ 'entitlements.create.fields.shops.timeWindow.helper' | translate }}
+            </p>
+            <div class="entitlements-create-form__time-window-selectors">
+              <ignt-input-field
+                class="entitlements-create-form__time-window-field"
+                data-testid="entitlement-create-time-range-hours"
+                type="number"
+                formControlName="timeRangeHours"
+                [minValue]="0"
+                [label]="'entitlements.create.fields.shops.timeWindow.hoursLabel' | translate"
+                [placeholder]="'entitlements.create.fields.shops.timeWindow.placeholder' | translate"
+              ></ignt-input-field>
+              <ignt-input-field
+                class="entitlements-create-form__time-window-field"
+                data-testid="entitlement-create-time-range-minutes"
+                type="number"
+                formControlName="timeRangeMinutes"
+                [minValue]="0"
+                [label]="'entitlements.create.fields.shops.timeWindow.minutesLabel' | translate"
+                [placeholder]="'entitlements.create.fields.shops.timeWindow.placeholder' | translate"
+              ></ignt-input-field>
+            </div>
+          </div>
+        </div>
+      }
+
+      @if (form.controls.type.value === EntitlementTypeEnum.RESCHEDULE_FOR_FREE) {
+        <div class="entitlements-create-form__field">
+          <ignt-input-field
+            data-testid="entitlement-create-max-days-before-visit"
+            type="number"
+            formControlName="maxDaysBeforeInitialVisit"
+            [helperText]="'entitlements.create.fields.maxDaysBeforeInitialVisit.helper' | translate"
+            [label]="'entitlements.create.fields.maxDaysBeforeInitialVisit.label' | translate"
+            [placeholder]="'entitlements.create.fields.maxDaysBeforeInitialVisit.placeholder' | translate"
+            [minValue]="0"
+            [required]="true"
+          ></ignt-input-field>
+        </div>
+
+        <div class="entitlements-create-form__field">
+          <ignt-input-field
+            data-testid="entitlement-create-max-days"
+            type="number"
+            formControlName="maxDaysAfterVisit"
+            [helperText]="'entitlements.create.fields.maxDays.helper' | translate"
+            [label]="'entitlements.create.fields.maxDays.label' | translate"
+            [placeholder]="'entitlements.create.fields.maxDays.placeholder' | translate"
+            [required]="true"
+          ></ignt-input-field>
+        </div>
+
+        <div class="entitlements-create-form__field">
+          <ignt-input-field
+            data-testid="entitlement-create-max-reschedules"
+            type="number"
+            formControlName="maxReschedules"
+            [helperText]="'entitlements.create.fields.maxReschedules.helper' | translate"
+            [label]="'entitlements.create.fields.maxReschedules.label' | translate"
+            [placeholder]="'entitlements.create.fields.maxReschedules.placeholder' | translate"
+            [required]="true"
+          ></ignt-input-field>
+        </div>
+      }
+
+      @if (form.controls.type.value !== EntitlementTypeEnum.SHOPS) {
+        <div class="entitlements-create-form__field" role="group" [attr.aria-required]="isTicketTypeIdRequired(form.controls.type.value)">
+          <label class="entitlements-create-form__label">
+            {{ 'entitlements.create.fields.ticketTypeId.label' | translate }}
+            @if (isTicketTypeIdRequired(form.controls.type.value)) {
+              <span class="text-danger" aria-hidden="true">*</span>
+            }
+          </label>
+          <p class="entitlements-create-form__helper">{{ getTicketTypeIdHelperKey(form.controls.type.value) | translate }}</p>
+          <div class="entitlements-create-form__ticket-type-selectors">
+            <app-multi-select
+              class="entitlements-create-form__multi-select"
+              [options]="cities()"
+              [selectedOptions]="selectedCities()"
+              [placeholder]="'coupons.form.assignments.fields.cities.label' | translate"
+              [displayInPlaceMaximum]="1"
+              (selected)="onSelectCities($event)"
+              data-testid="entitlement-create-city"
+            ></app-multi-select>
+            <app-multi-select
+              class="entitlements-create-form__multi-select"
+              [options]="planOptions()"
+              [selectedOptions]="selectedPlanOptions()"
+              [placeholder]="'coupons.form.assignments.fields.plans.label' | translate"
+              [displayInPlaceMaximum]="1"
+              [maxSelectedOptions]="1"
+              [disabled]="selectedCities().length === 0"
+              (selected)="onSelectPlanOptions($event)"
+              data-testid="entitlement-create-plan"
+            ></app-multi-select>
+            <app-multi-select
+              class="entitlements-create-form__multi-select"
+              [options]="sessionTypeOptions()"
+              [selectedOptions]="selectedSessionTypeOptions()"
+              [placeholder]="'coupons.form.assignments.fields.ticketTypes.label' | translate"
+              [displayInPlaceMaximum]="1"
+              [maxSelectedOptions]="1"
+              [disabled]="selectedPlanId() === null"
+              (selected)="onSelectSessionTypeOptions($event)"
+              data-testid="entitlement-create-ticket-type-id"
+            ></app-multi-select>
+          </div>
+        </div>
+      }
+    </form>
+  </div>
+</div>
+
+<div class="only-in-mobile">
+  <bottom-slider [buttonsTemplate]="buttonsTemplate"></bottom-slider>
+</div>
+
+<ng-template #buttonsTemplate>
+  <ignt-button variant="secondary" fill data-testid="entitlement-create-cancel" [label]="'common.cancel' | translate" (click)="goBack()" />
+  <ignt-button
+    fill
+    [disabled]="form.invalid || isSubmitting()"
+    data-testid="entitlement-create-submit"
+    [label]="(isSubmitting() ? 'entitlements.create.submitting' : 'entitlements.create.submit') | translate"
+    (click)="onSubmit()"
+  />
+</ng-template>

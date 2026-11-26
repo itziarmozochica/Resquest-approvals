@@ -1,0 +1,158 @@
+<form [formGroup]="guestInformationForm()">
+  <div class="guest-details">
+    <div class="content__title" data-testid="invitations-step-title">
+      {{ 'invitations.guestDetails.title' | translate }}
+    </div>
+    <div class="form-group">
+      <label for="email" class="form-label form-label--required">{{ 'form.field.email' | translate }} </label>
+      <ignt-input-field
+        id="email"
+        [label]="'form.field.email' | translate"
+        type="email"
+        formControlName="email"
+        autocomplete="off"
+        placeholder="contact@example.com"
+        [customFormErrors]="[
+          { type: 'required', message: 'form.error.mandatoryField' | translate },
+          { type: 'emailValidator', message: 'form.error.invalidEmail' | translate },
+        ]"
+        data-testid="guest-email"
+      />
+    </div>
+    <div class="form-group">
+      <label for="firstName" class="form-label form-label--required">{{ 'form.field.firstName' | translate }} </label>
+      <ignt-input-field
+        id="firstName"
+        [label]="'form.field.firstName' | translate"
+        type="text"
+        formControlName="firstName"
+        autocomplete="off"
+        placeholder="Gabriel"
+        [customFormErrors]="[
+          { type: 'required', message: 'form.error.mandatoryField' | translate },
+          { type: 'minlength', message: 'form.error.minLength' | translate: { value: '2' } },
+          { type: 'sumMaxLengthValidator', message: 'form.error.sumMaxLengthValidator' | translate: { value: maxLengthAllowed } },
+          { type: 'unsafeCharacters', message: 'form.error.unsafeCharacters' | translate },
+        ]"
+        data-testid="guest-first-name"
+      />
+    </div>
+    <div class="form-group">
+      <label for="lastName" class="form-label">{{ 'form.field.lastName' | translate }} </label>
+      <ignt-input-field
+        id="lastName"
+        [label]="'form.field.lastName' | translate"
+        type="text"
+        formControlName="lastName"
+        autocomplete="off"
+        placeholder="Williams"
+        [customFormErrors]="[
+          { type: 'minlength', message: 'form.error.minLength' | translate: { value: '2' } },
+          { type: 'sumMaxLengthValidator', message: 'form.error.sumMaxLengthValidator' | translate: { value: maxLengthAllowed } },
+          { type: 'unsafeCharacters', message: 'form.error.unsafeCharacters' | translate },
+        ]"
+        data-testid="guest-last-name"
+      />
+    </div>
+  </div>
+  <div class="content__title">
+    {{ 'invitations.guestDetails.form.attribution.label' | translate }}
+  </div>
+  <div class="form-group">
+    <label for="guestGroup" class="form-label form-label--with-tooltip">
+      {{ 'invitations.guestDetails.form.guestGroup.label' | translate }}
+      <ignt-icon name="info-circle" variant="light" [appTemplatedTooltip]="guestGroupTooltip" />
+    </label>
+    <ignt-typeahead
+      [fieldLabel]="'invitations.guestDetails.form.guestGroup.label' | translate"
+      [emptyLabel]="'common.selectsPlaceholder' | translate"
+      [options]="guestGroupOptions"
+      [editable]="false"
+      [disabled]="guestGroupOptions.length === 0"
+      (selected)="selectGuestGroup($event)"
+      data-testid="guest-group"
+    />
+  </div>
+  <div class="form-group">
+    <label for="requestor" class="form-label form-label--with-tooltip">
+      {{ 'invitations.guestDetails.form.requestor.label' | translate }}
+      <ignt-icon name="info-circle" variant="light" [appTemplatedTooltip]="requestorTooltip" />
+    </label>
+    <ignt-input-field
+      id="requestor"
+      [label]="'invitations.guestDetails.form.requestor.label' | translate"
+      type="text"
+      formControlName="requestor"
+      autocomplete="off"
+      [maxlength]="128"
+      placeholder="John Doe"
+      data-testid="guest-requestor"
+    />
+  </div>
+  <div class="form-group">
+    <label for="businessEntityId" class="form-label form-label--with-tooltip">
+      {{ 'invitations.guestDetails.form.businessEntityId.label' | translate }}
+      <ignt-icon name="info-circle" variant="light" [appTemplatedTooltip]="businessEntityIdTooltip" />
+    </label>
+    <ignt-typeahead
+      [fieldLabel]="'invitations.guestDetails.form.businessEntityId.label' | translate"
+      [emptyLabel]="'common.selectsPlaceholder' | translate"
+      [options]="businesses()"
+      [editable]="true"
+      [disabled]="businesses().length === 0"
+      (selected)="selectBusiness($event)"
+      data-testid="guest-business-entity-id"
+    />
+  </div>
+  @if (shouldShowNotificationType()) {
+    <div class="form-group">
+      <label class="form-label" translate>{{ 'invitations.guestDetails.form.notificationType.title' }}</label>
+
+      <ignt-radio-group formControlName="notificationType">
+        <ignt-radio
+          [dataTestId]="'guest-notification-type-email-option'"
+          [label]="'invitations.guestDetails.form.notificationType.emailLabel' | translate"
+          [description]="'invitations.guestDetails.form.notificationType.email' | translate"
+          [value]="invitationNotificationType.NO_PDF"
+          [disabled]="isNoPdfDisabled()"
+        />
+        <ignt-radio
+          [dataTestId]="'guest-notification-type-combined-option'"
+          [label]="'invitations.guestDetails.form.notificationType.combinedLabel' | translate"
+          [description]="'invitations.guestDetails.form.notificationType.combined' | translate"
+          [value]="invitationNotificationType.COMBINED_PDF"
+          [disabled]="isCombinedDisabled()"
+        />
+        <ignt-radio
+          [dataTestId]="'guest-notification-type-separated-option'"
+          [label]="'invitations.guestDetails.form.notificationType.separatedLabel' | translate"
+          [description]="'invitations.guestDetails.form.notificationType.separated' | translate"
+          [value]="invitationNotificationType.SEPARATED_PDF"
+        />
+      </ignt-radio-group>
+    </div>
+  }
+  <ignt-alert>
+    <ng-template #igntAlertContent>
+      <div [innerHTML]="'invitations.guestDetails.feesWarningMessage' | translate"></div>
+    </ng-template>
+  </ignt-alert>
+</form>
+
+<ng-template #businessEntityIdTooltip>
+  <div class="guest-details__tooltip">
+    {{ 'invitations.guestDetails.form.businessEntityId.tooltip' | translate }}
+  </div>
+</ng-template>
+
+<ng-template #guestGroupTooltip>
+  <div class="guest-details__tooltip">
+    {{ 'invitations.guestDetails.form.guestGroup.tooltip' | translate }}
+  </div>
+</ng-template>
+
+<ng-template #requestorTooltip>
+  <div class="guest-details__tooltip">
+    {{ 'invitations.guestDetails.form.requestor.tooltip' | translate }}
+  </div>
+</ng-template>

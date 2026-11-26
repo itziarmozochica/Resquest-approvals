@@ -1,0 +1,232 @@
+<div class="common-session-edit lateral-slider-body__wrapper">
+  <form *ngIf="formGroup" [formGroup]="formGroup" class="session-form common-session-edit__form" data-testid="session-rule-form">
+    <div class="wrapper-card-set when-box">
+      <div class="wrapper-card-set__title">
+        {{ 'sessions.rules.newRuleForm.whenTitle' | translate }}
+      </div>
+      <div class="wrapper-card wrapper wrapper--direction-y">
+        <div class="double-field-wrapper" [ngClass]="{ 'double-field-wrapper--error': shouldShowTimeslotsError }">
+          <label class="field">
+            <input #datepickerInput type="date" class="field__input" formControlName="startDate" data-testid="when-timeslot-date-input" />
+            <span class="field__label">{{ 'sessions.rules.newRuleForm.startDateLabel' | translate }}</span>
+            <fa-icon class="field__icon field__icon--trail" [icon]="['fal', 'calendar']" (click)="datepickerInput.showPicker()"> </fa-icon>
+          </label>
+          <div class="field">
+            <ng-container
+              *ngTemplateOutlet="
+                typeahead;
+                context: {
+                  formControl: startTimeControl,
+                  label: 'sessions.rules.newRuleForm.startTimeLabel',
+                  options: timeslotsListOptions,
+                  dataTestId: 'when-timeslot-time-typeahead',
+                  disabled: shouldShowTimeslotsError || !formGroup.value.startDate,
+                }
+              "
+            ></ng-container>
+          </div>
+        </div>
+
+        <div class="form-error no-timeslots-error" *ngIf="shouldShowTimeslotsError">
+          <fa-icon [icon]="['fas', 'exclamation-circle']" class="form-error--icon"></fa-icon>
+          {{ 'sessions.rules.newRuleForm.missingTimeslotsMessage' | translate }}
+        </div>
+
+        <ng-container
+          *ngTemplateOutlet="
+            typeahead;
+            context: {
+              formControl: ticketTypeControl,
+              label: 'sessions.rules.newRuleForm.ticketTypeLabel',
+              options: ticketTypesListOptions,
+              dataTestId: 'when-ticket-type-typeahead',
+              disabled: !formGroup.value.startTime,
+              editable: true,
+            }
+          "
+        ></ng-container>
+
+        <ng-container formArrayName="conditionsList">
+          <div class="wrapper" *ngFor="let conditionFormGroup of conditionsList?.controls">
+            <div class="cell cell--fill">
+              <ng-container
+                *ngTemplateOutlet="
+                  typeahead;
+                  context: {
+                    formControl: conditionFormGroup.get('condition'),
+                    label: 'sessions.rules.newRuleForm.conditionLabel',
+                    options: conditionsListOptions,
+                    dataTestId: 'when-condition-typeahead',
+                  }
+                "
+              ></ng-container>
+            </div>
+            <ng-container *ngIf="conditionFormGroup.value.condition && conditionFormGroup.get('value') as valueControl">
+              <label class="field cell cell--hug condition-form-value" data-testid="condition-value-box">
+                <input
+                  appAutoformatNumericInput
+                  [formControl]="valueControl"
+                  [decimalPlaces]="0"
+                  class="field__input"
+                  min="0"
+                  [placeHolderValue]="'sessions.rules.newRuleForm.valuePlaceholder' | translate"
+                  data-testid="condition-value-input"
+                />
+                <span class="field__label">{{ 'sessions.rules.newRuleForm.valueLabel' | translate }}</span>
+              </label>
+            </ng-container>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+    <div class="wrapper-card-set then-box">
+      <div class="wrapper-card-set__title">
+        {{ 'sessions.rules.newRuleForm.thenTitle' | translate }}
+      </div>
+
+      <div class="wrapper-card wrapper wrapper--direction-y">
+        <app-multi-select
+          [options]="ticketTypesListOptions"
+          [disabled]="!formGroup.value.startTime"
+          [showItemsDescriptions]="true"
+          [selectedOptions]="formGroup.value.affectedTicketsPerTimeslot ?? []"
+          [displayInPlaceMaximum]="1"
+          [placeholder]="'sessions.rules.newRuleForm.ticketPerTimeslotLabel' | translate"
+          (selected)="setControlValueAndMarkAsDirty(affectedTicketsPerTimeslot, $event)"
+          data-testid="tickets-per-timeslot-multi-select"
+        >
+        </app-multi-select>
+
+        <ng-container
+          *ngTemplateOutlet="
+            typeahead;
+            context: {
+              formControl: consequenceActionControl,
+              label: 'sessions.rules.newRuleForm.actionLabel',
+              options: actionsListOptions,
+              dataTestId: 'consequence-action-typeahead',
+            }
+          "
+        ></ng-container>
+
+        <ng-container *ngIf="formGroup.value.consequenceAction">
+          <ng-container
+            *ngTemplateOutlet="
+              typeahead;
+              context: {
+                formControl: consequenceValueControl,
+                label: 'sessions.rules.newRuleForm.actionValueLabel',
+                options: actionValuesOptionsMap[formGroup.value.consequenceAction.id],
+                dataTestId: 'consequence-value-typeahead',
+                customClass: 'form-group--last',
+              }
+            "
+          ></ng-container>
+        </ng-container>
+      </div>
+    </div>
+
+    <div>
+      <ng-container
+        *ngTemplateOutlet="
+          checkboxInputTemplate;
+          context: {
+            fieldName: 'enableNotifyOnTrigger',
+            control: enableNotifyOnTriggerControl,
+            checked: enableNotifyOnTriggerControl?.value,
+            label: 'sessions.rules.newRuleForm.notifyOnTriggerLabel',
+          }
+        "
+      >
+      </ng-container>
+
+      <ng-container *ngIf="enableNotifyOnTriggerControl?.value">
+        <div class="wrapper-card-set notify-box">
+          <div class="wrapper-card-set__title">
+            {{ 'sessions.rules.newRuleForm.notifyTitle' | translate }}
+          </div>
+          <div class="wrapper-card wrapper wrapper--direction-y">
+            <div class="wrapper-card-set__title">
+              {{ 'sessions.rules.newRuleForm.email' | translate }}
+            </div>
+            <ng-container *ngIf="notifyOnTriggerEmailListControl as emailControl">
+              <app-contacts-input
+                id="notifyOnTriggerEmailList"
+                [formControl]="emailControl"
+                [inputName]="'notify-on-trigger-email-list'"
+              ></app-contacts-input>
+              <div class="form-error invalid-email-error" *ngIf="emailControl.invalid && emailControl.dirty">
+                <fa-icon [icon]="['fas', 'exclamation-circle']" class="form-error--icon"></fa-icon>
+                {{ 'sessions.rules.newRuleForm.invalidEmailMessage' | translate }}
+              </div>
+              <div class="wrapper-card-set__additional-info">
+                {{ 'sessions.rules.newRuleForm.additionalInfo' | translate }}
+              </div>
+            </ng-container>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+
+    <div *ngIf="ruleToEdit" class="delete-button-container">
+      <button class="button button--small button--danger-tertiary" data-testid="delete-rule-button" (click)="onClickDelete()">
+        {{ 'sessions.rules.newRuleForm.deleteButton' | translate }}
+      </button>
+    </div>
+  </form>
+</div>
+<div *ngIf="formGroup" class="lateral-slider-body__footer">
+  <button data-testid="discard-button" class="button button--large button--tertiary" (click)="discardClicked.emit()">
+    {{ 'sessions.rules.newRuleForm.discardButton' | translate }}
+  </button>
+
+  <button
+    data-testid="save-button"
+    class="button button--large button--primary"
+    [disabled]="formGroup.invalid || formGroup.pristine"
+    (click)="ruleToEdit ? onClickUpdate() : onClickCreate()"
+  >
+    {{ 'sessions.rules.newRuleForm.saveButton' | translate }}
+  </button>
+</div>
+
+<ng-template
+  #typeahead
+  let-formControl="formControl"
+  let-label="label"
+  let-options="options"
+  let-customClass="customClass"
+  let-dataTestId="dataTestId"
+  let-disabled="disabled"
+  let-editable="editable"
+>
+  <ignt-typeahead
+    [attr.data-testid]="dataTestId"
+    [disabled]="disabled"
+    [options]="options"
+    [customPopupClass]="'dropdown-menu--on-sidebar'"
+    [selectedOption]="formControl.value"
+    [fieldLabel]="label | translate"
+    [emptyLabel]="'sessions.rules.newRuleForm.selectsPlaceholder' | translate"
+    [editable]="editable ?? false"
+    (selected)="setControlValueAndMarkAsDirty(formControl, $event)"
+  ></ignt-typeahead>
+</ng-template>
+
+<ng-template #checkboxInputTemplate let-checked="checked" let-fieldName="fieldName" let-control="control">
+  <div *ngIf="control" class="form-group form-group--no-border form-group--checkbox">
+    <input
+      [attr.data-testid]="'session-type-' + fieldName"
+      [checked]="checked"
+      [formControl]="control"
+      [id]="fieldName"
+      autocomplete="off"
+      class="form-input--checkbox"
+      type="checkbox"
+    />
+
+    <label [class]="'form-label--checkbox form-label--checkbox-' + fieldName" [for]="fieldName" translate>
+      {{ 'sessions.rules.newRuleForm.notifyOnTriggerLabel' | translate }}
+    </label>
+  </div>
+</ng-template>

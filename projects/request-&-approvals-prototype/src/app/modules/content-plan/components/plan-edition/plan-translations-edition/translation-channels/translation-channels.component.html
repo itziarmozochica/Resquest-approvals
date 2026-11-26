@@ -1,0 +1,153 @@
+<ignt-wrapper-card class="translation-channels__card">
+  @if (hasAnyMissingChannelTranslations()) {
+    <ignt-alert
+      class="translation-channels__missing-alert"
+      sentiment="warning"
+      [description]="'planEdition.translationsEdition.missingChannelTranslationsWarning' | translate"
+      data-testid="translation-channels-missing-translations-alert"
+    />
+  }
+
+  <div class="channel-filter">
+    <button
+      igntButton
+      data-testid="channel-filter-trigger"
+      [sentiment]="hasActiveFilter() ? 'primary' : 'tertiary'"
+      size="small"
+      [attr.aria-haspopup]="'true'"
+      [attr.aria-expanded]="showFilterDropdown()"
+      (click)="toggleDropdown()"
+    >
+      <ignt-icon name="sliders" variant="solid" aria-hidden="true"></ignt-icon>
+      {{ 'planEdition.translationsEdition.filterChannels' | translate }}
+      @if (hasActiveFilter()) {
+        <span>({{ visibleChannelCount() }})</span>
+      }
+      <ignt-icon [name]="showFilterDropdown() ? 'chevron-up' : 'chevron-down'" variant="solid" aria-hidden="true"></ignt-icon>
+    </button>
+
+    @if (showFilterDropdown()) {
+      <div class="channel-filter__panel">
+        <div class="channel-filter__panel-actions">
+          <button igntButton sentiment="tertiary" size="small" data-testid="channel-filter-select-all" (click)="selectAll()">
+            {{ 'planEdition.translationsEdition.selectAll' | translate }}
+          </button>
+          <button
+            igntButton
+            sentiment="tertiary"
+            variant="danger"
+            size="small"
+            class="channel-filter__panel-clear"
+            data-testid="channel-filter-clear"
+            (click)="clearAll()"
+          >
+            {{ 'planEdition.translationsEdition.clear' | translate }}
+          </button>
+        </div>
+
+        <div class="channel-filter__panel-list">
+          @if (hasAllChannels()) {
+            <ignt-checkbox
+              [checked]="visibleAll()"
+              [label]="'planEdition.translationsEdition.allChannels' | translate"
+              size="small"
+              dataTestId="channel-filter-item-all"
+              (change)="toggleAllChannelVisibility()"
+            ></ignt-checkbox>
+          }
+          @for (id of channelIds(); track id) {
+            <ignt-checkbox
+              [checked]="isChannelVisible(id)"
+              [label]="getChannelName(id)"
+              size="small"
+              [dataTestId]="'channel-filter-item-' + id"
+              (change)="toggleChannel(id)"
+            ></ignt-checkbox>
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="translation-channels__header">
+    <h3 class="translation-channels__title">{{ 'planEdition.translationsEdition.availableChannels' | translate }}</h3>
+    <button
+      igntButton
+      sentiment="primary"
+      size="small"
+      data-testid="edit-channels-button"
+      [disabled]="!canManageChannelTranslations()"
+      (click)="onEditChannelsClick()"
+    >
+      {{ 'planEdition.translationsEdition.editButton' | translate }}
+    </button>
+  </div>
+
+  @if (channelIds().length > 0 || visibleAll()) {
+    <div class="translation-channels__languages">
+      @if (visibleAll()) {
+        <ignt-list-item
+          class="translation-channels__channel-item"
+          [class.translation-channels__channel-item--selected]="selectedChannelId() === ALL_CHANNELS_ID"
+          [title]="'planEdition.translationsEdition.allChannels' | translate"
+          [description]="''"
+          [clickable]="true"
+          [selected]="selectedChannelId() === ALL_CHANNELS_ID"
+          data-testid="translation-channels-channel-item"
+          [attr.data-channel-id]="ALL_CHANNELS_ID"
+          (click)="selectChannel(ALL_CHANNELS_ID)"
+        >
+          <ng-container trailing-modifier>
+            <span class="translation-channels__trailing">
+              <ignt-tag sentiment="sharp" data-testid="translation-channels-all-default-tag">
+                {{ 'planEdition.translationsEdition.defaultBadge' | translate }}
+              </ignt-tag>
+              @if (canEditDefaultTranslations()) {
+                <ignt-icon
+                  class="translation-channels__status-icon"
+                  [class.translation-channels__status-icon--complete]="isAllChannelsRowComplete()"
+                  [class.translation-channels__status-icon--missing]="!isAllChannelsRowComplete()"
+                  [name]="isAllChannelsRowComplete() ? 'check-circle' : 'exclamation-triangle'"
+                  size="base"
+                  variant="solid"
+                  aria-hidden="true"
+                />
+              }
+            </span>
+          </ng-container>
+        </ignt-list-item>
+      }
+
+      @for (id of filteredChannelIds(); track id) {
+        @let channelTranslationsComplete = channelHasCompleteTranslationsById().get(id) ?? false;
+        <ignt-list-item
+          class="translation-channels__channel-item"
+          [class.translation-channels__channel-item--selected]="selectedChannelId() === id"
+          [title]="getChannelName(id)"
+          [description]="''"
+          [clickable]="true"
+          [selected]="selectedChannelId() === id"
+          data-testid="translation-channels-channel-item"
+          [attr.data-channel-id]="id"
+          (click)="selectChannel(id)"
+        >
+          <ng-container trailing-modifier>
+            <ignt-icon
+              class="translation-channels__status-icon"
+              [class.translation-channels__status-icon--complete]="channelTranslationsComplete"
+              [class.translation-channels__status-icon--missing]="!channelTranslationsComplete"
+              [name]="channelTranslationsComplete ? 'check-circle' : 'exclamation-triangle'"
+              size="base"
+              variant="solid"
+              aria-hidden="true"
+            />
+          </ng-container>
+        </ignt-list-item>
+      }
+    </div>
+  } @else {
+    <div class="translation-channels__languages">
+      <span class="translation-channels__empty">{{ 'planEdition.translationsEdition.noChannelsToShow' | translate }}</span>
+    </div>
+  }
+</ignt-wrapper-card>

@@ -1,0 +1,468 @@
+<div class="ir-question" [attr.data-question-id]="question.id" [attr.data-question-type]="question.type">
+  <label class="ir-question__label" [for]="'q-' + question.id">
+    {{ question.label | irCatalogKey | translate }}
+    @if (question.required) {
+      <span class="ir-question__required" aria-hidden="true">*</span>
+    }
+  </label>
+
+  @if (question.helpText) {
+    <p class="ir-question__help">{{ question.helpText | irCatalogKey | translate }}</p>
+  }
+
+  @switch (question.type) {
+    @case (QuestionType.TEXT) {
+      <ignt-input-field
+        [id]="'q-' + question.id"
+        type="text"
+        label=""
+        [hideErrorLabels]="true"
+        [formControl]="formControl()"
+        [attr.data-testid]="'ir-q-' + question.id"
+      ></ignt-input-field>
+    }
+    @case (QuestionType.TEXTAREA) {
+      <textarea
+        [id]="'q-' + question.id"
+        class="form-control"
+        rows="4"
+        [formControl]="formControl()"
+        [attr.data-testid]="'ir-q-' + question.id"
+      ></textarea>
+    }
+    @case (QuestionType.RICH_TEXT) {
+      @if (partnerId !== null && launchId && informationRequestId) {
+        <app-ir-rich-text-answer
+          [attr.data-testid]="'ir-q-' + question.id"
+          [partnerId]="partnerId"
+          [launchId]="launchId"
+          [informationRequestId]="informationRequestId"
+          [questionId]="question.id"
+          [value]="$any(formControl().value) ?? ''"
+          [readOnly]="isDisabled()"
+          (valueChange)="onRichTextChange($event)"
+        ></app-ir-rich-text-answer>
+      } @else {
+        <textarea
+          [id]="'q-' + question.id"
+          class="form-control"
+          rows="4"
+          [formControl]="formControl()"
+          [attr.data-testid]="'ir-q-' + question.id"
+        ></textarea>
+      }
+    }
+    @case (QuestionType.NUMBER) {
+      <ignt-input-field
+        [id]="'q-' + question.id"
+        type="number"
+        label=""
+        [hideErrorLabels]="true"
+        [formControl]="formControl()"
+        [attr.data-testid]="'ir-q-' + question.id"
+      ></ignt-input-field>
+    }
+    @case (QuestionType.PERCENTAGE) {
+      <div class="ir-question__percentage">
+        <ignt-input-field
+          [id]="'q-' + question.id"
+          type="number"
+          label=""
+          [hideErrorLabels]="true"
+          [formControl]="formControl()"
+          [attr.data-testid]="'ir-q-' + question.id"
+        ></ignt-input-field>
+        <span class="ir-question__suffix" aria-hidden="true">%</span>
+      </div>
+    }
+    @case (QuestionType.DATE) {
+      <ignt-input-field
+        [id]="'q-' + question.id"
+        type="date"
+        label=""
+        [hideErrorLabels]="true"
+        [formControl]="formControl()"
+        [attr.data-testid]="'ir-q-' + question.id"
+      ></ignt-input-field>
+    }
+    @case (QuestionType.TIME) {
+      <ignt-input-field
+        [id]="'q-' + question.id"
+        type="time"
+        label=""
+        [hideErrorLabels]="true"
+        [formControl]="formControl()"
+        [attr.data-testid]="'ir-q-' + question.id"
+      ></ignt-input-field>
+    }
+    @case (QuestionType.DATETIME) {
+      <ignt-input-field
+        [id]="'q-' + question.id"
+        type="datetime-local"
+        label=""
+        [hideErrorLabels]="true"
+        [formControl]="formControl()"
+        [attr.data-testid]="'ir-q-' + question.id"
+      ></ignt-input-field>
+    }
+    @case (QuestionType.EMAIL) {
+      <ignt-input-field
+        [id]="'q-' + question.id"
+        type="email"
+        label=""
+        [hideErrorLabels]="true"
+        [formControl]="formControl()"
+        [attr.data-testid]="'ir-q-' + question.id"
+      ></ignt-input-field>
+    }
+    @case (QuestionType.NAME) {
+      <ignt-input-field
+        [id]="'q-' + question.id"
+        type="text"
+        label=""
+        [hideErrorLabels]="true"
+        [formControl]="formControl()"
+        [attr.data-testid]="'ir-q-' + question.id"
+      ></ignt-input-field>
+    }
+    @case (QuestionType.PHONE) {
+      <ignt-input-field
+        [id]="'q-' + question.id"
+        type="tel"
+        label=""
+        [hideErrorLabels]="true"
+        [formControl]="formControl()"
+        [attr.data-testid]="'ir-q-' + question.id"
+      ></ignt-input-field>
+    }
+    @case (QuestionType.WEBSITE) {
+      <ignt-input-field
+        [id]="'q-' + question.id"
+        type="url"
+        label=""
+        placeholder="https://"
+        [hideErrorLabels]="true"
+        [formControl]="formControl()"
+        [attr.data-testid]="'ir-q-' + question.id"
+      ></ignt-input-field>
+    }
+    @case (QuestionType.DROPDOWN) {
+      <select [id]="'q-' + question.id" class="form-select" [formControl]="formControl()" [attr.data-testid]="'ir-q-' + question.id">
+        <option [ngValue]="null" disabled>
+          {{ 'informationRequests.question.dropdownPlaceholder' | translate }}
+        </option>
+        @for (option of question.options ?? []; track option) {
+          <option [ngValue]="option">{{ option }}</option>
+        }
+      </select>
+    }
+    @case (QuestionType.PICKLIST) {
+      <ignt-radio-group [formControl]="formControl()" [attr.data-testid]="'ir-q-' + question.id">
+        @for (option of question.options ?? []; track option) {
+          <ignt-radio [value]="option" [label]="option" [dataTestId]="'ir-q-' + question.id + '-' + option"></ignt-radio>
+        }
+      </ignt-radio-group>
+    }
+    @case (QuestionType.FILE) {
+      <div class="ir-question__file" [attr.data-testid]="'ir-q-' + question.id">
+        @if (files().length === 0) {
+          @if (drivePickerAvailable) {
+            <ignt-button
+              variant="secondary"
+              [label]="'informationRequests.question.file.pick' | translate"
+              size="small"
+              [disabled]="isDisabled() || pickerOpen"
+              (click)="pickFile()"
+              [attr.data-testid]="'ir-q-' + question.id + '-pick'"
+            ></ignt-button>
+          }
+          <app-ir-file-upload
+            [testId]="'ir-q-' + question.id + '-upload'"
+            [partnerId]="partnerId"
+            [projectId]="launchId"
+            [informationRequestId]="informationRequestId"
+            [questionId]="question.id"
+            [acceptedFileKinds]="question.acceptedFileKinds ?? null"
+            [fileAccept]="fileAccept()"
+            [disabled]="isDisabled()"
+            [multiple]="false"
+            (uploaded)="onFileUploaded()"
+          ></app-ir-file-upload>
+        } @else {
+          @for (file of nonSheetFiles(); track fileAnswerKey(file)) {
+            <div class="ir-question__file-row">
+              <app-file-thumbnail
+                [driveFileId]="isFileAnswerInDrive(file) ? file.driveFileId : undefined"
+                [remoteThumbnailUrl]="file.thumbnailUrl"
+                [previewImageUrl]="localPreview(file)"
+                [mimeType]="file.mimeType"
+                [fileName]="file.originalName"
+                [testId]="'ir-q-' + question.id + '-thumb-' + fileAnswerKey(file)"
+              />
+              @if (isFileAnswerInDrive(file)) {
+                <a [href]="file.webViewLink" target="_blank" rel="noopener noreferrer">{{ file.originalName }}</a>
+              } @else {
+                <span class="ir-question__file-name">{{ file.originalName }}</span>
+              }
+              @if (canViewFile(file)) {
+                <ignt-button
+                  variant="tertiary"
+                  [label]="'informationRequests.question.file.view' | translate"
+                  size="small"
+                  [loading]="viewingFileKey() === fileAnswerKey(file)"
+                  [disabled]="viewingFileKey() !== null"
+                  (click)="viewFile(file)"
+                  [attr.data-testid]="'ir-q-' + question.id + '-view-' + fileAnswerKey(file)"
+                ></ignt-button>
+              }
+              @if (!isFileAnswerInDrive(file)) {
+                <span
+                  class="ir-question__file-status"
+                  [class.ir-question__file-status--failed]="file.syncStatus === 'DRIVE_SYNC_FAILED'"
+                  [attr.data-status]="file.syncStatus"
+                  [attr.data-testid]="'ir-q-' + question.id + '-sync-' + fileAnswerKey(file)"
+                >
+                  {{ fileSyncStatusKey(file) | translate }}
+                </span>
+              }
+              <ignt-button
+                variant="secondary"
+                [label]="'informationRequests.question.file.replace' | translate"
+                size="small"
+                [disabled]="isDisabled()"
+                (click)="removeFile(fileAnswerKey(file))"
+                [attr.data-testid]="'ir-q-' + question.id + '-replace-' + fileAnswerKey(file)"
+              ></ignt-button>
+              <ignt-button
+                variant="tertiary"
+                [label]="'informationRequests.question.file.remove' | translate"
+                size="small"
+                [disabled]="isDisabled()"
+                (click)="removeFile(fileAnswerKey(file))"
+                [attr.data-testid]="'ir-q-' + question.id + '-remove-' + fileAnswerKey(file)"
+              ></ignt-button>
+            </div>
+          }
+          <app-ir-drive-import-notices [questionId]="question.id" [testId]="'ir-q-' + question.id + '-upload'" />
+        }
+        @for (file of pendingDeleteFiles(); track fileAnswerKey(file)) {
+          <div class="ir-question__file-row ir-question__file-row--deleted">
+            <app-file-thumbnail
+              [driveFileId]="isFileAnswerInDrive(file) ? file.driveFileId : undefined"
+              [remoteThumbnailUrl]="file.thumbnailUrl"
+              [mimeType]="file.mimeType"
+              [fileName]="file.originalName"
+              [testId]="'ir-q-' + question.id + '-deleted-thumb-' + fileAnswerKey(file)"
+            />
+            <span class="ir-question__file-name ir-question__file-name--deleted">{{ file.originalName }}</span>
+            <span class="ir-question__file-status" [attr.data-testid]="'ir-q-' + question.id + '-deleted-' + fileAnswerKey(file)">
+              {{ 'informationRequests.question.file.deletedPending' | translate }}
+            </span>
+            <ignt-button
+              variant="tertiary"
+              [label]="'informationRequests.question.file.restore' | translate"
+              size="small"
+              [disabled]="isDisabled() || !canRestoreFile()"
+              (click)="restoreFile(fileAnswerKey(file))"
+              [attr.data-testid]="'ir-q-' + question.id + '-restore-' + fileAnswerKey(file)"
+            ></ignt-button>
+          </div>
+        }
+        @if (showSheetLink()) {
+          <app-ir-sheet-link-field
+            [partnerId]="partnerId"
+            [launchId]="launchId"
+            [informationRequestId]="informationRequestId"
+            [disabled]="isDisabled()"
+            [multiple]="false"
+            [sheets]="sheetFiles()"
+            [testId]="'ir-q-' + question.id + '-sheet'"
+            (sheetsChange)="onSheetsChange($event)"
+          ></app-ir-sheet-link-field>
+        }
+        @if (pickerError) {
+          <p class="ir-question__error" [attr.data-testid]="'ir-q-' + question.id + '-picker-error'">
+            {{ 'informationRequests.question.file.pickerError' | translate }}
+          </p>
+        }
+        @if (hasViewError()) {
+          <p class="ir-question__error" [attr.data-testid]="'ir-q-' + question.id + '-view-error'">
+            {{ 'informationRequests.question.file.openError' | translate }}
+          </p>
+        }
+      </div>
+    }
+    @case (QuestionType.MULTIFILE) {
+      <div class="ir-question__file" [attr.data-testid]="'ir-q-' + question.id">
+        @if (nonSheetFiles().length > 0) {
+          <app-ir-file-tree
+            [testIdPrefix]="'ir-q-' + question.id"
+            [files]="nonSheetFiles()"
+            [disabled]="isDisabled()"
+            [viewingFileKey]="viewingFileKey()"
+            (view)="viewFile($event)"
+            (remove)="removeFile(fileAnswerKey($event))"
+          ></app-ir-file-tree>
+        }
+        @if (drivePickerAvailable) {
+          <ignt-button
+            variant="secondary"
+            [label]="'informationRequests.question.file.addMore' | translate"
+            size="small"
+            [disabled]="isDisabled() || pickerOpen"
+            (click)="pickFile()"
+            [attr.data-testid]="'ir-q-' + question.id + '-pick'"
+          ></ignt-button>
+        }
+        <app-ir-file-upload
+          [testId]="'ir-q-' + question.id + '-upload'"
+          [partnerId]="partnerId"
+          [projectId]="launchId"
+          [informationRequestId]="informationRequestId"
+          [questionId]="question.id"
+          [acceptedFileKinds]="question.acceptedFileKinds ?? null"
+          [fileAccept]="fileAccept()"
+          [disabled]="isDisabled()"
+          [multiple]="true"
+          [answeredImportJobIds]="answeredImportJobIds()"
+          (uploaded)="onFileUploaded()"
+        ></app-ir-file-upload>
+        @for (file of pendingDeleteFiles(); track fileAnswerKey(file)) {
+          <div class="ir-question__file-row ir-question__file-row--deleted">
+            <app-file-thumbnail
+              [driveFileId]="isFileAnswerInDrive(file) ? file.driveFileId : undefined"
+              [remoteThumbnailUrl]="file.thumbnailUrl"
+              [mimeType]="file.mimeType"
+              [fileName]="file.originalName"
+              [testId]="'ir-q-' + question.id + '-deleted-thumb-' + fileAnswerKey(file)"
+            />
+            <span class="ir-question__file-name ir-question__file-name--deleted">{{ file.originalName }}</span>
+            <span class="ir-question__file-status" [attr.data-testid]="'ir-q-' + question.id + '-deleted-' + fileAnswerKey(file)">
+              {{ 'informationRequests.question.file.deletedPending' | translate }}
+            </span>
+            <ignt-button
+              variant="tertiary"
+              [label]="'informationRequests.question.file.restore' | translate"
+              size="small"
+              [disabled]="isDisabled() || !canRestoreFile()"
+              (click)="restoreFile(fileAnswerKey(file))"
+              [attr.data-testid]="'ir-q-' + question.id + '-restore-' + fileAnswerKey(file)"
+            ></ignt-button>
+          </div>
+        }
+        @if (showSheetLink()) {
+          <app-ir-sheet-link-field
+            [partnerId]="partnerId"
+            [launchId]="launchId"
+            [informationRequestId]="informationRequestId"
+            [disabled]="isDisabled()"
+            [multiple]="true"
+            [sheets]="sheetFiles()"
+            [testId]="'ir-q-' + question.id + '-sheet'"
+            (sheetsChange)="onSheetsChange($event)"
+          ></app-ir-sheet-link-field>
+        }
+        @if (pickerError) {
+          <p class="ir-question__error" [attr.data-testid]="'ir-q-' + question.id + '-picker-error'">
+            {{ 'informationRequests.question.file.pickerError' | translate }}
+          </p>
+        }
+        @if (hasViewError()) {
+          <p class="ir-question__error" [attr.data-testid]="'ir-q-' + question.id + '-view-error'">
+            {{ 'informationRequests.question.file.openError' | translate }}
+          </p>
+        }
+      </div>
+    }
+    @case (QuestionType.TICKET_TYPES) {
+      <app-ir-product-catalog-editor
+        [form]="productCatalogControl()"
+        [currency]="productCatalogCurrency()"
+        [productTaxRates]="productCatalogTaxRates()"
+        [mustUseTaxBase]="productCatalogMustUseTaxBase()"
+        [validationAttempted]="control.touched"
+        [readOnly]="isDisabled()"
+      ></app-ir-product-catalog-editor>
+    }
+    @case (QuestionType.FAQ) {
+      <app-ir-table-repeater-answer
+        [testId]="'ir-q-' + question.id"
+        [columns]="tableRepeaterColumns()"
+        [form]="tableRowsControl()"
+        [readOnly]="isDisabled()"
+        addRowLabelKey="informationRequests.question.faq.addRow"
+      ></app-ir-table-repeater-answer>
+    }
+    @case (QuestionType.CATALOG_GRID) {
+      @if (eventScheduleComposerEnabled()) {
+        <app-ir-event-schedule-grid-field
+          [answer]="eventScheduleAnswerJson()"
+          [gridColumnIds]="gridColumnIds()"
+          [allProducts]="eventScheduleProducts()"
+          [venueEnabled]="eventScheduleVenueEnabled()"
+          [venueValue]="eventScheduleVenueValue()"
+          (answerChange)="onEventScheduleAnswerChange($event)"
+          (venueChange)="onEventScheduleVenueChange($event)"
+        ></app-ir-event-schedule-grid-field>
+      } @else {
+        <app-ir-catalog-grid-answer
+          [testId]="'ir-q-' + question.id"
+          [columns]="catalogGridColumns()"
+          [form]="tableRowsControl()"
+          [readOnly]="isDisabled()"
+          [minRows]="catalogGridMinRows()"
+        ></app-ir-catalog-grid-answer>
+      }
+    }
+    @case (QuestionType.VENUE) {
+      <app-ir-venue-answer
+        [testId]="'ir-q-' + question.id"
+        [form]="venueControl()"
+        [partnerId]="partnerId"
+        [readOnly]="isDisabled()"
+      ></app-ir-venue-answer>
+    }
+    @case (QuestionType.STEPPER_REF) {
+      <app-ir-stepper-ref-answer
+        [testId]="'ir-q-' + question.id"
+        [config]="stepperRefConfig()"
+        [template]="stepperRefTemplate()"
+        [form]="stepperControl()"
+        [value]="stepperRefValue()"
+        [readOnly]="isDisabled()"
+        [informationRequestId]="informationRequestId"
+      ></app-ir-stepper-ref-answer>
+    }
+    @case (QuestionType.MULTIPICKLIST) {
+      <div
+        class="ir-question__checkbox-group"
+        role="group"
+        [attr.aria-labelledby]="'q-' + question.id"
+        [attr.data-testid]="'ir-q-' + question.id"
+      >
+        @for (option of question.options ?? []; track option) {
+          <ignt-checkbox
+            [label]="option"
+            [checked]="isMultiOptionSelected(option)"
+            [disabled]="isDisabled()"
+            (change)="toggleMultiOption(option, $event)"
+            [dataTestId]="'ir-q-' + question.id + '-' + option"
+          ></ignt-checkbox>
+        }
+      </div>
+    }
+    @default {
+      <p class="ir-question__unsupported" [attr.data-testid]="'ir-q-' + question.id + '-unsupported'">
+        {{ 'informationRequests.question.unsupported' | translate }}
+      </p>
+    }
+  }
+
+  @if (errorKey(); as key) {
+    <p class="ir-question__error" [attr.data-testid]="'ir-q-' + question.id + '-error'">
+      {{ 'informationRequests.question.errors.' + key | translate: errorParams() }}
+    </p>
+  }
+
+  <app-file-preview-dialog [file]="previewFile()" (closed)="closePreview()" />
+</div>

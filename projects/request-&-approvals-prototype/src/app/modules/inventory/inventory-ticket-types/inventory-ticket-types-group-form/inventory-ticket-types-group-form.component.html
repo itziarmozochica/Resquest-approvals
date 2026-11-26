@@ -1,0 +1,212 @@
+<div class="common-session-edit lateral-slider-body__wrapper">
+  <form [formGroup]="formGroup" class="common-session-edit__form itt-form">
+    <div class="itt-form__description">
+      {{ 'inventory.ticketTypes.groupForm.description' | translate }}
+    </div>
+
+    <fieldset class="wrapper">
+      <div class="cell">
+        <ng-container *ngTemplateOutlet="inputTemplate; context: { fieldName: 'name', fieldType: 'text', showNote: false }"> </ng-container>
+      </div>
+      <div class="cell">
+        <label class="itt-form__label" [id]="sessionTypesLabelId">
+          {{ 'inventory.ticketTypes.groupForm.fields.sessionTypes.title' | translate }}
+        </label>
+        <div
+          class="itt-form__session-types-field"
+          data-testid="itt-group-form-session-types-field"
+          [attr.aria-describedby]="isSessionTypesLockExplained ? sessionTypesLockReasonId : null"
+          [attr.aria-disabled]="isSessionTypesLockExplained ? 'true' : null"
+          [attr.aria-labelledby]="isSessionTypesLockExplained ? sessionTypesLabelId : null"
+          [attr.role]="isSessionTypesLockExplained ? 'group' : null"
+          [attr.tabindex]="isSessionTypesLockExplained ? 0 : null"
+        >
+          <app-multi-select
+            class="cell cell--hug-md"
+            [options]="sessionTypeOptions"
+            [selectedOptions]="selectedSessionTypeOptions"
+            [placeholder]="'inventory.ticketTypes.groupForm.fields.sessionTypes.placeholder' | translate"
+            [displayInPlaceMaximum]="1"
+            [disabled]="formGroup.get('sessionTypes').disabled"
+            (selected)="selectSessionTypeOptions($event)"
+          >
+          </app-multi-select>
+        </div>
+        @if (isSessionTypesLockExplained) {
+          <div class="itt-form__note" data-testid="itt-group-form-session-types-lock-note" [id]="sessionTypesLockReasonId">
+            {{ 'inventory.ticketTypes.groupForm.fields.sessionTypes.changeNotAllowed' | translate }}
+          </div>
+        }
+      </div>
+    </fieldset>
+
+    <h5
+      class="font-h5 collapsible-title"
+      (click)="displayAdvancedSettings = !displayAdvancedSettings"
+      data-testId="itt-group-form-advanced-settings-toggle"
+    >
+      <ignt-icon [name]="displayAdvancedSettings ? 'angle-down' : 'angle-right'" variant="light"></ignt-icon>
+      {{ 'inventory.ticketTypes.form.sections.advancedSettings' | translate }}
+    </h5>
+    <fieldset class="wrapper collapsible" [class.collapsible--hidden]="!displayAdvancedSettings">
+      <ng-container
+        *ngTemplateOutlet="
+          inputDropdownTemplate;
+          context: {
+            fieldName: 'imageGeneratorType',
+            fieldOptions: imageGeneratorTypeOptions,
+            selected: imageGeneratorType,
+            showNote: false,
+            forceDisabled: false,
+          }
+        "
+      ></ng-container>
+      <ng-container
+        *ngTemplateOutlet="
+          inputDropdownTemplate;
+          context: {
+            fieldName: 'codePoolFrequency',
+            fieldOptions: effectiveCodePoolFrequencyOptions,
+            selected: effectiveCodePoolFrequency,
+            showNote: true,
+            forceDisabled: isAssetBased,
+          }
+        "
+      ></ng-container>
+    </fieldset>
+
+    @if (isAssetBasedConfigurationVisible) {
+      <h5
+        class="font-h5 collapsible-title"
+        (click)="displayManageCapacitySection = !displayManageCapacitySection"
+        data-testId="itt-group-form-manage-capacity-toggle"
+      >
+        <ignt-icon [name]="displayManageCapacitySection ? 'angle-down' : 'angle-right'" variant="light"></ignt-icon>
+        {{ 'inventory.ticketTypes.groupForm.sections.manageCapacityViaAssets' | translate }}
+      </h5>
+      <fieldset class="wrapper collapsible" [class.collapsible--hidden]="!displayManageCapacitySection">
+        <p class="itt-form__section-description">
+          {{ 'inventory.ticketTypes.groupForm.fields.assetBased.description' | translate }}
+        </p>
+        @if (!loadingActivities && !hasActivitiesOrPacks) {
+          <ignt-alert
+            class="itt-form__no-activities-alert"
+            data-testid="itt-form-no-activities-alert"
+            sentiment="warning"
+            [title]="'inventory.ticketTypes.groupForm.noActivities.title' | translate"
+          >
+            <ng-template #igntAlertContent>
+              <p class="itt-form__no-activities-desc">
+                {{ 'inventory.ticketTypes.groupForm.noActivities.description' | translate }}
+              </p>
+              <a [routerLink]="['/asset-based/hubs']" target="_blank" class="itt-form__no-activities-link">
+                {{ 'inventory.ticketTypes.groupForm.noActivities.openHub' | translate }}
+                <ignt-icon name="external-link" variant="light"></ignt-icon>
+              </a>
+            </ng-template>
+          </ignt-alert>
+        }
+        <div class="itt-form__toggle-row">
+          <div class="itt-form__toggle-row__content">
+            <span class="itt-form__toggle-row__label">
+              {{ 'inventory.ticketTypes.groupForm.fields.assetBased.title' | translate }}
+            </span>
+            <span class="itt-form__toggle-row__sublabel">
+              {{ 'inventory.ticketTypes.groupForm.fields.assetBased.subtitle' | translate }}
+            </span>
+          </div>
+          <ignt-toggle
+            id="itt-group-asset-based-toggle"
+            [checked]="isAssetBased"
+            [disabled]="!loadingActivities && !hasActivitiesOrPacks && !isAssetBased"
+            (change)="onAssetBasedToggle($event)"
+          ></ignt-toggle>
+        </div>
+        @if (isAssetBased) {
+          <div class="cell">
+            <ignt-typeahead
+              (selected)="onActivityOrPackSelected($event)"
+              (userInteraction)="onActivityOrPackUserInteraction($event)"
+              [editable]="true"
+              [fieldLabel]="'inventory.ticketTypes.groupForm.fields.activityOrPack.title' | translate"
+              [emptyLabel]="'inventory.ticketTypes.groupForm.fields.activityOrPack.placeholder' | translate"
+              [options]="activityOrPackOptions"
+              [selectedOption]="selectedActivityOrPackOption"
+              id="itt-form-activity-or-pack"
+              [customPopupClass]="'dropdown-menu--on-sidebar'"
+            ></ignt-typeahead>
+          </div>
+        }
+      </fieldset>
+    }
+
+    <ng-template #inputTemplate let-fieldName="fieldName" let-fieldType="fieldType" let-showNote="showNote">
+      <ignt-input-field
+        [formControlName]="fieldName"
+        [id]="fieldName"
+        [type]="fieldType"
+        [readonly]="formGroup.get(fieldName).disabled"
+        [label]="'inventory.ticketTypes.groupForm.fields.' + fieldName + '.title' | translate"
+        [customFormErrors]="[
+          {
+            type: 'required',
+            message: 'form.error.required' | translate,
+          },
+        ]"
+      ></ignt-input-field>
+      <ng-container *ngIf="showNote">
+        <div class="itt-form__note">
+          {{ 'inventory.ticketTypes.groupForm.fields.' + fieldName + '.note' | translate }}
+        </div>
+      </ng-container>
+    </ng-template>
+
+    <ng-template
+      #inputDropdownTemplate
+      let-fieldName="fieldName"
+      let-fieldOptions="fieldOptions"
+      let-selected="selected"
+      let-showNote="showNote"
+      let-forceDisabled="forceDisabled"
+    >
+      <div class="cell">
+        <ignt-typeahead
+          (selected)="formGroup.get(fieldName).setValue($event)"
+          [editable]="false"
+          [fieldLabel]="'inventory.ticketTypes.groupForm.fields.' + fieldName + '.title' | translate"
+          [emptyLabel]="'inventory.ticketTypes.groupForm.fields.' + fieldName + '.title' | translate"
+          [options]="fieldOptions"
+          [selectedOption]="selected"
+          id="'itt-form-' + fieldName"
+          [disabled]="forceDisabled || formGroup.get(fieldName).disabled"
+          [class.field--readonly]="forceDisabled || formGroup.get(fieldName).disabled"
+          [customPopupClass]="'dropdown-menu--on-sidebar'"
+        ></ignt-typeahead>
+        <ng-container *ngIf="showNote">
+          <div class="itt-form__note">
+            {{ 'inventory.ticketTypes.groupForm.fields.' + fieldName + '.note' | translate }}
+          </div>
+        </ng-container>
+      </div>
+    </ng-template>
+  </form>
+</div>
+<div class="lateral-slider-body__footer itt-form__footer">
+  <ignt-button
+    class="itt-form__footer-button"
+    data-testId="itt-group-form-save-button"
+    fill
+    [disabled]="isSaveButtonDisabled()"
+    [label]="'common.save' | translate"
+    (click)="save()"
+  />
+  <ignt-button
+    class="itt-form__footer-button"
+    data-testId="itt-group-form-cancel-button"
+    fill
+    size="small"
+    variant="tertiary"
+    [label]="'common.back' | translate"
+    (click)="cancel()"
+  />
+</div>

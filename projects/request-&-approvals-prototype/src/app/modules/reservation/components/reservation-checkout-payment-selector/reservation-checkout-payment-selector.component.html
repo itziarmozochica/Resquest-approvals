@@ -1,0 +1,516 @@
+<ignt-wrapper-card class="reservation-checkout-payment-selector__wrapper" [type]="isTablet() ? 'unwrapped' : 'default'">
+  @if (!isLoadingCheckout()) {
+    <div class="reservation-checkout-payment-selector">
+      @if (activeCart(); as cart) {
+        @if (isBuyNowFlow()) {
+          <div class="expiration-alert-top-container">
+            <ignt-alert
+              data-testid="reservation-not-created-alert"
+              sentiment="info"
+              [title]="'reservation.checkout.paymentSelector.reservationNotCreated.title' | translate"
+              [description]="'reservation.checkout.paymentSelector.reservationNotCreated.description' | translate"
+            />
+          </div>
+        }
+
+        @if (
+          currentReservation()?.expirationDate &&
+          !isDepositInFinalState() &&
+          !reservationCart()?.deposit &&
+          !depositCheckoutTranslationsEnabled() &&
+          !isBuyNowFlow()
+        ) {
+          <div class="expiration-alert-top-container">
+            @if (isExpired()) {
+              <ignt-alert sentiment="warning" [description]="'reservations.expiredReservation.modal.message' | translate" />
+            }
+            @if (!isExpired() && expirationDateFormatted()) {
+              <app-reservation-expiration-countdown-alert
+                [deadline]="expirationDateFormatted()"
+                [deadlineLabelKey]="checkoutExpirationCountdownDeadlineLabelKey()"
+                [timeLeft]="timeLeftCountdown()"
+              />
+            }
+          </div>
+        }
+        <ignt-wrapper-card class="reservation-checkout-payment-methods__wrapper" [type]="isTablet() ? 'default' : 'unwrapped'">
+          @if (!depositCheckoutTranslationsEnabled()) {
+            <div class="reservation-checkout-payment-selector__title">
+              {{
+                (reservationCart()?.total?.amount ?? 0) > 0
+                  ? ('reservation.checkout.chooseHowToPay' | translate)
+                  : ('reservation.checkout.chooseHowToPayZeroAmount' | translate)
+              }}
+            </div>
+          }
+          @if (!reservationCart()?.deposit && !isBuyNowFlow()) {
+            @if (depositCheckoutTranslationsEnabled()) {
+              <div class="payment-header">
+                <h2 class="payment-header__title">{{ 'reservation.checkout.completeYourReservation' | translate }}</h2>
+                <p class="payment-header__description">
+                  {{
+                    (reservationCart()?.total?.amount ?? 0) > 0
+                      ? ('reservation.checkout.paymentSectionDescription' | translate)
+                      : ('reservation.checkout.chooseHowToPayZeroAmount' | translate)
+                  }}
+                </p>
+              </div>
+            }
+            @if (depositCheckoutTranslationsEnabled() && currentReservation()?.expirationDate && !isDepositInFinalState()) {
+              <div class="expiration-alert-top-container">
+                @if (isExpired()) {
+                  <ignt-alert sentiment="warning" [description]="'reservations.expiredReservation.modal.message' | translate" />
+                }
+                @if (!isExpired() && expirationDateFormatted()) {
+                  <app-reservation-expiration-countdown-alert
+                    [deadline]="expirationDateFormatted()"
+                    [deadlineLabelKey]="checkoutExpirationCountdownDeadlineLabelKey()"
+                    [timeLeft]="timeLeftCountdown()"
+                  />
+                }
+              </div>
+            }
+            @if (depositCheckoutTranslationsEnabled() && (reservationCart()?.total?.amount ?? 0) > 0) {
+              <div class="payment-section">
+                <div class="payment-section__header">
+                  <div class="payment-section__title">{{ 'reservation.checkout.totalToPay' | translate }}</div>
+                  @if (reservationCart()?.total; as total) {
+                    <div class="payment-section__amount">
+                      {{ total.amount | currency: total.currency : 'symbol-narrow' }}
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          }
+
+          @if (reservationCart()?.deposit && !isDepositInFinalState() && !isBuyNowFlow()) {
+            @if (depositCheckoutTranslationsEnabled()) {
+              <div class="payment-header">
+                <h2 class="payment-header__title">{{ 'reservation.checkout.secureReservationTitle' | translate }}</h2>
+                <p class="payment-header__description">
+                  {{ 'reservation.checkout.secureReservationDescription' | translate }}
+                </p>
+              </div>
+            }
+          }
+
+          @if (isDepositInFinalState() && !isBuyNowFlow()) {
+            @if (depositCheckoutTranslationsEnabled() && (reservationCart()?.total?.amount ?? 0) > 0) {
+              <div class="payment-header">
+                <h2 class="payment-header__title">{{ 'reservation.checkout.remainingPaymentRequired' | translate }}</h2>
+                <p class="payment-header__description">
+                  {{ 'reservation.checkout.remainingPaymentRequiredDescription' | translate }}
+                </p>
+              </div>
+            }
+          }
+
+          @if (shouldShowPaymentOptions()) {
+            @if (isDepositInFinalState() && reservationCart()?.deposit; as deposit) {
+              <app-deposit-status-badge
+                [deposit]="deposit"
+                [currency]="reservationCart()?.total?.currency ?? null"
+                [isInReservationDetails]="false"
+              />
+
+              <div class="remaining-amount-countdown-container">
+                @if (remainingAmountConfig(); as remainingConfig) {
+                  <div class="remaining-amount-section">
+                    <div class="remaining-amount-content">
+                      <div class="remaining-amount-text">
+                        <h3 class="remaining-amount-title">{{ remainingConfig.titleKey | translate }}</h3>
+                        <p class="remaining-amount-description">{{ remainingConfig.descriptionKey | translate }}</p>
+                      </div>
+                      @if (reservationCart()?.total; as total) {
+                        <div class="remaining-amount-price">
+                          {{ total.amount | currency: total.currency : 'symbol-narrow' }}
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+
+                @if (currentReservation()?.expirationDate) {
+                  @if (isExpired()) {
+                    <ignt-alert sentiment="warning" [description]="'reservations.expiredReservation.modal.message' | translate" />
+                  }
+                  @if (!isExpired() && expirationDateFormatted()) {
+                    <app-reservation-expiration-countdown-alert
+                      [deadline]="expirationDateFormatted()"
+                      [deadlineLabelKey]="checkoutExpirationCountdownDeadlineLabelKey()"
+                      [timeLeft]="timeLeftCountdown()"
+                    />
+                  }
+                }
+              </div>
+            }
+
+            @if (reservationCart()?.deposit && !isDepositInFinalState() && !isBuyNowFlow()) {
+              <div class="payment-options-container">
+                <form [formGroup]="paymentOptionForm">
+                  <ignt-radio-group formControlName="paymentOption" class="payment-options__radio-group">
+                    <div class="payment-options__list">
+                      <div class="payment-option-box" [class.payment-option-box--selected]="!isDepositSelected()">
+                        <ignt-list-item
+                          [title]="'reservation.checkout.payAllNow' | translate"
+                          [description]="'reservation.checkout.payFullAmountNow' | translate"
+                          [selected]="!isDepositSelected()"
+                          (click)="selectPaymentOption(paymentOption.FULL_PAYMENT)"
+                          [type]="isTablet() ? 'unwrapped' : 'default'"
+                        >
+                          <ng-container leading-modifier>
+                            <ignt-radio [value]="paymentOption.FULL_PAYMENT" [name]="'paymentOption'" [checked]="!isDepositSelected()" />
+                          </ng-container>
+                          <ng-container trailing-modifier>
+                            @if (reservationCart()?.total; as total) {
+                              <div class="total-amount">
+                                {{ total.amount | currency: total.currency : 'symbol-narrow' }}
+                              </div>
+                            }
+                          </ng-container>
+                        </ignt-list-item>
+
+                        @if (!isDepositSelected()) {
+                          <div class="full-payment-box-content">
+                            @if (
+                              reservationCart()?.deposit &&
+                              !isDepositInFinalState() &&
+                              !isExpired() &&
+                              expirationDateFormattedForDepositContext() &&
+                              (currentReservation()?.expirationDate || reservationCart()?.deposit?.expirationDate)
+                            ) {
+                              <app-reservation-expiration-countdown-alert
+                                class="full-payment-warning-alert"
+                                [deadline]="expirationDateFormattedForDepositContext()"
+                                [deadlineLabelKey]="checkoutExpirationCountdownDeadlineLabelKey()"
+                                [timeLeft]="timeLeftCountdown()"
+                              />
+                            }
+
+                            <ng-container *ngTemplateOutlet="paymentMethodsTemplate"></ng-container>
+                            <ng-container *ngTemplateOutlet="paymentMethodComponentsTemplate"></ng-container>
+                          </div>
+                        }
+                      </div>
+
+                      @if (isDepositOptionAvailable()) {
+                        <div
+                          class="payment-option-box payment-option-box--deposit"
+                          [class.payment-option-box--selected]="isDepositSelected()"
+                        >
+                          <ignt-list-item
+                            [title]="'reservation.checkout.payDepositNow' | translate"
+                            [description]="
+                              !depositCheckoutTranslationsEnabled() ? ('reservation.checkout.payDepositNowCompleteRest' | translate) : ''
+                            "
+                            [selected]="isDepositSelected()"
+                            (click)="selectPaymentOption(paymentOption.DEPOSIT)"
+                            [type]="isTablet() ? 'unwrapped' : 'default'"
+                          >
+                            @if (depositCheckoutTranslationsEnabled()) {
+                              <span class="deposit-description">
+                                {{ 'reservation.checkout.payDepositNowCompleteRest' | translate }}
+                                <a
+                                  class="deposit-description__link"
+                                  (click)="openDepositInfoModal($event)"
+                                  [attr.data-testid]="'deposit-learn-more-link'"
+                                >
+                                  {{ 'reservation.checkout.learnMore' | translate }}
+                                </a>
+                              </span>
+                            }
+
+                            <ng-container leading-modifier>
+                              <ignt-radio [value]="paymentOption.DEPOSIT" [name]="'paymentOption'" [checked]="isDepositSelected()" />
+                            </ng-container>
+                            <ng-container trailing-modifier>
+                              @if (reservationCart()?.deposit?.calculatedAmount; as calculatedAmount) {
+                                <div class="deposit-amount">
+                                  {{ calculatedAmount.amount | currency: calculatedAmount.currency : 'symbol-narrow' }}
+                                </div>
+                              }
+                            </ng-container>
+                          </ignt-list-item>
+
+                          @if (isDepositSelected()) {
+                            <div class="deposit-box-content">
+                              @if (
+                                (currentReservation()?.expirationDate || reservationCart()?.deposit?.expirationDate) &&
+                                !isExpired() &&
+                                expirationDateFormattedForDepositContext()
+                              ) {
+                                <app-reservation-expiration-countdown-alert
+                                  class="deposit-warning-alert"
+                                  [deadline]="expirationDateFormattedForDepositContext()"
+                                  [deadlineLabelKey]="checkoutExpirationCountdownDeadlineLabelKey()"
+                                  [timeLeft]="timeLeftCountdown()"
+                                />
+                              }
+                              <ng-container *ngTemplateOutlet="paymentMethodsTemplate"></ng-container>
+                              <ng-container *ngTemplateOutlet="paymentMethodComponentsTemplate"></ng-container>
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </ignt-radio-group>
+                </form>
+              </div>
+            }
+
+            @if (isDepositInFinalState() || !reservationCart()?.deposit || isBuyNowFlow()) {
+              <div class="countdown-payment-methods-container">
+                <ng-container *ngTemplateOutlet="paymentMethodsTemplate"></ng-container>
+              </div>
+            }
+          } @else {
+            <ng-container *ngTemplateOutlet="noPaymentOptionsTemplateRef"></ng-container>
+          }
+        </ignt-wrapper-card>
+        @if (isTablet()) {
+          <ignt-divider [margin]="false" class="payment-selector-divider"></ignt-divider>
+        }
+        @if (shouldShowPaymentOptions() && (isDepositInFinalState() || !reservationCart()?.deposit || isBuyNowFlow())) {
+          <ng-container *ngTemplateOutlet="paymentMethodComponentsTemplate"></ng-container>
+        }
+
+        @if (shouldShowPaymentOptions() && showTermsCheckbox() && termsAndConditionsUrl()) {
+          <app-deposit-terms-checkbox
+            [termsAndConditionsUrl]="termsAndConditionsUrl()!"
+            [agreeToTerms]="agreeToTermsValue()"
+            [disabled]="isTermsCheckboxDisabled()"
+            [showError]="showTermsError()"
+            (agreeToTermsChange)="onAgreeToTermsChange($event)"
+          />
+        }
+
+        @if (hasPlaceholderEmail()) {
+          <div class="placeholder-email-alert-bottom-container">
+            <ignt-alert
+              sentiment="warning"
+              [title]="'reservation.checkout.placeholderEmailWarning.title' | translate"
+              [description]="'reservation.checkout.placeholderEmailWarning.description' | translate"
+            />
+          </div>
+        }
+
+        @if (shouldShowPaymentOptions()) {
+          @if (!isTablet()) {
+            <div class="payment-selector-buttons">
+              <ng-container *ngTemplateOutlet="paymentButtonsTemplate"></ng-container>
+            </div>
+          }
+          @if (isTablet()) {
+            <bottom-slider [buttonsTemplate]="paymentButtonsTemplate"> </bottom-slider>
+          }
+
+          <ng-template #paymentButtonsTemplate>
+            @if (!isBalanceInBadState()) {
+              <button
+                igntButton
+                sentiment="primary"
+                [fill]="true"
+                [disabled]="isConfirmButtonDisabled()"
+                [loading]="isPersistingExternalReservationId()"
+                (click)="handlePaymentConfirm()"
+                data-testid="checkout-confirm-button"
+              >
+                {{ getConfirmButtonLabel() | translate }}
+              </button>
+            }
+            <button
+              igntButton
+              sentiment="secondary"
+              (click)="goBack()"
+              [fill]="true"
+              [disabled]="isPersistingExternalReservationId()"
+              data-testid="payment-selector-back-button"
+            >
+              {{ backButtonLabel() | translate }}
+            </button>
+          </ng-template>
+        }
+        @if (isTablet()) {
+          <ignt-divider [margin]="false" class="payment-selector-divider"></ignt-divider>
+        }
+
+        <ng-template #noPaymentOptionsTemplateRef>
+          @if (noPaymentOptionsTemplate() === 'expiredReservationTemplate') {
+            <ng-container *ngTemplateOutlet="expiredReservationTemplate"></ng-container>
+          } @else {
+            <ng-container *ngTemplateOutlet="zeroAmountTemplate"></ng-container>
+          }
+          <ng-template #zeroAmountTemplate>
+            <ng-container *ngTemplateOutlet="zeroAmountTemplateRef"></ng-container>
+          </ng-template>
+        </ng-template>
+
+        <ng-template #zeroAmountTemplateRef>
+          @if (activeCart(); as cart) {
+            <app-payment-method-zero-amount
+              (goBackEvent)="goBack()"
+              (confirmEvent)="handleZeroAmountConfirm()"
+              [cart]="cart"
+              [reservation]="currentReservation()"
+              [triggerConfirm]="triggerFreeConfirm"
+              [isPersisting]="isPersistingExternalReservationId()"
+            />
+          }
+        </ng-template>
+
+        <ng-template #expiredReservationTemplate>
+          <div class="expired-reservation-actions">
+            <div class="expired-reservation-actions__title">
+              {{ 'reservation.checkout.paymentSelector.expiredReservationMessage' | translate }}
+            </div>
+            <div class="expired-reservation-actions__buttons">
+              <button igntButton sentiment="secondary" (click)="goBack()" [fill]="true">
+                {{ 'reservation.checkout.paymentSelector.back' | translate }}
+              </button>
+              <button
+                igntButton
+                sentiment="primary"
+                class="expired-reservation-actions__send-button"
+                (click)="navigateToCreateReservation()"
+                [fill]="true"
+              >
+                {{ 'reservations.expiredReservation.modal.accept' | translate }}
+              </button>
+            </div>
+          </div>
+        </ng-template>
+      }
+    </div>
+  } @else {
+    <ng-container *ngTemplateOutlet="loadingTemplate"></ng-container>
+  }
+
+  <ng-template #loadingTemplate>
+    <div class="reservation-checkout-payment-selector__loading">
+      <ignt-skeleton type="list" alignment="center" [animation]="true" [height]="100"> </ignt-skeleton>
+      <div class="reservation-checkout-payment-selector__loading-items">
+        <ignt-skeleton-base alignment="center" [animation]="true" [height]="100" [width]="'100'"> </ignt-skeleton-base>
+        <ignt-skeleton-base alignment="center" [animation]="true" [height]="100" [width]="'100'"> </ignt-skeleton-base>
+        <ignt-skeleton-base alignment="center" [animation]="true" [height]="100" [width]="'100'"> </ignt-skeleton-base>
+      </div>
+      <div class="reservation-checkout-payment-selector__loading-items">
+        <ignt-skeleton-base alignment="center" [animation]="true" [height]="100" [width]="'100'"> </ignt-skeleton-base>
+        <ignt-skeleton-base alignment="center" [animation]="true" [height]="100" [width]="'100'"> </ignt-skeleton-base>
+        <ignt-skeleton-base alignment="center" [animation]="true" [height]="100" [width]="'100'"> </ignt-skeleton-base>
+      </div>
+    </div>
+    <div class="reservation-checkout-payment-selector__loading-buttons">
+      <button igntButton sentiment="secondary" [disabled]="true" [fill]="true">
+        {{ 'reservation.checkout.paymentSelector.back' | translate }}
+      </button>
+      <button igntButton sentiment="primary" [disabled]="true" [fill]="true">
+        {{ 'reservation.checkout.paymentSelector.confirm' | translate }}
+      </button>
+    </div>
+  </ng-template>
+
+  <ng-template #noReservationErrorTemplate>
+    <ignt-alert sentiment="danger" [description]="'reservation.checkout.paymentSelector.noReservationError' | translate" />
+  </ng-template>
+
+  <ng-template #paymentMethodsTemplate>
+    <div class="payment-methods-section">
+      <div class="payment-methods-section__title">
+        {{ 'reservation.checkout.paymentMethod' | translate }}
+      </div>
+      @if (paymentMethods().length) {
+        <form [formGroup]="paymentForm">
+          <ignt-radio-group formControlName="paymentMethod" class="reservation-checkout-payment-selector__radio-group">
+            @if (!isTablet()) {
+              <div class="reservation-checkout-payment-selector__payment-methods-list">
+                @for (paymentMethod of paymentMethods(); track paymentMethod.value) {
+                  <ignt-list-item
+                    [title]="paymentMethod.label"
+                    [description]="paymentMethod.description ?? ''"
+                    [selected]="selectedPaymentMethod() === paymentMethod.value"
+                    (click)="selectPaymentMethod(paymentMethod.value)"
+                    [type]="isTablet() ? 'unwrapped' : 'default'"
+                  >
+                    <ng-container leading-modifier>
+                      <ignt-radio
+                        [value]="paymentMethod.value"
+                        [name]="'paymentMethod'"
+                        [checked]="selectedPaymentMethod() === paymentMethod.value"
+                        (change)="selectPaymentMethod(paymentMethod.value)"
+                        [attr.data-testid]="'payment-method-item-' + paymentMethod.value"
+                      />
+                    </ng-container>
+                  </ignt-list-item>
+                }
+              </div>
+            }
+
+            @if (isTablet()) {
+              <div class="reservation-checkout-payment-selector__payment-methods-list">
+                @for (paymentMethod of paymentMethods(); track paymentMethod.value) {
+                  <ignt-radio
+                    [label]="paymentMethod.label"
+                    [description]="paymentMethod.description ?? ''"
+                    [value]="paymentMethod.value"
+                    [name]="'paymentMethod'"
+                    [checked]="selectedPaymentMethod() === paymentMethod.value"
+                    (change)="selectPaymentMethod(paymentMethod.value)"
+                    [attr.data-testid]="'payment-method-item-' + paymentMethod.value"
+                    size="small"
+                  />
+                }
+              </div>
+            }
+          </ignt-radio-group>
+        </form>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template #paymentMethodComponentsTemplate>
+    <div
+      class="payment-methods-section__content"
+      [class.payment-methods-section__content--standalone]="
+        depositCheckoutTranslationsEnabled() && (!reservationCart()?.deposit || isDepositInFinalState())
+      "
+    >
+      @switch (selectedPaymentMethod()) {
+        @case (paymentMethodsEnum.CARD) {
+          <app-payment-method-card [cart]="activeCart()" [triggerConfirm]="triggerCardConfirm" />
+        }
+        @case (paymentMethodsEnum.PAYMENT_LINK) {
+          @if (currentReservation(); as reservation) {
+            <app-payment-method-payment-link
+              [cart]="activeCart()"
+              [reservation]="reservation"
+              [triggerConfirm]="triggerPaymentLinkConfirm"
+              (loadingChange)="onPaymentLinkLoadingChange($event)"
+            />
+          } @else {
+            <ng-container *ngTemplateOutlet="noReservationErrorTemplate"></ng-container>
+          }
+        }
+        @case (paymentMethodsEnum.BOX_OFFICE) {
+          @if (activeCart(); as cart) {
+            <app-payment-method-pay-at-box-office [cart]="cart" [triggerConfirm]="triggerPayAtBoxOfficeConfirm" />
+          }
+        }
+        @case (paymentMethodsEnum.MARK_AS_PAID) {
+          @if (currentReservation(); as reservation) {
+            <app-payment-method-mark-as-paid
+              [cart]="activeCart()"
+              [reservation]="reservation"
+              [triggerConfirm]="triggerMarkAsPaidConfirm"
+            />
+          } @else {
+            <ng-container *ngTemplateOutlet="noReservationErrorTemplate"></ng-container>
+          }
+        }
+        @case (paymentMethodsEnum.BALANCE) {
+          <app-payment-method-balance [balance]="balance()" [cart]="activeCart()" [triggerConfirm]="triggerBalanceConfirm" />
+        }
+      }
+    </div>
+  </ng-template>
+</ignt-wrapper-card>

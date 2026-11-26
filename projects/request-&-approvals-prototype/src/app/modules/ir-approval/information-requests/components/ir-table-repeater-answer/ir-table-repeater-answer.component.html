@@ -1,0 +1,135 @@
+<div class="ir-table-repeater" [attr.data-testid]="testId">
+  @if (columns.length > 0) {
+    <ul class="ir-table-repeater__rows">
+      @for (row of rows; track trackRow($index, row); let i = $index) {
+        <li class="ir-table-repeater__row" [attr.data-testid]="testId + '-row-' + i">
+          <div class="ir-table-repeater__row-header">
+            <span class="ir-table-repeater__row-label">
+              {{ 'informationRequests.question.tableRepeater.rowLabel' | translate: { index: i + 1 } }}
+            </span>
+            <button
+              type="button"
+              class="ir-table-repeater__remove"
+              [disabled]="readOnly || rows.length <= minRows"
+              (click)="removeRow(i)"
+              [attr.data-testid]="testId + '-remove-' + i"
+            >
+              {{ 'informationRequests.question.tableRepeater.removeRow' | translate }}
+            </button>
+          </div>
+          <div class="ir-table-repeater__fields">
+            @for (col of columns; track trackColumn($index, col)) {
+              <div class="ir-table-repeater__field" [class.ir-table-repeater__field--wide]="col.type === 'textarea'">
+                <label class="ir-table-repeater__field-label" [attr.for]="testId + '-cell-' + i + '-' + col.id">
+                  {{ col.label | irCatalogKey | translate }}
+                </label>
+                @switch (col.type) {
+                  @case ('textarea') {
+                    <textarea
+                      class="form-control"
+                      rows="2"
+                      [id]="testId + '-cell-' + i + '-' + col.id"
+                      [disabled]="readOnly"
+                      [value]="cellValue(row, col.id)"
+                      (input)="onCellChange(i, col, $any($event.target).value)"
+                      [attr.data-testid]="testId + '-cell-' + i + '-' + col.id"
+                    ></textarea>
+                  }
+                  @case ('picklist') {
+                    <select
+                      class="form-select"
+                      [id]="testId + '-cell-' + i + '-' + col.id"
+                      [disabled]="readOnly"
+                      [value]="cellValue(row, col.id)"
+                      (change)="onCellChange(i, col, $any($event.target).value)"
+                      [attr.data-testid]="testId + '-cell-' + i + '-' + col.id"
+                    >
+                      @for (opt of col.options ?? []; track opt) {
+                        <option [value]="opt">
+                          {{ (opt | irCatalogKey | translate) || ('informationRequests.question.tableRepeater.blankOption' | translate) }}
+                        </option>
+                      }
+                    </select>
+                  }
+                  @case ('number') {
+                    <input
+                      type="number"
+                      class="form-control"
+                      [id]="testId + '-cell-' + i + '-' + col.id"
+                      [disabled]="readOnly"
+                      [value]="cellValue(row, col.id)"
+                      (input)="onCellChange(i, col, $any($event.target).value)"
+                      [attr.data-testid]="testId + '-cell-' + i + '-' + col.id"
+                    />
+                  }
+                  @case ('percentage') {
+                    <input
+                      type="number"
+                      class="form-control"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      [id]="testId + '-cell-' + i + '-' + col.id"
+                      [disabled]="readOnly"
+                      [value]="cellValue(row, col.id)"
+                      (input)="onCellChange(i, col, $any($event.target).value)"
+                      [attr.data-testid]="testId + '-cell-' + i + '-' + col.id"
+                    />
+                  }
+                  @case ('date') {
+                    <input
+                      type="date"
+                      class="form-control"
+                      [id]="testId + '-cell-' + i + '-' + col.id"
+                      [disabled]="readOnly"
+                      [value]="cellValue(row, col.id)"
+                      (input)="onCellChange(i, col, $any($event.target).value)"
+                      [attr.data-testid]="testId + '-cell-' + i + '-' + col.id"
+                    />
+                  }
+                  @case ('time') {
+                    <input
+                      type="time"
+                      class="form-control"
+                      [id]="testId + '-cell-' + i + '-' + col.id"
+                      [disabled]="readOnly"
+                      [value]="cellValue(row, col.id)"
+                      (input)="onCellChange(i, col, $any($event.target).value)"
+                      [attr.data-testid]="testId + '-cell-' + i + '-' + col.id"
+                    />
+                  }
+                  @default {
+                    <input
+                      type="text"
+                      class="form-control"
+                      [id]="testId + '-cell-' + i + '-' + col.id"
+                      [disabled]="readOnly"
+                      [value]="cellValue(row, col.id)"
+                      (input)="onCellChange(i, col, $any($event.target).value)"
+                      [attr.data-testid]="testId + '-cell-' + i + '-' + col.id"
+                    />
+                  }
+                }
+              </div>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+    <button
+      igntButton
+      sentiment="secondary"
+      type="button"
+      class="ir-table-repeater__add"
+      [disabled]="readOnly"
+      (click)="addRow()"
+      [attr.data-testid]="testId + '-add'"
+    >
+      {{ addRowLabelKey | translate }}
+    </button>
+  } @else {
+    <p class="ir-table-repeater__empty" [attr.data-testid]="testId + '-no-columns'">
+      {{ 'informationRequests.question.tableRepeater.noColumns' | translate }}
+    </p>
+  }
+</div>

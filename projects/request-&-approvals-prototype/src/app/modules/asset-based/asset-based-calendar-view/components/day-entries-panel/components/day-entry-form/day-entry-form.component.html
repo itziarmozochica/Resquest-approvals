@@ -1,0 +1,96 @@
+<form class="day-entry-form" data-testid="day-entry-form" (ngSubmit)="onSubmitClick()">
+  <div class="day-entry-form__field">
+    <ignt-input-field
+      type="text"
+      [label]="'bookedSlots.dayEntries.form.titleLabel' | translate"
+      [placeholder]="'bookedSlots.dayEntries.form.titlePlaceholder' | translate"
+      [maxlength]="titleMaxLength"
+      [ngModel]="title()"
+      [ngModelOptions]="{ standalone: true }"
+      (ngModelChange)="onTitleChange($event)"
+      data-testid="day-entry-form-title"
+    ></ignt-input-field>
+  </div>
+
+  <div class="day-entry-form__field">
+    <ignt-typeahead
+      [fieldLabel]="'bookedSlots.dayEntries.form.categoryLabel' | translate"
+      [options]="categoryOptions()"
+      [selectedOption]="selectedCategoryOption()"
+      [emptyLabel]="'bookedSlots.dayEntries.form.categoryPlaceholder' | translate"
+      [detachedPopup]="hasDetachedDropdowns"
+      (selected)="onCategoryChange($event)"
+      data-testid="day-entry-form-category"
+    ></ignt-typeahead>
+  </div>
+
+  <div class="day-entry-form__time">
+    <ignt-checkbox
+      size="small"
+      [checked]="allDay()"
+      [label]="'bookedSlots.dayEntries.form.allDayLabel' | translate"
+      (change)="onAllDayChange($event)"
+      dataTestId="day-entry-form-all-day"
+    ></ignt-checkbox>
+    @if (!allDay()) {
+      <ignt-input-field
+        type="time"
+        appNativePicker
+        [trailIcon]="['fal', 'clock']"
+        [trailIconAriaLabel]="'common.openTimePicker' | translate"
+        class="day-entry-form__time-field"
+        [label]="'bookedSlots.dayEntries.form.timeLabel' | translate"
+        [ngModel]="startsAtLocalTime()"
+        [ngModelOptions]="{ standalone: true }"
+        (ngModelChange)="onStartTimeChange($event)"
+        data-testid="day-entry-form-time"
+      ></ignt-input-field>
+    }
+  </div>
+
+  <div class="day-entry-form__field">
+    <ignt-textarea-field
+      [label]="'bookedSlots.dayEntries.form.descriptionLabel' | translate"
+      [placeholder]="'bookedSlots.dayEntries.form.descriptionPlaceholder' | translate"
+      [maxlength]="descriptionMaxLength"
+      [rows]="4"
+      [ngModel]="description()"
+      [ngModelOptions]="{ standalone: true }"
+      (ngModelChange)="onDescriptionChange($event)"
+      data-testid="day-entry-form-description"
+    ></ignt-textarea-field>
+  </div>
+
+  <p class="day-entry-form__disclaimer" data-testid="day-entry-form-disclaimer">
+    {{ 'bookedSlots.dayEntries.form.availabilityDisclaimer' | translate }}
+  </p>
+
+  <footer class="day-entry-form__footer">
+    <!--
+      A plain button with an explicit click, not `htmlType="submit"`: the design-system button
+      renders its own inner element, which the form's native submission does not reach.
+    -->
+    <ignt-button
+      [fill]="true"
+      variant="primary"
+      [disabled]="!canSubmit()"
+      [loading]="isSubmitting()"
+      [label]="(isEditing() ? 'bookedSlots.dayEntries.form.save' : 'bookedSlots.dayEntries.form.create') | translate"
+      (click)="onSubmitClick()"
+      data-testid="day-entry-form-submit"
+    />
+    <!--
+      Disabled while the write is in flight: cancelling cannot stop the request, so leaving it
+      enabled closed the form while the entry still landed — and the settle handler then closed
+      whatever form had been opened since, discarding that draft without asking.
+    -->
+    <ignt-button
+      [fill]="true"
+      variant="secondary"
+      [disabled]="isSubmitting()"
+      [label]="'common.cancel' | translate"
+      (click)="onCancelClick()"
+      data-testid="day-entry-form-cancel"
+    />
+  </footer>
+</form>

@@ -1,0 +1,85 @@
+@if (visible()) {
+  <section class="occupancy-scope" data-testid="occupancy-scope">
+    @if (loadFailed()) {
+      <div class="occupancy-scope__bar">
+        <span class="occupancy-scope__label">{{ 'inventory.dynamicPricing.occupancyScope.label' | translate }}</span>
+        <span class="occupancy-scope__value occupancy-scope__value--empty">
+          {{ 'inventory.dynamicPricing.occupancyScope.errors.loadFailed' | translate }}
+        </span>
+        <span class="occupancy-scope__spacer"></span>
+        <ignt-button
+          variant="tertiary"
+          size="small"
+          data-testid="occupancy-scope-retry"
+          [label]="'inventory.dynamicPricing.occupancyScope.actions.retry' | translate"
+          (click)="onRetry()"
+        ></ignt-button>
+      </div>
+    } @else {
+      <div class="occupancy-scope__bar" [class.occupancy-scope__bar--open]="expanded()">
+        <span class="occupancy-scope__label">{{ 'inventory.dynamicPricing.occupancyScope.label' | translate }}</span>
+        <span class="occupancy-scope__value" data-testid="occupancy-scope-value">{{ scopeLabelKey() | translate }}</span>
+        <ignt-icon
+          class="occupancy-scope__info"
+          igntTooltip
+          name="info-circle"
+          variant="regular"
+          size="base"
+          [tooltipLabel]="'inventory.dynamicPricing.occupancyScope.tooltip' | translate"
+        />
+        @if (cadence() !== null) {
+          <ignt-tag data-testid="occupancy-scope-cadence" [sentiment]="cadenceSentiment()">
+            {{ cadenceLabelKey() | translate }}
+          </ignt-tag>
+        }
+        <span class="occupancy-scope__spacer"></span>
+        <ignt-button
+          variant="tertiary"
+          size="small"
+          data-testid="occupancy-scope-toggle"
+          [label]="
+            (expanded() ? 'inventory.dynamicPricing.occupancyScope.actions.close' : 'inventory.dynamicPricing.occupancyScope.actions.view')
+              | translate
+          "
+          (click)="onToggle()"
+        ></ignt-button>
+      </div>
+
+      @if (expanded()) {
+        @if (isLegacy()) {
+          @if (showLegacySchedule()) {
+            <p class="occupancy-scope__hint" data-testid="occupancy-scope-legacy-hint">
+              {{ 'inventory.dynamicPricing.occupancyScope.legacyHint' | translate }}
+            </p>
+          }
+        } @else {
+          <div class="occupancy-scope__options">
+            @for (option of options; track option.value) {
+              <ignt-radio
+                name="occupancy-scope"
+                [checked]="scope() === option.value"
+                [disabled]="true"
+                [dataTestId]="'occupancy-scope-option-' + option.value"
+                [description]="option.descriptionKey | translate"
+                [label]="option.labelKey | translate"
+                [value]="option.value"
+              />
+            }
+          </div>
+        }
+
+        <div class="occupancy-scope__notice">
+          <ignt-alert
+            data-testid="occupancy-scope-read-only-notice"
+            sentiment="info"
+            [description]="'inventory.dynamicPricing.occupancyScope.readOnlyNotice' | translate"
+          ></ignt-alert>
+        </div>
+      }
+
+      @if (warningText(); as warning) {
+        <ignt-alert data-testid="occupancy-scope-warning" sentiment="warning" [description]="warning" />
+      }
+    }
+  </section>
+}

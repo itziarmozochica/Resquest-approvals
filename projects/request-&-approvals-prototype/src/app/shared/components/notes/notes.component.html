@@ -1,0 +1,141 @@
+@if (
+  !tileLayout() &&
+  (isCustomerNotesEnabled() ? newNoteAudiences().length > 0 || isSavingCustomerNote() : hasRequiredPermission) &&
+  !hasAnyNote()
+) {
+  <ignt-list-item
+    [title]="'boxOffice.order.notes.title' | translate"
+    [leadingIcon]="['fal', 'file-alt']"
+    [divider]="false"
+    [clickable]="false"
+    class="notes__empty-state"
+    data-testid="notes-empty-state"
+  >
+    <ng-container trailing-modifier>
+      @if (!isSavingCustomerNote()) {
+        <a
+          igntLink
+          sentiment="primary"
+          size="base"
+          class="notes__add-link"
+          data-testid="notes-add-link"
+          (click)="onAddNote(); $event.stopPropagation()"
+        >
+          {{ 'boxOffice.order.notes.addNew' | translate }}
+        </a>
+      }
+    </ng-container>
+  </ignt-list-item>
+}
+
+@if (!tileLayout() && hasAnyNote()) {
+  <ignt-expansion-panel
+    [title]="'boxOffice.order.notes.title' | translate"
+    [icon]="['fal', 'file-alt']"
+    [isCollapsed]="isCollapsed"
+    [elevation]="0"
+    [badgeCount]="noteCount()"
+    class="notes"
+  >
+    <app-notes-entries
+      [canAddNote]="newNoteAudiences().length > 0"
+      [canEditStaffNote]="hasRequiredPermission"
+      [canEditCustomerNotes]="!customerNotesReadOnly()"
+      [customerNotes]="customerNotes()"
+      [showAudienceTags]="isCustomerNotesEnabled()"
+      [staffEditLabelKey]="isAppendOnlyHistoryEnabled ? 'boxOffice.order.notes.addNew' : 'boxOffice.order.notes.editTitle'"
+      [staffNote]="unifiedNote()"
+      (addNote)="onAddNote()"
+      (editCustomerNote)="onEditCustomerNote($event)"
+      (editStaffNote)="onEditLinkClick($event)"
+    />
+  </ignt-expansion-panel>
+}
+
+@if (tileLayout() && ((isCustomerNotesEnabled() ? newNoteAudiences().length > 0 : hasRequiredPermission) || hasAnyNote())) {
+  <app-order-section-tile [title]="'boxOffice.order.notes.title' | translate" [count]="hasAnyNote() ? (noteCount() ?? 1) : null">
+    @if (hasAnyNote()) {
+      <app-notes-entries
+        [canAddNote]="newNoteAudiences().length > 0"
+        [canEditStaffNote]="hasRequiredPermission"
+        [canEditCustomerNotes]="!customerNotesReadOnly()"
+        [customerNotes]="customerNotes()"
+        [showAudienceTags]="isCustomerNotesEnabled()"
+        [staffEditLabelKey]="isAppendOnlyHistoryEnabled ? 'boxOffice.order.notes.addNew' : 'boxOffice.order.notes.editTitle'"
+        [staffNote]="unifiedNote()"
+        (addNote)="onAddNote()"
+        (editCustomerNote)="onEditCustomerNote($event)"
+        (editStaffNote)="onEditLinkClick($event)"
+      />
+    } @else {
+      <ignt-button
+        class="notes__add-button"
+        htmlType="button"
+        variant="secondary"
+        size="small"
+        data-testid="notes-add-link"
+        [label]="'boxOffice.order.notes.addNew' | translate"
+        (click)="onAddNote(); $event.stopPropagation()"
+      />
+    }
+  </app-order-section-tile>
+}
+
+<app-lateral-slider
+  [showDetails]="draft() !== null"
+  [contentTemplate]="editNoteDetail"
+  [title]="
+    draft()?.mode === NoteEditFormMode.Update
+      ? ('boxOffice.order.notes.editTitle' | translate)
+      : ('boxOffice.order.notes.newNote' | translate)
+  "
+  (closeSlider)="hideNoteDetails()"
+>
+</app-lateral-slider>
+
+<ng-template #editNoteDetail>
+  <app-notes-edit-form
+    [timezone]="localTimezone"
+    [isAppendOnlyMode]="isAppendOnlyHistoryEnabled"
+    [note]="draft()?.note ?? null"
+    [mode]="draft()?.mode ?? NoteEditFormMode.Update"
+    [audience]="draft()?.audience ?? noteAudience.Internal"
+    [availableAudiences]="draft()?.availableAudiences ?? []"
+    [hasSaveError]="draft()?.hasSaveError ?? false"
+    [pendingChanges]="draft()?.pendingChanges ?? null"
+    [showValidationAppMessage]="showValidationAppMessage"
+    (audienceChange)="onAudienceChange($event)"
+    (formChanges)="processFormChanges($event)"
+    (deleteNote)="onDeleteNote()"
+  >
+    @if (isAppendOnlyHistoryEnabled && draft()?.audience !== noteAudience.Customer && timelineEntries().length > 0) {
+      <div append-only-extra class="notes__timeline">
+        <div class="notes__timeline-title">{{ 'boxOffice.order.notes.detailsTitle' | translate }}</div>
+
+        <div class="notes__timeline-list">
+          @for (entry of timelineEntries(); track trackTimelineEntry($index, entry)) {
+            <div class="notes__timeline-item">
+              <div class="notes__timeline-marker"></div>
+
+              <div class="notes__timeline-card">
+                <div class="notes__timeline-entry-header">
+                  @if (entry.title) {
+                    <div class="notes__timeline-entry-title">{{ entry.title }}</div>
+                  }
+                  @if (entry.createdAt) {
+                    <div class="notes__timeline-entry-date">{{ entry.createdAt | momentDate: 'd MMM HH:mm' }}</div>
+                  }
+                </div>
+
+                <div class="notes__timeline-entry-username">
+                  {{ entry.author.email || ('boxOffice.order.notes.unknownUser' | translate) }}
+                </div>
+                <app-notes-timeline-message [message]="entry.message" />
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </app-notes-edit-form>
+</ng-template>

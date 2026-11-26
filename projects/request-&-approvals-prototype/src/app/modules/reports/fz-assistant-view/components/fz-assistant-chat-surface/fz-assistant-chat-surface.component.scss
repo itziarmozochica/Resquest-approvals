@@ -1,0 +1,355 @@
+@use '../../../../../../theme/components/navigation/headerbar/tokens' as headerbar;
+@use 'foundations' as foundations;
+@use 'foundations/effects/shadows' as shadows;
+@use 'foundations/font/font-sizes' as font-sizes;
+
+@import 'abstracts/all';
+
+:host.fz-assistant-chat-surface-host--dock {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+  background-color: foundations.$palette-neutral-white;
+}
+
+.fz-assistant-chat-surface {
+  $suggestions-max-height: foundations.$dimension-30 * 4;
+  display: flex;
+  flex-direction: column;
+  width: rem-calc(620);
+  background-color: foundations.$palette-neutral-white;
+  border-radius: foundations.$radii-4;
+  box-shadow: shadows.$shadow-100;
+  overflow: clip;
+
+  &--modal-body {
+    border-radius: 0;
+    box-shadow: none;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  @media (max-width: 767.98px) {
+    width: 100%;
+    // No self-imposed height cap: the surface sits inside `ignt-dialog-content`, which already
+    // scrolls and is already bounded by the shell's 70vh. Capping here as well made the surface
+    // clip its own last item (`overflow: clip` above) while the willing scroller above it had
+    // nothing left to scroll. `__body` stays capped, so this cannot grow without bound.
+    max-height: none;
+    border-radius: foundations.$radii-4 foundations.$radii-4 0 0;
+
+    &.fz-assistant-chat-surface--modal-body {
+      border-radius: 0;
+    }
+  }
+
+  &__header {
+    align-items: center;
+    background-color: foundations.$palette-neutral-white;
+    border-bottom: $size-px solid foundations.$palette-neutral-200;
+    display: flex;
+    justify-content: space-between;
+    min-height: headerbar.$dimensions-height-large;
+    padding-block: 0;
+    padding-inline: foundations.$space-4;
+    --button-color-background-tertiary-hover: #{foundations.$color-background-primary-weak};
+    --button-color-foreground-tertiary: #{foundations.$color-action-text-primary};
+    --button-color-foreground-tertiary-focus: #{foundations.$color-action-text-primary};
+    --button-color-foreground-tertiary-hover: #{foundations.$palette-primary-700};
+  }
+
+  &__title {
+    align-items: center;
+    color: foundations.$color-text-main;
+    display: flex;
+    font: $font-base-bold;
+    gap: foundations.$space-2;
+  }
+
+  &__history {
+    flex: 0 0 auto;
+    height: min(#{rem-calc(480)}, 60dvh);
+    padding-block-start: foundations.$space-4;
+  }
+
+  &--dock &__history {
+    flex: 1 1 0;
+    height: auto;
+    min-height: 0;
+  }
+
+  &__actions {
+    align-items: center;
+    display: flex;
+    flex-shrink: 0;
+    gap: foundations.$space-1;
+    margin-inline-end: calc(-1 * #{foundations.$space-1});
+  }
+
+  &__body {
+    background-color: foundations.$palette-neutral-white;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    max-height: 0;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0;
+    transition: max-height 0.3s ease;
+  }
+
+  &--dialog.fz-assistant-chat-surface--expanded &__body {
+    max-height: 50vh;
+  }
+
+  &__conversation {
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-6;
+    overflow-x: auto;
+
+    &--loading {
+      align-items: center;
+      background-color: foundations.$palette-neutral-50;
+      justify-content: center;
+      padding: foundations.$space-8 foundations.$space-6;
+    }
+
+    &:not(&--loading) {
+      &:has(> app-chatbot-conversation),
+      &:has(> app-chatbot-loading) {
+        background-color: foundations.$palette-neutral-50;
+        flex: 1;
+        min-height: 0;
+        padding: foundations.$space-6;
+      }
+    }
+  }
+
+  &__welcome-title {
+    margin: 0;
+    padding: foundations.$space-8 foundations.$space-8 foundations.$space-6;
+    font: $font-base-bold;
+    color: foundations.$palette-neutral-900;
+    text-align: center;
+    max-height: rem-calc(200);
+    overflow: hidden;
+    transition:
+      max-height 0.3s ease,
+      padding 0.3s ease;
+  }
+
+  &--dialog.fz-assistant-chat-surface--expanded &__welcome-title {
+    max-height: 0;
+    padding-block: 0;
+  }
+
+  &__prompt-version {
+    display: block;
+    margin: 0 foundations.$space-6 foundations.$space-4;
+    padding-inline: foundations.$space-4;
+  }
+
+  &__input {
+    align-items: end;
+    background-color: foundations.$palette-neutral-white;
+    border: $size-px solid foundations.$palette-neutral-black;
+    border-radius: rem-calc(32);
+    display: grid;
+    gap: foundations.$space-2;
+    grid-template-areas: 'primary trailing';
+    grid-template-columns: 1fr auto;
+    margin: 0 foundations.$space-6 foundations.$space-4;
+    padding: foundations.$space-4;
+    width: auto;
+
+    &:has(+ .fz-assistant-chat-surface__prompt-version) {
+      margin-block-end: foundations.$space-2;
+    }
+
+    &--expanded {
+      grid-template-areas:
+        'primary primary'
+        '.       trailing';
+    }
+
+    .fz-assistant-chat-surface__input-field {
+      grid-area: primary;
+    }
+
+    .fz-assistant-chat-surface__input-icon {
+      grid-area: trailing;
+    }
+  }
+
+  &--dialog.fz-assistant-chat-surface--expanded &__input {
+    margin-block-start: foundations.$space-4;
+    margin-block-end: foundations.$space-4;
+  }
+
+  &__input-field {
+    background: transparent;
+    border: transparent;
+    color: foundations.$palette-neutral-500;
+    font-family: inherit;
+    font-size: font-sizes.$size-small;
+    max-height: 35vh;
+    min-width: 0;
+    outline: none;
+    overflow-y: auto;
+    resize: none;
+    width: 100%;
+
+    /* stylelint-disable-next-line property-no-unknown */
+    field-sizing: content;
+
+    @include media-breakpoint-up(md) {
+      font-size: $font-size-base;
+      color: foundations.$palette-neutral-900;
+    }
+
+    &::placeholder {
+      color: foundations.$palette-neutral-500;
+    }
+
+    &:focus-visible {
+      outline: none;
+    }
+
+    @include media-breakpoint-down(xl) {
+      &:placeholder-shown {
+        mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - #{rem-calc(24)}), transparent 100%);
+        overflow: hidden;
+        white-space: nowrap;
+      }
+    }
+  }
+
+  &__input-icon {
+    align-items: center;
+    background-color: transparent;
+    border: none;
+    border-radius: 50%;
+    color: foundations.$palette-neutral-500;
+    cursor: pointer;
+    display: flex;
+    flex-shrink: 0;
+    height: rem-calc(32);
+    justify-content: center;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+    width: rem-calc(32);
+
+    &--active {
+      background-color: foundations.$palette-neutral-black;
+      color: foundations.$palette-neutral-white;
+    }
+  }
+
+  &__suggestions {
+    max-height: $suggestions-max-height;
+    overflow: hidden;
+    transition:
+      max-height 0.3s ease,
+      padding 0.3s ease;
+    padding: 0 foundations.$space-6 foundations.$space-2;
+    pointer-events: auto;
+
+    // This panel is a full-width vertical list at every width, where the shared component turns
+    // into a centred three-across grid of taller cards at `xl`. So it holds the list vertical and
+    // re-asserts the compact card, which is the shared default below `xl`.
+    ::ng-deep .chatbot-suggestions {
+      flex-direction: column;
+    }
+
+    ::ng-deep .chatbot-suggestions__item {
+      flex-direction: row;
+      align-items: center;
+      width: auto;
+    }
+
+    ::ng-deep .chatbot-suggestions__item-content {
+      flex-direction: row;
+      align-items: center;
+    }
+
+    ::ng-deep .chatbot-suggestions__tags {
+      margin-top: 0;
+    }
+  }
+
+  &--dialog.fz-assistant-chat-surface--expanded &__suggestions {
+    max-height: 0;
+    padding-block: 0;
+    pointer-events: none;
+  }
+
+  &__footer {
+    padding: foundations.$space-3 foundations.$space-6 foundations.$space-4;
+    font: $font-caption-regular;
+    color: foundations.$palette-neutral-500;
+    text-align: center;
+  }
+
+  &--dock {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    width: 100%;
+    border-radius: 0;
+    box-shadow: none;
+    border-inline-start: $size-px solid foundations.$palette-neutral-200;
+
+    .fz-assistant-chat-surface__body {
+      max-height: none;
+      flex: 1;
+      min-height: 0;
+    }
+
+    &.fz-assistant-chat-surface--expanded .fz-assistant-chat-surface__body {
+      max-height: none;
+    }
+
+    .fz-assistant-chat-surface__welcome-title {
+      flex-shrink: 0;
+    }
+
+    &.fz-assistant-chat-surface--expanded .fz-assistant-chat-surface__welcome-title {
+      max-height: 0;
+      padding-block: 0;
+    }
+
+    .fz-assistant-chat-surface__input {
+      flex-shrink: 0;
+    }
+
+    &.fz-assistant-chat-surface--expanded .fz-assistant-chat-surface__input {
+      margin-block-start: foundations.$space-4;
+      margin-block-end: foundations.$space-4;
+    }
+
+    // The dock is height-bound by the viewport and has no scrolling ancestor of its own, so the
+    // list has to give ground and scroll here. The dialog does NOT need this — `ignt-dialog-content`
+    // already scrolls — and adding it there gives two nested scrollbars.
+    .fz-assistant-chat-surface__suggestions {
+      flex-shrink: 1;
+      min-height: 0;
+      overflow-y: auto;
+    }
+
+    &.fz-assistant-chat-surface--expanded .fz-assistant-chat-surface__suggestions {
+      max-height: 0;
+      padding-block: 0;
+      pointer-events: none;
+      overflow-y: hidden;
+    }
+
+    .fz-assistant-chat-surface__footer {
+      flex-shrink: 0;
+    }
+  }
+}

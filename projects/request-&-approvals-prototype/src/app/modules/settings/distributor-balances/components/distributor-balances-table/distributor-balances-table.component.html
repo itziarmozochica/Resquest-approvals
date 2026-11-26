@@ -1,0 +1,63 @@
+<ignt-table
+  class="distributor-balances-table"
+  data-testid="distributor-balances-table"
+  [data]="partners()"
+  [isLoading]="isLoading()"
+  [hasServerSidePagination]="hasMoreThanOnePage()"
+  [pageIndex]="pageIndex()"
+  [pageSize]="itemsPerPage()"
+  [totalRowCount]="count()"
+  (paginationChange)="pageChange.emit($event.pageIndex)"
+>
+  <ignt-table-column key="partnerName" columnType="primary" [header]="'businessManagement.balances.table.partner' | translate">
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      <span data-testid="distributor-balances-partner">
+        {{ item.partnerName ?? ('businessManagement.balances.unknownPartner' | translate) }}
+      </span>
+    </ng-template>
+  </ignt-table-column>
+
+  <ignt-table-column key="businessType" columnType="secondary" [header]="'businessManagement.balances.table.businessType' | translate">
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      @if (item.businessType) {
+        <span class="distributor-balances-table__chip" data-testid="distributor-balances-business-type">
+          {{ 'businessManagement.' + item.businessType | translate }}
+        </span>
+      } @else {
+        <span class="distributor-balances-table__none" data-testid="distributor-balances-business-type">—</span>
+      }
+    </ng-template>
+  </ignt-table-column>
+
+  @if (isBalanceColumnVisible()) {
+    <ignt-table-column
+      key="amount"
+      align="right"
+      columnType="secondary"
+      [header]="'businessManagement.balances.table.availableBalance' | translate"
+    >
+      <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+        <div class="distributor-balances-table__balance">
+          @if (item.amount === null) {
+            <span class="distributor-balances-table__none" data-testid="distributor-balances-amount">
+              {{ 'businessManagement.balances.table.noCreditBalance' | translate }}
+            </span>
+          } @else {
+            <span data-testid="distributor-balances-amount">
+              {{ { amount: item.amount, currency: item.currency } | money: locale }}
+            </span>
+            @if (item.lastUpdate) {
+              <time
+                class="distributor-balances-table__last-update"
+                data-testid="distributor-balances-last-update"
+                [attr.datetime]="item.lastUpdate"
+              >
+                {{ 'businessManagement.balances.table.updatedAt' | translate: { date: item.lastUpdate | date: 'short' } }}
+              </time>
+            }
+          }
+        </div>
+      </ng-template>
+    </ignt-table-column>
+  }
+</ignt-table>

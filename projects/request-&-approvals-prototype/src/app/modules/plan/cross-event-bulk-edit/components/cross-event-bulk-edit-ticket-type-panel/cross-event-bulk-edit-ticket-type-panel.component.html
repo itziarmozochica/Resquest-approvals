@@ -1,0 +1,180 @@
+<ignt-dialog-header data-testid="cross-event-bulk-edit-ticket-types-title">
+  {{ 'listPlan.crossEventBulkEdit.ticketTypes.title' | translate }}
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="cross-event-bulk-edit-ticket-type-panel" data-testid="cross-event-bulk-edit-ticket-type-panel">
+    @if (loadFailed()) {
+      <ignt-alert
+        data-testid="cross-event-bulk-edit-ticket-types-error"
+        sentiment="danger"
+        [description]="'listPlan.crossEventBulkEdit.ticketTypes.error' | translate"
+      />
+    }
+
+    @if (isLoading()) {
+      <p data-testid="cross-event-bulk-edit-ticket-types-loading">{{ 'common.loading' | translate }}</p>
+    } @else if (!loadFailed() && rows().length === 0) {
+      <p data-testid="cross-event-bulk-edit-ticket-types-empty">{{ 'listPlan.crossEventBulkEdit.ticketTypes.empty' | translate }}</p>
+    }
+
+    @if (!isLoading() && rows().length > 0) {
+      <ignt-input-field
+        class="cross-event-bulk-edit-ticket-type-panel__search"
+        id="cross-event-bulk-edit-ticket-types-search"
+        [formControl]="searchControl"
+        [label]="''"
+        [leadIcon]="searchLeadIcon"
+        [placeholder]="'listPlan.crossEventBulkEdit.ticketTypes.search' | translate"
+      />
+
+      @if (isTicketTypeSelectionFull()) {
+        <ignt-alert
+          data-testid="cross-event-bulk-edit-ticket-types-selection-limit"
+          sentiment="warning"
+          [description]="'listPlan.crossEventBulkEdit.ticketTypes.selectionLimit' | translate: { limit: selectionLimit }"
+        />
+      }
+
+      <div class="cross-event-bulk-edit-ticket-type-panel__header">
+        <div class="cross-event-bulk-edit-ticket-type-panel__ticket-type">
+          <ignt-checkbox
+            [ariaLabel]="'listPlan.crossEventBulkEdit.ticketTypes.selectAll' | translate"
+            [checked]="isSelectAllChecked()"
+            data-testid="cross-event-bulk-edit-ticket-types-select-all"
+            dataTestId="cross-event-bulk-edit-ticket-types-select-all"
+            (change)="onToggleAll()"
+          />
+          <span>{{ 'listPlan.crossEventBulkEdit.ticketTypes.ticketTypeColumn' | translate }}</span>
+        </div>
+        <ignt-button
+          class="cross-event-bulk-edit-ticket-type-panel__sort"
+          data-testid="cross-event-bulk-edit-ticket-types-sort-group"
+          sentiment="neutral"
+          size="small"
+          variant="tertiary"
+          [label]="'listPlan.crossEventBulkEdit.ticketTypes.groupColumn' | translate"
+          [trailingIcon]="groupSortIcon()"
+          (click)="onSort('group')"
+        />
+        <ignt-button
+          class="cross-event-bulk-edit-ticket-type-panel__sort"
+          data-testid="cross-event-bulk-edit-ticket-types-sort-appears-in"
+          sentiment="neutral"
+          size="small"
+          variant="tertiary"
+          [label]="'listPlan.crossEventBulkEdit.ticketTypes.appearsInColumn' | translate"
+          [trailingIcon]="appearsInSortIcon()"
+          (click)="onSort('appearsIn')"
+        />
+      </div>
+
+      @if (visibleRows().length === 0) {
+        <p data-testid="cross-event-bulk-edit-ticket-types-empty">{{ 'listPlan.crossEventBulkEdit.ticketTypes.empty' | translate }}</p>
+      } @else {
+        <ul class="cross-event-bulk-edit-ticket-type-panel__rows">
+          @for (row of visibleRows(); track row.key) {
+            <li
+              class="cross-event-bulk-edit-ticket-type-panel__row"
+              [class.cross-event-bulk-edit-ticket-type-panel__row--expanded]="isExpanded(row.key)"
+              [attr.data-testid]="'cross-event-bulk-edit-ticket-type-' + row.sessionTypeIds[0]"
+            >
+              <div class="cross-event-bulk-edit-ticket-type-panel__ticket-type">
+                <ignt-checkbox
+                  [ariaLabel]="row.label"
+                  [attr.data-testid]="'cross-event-bulk-edit-ticket-type-checkbox-' + row.sessionTypeIds[0]"
+                  [checked]="isRowChecked(row)"
+                  [dataTestId]="'cross-event-bulk-edit-ticket-type-checkbox-' + row.sessionTypeIds[0]"
+                  [disabled]="isRowDisabled(row)"
+                  (change)="onToggleRow(row)"
+                />
+                <div class="cross-event-bulk-edit-ticket-type-panel__details">
+                  <span class="cross-event-bulk-edit-ticket-type-panel__name">
+                    <ignt-icon aria-hidden="true" name="ticket" size="sm" variant="regular" />
+                    {{ row.label }}
+                  </span>
+                  @if (isExpanded(row.key)) {
+                    <div class="cross-event-bulk-edit-ticket-type-panel__events">
+                      <p class="cross-event-bulk-edit-ticket-type-panel__events-title">
+                        @if (row.plans.length === 1) {
+                          {{ 'listPlan.crossEventBulkEdit.ticketTypes.inEventsOne' | translate }}
+                        } @else {
+                          {{ 'listPlan.crossEventBulkEdit.ticketTypes.inEvents' | translate: { count: row.plans.length } }}
+                        }
+                      </p>
+                      <ul [attr.data-testid]="'cross-event-bulk-edit-ticket-type-events-' + row.sessionTypeIds[0]">
+                        @for (plan of row.plans; track plan.id) {
+                          <li>{{ plan.name }}</li>
+                        }
+                      </ul>
+                    </div>
+                  }
+                </div>
+              </div>
+              <span
+                class="cross-event-bulk-edit-ticket-type-panel__group"
+                [attr.data-testid]="'cross-event-bulk-edit-ticket-type-group-' + row.sessionTypeIds[0]"
+              >
+                {{ row.groupName }}
+              </span>
+              <ignt-button
+                class="cross-event-bulk-edit-ticket-type-panel__appears-in-toggle"
+                size="small"
+                variant="tertiary"
+                [attr.aria-expanded]="isExpanded(row.key)"
+                [attr.data-testid]="'cross-event-bulk-edit-ticket-type-appears-in-' + row.sessionTypeIds[0]"
+                [label]="
+                  'listPlan.crossEventBulkEdit.ticketTypes.appearsIn' | translate: { count: row.plans.length, total: selectedPlanCount() }
+                "
+                [trailingIcon]="appearsInIcons()[row.key]"
+                (click)="onToggleAppearsIn(row.key)"
+              />
+            </li>
+          }
+        </ul>
+      }
+    }
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer hideCancelButton>
+  <div class="cross-event-bulk-edit-ticket-type-panel__footer">
+    @if (incompleteSelectedTicketTypeCount(); as count) {
+      <ignt-alert
+        data-testid="cross-event-bulk-edit-ticket-types-not-in-every-event"
+        sentiment="warning"
+        [description]="
+          (count === 1
+            ? 'listPlan.crossEventBulkEdit.ticketTypes.notInEveryEventOne'
+            : 'listPlan.crossEventBulkEdit.ticketTypes.notInEveryEvent'
+          ) | translate: { count }
+        "
+      />
+    }
+    <ignt-button
+      data-testid="cross-event-bulk-edit-ticket-types-continue"
+      fill
+      size="large"
+      variant="primary"
+      [disabled]="isContinueUnavailable()"
+      [label]="'common.continue' | translate"
+      (click)="onContinue()"
+    />
+    <div class="cross-event-bulk-edit-ticket-type-panel__discard">
+      <ignt-button
+        data-testid="cross-event-bulk-edit-ticket-types-discard"
+        size="large"
+        variant="tertiary"
+        [label]="'listPlan.crossEventBulkEdit.ticketTypes.discard' | translate"
+        (click)="onDiscard()"
+      />
+    </div>
+    <p class="cross-event-bulk-edit-ticket-type-panel__applies-to" data-testid="cross-event-bulk-edit-ticket-types-applies-to">
+      @if (selectedPlanCount() === 1) {
+        {{ 'listPlan.crossEventBulkEdit.ticketTypes.appliesToOne' | translate: { count: selectedPlanCount() } }}
+      } @else {
+        {{ 'listPlan.crossEventBulkEdit.ticketTypes.appliesTo' | translate: { count: selectedPlanCount() } }}
+      }
+    </p>
+  </div>
+</ignt-dialog-footer>

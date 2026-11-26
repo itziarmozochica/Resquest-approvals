@@ -1,0 +1,120 @@
+<div class="hub-asset-type-detail">
+  <div class="hub-asset-type-detail__wrapper">
+    <ng-container *ngTemplateOutlet="pageHeader"></ng-container>
+
+    @if (isLoading()) {
+      <div class="hub-asset-type-detail__loading" data-testid="hub-asset-type-detail-loading">
+        <span translate>common.loading</span>
+      </div>
+    } @else {
+      <form [formGroup]="formGroup" class="hub-asset-type-detail__form" id="hub-asset-type-detail-form">
+        <div class="hub-asset-type-detail__content">
+          <section class="hub-asset-type-detail__section">
+            <p class="hub-asset-type-detail__section-description" translate>assetsHubs.detail.assetTypeForm.description</p>
+            <div class="hub-asset-type-detail__field hub-asset-type-detail__field--half">
+              <ignt-input-field
+                id="asset-type-name"
+                [formControl]="formGroup.controls.name"
+                [label]="'assetsHubs.detail.assetTypeForm.assetTypeName.label' | translate"
+                [placeholder]="'assetsHubs.detail.assetTypeForm.assetTypeName.placeholder' | translate"
+                [customFormErrors]="nameCustomErrors"
+              ></ignt-input-field>
+            </div>
+          </section>
+
+          <hr class="hub-asset-type-detail__divider" />
+
+          <section class="hub-asset-type-detail__section">
+            <h2 class="hub-asset-type-detail__section-title" translate>assetsHubs.detail.assetTypeForm.assignAssetsSectionTitle</h2>
+            <div class="hub-asset-type-detail__field hub-asset-type-detail__field--half">
+              <app-multi-select
+                [placeholder]="'assetsHubs.detail.assetTypeForm.assetsList.label' | translate"
+                [searchPlaceholder]="'assetsHubs.detail.assetTypeForm.assetsList.placeholder' | translate"
+                [options]="assetOptions()"
+                [selectedOptions]="selectedAssetOptions()"
+                [disabled]="isSaving() || hasNoAssetOptions()"
+                [displayInPlaceMaximum]="6"
+                (selected)="onAssetSelectionChange($event)"
+              ></app-multi-select>
+              @if (hasNoAssetOptions()) {
+                <p class="hub-asset-type-detail__section-description" translate>
+                  assetsHubs.detail.assetTypeForm.assetsList.disabledDescription
+                </p>
+              }
+            </div>
+          </section>
+
+          <hr class="hub-asset-type-detail__divider" />
+
+          <section class="hub-asset-type-detail__section">
+            <div class="hub-asset-type-detail__toggle-row">
+              <div>
+                <h2 class="hub-asset-type-detail__section-title" translate>assetsHubs.detail.assetTypeForm.allocation.title</h2>
+                <p class="hub-asset-type-detail__section-description" translate>assetsHubs.detail.assetTypeForm.allocation.description</p>
+              </div>
+              <ignt-toggle
+                [checked]="allocationEnabled()"
+                (change)="onAllocationToggleChange($event)"
+                data-testid="allocation-toggle"
+              ></ignt-toggle>
+            </div>
+
+            @if (allocationEnabled()) {
+              <app-asset-allocation-track
+                [items]="allocationItems()"
+                (positionsChange)="onAllocationPositionsChange($event)"
+              ></app-asset-allocation-track>
+            }
+          </section>
+        </div>
+      </form>
+    }
+  </div>
+  @if (!isLoading()) {
+    <ng-container *ngTemplateOutlet="actionsFooter"></ng-container>
+  }
+</div>
+
+<ng-template #pageHeader>
+  <div class="hub-asset-type-detail__page-header">
+    <div class="hub-asset-type-detail__hub-header">
+      <a class="hub-asset-type-detail__breadcrumb-link" href="#" (click)="onNavigateToHubList($event)" role="link">{{
+        'assetsHubs.pageTitle' | translate
+      }}</a>
+      <span class="hub-asset-type-detail__breadcrumb-separator">/</span>
+      <a class="hub-asset-type-detail__breadcrumb-link" href="#" (click)="onNavigateToHubDetail($event)" role="link">{{ hubName() }}</a>
+      @if (isEditMode()) {
+        <span class="hub-asset-type-detail__breadcrumb-separator">/</span>
+        <a class="hub-asset-type-detail__breadcrumb-link" href="#" (click)="onNavigateToHubDetail($event)" role="link">{{
+          'assetsHubs.components.assets' | translate
+        }}</a>
+      }
+      <h1 class="hub-asset-type-detail__title" data-testid="page-title">{{ pageTitleKey() | translate }}</h1>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #actionsFooter>
+  <div class="hub-asset-type-detail__footer">
+    <div class="hub-asset-type-detail__footer-actions">
+      <ignt-button
+        variant="secondary"
+        sentiment="neutral"
+        size="large"
+        [label]="(isEditMode() ? 'common.back' : 'common.cancel') | translate"
+        (click)="onCancel()"
+        data-testid="hub-asset-type-detail-cancel"
+      ></ignt-button>
+      <ignt-button
+        variant="primary"
+        sentiment="brand"
+        size="large"
+        [disabled]="(isEditMode() ? formGroup.pristine || formGroup.invalid : formGroup.invalid) || isSaving()"
+        [loading]="isSaving()"
+        [label]="(isEditMode() ? 'assetsHubs.detail.saveChanges' : 'common.save') | translate"
+        (click)="onSave($event)"
+        data-testid="hub-asset-type-detail-save"
+      ></ignt-button>
+    </div>
+  </div>
+</ng-template>

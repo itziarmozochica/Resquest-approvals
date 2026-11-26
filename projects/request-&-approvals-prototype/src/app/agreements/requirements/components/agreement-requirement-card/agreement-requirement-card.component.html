@@ -1,0 +1,131 @@
+<div class="agreement-requirement-card" [class.agreement-requirement-card--inactive]="!card().active">
+  <ignt-expansion-panel variant="card" chevronPosition="start" [isCollapsed]="!initiallyExpanded()">
+    <div class="agreement-requirement-card__header" expansion-panel-title>
+      <div class="agreement-requirement-card__title-block">
+        <span class="agreement-requirement-card__title">{{ card().name }}</span>
+        <span class="agreement-requirement-card__summary">{{
+          'eventSettings.agreements.summary'
+            | translate: { coverage: (coverageSummaryKey() | translate), scope: (scopeLabelKey() | translate) }
+        }}</span>
+      </div>
+      <div (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+        <ignt-toggle
+          [id]="'agreement-active-' + card().agreementId"
+          [checked]="card().active"
+          [disabled]="!canEdit()"
+          (change)="onActiveToggle($event)"
+          data-testid="agreement-card-active-toggle"
+        />
+      </div>
+    </div>
+
+    <div class="agreement-requirement-card__body">
+      <div class="agreement-requirement-card__row">
+        <div class="agreement-requirement-card__row-label">
+          <span class="agreement-requirement-card__row-title">{{ 'eventSettings.agreements.appliesTo' | translate }}</span>
+          <span class="agreement-requirement-card__row-hint">{{ 'eventSettings.agreements.appliesToHint' | translate }}</span>
+        </div>
+        <div class="agreement-requirement-card__row-fields">
+          <ignt-radio
+            [name]="'applies-to-' + card().agreementId"
+            [label]="'eventSettings.agreements.entireEvent' | translate"
+            [checked]="card().scopeKind === 'plan'"
+            [disabled]="fieldsDisabled()"
+            value="plan"
+            dataTestId="agreement-card-scope-plan"
+            (change)="onScopeKindSelect('plan')"
+          />
+          <ignt-radio
+            [name]="'applies-to-' + card().agreementId"
+            [label]="'eventSettings.agreements.specificTicketTypes' | translate"
+            [checked]="card().scopeKind === 'ticketTypes'"
+            [disabled]="fieldsDisabled() || ticketTypesState() === 'error'"
+            value="ticketTypes"
+            dataTestId="agreement-card-scope-ticket-types"
+            (change)="onScopeKindSelect('ticketTypes')"
+          />
+          @if (card().scopeKind === 'ticketTypes') {
+            <app-multi-select
+              class="agreement-requirement-card__ticket-types"
+              [displayInPlaceMaximum]="2"
+              [disabled]="ticketTypesDisabled()"
+              [errorMessage]="ticketTypesErrorMessage()"
+              [options]="ticketTypeOptions()"
+              [placeholder]="'eventSettings.agreements.ticketTypesPlaceholder' | translate"
+              [selectedOptions]="selectedTicketTypeSelection"
+              [showItemsDescriptions]="true"
+              (selected)="onTicketTypesSelected($event)"
+              data-testid="agreement-card-ticket-types"
+            />
+          }
+        </div>
+      </div>
+
+      <div class="agreement-requirement-card__row">
+        <div class="agreement-requirement-card__row-label">
+          <span class="agreement-requirement-card__row-title">{{ 'eventSettings.agreements.signatures' | translate }}</span>
+          <span class="agreement-requirement-card__row-hint">{{ 'eventSettings.agreements.signaturesHint' | translate }}</span>
+        </div>
+        <div class="agreement-requirement-card__row-fields">
+          <!-- Coverage is immutable server-side, so both radios stay read-only until per-order ships. -->
+          <ignt-radio
+            [name]="'signatures-' + card().agreementId"
+            [label]="'eventSettings.agreements.perParticipant' | translate"
+            [checked]="card().coverageRule === coverageRule.perParticipant"
+            [disabled]="true"
+            [value]="coverageRule.perParticipant"
+            dataTestId="agreement-card-coverage-per-participant"
+          />
+          <div class="agreement-requirement-card__per-order">
+            <ignt-radio
+              [name]="'signatures-' + card().agreementId"
+              [label]="'eventSettings.agreements.perOrder' | translate"
+              [checked]="card().coverageRule === coverageRule.perOrder"
+              [disabled]="true"
+              [value]="coverageRule.perOrder"
+              dataTestId="agreement-card-coverage-per-order"
+            />
+            <ignt-tag sentiment="disable">{{ 'eventSettings.agreements.comingSoon' | translate }}</ignt-tag>
+          </div>
+        </div>
+      </div>
+
+      <div class="agreement-requirement-card__row">
+        <div class="agreement-requirement-card__row-label">
+          <span class="agreement-requirement-card__row-title">{{ 'eventSettings.agreements.signer' | translate }}</span>
+          <span class="agreement-requirement-card__row-hint">{{ 'eventSettings.agreements.signerHint' | translate }}</span>
+        </div>
+        <div class="agreement-requirement-card__row-fields">
+          <ignt-radio
+            [name]="'signer-' + card().agreementId"
+            [label]="'agreementRequirements.signerRole.self' | translate"
+            [checked]="card().signerRole === signerRole.self"
+            [disabled]="fieldsDisabled()"
+            [value]="signerRole.self"
+            dataTestId="agreement-card-signer-self"
+            (change)="onSignerRoleSelect(signerRole.self)"
+          />
+          <ignt-radio
+            [name]="'signer-' + card().agreementId"
+            [label]="'agreementRequirements.signerRole.guardian' | translate"
+            [checked]="card().signerRole === signerRole.guardian"
+            [disabled]="fieldsDisabled()"
+            [value]="signerRole.guardian"
+            dataTestId="agreement-card-signer-guardian"
+            (change)="onSignerRoleSelect(signerRole.guardian)"
+          />
+          <ignt-radio
+            [name]="'signer-' + card().agreementId"
+            [label]="'agreementRequirements.signerRole.age_based' | translate"
+            [description]="'agreementRequirements.signerRole.descriptions.age_based' | translate"
+            [checked]="card().signerRole === signerRole.AgeBased"
+            [disabled]="fieldsDisabled()"
+            [value]="signerRole.AgeBased"
+            dataTestId="agreement-card-signer-age-based"
+            (change)="onSignerRoleSelect(signerRole.AgeBased)"
+          />
+        </div>
+      </div>
+    </div>
+  </ignt-expansion-panel>
+</div>

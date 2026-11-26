@@ -1,0 +1,77 @@
+<ignt-dialog-header data-testid="identify-member-modal-title">
+  {{ 'boxOffice.memberships.identifyMember.button' | translate }}
+</ignt-dialog-header>
+
+<ignt-dialog-content data-testid="identify-member-modal-content">
+  @if (isScanning()) {
+    <app-scanner-view data-testid="identify-member-modal-scanner" (scanned)="onScanned($event)" />
+  } @else {
+    <div class="identify-member-modal__prompt">
+      <div class="identify-member-modal__message">
+        <ignt-icon name="address-card" variant="light" aria-hidden="true" />
+        <span>{{ 'boxOffice.memberships.identifyMember.modal.instructions' | translate }}</span>
+      </div>
+      <form class="identify-member-modal__form" [formGroup]="formGroup">
+        <div class="identify-member-modal__control field">
+          <ignt-input-field
+            id="memberCode"
+            type="text"
+            data-testid="identify-member-modal-input-member-code"
+            formControlName="memberCode"
+            [label]="'boxOffice.memberships.identifyMember.modal.memberId' | translate"
+            [required]="true"
+            [customFormErrors]="[
+              {
+                type: 'required',
+                message: 'form.error.required' | translate,
+              },
+              {
+                type: 'serverError',
+                message: (formGroup.get('memberCode')?.errors?.serverError | translate),
+              },
+            ]"
+          />
+          <button
+            ignt-icon-button
+            type="button"
+            class="identify-member-modal__scan field__icon field__icon--trail"
+            variant="sharp"
+            sentiment="tertiary"
+            data-testid="identify-member-modal-scanner-button"
+            [disabled]="isLoading()"
+            [icon]="['fal', 'camera-viewfinder']"
+            [attr.aria-label]="'orders.search.scanQr' | translate"
+            (click)="openScanner()"
+          ></button>
+        </div>
+      </form>
+    </div>
+  }
+</ignt-dialog-content>
+
+<ignt-dialog-footer [hideCancelButton]="true">
+  @if (isScanning()) {
+    <ignt-button
+      variant="tertiary"
+      data-testid="identify-member-modal-back-button"
+      [label]="'common.back' | translate"
+      (click)="closeScanner()"
+    />
+  } @else {
+    <ignt-button
+      variant="tertiary"
+      data-testid="identify-member-modal-cancel-button"
+      [label]="'common.cancel' | translate"
+      (click)="closeModal()"
+    />
+    <ignt-button
+      variant="primary"
+      data-testid="identify-member-modal-add-member-button"
+      [ariaLabel]="'boxOffice.memberships.identifyMember.button' | translate"
+      [disabled]="isLoading() || getMemberCodeValue().trim().length === 0"
+      [label]="'boxOffice.memberships.identifyMember.button' | translate"
+      [loading]="isLoading()"
+      (click)="addMember()"
+    />
+  }
+</ignt-dialog-footer>

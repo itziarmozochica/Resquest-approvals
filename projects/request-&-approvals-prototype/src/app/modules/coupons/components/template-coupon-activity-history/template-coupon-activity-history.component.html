@@ -1,0 +1,118 @@
+<div class="template-coupon-activity-history" data-testid="activity-history">
+  @switch (viewState()) {
+    @case ('loading') {
+      <span class="visually-hidden" role="status" aria-live="polite" data-testid="activity-history-loading">
+        {{ 'coupons.list.history.loading' | translate }}
+      </span>
+      <div class="template-coupon-activity-history__skeleton" aria-hidden="true">
+        @for (skeletonEntry of skeletonEntries; track skeletonEntry) {
+          <div class="template-coupon-activity-history__skeleton-entry" data-testid="activity-history-skeleton-entry">
+            <span class="template-coupon-activity-history__skeleton-marker"></span>
+            <span class="template-coupon-activity-history__skeleton-lines">
+              <span class="template-coupon-activity-history__skeleton-line"></span>
+              <span class="template-coupon-activity-history__skeleton-line template-coupon-activity-history__skeleton-line--short"></span>
+            </span>
+          </div>
+        }
+      </div>
+    }
+
+    @case ('empty') {
+      <div class="template-coupon-activity-history__message" data-testid="activity-history-empty">
+        <p class="template-coupon-activity-history__message-title">{{ 'coupons.list.history.empty.title' | translate }}</p>
+        <p class="template-coupon-activity-history__message-helper">{{ 'coupons.list.history.empty.helper' | translate }}</p>
+      </div>
+    }
+
+    @case ('error') {
+      <div class="template-coupon-activity-history__message" data-testid="activity-history-error">
+        <p class="template-coupon-activity-history__message-title">{{ 'coupons.list.history.error.message' | translate }}</p>
+        <ignt-button
+          data-testid="activity-history-retry"
+          variant="secondary"
+          sentiment="neutral"
+          [label]="'coupons.list.history.error.retry' | translate"
+          (click)="emitRetry()"
+        ></ignt-button>
+      </div>
+    }
+
+    @default {
+      <ol
+        class="template-coupon-activity-history__timeline"
+        [attr.aria-label]="'coupons.list.history.listLabel' | translate"
+        data-testid="activity-history-timeline"
+      >
+        @for (entry of entryViews(); track $index) {
+          <li class="template-coupon-activity-history__entry" data-testid="activity-history-entry">
+            <span class="template-coupon-activity-history__marker" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false" width="24" height="24">
+                <circle class="template-coupon-activity-history__marker-disc" cx="12" cy="12" r="11.5" stroke-width="1"></circle>
+                <path
+                  class="template-coupon-activity-history__marker-check"
+                  d="M7.25 12.25 10.5 15.25 16.75 9"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                ></path>
+              </svg>
+            </span>
+
+            <div class="template-coupon-activity-history__entry-body">
+              <div class="template-coupon-activity-history__entry-header">
+                <span class="template-coupon-activity-history__requester">
+                  <span
+                    class="template-coupon-activity-history__name"
+                    [attr.title]="entry.name.text || null"
+                    data-testid="activity-history-entry-name"
+                  >
+                    {{ entry.name.key ? (entry.name.key | translate) : entry.name.text }}
+                  </span>
+                  <span
+                    class="template-coupon-activity-history__badge template-coupon-activity-history__badge--{{ entry.variant }}"
+                    data-testid="activity-history-entry-action"
+                  >
+                    {{ entry.action.key ? (entry.action.key | translate) : entry.action.text }}
+                  </span>
+                </span>
+
+                @if (entry.timestamp) {
+                  <span class="template-coupon-activity-history__timestamp" data-testid="activity-history-entry-timestamp">
+                    {{ entry.timestamp }}
+                  </span>
+                }
+              </div>
+
+              @if (entry.email) {
+                <p class="template-coupon-activity-history__email" [attr.title]="entry.email" data-testid="activity-history-entry-email">
+                  {{ entry.email }}
+                </p>
+              }
+
+              @if (entry.changes.length > 0) {
+                <ul class="template-coupon-activity-history__changes" data-testid="activity-history-entry-changes">
+                  @for (change of entry.changes; track $index) {
+                    <li class="template-coupon-activity-history__change" data-testid="activity-history-change">
+                      <span class="template-coupon-activity-history__change-label" data-testid="activity-history-change-label">
+                        {{ change.label.key ? (change.label.key | translate) : change.label.text }}:
+                      </span>
+                      <span class="visually-hidden">{{ 'coupons.list.history.changeFrom' | translate }}</span>
+                      <s class="template-coupon-activity-history__change-old" data-testid="activity-history-change-old">
+                        {{ change.oldValue.key ? (change.oldValue.key | translate) : change.oldValue.text }}
+                      </s>
+                      <span class="template-coupon-activity-history__change-arrow" aria-hidden="true">→</span>
+                      <span class="visually-hidden">{{ 'coupons.list.history.changeTo' | translate }}</span>
+                      <strong class="template-coupon-activity-history__change-new" data-testid="activity-history-change-new">
+                        {{ change.newValue.key ? (change.newValue.key | translate) : change.newValue.text }}
+                      </strong>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          </li>
+        }
+      </ol>
+    }
+  }
+</div>

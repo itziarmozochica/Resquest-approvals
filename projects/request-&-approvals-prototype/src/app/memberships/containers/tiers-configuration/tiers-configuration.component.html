@@ -1,0 +1,55 @@
+<div class="tiers">
+  <div class="tiers__container">
+    <h3 class="tiers__heading">
+      {{ 'memberships.tiers.configuration.headingText' | translate }}
+    </h3>
+    @if (!alertDismissed()) {
+      <ignt-alert
+        [title]="'memberships.tiers.configuration.alert.headingText' | translate"
+        [description]="'memberships.tiers.configuration.alert.descriptionText' | translate"
+        [closeButtonAriaLabel]="'common.close' | translate"
+        showCloseButton
+        (closeAlert)="alertDismissed.set(true)"
+      />
+    }
+  </div>
+
+  <app-tabs
+    (addTabEvent)="onAddTab()"
+    (activeTabChange)="onActiveTabChange($event)"
+    [newTabTitle]="'memberships.tiers.form.addNewTier' | translate"
+    (sortTabsClick)="openOrderingModal()"
+  >
+    <ng-template #tabHeaderListItems let-tabs="tabs" let-selectTab="selectTab">
+      <app-tab-header-item
+        *ngFor="let tab of tabs; trackBy: trackByIdHeader"
+        [tabHeaderId]="tab.tabId"
+        [isActive]="tab.active"
+        (tabClick)="selectTab(tab)"
+        [label]="tab.title"
+        [leadingIcon]="tab.error && ['fal', 'exclamation-circle']"
+        [class.error]="tab.error"
+      ></app-tab-header-item>
+    </ng-template>
+
+    <app-tab-item
+      *ngFor="let tab of tabs(); trackBy: trackById"
+      [title]="tab.label"
+      [active]="tab.status"
+      [tabId]="tab.id"
+      [error]="tab.error"
+    >
+      <span *ngIf="tabs().length > 1" role="button" class="tiers__delete-btn" (click)="onTabDelete(tab.id)">
+        <fa-icon [icon]="['fas', 'trash']"></fa-icon>
+      </span>
+      <app-tiers-form
+        [formData]="forms.get(tab.id)"
+        (formChange)="onFormChange(tab.id, $event)"
+        (tierNameChange)="onTierNameChanged()"
+        (submitForm)="onSubmitForm()"
+      ></app-tiers-form>
+    </app-tab-item>
+  </app-tabs>
+
+  <app-tiers-ordering-dialog [open]="showOrderingModal" [tabs]="tabs()" (close)="closeOrderingModal()" (save)="saveOrdering($event)" />
+</div>

@@ -1,0 +1,86 @@
+@use 'foundations' as foundations;
+@use '../filter-row-columns' as columns;
+
+/// Vertical breathing room inside the search box and the type dropdown.
+$control-padding-block: foundations.$size-1;
+
+/// What both controls stand at with that padding: the dropdown's own $ng-select-height (36px, and
+/// $size-9 exactly) plus the padding above and below it.
+///
+/// Expressed as a height rather than as `padding-block` because neither control is free to grow: the
+/// input's height comes from `--ignt-input-no-label-height` and the theme pins a single `ng-select`
+/// to $ng-select-height, so padding alone would eat into the content box instead of adding to it.
+$control-height: foundations.$size-9 + $control-padding-block * 2;
+
+:host {
+  // Dissolves so the row below is an item of the page's grid.
+  display: contents;
+}
+
+.synthetic-checks-filters {
+  // The status cards' own grid, repeated: four equal columns at the same 12px gutter. The two
+  // controls then land on card boundaries rather than near them — the search covers the first two,
+  // the dropdown the third. The fourth is left empty on purpose: neither control reads better for
+  // being wider, and a search box the width of the whole row is mostly empty box.
+  // Stacked below $CARDS_TWO_UP, where the cards themselves drop to two per row and a quarter of the
+  // width would leave the dropdown unusable.
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  // The dropdown centres against the search box when the two share a row, and is alone on its own
+  // when stacked, where this is a no-op.
+  align-items: center;
+  gap: 12px;
+
+  @media (min-width: 576px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  // After the declarations above: the mixin ends in a nested `@media`, and Sass is changing how a
+  // declaration that follows a nested rule is ordered (`mixed-decls`).
+  @include columns.left-column;
+
+  &__search {
+    @media (min-width: 576px) {
+      grid-column: span 2;
+    }
+  }
+
+  &__search-field {
+    display: block;
+    width: 100%;
+    // The label-less input is $size-8 (2rem) by default; the component publishes this variable so a
+    // consumer can say otherwise. The inner `input.no-label` already declares its own `padding-block`,
+    // so raising the height is what turns that padding into space rather than a squeezed content box.
+    --ignt-input-no-label-height: #{$control-height};
+    // `placeholderAsEmptyValue` renders the resting placeholder in the *value* colour, so the box
+    // reads as though someone had typed into it. The other search fields that use that input put it
+    // back to the placeholder grey the same way.
+    --ignt-placeholder-color-empty: #{foundations.$color-action-text-disable};
+
+    // The lead icon is placed for the labelled field and nothing re-places it when `no-label` shortens
+    // the input: `top: 0.375rem` inside a 2.75rem box centres a glyph in 3.5rem, which leaves it ~10px
+    // low here and overflowing a 2.25rem field. Centring on the field's own height holds at any height.
+    // Same correction the FAQ set panels make against the same gap.
+    ::ng-deep .field__icon--lead {
+      top: 50%;
+      height: auto;
+      transform: translateY(-50%);
+    }
+  }
+
+  &__types {
+    display: block;
+  }
+
+  &__type-select {
+    display: block;
+    width: 100%;
+  }
+
+  // `.ng-select-single` is here to win on class count, not on source order: the theme's own
+  // `.ng-select.ng-select-single .ng-select-container` would otherwise tie with this rule.
+  &__type-select.ng-select-single ::ng-deep .ng-select-container {
+    height: $control-height;
+    min-height: $control-height;
+  }
+}

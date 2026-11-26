@@ -1,0 +1,56 @@
+@if (isVisible()) {
+  <div class="order-covered-by-fever-refund" data-testid="order-covered-by-fever-refund">
+    <p class="order-covered-by-fever-refund__title" data-testid="order-covered-by-fever-refund-title">
+      @if (refundedAmount(); as amount) {
+        {{ 'validateTicketsNew.orderCoveredByFeverRefund.titleWithAmount' | translate: { amount } }}
+      } @else {
+        {{ 'validateTicketsNew.orderCoveredByFeverRefund.title' | translate }}
+      }
+    </p>
+    <dl class="order-covered-by-fever-refund__fields">
+      @if (latestRecord()?.requesterEmail; as requesterEmail) {
+        <div data-testid="order-covered-by-fever-refund-by">
+          <dt>{{ 'validateTicketsNew.orderCoveredByFeverRefund.by' | translate }}</dt>
+          <dd>{{ requesterEmail }}</dd>
+        </div>
+      }
+      @switch (latestRecord()?.reimbursementType) {
+        @case (ReimbursementType.OriginalMethod) {
+          @if (order()?.cart?.paymentMethod; as paymentMethod) {
+            <div data-testid="order-covered-by-fever-refund-method">
+              <dt>{{ 'validateTicketsNew.orderCoveredByFeverRefund.method' | translate }}</dt>
+              <dd>{{ paymentMethod | orderPaymentMethodLabel: order()?.cart?.channel?.id ?? '' | translate }}</dd>
+            </div>
+          }
+        }
+        @case (ReimbursementType.Voucher) {
+          <div data-testid="order-covered-by-fever-refund-method">
+            <dt>{{ 'validateTicketsNew.orderCoveredByFeverRefund.method' | translate }}</dt>
+            <dd>{{ 'validateTicketsNew.orderCoveredByFeverRefund.promotionCodeMethod' | translate }}</dd>
+          </div>
+        }
+      }
+      @if (refundedAt(); as date) {
+        <div data-testid="order-covered-by-fever-refund-date">
+          <dt>{{ 'validateTicketsNew.orderCoveredByFeverRefund.date' | translate }}</dt>
+          <dd>{{ date | momentDate: 'd MMM yyyy, HH:mm' : order()?.cart?.timezone : order()?.cart?.locale }}</dd>
+        </div>
+      }
+      <div class="order-covered-by-fever-refund__reason-row" data-testid="order-covered-by-fever-refund-reason">
+        <dt>{{ 'validateTicketsNew.orderCoveredByFeverRefund.reason' | translate }}</dt>
+        <dd class="order-covered-by-fever-refund__reason">
+          @if (isSuperuser() && latestRecord()?.cancellationReason; as cancellationReason) {
+            {{ 'validateTicketsNew.orderHistory.extendedCancellationReasons.' + cancellationReason | translate }}
+          } @else {
+            {{ 'validateTicketsNew.orderCoveredByFeverRefund.reasonDescription' | translate }}
+          }
+        </dd>
+      </div>
+    </dl>
+    <ignt-alert
+      data-testid="order-covered-by-fever-refund-payout-note"
+      sentiment="info"
+      [description]="'validateTicketsNew.orderCoveredByFeverRefund.payoutNote' | translate"
+    />
+  </div>
+}

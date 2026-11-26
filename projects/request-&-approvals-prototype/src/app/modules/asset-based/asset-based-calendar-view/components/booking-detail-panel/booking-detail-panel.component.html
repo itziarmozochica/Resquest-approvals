@@ -1,0 +1,128 @@
+<div class="booking-detail-panel" data-testid="booked-slot-details">
+  <app-panel-header
+    [allBookedSlots]="allBookedSlots()"
+    [bookedSlot]="bookedSlot()"
+    [liveState]="liveState()"
+    [showBack]="showBack()"
+    (back)="back.emit()"
+    (closed)="closed.emit()"
+  />
+
+  @if (canTogglePlayState()) {
+    <div class="booking-detail-panel__play-state" data-testid="booked-slot-play-state">
+      <ignt-button
+        [attr.data-testid]="isPlaying() ? 'stop-booked-slot' : 'start-booked-slot'"
+        [attr.title]="playActionTitleKey() | translate: playActionParams()"
+        [disabled]="isPlayStateDisabled()"
+        [label]="playActionLabelKey() | translate: playActionParams()"
+        [leadingIcon]="playActionIcon()"
+        [loading]="isTogglingPlayState()"
+        sentiment="neutral"
+        size="small"
+        variant="secondary"
+        (click)="togglePlayState.emit()"
+      />
+
+      @if (showCheckInHint()) {
+        <span class="booking-detail-panel__play-state-hint">{{ 'bookedSlots.validateTicketsFirst' | translate }}</span>
+      }
+    </div>
+  }
+
+  <app-booking-tags-block [bookedSlot]="bookedSlot()" (tagsSaved)="bookingTagsSaved.emit()" />
+
+  <app-booking-summary-card [bookedSlot]="bookedSlot()" [purchaseSlots]="purchaseSlots()" [timezone]="timezone()" />
+
+  @if (isNoteShown()) {
+    <div class="booking-detail-panel__notes">
+      <app-notes
+        [failedSave]="noteSaveFailure()"
+        [isCollapsed]="false"
+        [note]="orderNote()"
+        [permissionOverride]="canWriteNote()"
+        (deleteNote)="onDeleteNote()"
+        (failedSaveDismissed)="noteSaveFailureDismissed.emit()"
+        (noteUpdated)="noteChange.emit($event)"
+      />
+    </div>
+  }
+
+  <ignt-tabs
+    class="booking-detail-panel__tabs"
+    [hasExtraLine]="true"
+    [selectedIndex]="activeTabIndex()"
+    (selectedIndexChange)="selectedTabIndex.set($event)"
+  >
+    <ignt-tabs-item [label]="'bookedSlots.activities' | translate">
+      <app-activities-tab
+        [activitySegments]="activitySegments()"
+        [hasError]="hasDetailError()"
+        [isLoading]="isDetailLoading()"
+        [removedBookedSlots]="removedBookedSlotRows()"
+        (locateAsset)="locateAsset.emit($event)"
+        (moveAsset)="moveAsset.emit($event)"
+      />
+    </ignt-tabs-item>
+
+    <ignt-tabs-item [label]="'bookedSlots.bookingItems' | translate">
+      <app-booking-items-tab [hasError]="hasDetailError()" [isLoading]="isDetailLoading()" [sessionItems]="sessionItems()" />
+    </ignt-tabs-item>
+
+    @if (hasBookingQuestions()) {
+      <ignt-tabs-item [label]="'bookedSlots.bookingQuestions' | translate">
+        <app-booking-questions-tab [bookingQuestions]="bookingQuestions()" />
+      </ignt-tabs-item>
+    }
+  </ignt-tabs>
+
+  <div class="booking-detail-panel__footer">
+    <ignt-button
+      data-testid="edit-booking"
+      fill
+      size="large"
+      [disabled]="isEditDisabled()"
+      [label]="editButtonLabel()"
+      [variant]="isAwaitingConfirmation() ? 'secondary' : 'primary'"
+      (click)="editOrder.emit()"
+    />
+
+    @if (isAwaitingConfirmation()) {
+      <ignt-button
+        data-testid="confirm-booked-slot"
+        fill
+        size="large"
+        variant="primary"
+        [disabled]="isConfirmingBookedSlot()"
+        [label]="'bookedSlots.confirmAssignment' | translate"
+        [loading]="isConfirmingBookedSlot()"
+        (click)="confirmAssignment.emit()"
+      />
+    }
+
+    @if (canDeleteBookedSlot()) {
+      <ignt-button
+        variant="tertiary"
+        sentiment="danger"
+        data-testid="delete-booked-slot"
+        [fill]="true"
+        [leadingIcon]="{ name: 'trash-alt', variant: 'light' }"
+        [loading]="isDeletingBookedSlot()"
+        [label]="'bookedSlots.deleteBooking' | translate"
+        (click)="deleteBookedSlot.emit()"
+      />
+    }
+
+    @if (canUnlinkBlocks()) {
+      <ignt-button
+        variant="tertiary"
+        sentiment="danger"
+        data-testid="unlink-blocks"
+        [fill]="true"
+        [leadingIcon]="{ name: 'lock-alt', variant: 'light' }"
+        [loading]="isUnlinkingBlocks()"
+        [label]="'bookedSlots.unlinkBooking' | translate"
+        (click)="unlinkBlocks.emit()"
+      />
+    }
+  </div>
+</div>

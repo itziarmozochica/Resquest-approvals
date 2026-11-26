@@ -1,0 +1,436 @@
+<ng-container *ngIf="formGroup">
+  <form [formGroup]="formGroup" class="session-type-price-edit-form">
+    <div
+      class="section-title section-title--with-tooltip"
+      igntTooltip
+      [tooltipTemplate]="isPercentageOverBasePriceAddOn ? null : setValueTooltipContent"
+      tooltipPlacement="top"
+    >
+      <span class="section-title__text" [class.section-title__text--underline]="!isPercentageOverBasePriceAddOn">
+        {{ 'sessions.pricing.priceList.priceEditForm.priceDetails' | translate }}</span
+      >
+    </div>
+    <div class="bordered-form-container">
+      <ng-container *ngIf="isPercentageOverBasePriceAddOn; else standardPriceForm">
+        <div class="rule-and-value">
+          <label class="field">
+            <input
+              appAutoformatNumericInput
+              data-testid="prp-percentage-input"
+              [formControl]="formGroup.controls.value"
+              [suffixText]="' %'"
+              [decimalPlaces]="0"
+              [placeHolderValue]="'sessions.pricing.priceList.priceEditForm.percentage_over_base_price.label' | translate"
+              autocomplete="off"
+              min="0"
+              max="100"
+              class="field__input"
+            />
+            <span class="field__label">{{ 'sessions.pricing.priceList.priceEditForm.percentage_over_base_price.label' | translate }}</span>
+          </label>
+          <label class="field" *ngIf="(item?.taxProductRate ?? null) !== null">
+            <input data-testid="prp-tax-field" class="field__input" readonly [value]="item?.taxProductRate + '%'" />
+            <span class="field__label">{{ 'sessions.pricing.priceList.priceEditForm.tax.label' | translate }}</span>
+          </label>
+        </div>
+      </ng-container>
+
+      <ng-template #standardPriceForm>
+        <div class="rule-and-value">
+          <ignt-typeahead
+            data-testid="price-form-rule-type-selector"
+            class="app-typeahead-input"
+            [emptyLabel]="'Select option'"
+            [fieldLabel]="'sessions.pricing.priceList.priceEditForm.priceRule.label' | translate"
+            [options]="ruleTypeOptions"
+            [selectedOption]="selectedRuleTypeOption"
+            [disabled]="formGroup.controls.ruleType.disabled"
+            [editable]="false"
+            (selected)="updateSelectedRuleOption($event)"
+          >
+          </ignt-typeahead>
+          <ng-container
+            [ngTemplateOutlet]="numberInputFormGroup"
+            [ngTemplateOutletContext]="{
+              $implicit: {
+                formControl: formGroup.controls.value,
+                labelTranslationKey: 'sessions.pricing.priceList.priceEditForm.setValue.label',
+                placeHolderTranslationKey: 'sessions.pricing.priceList.priceEditForm.setValue.label',
+                inputTestId: 'set-value-input',
+                decimalPlaces: 2,
+
+                suffixText: [priceRuleType.PercentageAdjustmentDecrease, priceRuleType.PercentageAdjustmentIncrease].includes(
+                  selectedRuleTypeOption?.id
+                )
+                  ? ' %'
+                  : '',
+
+                currency: [priceRuleType.FixedOverride, priceRuleType.DecreaseAmount, priceRuleType.IncreaseAmount].includes(
+                  selectedRuleTypeOption?.id
+                )
+                  ? currency
+                  : null,
+              },
+            }"
+          >
+          </ng-container>
+        </div>
+
+        <div
+          class="tax-related-fields"
+          *ngIf="
+            !isPack &&
+            (item.taxProductRate || item.taxProductRate === 0) &&
+            [priceRuleType.FixedOverride, priceRuleType.Unspecified].includes(selectedRuleTypeOption?.id)
+          "
+        >
+          <label class="field">
+            <input data-testid="tax-field" class="field__input" readonly [value]="item.taxProductRate + '%'" />
+            <span class="field__label">{{ 'sessions.pricing.priceList.priceEditForm.tax.label' | translate }} </span>
+          </label>
+          <label class="field">
+            <input
+              class="field__input"
+              [attr.data-testid]="item.mustUseTaxBase ? 'ticket-price-field' : 'base-price-field'"
+              [value]="
+                (item.mustUseTaxBase
+                  ? (calculatedPrice$ | async)?.ticketPrice.amount
+                  : (calculatedPrice$ | async)?.ticketPriceTaxBase.amount
+                ) | currency: currency
+              "
+              readonly
+            />
+            <span class="field__label">
+              {{
+                (item.mustUseTaxBase
+                  ? 'sessions.pricing.priceList.priceEditForm.postTaxPrice.label'
+                  : 'sessions.pricing.priceList.priceEditForm.preTaxPrice.label'
+                ) | translate
+              }}
+            </span>
+          </label>
+        </div>
+      </ng-template>
+
+      <ng-content select="[priceDetailsAdditionalFields]"></ng-content>
+    </div>
+
+    <ng-content select="[extraContentUnderPriceDetails]"></ng-content>
+
+    <ng-container *ngIf="!isPercentageOverBasePriceAddOn">
+      <div class="section-title">
+        <span class="section-title__text">{{ 'sessions.pricing.priceList.priceEditForm.surchargeApplied' | translate }}</span>
+      </div>
+
+      <div class="bordered-form-container">
+        <div class="surcharge-fields">
+          <ng-container *ngIf="!canEditSurcharge; else editableSurchargeInputs">
+            <label class="field">
+              <input
+                data-testid="fixed-surcharge-field"
+                readonly
+                class="field__input"
+                [value]="formGroup.value.fixedSurcharge ?? 0 | currency: currency"
+              />
+              <span class="field__label">{{
+                (allowVariableSurcharge
+                  ? 'sessions.pricing.priceList.priceEditForm.fixedSurcharge.label'
+                  : 'sessions.pricing.priceList.priceEditForm.totalSurcharge.label'
+                ) | translate
+              }}</span>
+            </label>
+            <label class="field" *ngIf="allowVariableSurcharge">
+              <input
+                data-testid="variable-surcharge-field"
+                readonly
+                class="field__input"
+                [value]="(formGroup.value.percentageSurcharge ?? 0 | number: '1.0-2') + '%'"
+              />
+              <span class="field__label">{{ 'sessions.pricing.priceList.priceEditForm.variableSurcharge.label' | translate }}</span>
+            </label>
+          </ng-container>
+        </div>
+      </div>
+
+      <ignt-alert
+        *ngIf="isInheritedFromBase"
+        class="surcharge__inherit-warning"
+        sentiment="warning"
+        [description]="'sessions.pricing.priceList.priceEditForm.surchargeInheritWarning' | translate"
+      ></ignt-alert>
+
+      <div class="section-enabler">
+        <input
+          data-testid="strikethrough-price-toggle"
+          type="checkbox"
+          [checked]="isStrikethroughPriceVisible"
+          [disabled]="isArchived"
+          (change)="onToggleStrikethroughPriceVisibility()"
+        />
+        <span class="section-enabler__text">
+          {{ 'sessions.pricing.priceList.priceEditForm.strikethroughPrice.addSection.verb' | translate }}&nbsp;
+          <p class="section-enabler__text__decorated-text-for-tooltip" igntTooltip [tooltipTemplate]="strikethroughPriceTooltipContent">
+            {{ 'sessions.pricing.priceList.priceEditForm.strikethroughPrice.addSection.decoratedText' | translate }}
+          </p>
+        </span>
+      </div>
+
+      <ng-container *ngIf="isStrikethroughPriceVisible">
+        <div class="section-title">
+          <span class="section-title__text">{{ 'sessions.pricing.priceList.priceEditForm.strikethroughPrice.title' | translate }}</span>
+        </div>
+        <div class="bordered-form-container">
+          <ng-container
+            *ngTemplateOutlet="
+              numberInputFormGroup;
+              context: {
+                $implicit: {
+                  formControl: formGroup.get('strikethroughPrice'),
+                  dataTestId: 'strikethrough-price-input',
+                  labelTranslationKey: 'sessions.pricing.priceList.priceEditForm.strikethroughPrice.label',
+                  placeHolderTranslationKey: 'sessions.pricing.priceList.priceEditForm.strikethroughPrice.label',
+                  inputTestId: 'strikethrough-price-input',
+                  decimalPlaces: 2,
+                  currency,
+                  errors: {
+                    name: 'lessThanOrEqual',
+                    message: 'sessions.pricing.priceList.priceEditForm.strikethroughPrice.lowerPrice',
+                  },
+                },
+              }
+            "
+          ></ng-container>
+          <ignt-alert
+            *ngIf="hasPromotions"
+            sentiment="danger"
+            data-testid="strikethrough-price-promotions-alert"
+            [description]="'sessions.pricing.priceList.priceEditForm.strikethroughPrice.hasPromotions' | translate"
+          ></ignt-alert>
+          <span class="checkbox-input">
+            <input
+              data-testid="strikethrough-price-toggle-percentage"
+              type="checkbox"
+              [checked]="!formGroup.value.strikethroughPriceHintHidden"
+              [disabled]="isArchived"
+              (change)="onToggleStrikethroughPriceHintHidden($event)"
+            />
+            <span class="section-enabler__text">
+              {{ 'sessions.pricing.priceList.priceEditForm.strikethroughPrice.togglePercentage.label' | translate }}&nbsp;
+            </span>
+          </span>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="calculatedPrice$ | async as calculatedPrice">
+        <div class="section-title">
+          <span class="section-title__text">{{ 'sessions.pricing.priceList.priceEditForm.priceSummary.title' | translate }}</span>
+        </div>
+
+        <div class="price-summary">
+          <div class="price-summary__row">
+            <span class="price-summary__ticket-price__text">{{
+              (item.mustUseTaxBase
+                ? 'sessions.pricing.priceList.priceEditForm.priceSummary.ticketPriceTaxExcluded'
+                : 'sessions.pricing.priceList.priceEditForm.priceSummary.ticketPrice'
+              ) | translate
+            }}</span>
+            <span class="price-summary__ticket-price__value">
+              <span *ngIf="priceForm.value.strikethroughPrice >= 0" class="price-summary__ticket-price__value__strikethrough-price">
+                {{ priceForm.value.strikethroughPrice | currency: currency }}
+              </span>
+              <span data-testid="price-form-summary-price">
+                {{
+                  (item.mustUseTaxBase ? calculatedPrice.ticketPriceTaxBase.amount : calculatedPrice.ticketPrice.amount)
+                    | currency: currency
+                }}
+              </span>
+            </span>
+          </div>
+          <div
+            *ngIf="priceForm.value.strikethroughPrice > 0 && !priceForm.value.strikethroughPriceHintHidden"
+            class="price-summary__row--end"
+          >
+            <span data-testid="strikethrough-price-percentage" class="price-summary__strikethrough-price-percentage">
+              <fa-icon [icon]="['fal', 'badge-percent']" class="price-summary__strikethrough-price-percentage__icon"></fa-icon>
+              <span>
+                {{
+                  ((priceForm.value.strikethroughPrice -
+                    (item.mustUseTaxBase ? calculatedPrice.ticketPriceTaxBase.amount : calculatedPrice.ticketPrice.amount)) /
+                    priceForm.value.strikethroughPrice) *
+                    100 | toFixed: 2 : true
+                }}% {{ 'sessions.pricing.priceList.priceEditForm.strikethroughPrice.discountTagText' | translate }}
+              </span>
+            </span>
+          </div>
+          <ng-container *ngIf="calculatedSurcharge$ | async as calculatedSurcharge">
+            <div class="price-summary__row price-summary__surcharge">
+              <span class="price-summary__surcharge__text">{{
+                (item.mustUseTaxBase
+                  ? 'sessions.pricing.priceList.priceEditForm.priceSummary.surchargeTaxExcluded'
+                  : 'sessions.pricing.priceList.priceEditForm.priceSummary.surcharge'
+                ) | translate
+              }}</span>
+              <span data-testid="surcharge-field">
+                {{
+                  (item.mustUseTaxBase ? calculatedSurcharge.surchargeTaxBase : calculatedSurcharge.surcharge) | currency: currency
+                }}</span
+              >
+            </div>
+            <div *ngIf="item.mustUseTaxBase" class="price-summary__row price-summary__taxes">
+              <span class="price-summary__taxes__text">{{
+                'sessions.pricing.priceList.priceEditForm.priceSummary.taxes' | translate
+              }}</span>
+              <span data-testid="summary-taxes-field"
+                >{{
+                  calculatedPrice.ticketPrice.amount -
+                    calculatedPrice.ticketPriceTaxBase.amount +
+                    (calculatedSurcharge.surcharge - calculatedSurcharge.surchargeTaxBase) | currency: currency
+                }}
+              </span>
+            </div>
+            <div class="price-summary__divider"></div>
+            <div class="price-summary__row price-summary__total">
+              <span class="price-summary__total__text">{{
+                'sessions.pricing.priceList.priceEditForm.priceSummary.total' | translate
+              }}</span>
+              <span data-testid="summary-field">
+                {{ calculatedPrice.ticketPrice.amount + calculatedSurcharge.surcharge | currency: currency }}
+              </span>
+            </div>
+          </ng-container>
+        </div>
+      </ng-container>
+    </ng-container>
+
+    <ng-container *ngIf="isPercentageOverBasePriceAddOn">
+      <div class="section-title">
+        <span class="section-title__text">{{
+          'sessions.pricing.priceList.priceEditForm.percentage_over_base_price_explanation.title' | translate
+        }}</span>
+      </div>
+
+      <div class="prp-explanation">
+        <p class="prp-explanation__description">
+          {{ 'sessions.pricing.priceList.priceEditForm.percentage_over_base_price_explanation.description' | translate }}
+        </p>
+
+        <ng-container *ngIf="percentageOverBasePriceCalculationPreview as preview">
+          <div class="price-summary price-summary--prp-preview">
+            <div class="price-summary__row">
+              <span>{{
+                'sessions.pricing.priceList.priceEditForm.percentage_over_base_price_explanation.total_ticket_price' | translate
+              }}</span>
+              <span>{{ percentageCalculationExampleBasePrice | currency: currency }}</span>
+            </div>
+            <div class="price-summary__row price-summary__surcharge">
+              <span
+                >{{ 'sessions.pricing.priceList.priceEditForm.percentage_over_base_price_explanation.percentage' | translate }} ({{
+                  percentageOverBasePriceValue | number: '1.0-2'
+                }}%)</span
+              >
+              <span>{{ preview.percentageAmount | currency: currency }}</span>
+            </div>
+            <div class="price-summary__row price-summary__taxes">
+              <span
+                >{{ 'sessions.pricing.priceList.priceEditForm.tax.label' | translate }} ({{
+                  percentageOverBasePriceTaxRate | number: '1.0-2'
+                }}%)</span
+              >
+              <span>{{ preview.taxAmount | currency: currency }}</span>
+            </div>
+            <div class="price-summary__divider"></div>
+            <div class="price-summary__row price-summary__total">
+              <span>{{
+                'sessions.pricing.priceList.priceEditForm.percentage_over_base_price_explanation.total_percentage_over_base_price_add_on'
+                  | translate
+              }}</span>
+              <span>{{ preview.total | currency: currency }}</span>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+    </ng-container>
+  </form>
+</ng-container>
+
+<!--Templates-->
+
+<ng-template #setValueTooltipContent>
+  <p
+    class="tooltip-inner__text--line-jump tooltip-inner__text--align-left"
+    [innerHTML]="'sessions.pricing.priceList.priceEditForm.setValue.tooltip' | translate"
+  ></p>
+</ng-template>
+
+<ng-template #strikethroughPriceTooltipContent>
+  <p
+    class="tooltip-inner__text--line-jump"
+    [innerHTML]="'sessions.pricing.priceList.priceEditForm.strikethroughPrice.tooltip' | translate"
+  ></p>
+</ng-template>
+
+<ng-template #numberInputFormGroup let-props>
+  <label class="field" [ngClass]="{ 'field--flex': props.enforceFullWidth }">
+    <input
+      (blur)="props.setZeroOnBlur ? setZeroIfEmpty(props.formControl) : null"
+      appAutoformatNumericInput
+      [attr.data-testid]="props.inputTestId"
+      [formControl]="props.formControl"
+      [currency]="props.currency"
+      [suffixText]="props.suffixText"
+      [decimalPlaces]="props?.decimalPlaces"
+      [placeHolderValue]="props.placeHolderTranslationKey | translate"
+      autocomplete="off"
+      min="0"
+      class="field__input"
+    />
+    <span class="field__label">
+      {{ props.labelTranslationKey | translate }}
+    </span>
+    <ignt-field-error
+      *ngIf="props.formControl.touched && props.formControl.invalid"
+      [formControlValue]="props.formControl"
+      [errorName]="props.errors?.name"
+      [attr.data-testid]="props.inputTestId + '-error'"
+    >
+      {{ props.errors?.message | translate }}
+    </ignt-field-error>
+  </label>
+</ng-template>
+
+<ng-template #editableSurchargeInputs>
+  <ng-container
+    *ngTemplateOutlet="
+      numberInputFormGroup;
+      context: {
+        $implicit: {
+          setZeroOnBlur: true,
+          formControl: formGroup.get('fixedSurcharge'),
+          labelTranslationKey: allowVariableSurcharge
+            ? 'sessions.pricing.priceList.priceEditForm.fixedSurcharge.label'
+            : 'sessions.pricing.priceList.priceEditForm.totalSurcharge.label',
+          placeHolderTranslationKey: 'sessions.pricing.priceList.priceEditForm.fixedSurcharge.label',
+          inputTestId: 'fixed-surcharge-input',
+          decimalPlaces: 2,
+          enforceFullWidth: !allowVariableSurcharge,
+          currency,
+        },
+      }
+    "
+  ></ng-container>
+  <ng-container
+    *ngIf="allowVariableSurcharge"
+    [ngTemplateOutlet]="numberInputFormGroup"
+    [ngTemplateOutletContext]="{
+      $implicit: {
+        setZeroOnBlur: true,
+        formControl: formGroup.get('percentageSurcharge'),
+        labelTranslationKey: 'sessions.pricing.priceList.priceEditForm.variableSurcharge.label',
+        placeHolderTranslationKey: 'sessions.pricing.priceList.priceEditForm.variableSurcharge.label',
+        inputTestId: 'variable-surcharge-input',
+        decimalPlaces: 2,
+        suffixText: ' %',
+      },
+    }"
+  ></ng-container>
+</ng-template>

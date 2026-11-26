@@ -1,0 +1,92 @@
+packages:
+  - 'projects/*'
+  - 'projects/@fz/*'
+
+# pnpm v11 only reads auth/registry settings from .npmrc; workspace settings live here.
+nodeLinker: hoisted
+autoInstallPeers: false
+strictPeerDependencies: false
+shellEmulator: true
+preferFrozenLockfile: true
+dedupePeerDependents: false
+# Bind-mounted Jenkins workspaces (Playwright Docker) cannot use hardlinks across store/volume boundaries.
+packageImportMethod: copy
+
+overrides:
+  # Security: force patched versions of vulnerable transitive (build/dev-only) deps.
+  shell-quote@<1.8.4: '^1.8.4' # GHSA-w7jw-789q-3m8p (critical)
+  websocket-driver@<0.7.5: '^0.7.5' # GHSA-xv26-6w52-cph6 (critical)
+  tar@<7.5.19: '^7.5.19' # GHSA-23hp-3jrh-7fpw (critical)
+  'picomatch@>=4.0.0 <4.0.4': '^4.0.7' # GHSA-c2c7-rcm5-vvqj (high), GHSA-3v7f-55p6-f55p (medium)
+  'picomatch@>=3.0.0 <3.0.2': '^3.0.2' # same advisories, 3.x branch
+  picomatch@<2.3.2: '^2.3.2' # same advisories, 2.x branch
+  qs@<6.16.0: '^6.16.0' # GHSA-4mjr-xmp4-gh2g, GHSA-x5fp-wj9c-mxmx (medium)
+  'ajv@>=7.0.0-0 <8.18.0': '^8.20.0' # GHSA-2g4f-4pwh-qvx6 (medium)
+  ajv@<6.14.0: '^6.14.0' # same advisory, 6.x branch
+  '@babel/core@<7.29.1': '^7.29.1' # GHSA-4x5r-pxfx-6jf8 (low)
+  uuid@<11.1.1: '^11.1.1' # GHSA-w5hq-g745-h8pq (medium)
+  # ajv 8.18.0 is pinned exactly by @angular-devkit/core, and its lockfile edge keeps
+  # fast-uri at 3.1.0 while every other ajv copy already resolves 3.1.7. Pin to dedupe.
+  fast-uri@<3.1.6: '^3.1.7' # GHSA-f65p-4m7j-42xc, GHSA-jqff-g426-hqxp (high)
+  # A second prosemirror-model copy breaks node wrapping and splitting, and @tiptap/core
+  # warns about it since 3.30.0. @tiptap/pm 3.30.5 needs ^1.25.11 while the other
+  # prosemirror-* packages still resolve 1.25.8. Retire it once the lockfile resolves
+  # a single 1.25.11 or newer without it.
+  prosemirror-model: '^1.25.11'
+  # Style Dictionary (ignite's token generator, Node-only) bundles browser polyfills named
+  # like Node built-ins. With the hoisted linker they land in the root node_modules, where
+  # browser bundles resolve them: postcss's `"browser": { "path": false }` then inlines the
+  # real `path` polyfill, which crashes the app on `process`. In Node these names always
+  # resolve to the built-ins, so the generator never uses them.
+  '@bundled-es-modules/glob>buffer': '-'
+  '@bundled-es-modules/glob>path': '-'
+  '@bundled-es-modules/glob>stream': '-'
+  '@bundled-es-modules/glob>url': '-'
+  '@bundled-es-modules/memfs>assert': '-'
+  '@bundled-es-modules/memfs>buffer': '-'
+  '@bundled-es-modules/memfs>path': '-'
+  '@bundled-es-modules/memfs>stream': '-'
+  '@bundled-es-modules/memfs>util': '-'
+
+ignoredOptionalDependencies:
+  - canvas
+  # ngx-markdown declares mermaid optional and we never enable the mermaid renderer:
+  # MarkdownModule.forRoot() takes no options. Installing it pulled dompurify, lodash-es,
+  # cytoscape and the whole d3 tree into the browser graph, carrying 28 advisories for
+  # code no view ever loads. Drop this entry if a markdown surface ever needs diagrams.
+  - mermaid
+packageExtensions:
+  '@jsonforms/angular':
+    dependencies:
+      ajv: ^8.20.0
+allowBuilds:
+  '@compodoc/compodoc': false
+  '@datadog/datadog-ci': true
+  '@feverup/pro-duotone-svg-icons': false
+  '@feverup/pro-light-svg-icons': false
+  '@feverup/pro-regular-svg-icons': false
+  '@feverup/pro-solid-svg-icons': false
+  '@fortawesome/fontawesome-common-types': false
+  '@fortawesome/free-brands-svg-icons': false
+  '@parcel/watcher': true
+  '@sentry/cli': true
+  '@swc/core': true
+  core-js: true
+  es5-ext: false
+  esbuild: true
+  husky: true
+  iframe-resizer: false
+  lmdb: false
+  msgpackr-extract: false
+  nice-napi: false
+  nx: true
+  playwright: true
+  protobufjs: true
+  unrs-resolver: true
+
+patchedDependencies:
+  # `!== null` lets `undefined` through, so every icon renders `fa-undefined fa-pull-undefined`.
+  # Fixed upstream in 2.x's successor line, which peers `^22.0.0`: FortAwesome/angular-fontawesome#487.
+  # Retire this patch when the repo reaches Angular 22 and can take fontawesome 5.
+  # Why a patch and not a version bump: (internal repository)
+  '@fortawesome/angular-fontawesome@2.0.1': patches/@fortawesome__angular-fontawesome@2.0.1.patch

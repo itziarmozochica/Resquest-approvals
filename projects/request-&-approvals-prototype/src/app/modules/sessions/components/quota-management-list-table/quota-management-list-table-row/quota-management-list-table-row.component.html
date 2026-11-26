@@ -1,0 +1,352 @@
+<!-- First Column: Varies by row type -->
+<td
+  class="quota-management-list-table-row__cell quota-management-list-table-row__cell--first"
+  [class.quota-management-list-table-row__cell--reduced-opacity]="row.hasOpacity"
+>
+  <div
+    class="quota-management-list-table-row__cell-content quota-management-list-table-row__cell-content--first"
+    [class.quota-management-list-table-row__cell-content--exclusive]="row.consumeMode === 'exclusive'"
+    [class.quota-management-list-table-row__cell-content--shared]="row.consumeMode === 'shared'"
+    [class.quota-management-list-table-row__cell-content--blocked]="row.consumeMode === 'blocked'"
+    [style.marginInlineStart]="indentMargin()"
+    [ngSwitch]="row.type"
+  >
+    <!-- Capacity Group -->
+    <div *ngSwitchCase="rowType.capacityGroup" class="quota-management-list-table-row__name-wrapper">
+      <button
+        class="quota-management-list-table-row__toggle"
+        [class.quota-management-list-table-row__toggle--hidden]="!row.hasChildren"
+        [attr.aria-expanded]="isExpanded()"
+        [attr.aria-label]="'sessions.quotaManagement.aria.toggleGroupDetail' | translate"
+        type="button"
+        (click)="row.hasChildren && toggleExpanded()"
+      >
+        <ignt-icon [name]="isExpanded() ? 'chevron-down' : 'chevron-right'" variant="light" size="sm"></ignt-icon>
+      </button>
+      <div class="quota-management-list-table-row__name-content">
+        <span class="quota-management-list-table-row__label">{{ 'sessions.quotaManagement.table.capacityGroup' | translate }}</span>
+        <span class="quota-management-list-table-row__name" [title]="row.name">{{ row.name }}</span>
+        <div class="quota-management-list-table-row__buttons-container">
+          @if (row.canHaveQuotas && canCreateQuotas) {
+            <button
+              class="quota-management-list-table-row__buttons-container__add-quota"
+              type="button"
+              aria-label="Add quota to capacity group"
+              [disabled]="isLiveEditorDisabled()"
+              (click)="onAddQuota()"
+            >
+              <ignt-icon name="plus" variant="light" size="sm"></ignt-icon>
+              {{ 'sessions.quotaManagement.table.addQuota' | translate }}
+            </button>
+          }
+          <button
+            *ngIf="canShowLiveEditorButton(row)"
+            class="quota-management-list-table-row__buttons-container__live-editor"
+            type="button"
+            aria-label="Edit quotas in live editor"
+            [disabled]="isLiveEditorDisabled()"
+            (click)="onLiveEditor()"
+          >
+            <ignt-icon name="edit" variant="regular" size="sm"></ignt-icon>
+            {{ 'sessions.quotaManagement.table.liveEditor' | translate }}
+          </button>
+        </div>
+        <span *ngIf="!row.canHaveQuotas" class="quota-management-list-table-row__cannot-have-quotas">
+          {{ 'sessions.quotaManagement.table.cannotSplitIntoQuotas' | translate }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Time slot capacity pool (same pool shape as capacity group; originalData is CapacityGroupSummary) -->
+    <div *ngSwitchCase="rowType.timeslot" class="quota-management-list-table-row__name-wrapper">
+      <button
+        class="quota-management-list-table-row__toggle"
+        [class.quota-management-list-table-row__toggle--hidden]="!row.hasChildren"
+        [attr.aria-expanded]="isExpanded()"
+        [attr.aria-label]="'sessions.quotaManagement.aria.toggleTimeslotDetail' | translate"
+        type="button"
+        (click)="row.hasChildren && toggleExpanded()"
+      >
+        <ignt-icon [name]="isExpanded() ? 'chevron-down' : 'chevron-right'" variant="light" size="sm"></ignt-icon>
+      </button>
+      <div class="quota-management-list-table-row__name-content">
+        <span class="quota-management-list-table-row__label">{{ 'sessions.quotaManagement.table.timeslotCapacityPool' | translate }}</span>
+        <span class="quota-management-list-table-row__name" [title]="row.name">{{ row.name }}</span>
+        <div class="quota-management-list-table-row__buttons-container">
+          @if (row.canHaveQuotas && canCreateQuotas) {
+            <button
+              class="quota-management-list-table-row__buttons-container__add-quota"
+              type="button"
+              aria-label="Add quota to time slot capacity"
+              [disabled]="isLiveEditorDisabled()"
+              (click)="onAddQuota()"
+            >
+              <ignt-icon name="plus" variant="light" size="sm"></ignt-icon>
+              {{ 'sessions.quotaManagement.table.addQuota' | translate }}
+            </button>
+          }
+          <button
+            *ngIf="canShowLiveEditorButton(row)"
+            class="quota-management-list-table-row__buttons-container__live-editor"
+            type="button"
+            aria-label="Edit quotas in live editor"
+            [disabled]="isLiveEditorDisabled()"
+            (click)="onLiveEditor()"
+          >
+            <ignt-icon name="edit" variant="regular" size="sm"></ignt-icon>
+            {{ 'sessions.quotaManagement.table.liveEditor' | translate }}
+          </button>
+        </div>
+        <span *ngIf="!row.canHaveQuotas" class="quota-management-list-table-row__cannot-have-quotas">
+          {{ 'sessions.quotaManagement.table.cannotSplitIntoQuotas' | translate }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Ungrouped Tickets -->
+    <div *ngSwitchCase="rowType.ungroupedTickets" class="quota-management-list-table-row__name-wrapper">
+      <button
+        class="quota-management-list-table-row__toggle"
+        [class.quota-management-list-table-row__toggle--hidden]="!row.hasChildren"
+        [attr.aria-expanded]="isExpanded()"
+        [attr.aria-label]="'sessions.quotaManagement.aria.toggleUngroupedDetail' | translate"
+        type="button"
+        (click)="row.hasChildren && toggleExpanded()"
+      >
+        <ignt-icon [name]="isExpanded() ? 'chevron-down' : 'chevron-right'" variant="light" size="sm"></ignt-icon>
+      </button>
+      <div class="quota-management-list-table-row__name-content">
+        <span class="quota-management-list-table-row__name" [title]="row.name">{{ row.name }}</span>
+      </div>
+    </div>
+
+    <!-- Session -->
+    <div *ngSwitchCase="rowType.session" class="quota-management-list-table-row__name-wrapper">
+      <button
+        class="quota-management-list-table-row__toggle"
+        [class.quota-management-list-table-row__toggle--hidden]="!row.hasChildren"
+        [attr.aria-expanded]="isExpanded()"
+        [attr.aria-label]="'sessions.quotaManagement.aria.toggleSessionDetail' | translate"
+        type="button"
+        (click)="row.hasChildren && toggleExpanded()"
+      >
+        <ignt-icon [name]="isExpanded() ? 'chevron-down' : 'chevron-right'" variant="light" size="sm"></ignt-icon>
+      </button>
+      <ignt-icon
+        class="quota-management-list-table-row__session-icon"
+        [name]="isPackSession(row) ? 'box-open' : 'ticket-alt'"
+        variant="light"
+        size="sm"
+      ></ignt-icon>
+      <div class="quota-management-list-table-row__name-content">
+        <span class="quota-management-list-table-row__name" [title]="row.name">{{ row.name }}</span>
+        <div class="quota-management-list-table-row__buttons-container">
+          @if (row.canHaveQuotas && canCreateQuotas) {
+            <button
+              class="quota-management-list-table-row__buttons-container__add-quota"
+              type="button"
+              aria-label="Add quota to capacity group"
+              [disabled]="isLiveEditorDisabled()"
+              (click)="onAddQuota()"
+            >
+              <ignt-icon name="plus" variant="light" size="sm"></ignt-icon>
+              {{ 'sessions.quotaManagement.table.addQuota' | translate }}
+            </button>
+          }
+          <button
+            *ngIf="canShowLiveEditorButton(row)"
+            class="quota-management-list-table-row__buttons-container__live-editor"
+            type="button"
+            aria-label="Edit quotas in live editor"
+            [disabled]="isLiveEditorDisabled()"
+            (click)="onLiveEditor()"
+          >
+            <ignt-icon name="edit" variant="regular" size="sm"></ignt-icon>
+            {{ 'sessions.quotaManagement.table.liveEditor' | translate }}
+          </button>
+        </div>
+        <span *ngIf="!row.canHaveQuotas" class="quota-management-list-table-row__cannot-have-quotas">
+          {{ 'sessions.quotaManagement.table.cannotSplitIntoQuotas' | translate }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Free Capacity -->
+    <span *ngSwitchCase="rowType.freeCapacity" class="quota-management-list-table-row__name">
+      {{ row.name }}
+    </span>
+
+    <!-- Quota -->
+    <div *ngSwitchCase="rowType.quota" class="quota-management-list-table-row__quota-wrapper">
+      <ignt-icon class="quota-management-list-table-row__chart-pie-icon" name="chart-pie" variant="light" size="sm"></ignt-icon>
+      <span class="quota-management-list-table-row__name" [title]="row.name">{{ row.name }}</span>
+    </div>
+  </div>
+</td>
+
+<!-- Column 2: Quota Type -->
+<td
+  class="quota-management-list-table-row__cell quota-management-list-table-row__cell--middle"
+  [class.quota-management-list-table-row__cell--reduced-opacity]="row.hasOpacity"
+>
+  <div
+    class="quota-management-list-table-row__cell-content quota-management-list-table-row__cell-content--middle quota-management-list-table-row__cell-content--centered"
+    [class.quota-management-list-table-row__cell-content--exclusive]="row.consumeMode === 'exclusive'"
+    [class.quota-management-list-table-row__cell-content--shared]="row.consumeMode === 'shared'"
+    [class.quota-management-list-table-row__cell-content--blocked]="row.consumeMode === 'blocked'"
+  >
+    {{ row.quotaType }}
+  </div>
+</td>
+
+<!-- Column 3: Quota Assignation -->
+<td
+  class="quota-management-list-table-row__cell quota-management-list-table-row__cell--middle"
+  [class.quota-management-list-table-row__cell--reduced-opacity]="row.hasOpacity"
+>
+  <div
+    *ngIf="row.type === rowType.quota && row.consumeMode !== 'blocked'; else noTooltip"
+    class="quota-management-list-table-row__cell-content quota-management-list-table-row__cell-content--middle quota-management-list-table-row__cell-content--centered quota-management-list-table-row__cell-content--with-separator"
+    [class.quota-management-list-table-row__cell-content--exclusive]="row.consumeMode === 'exclusive'"
+    [class.quota-management-list-table-row__cell-content--shared]="row.consumeMode === 'shared'"
+    [appTemplatedTooltip]="assignationTooltipTemplate"
+  >
+    {{ row.quotaAssignation }}
+  </div>
+  <ng-template #noTooltip>
+    <div
+      class="quota-management-list-table-row__cell-content quota-management-list-table-row__cell-content--middle quota-management-list-table-row__cell-content--centered quota-management-list-table-row__cell-content--with-separator"
+      [class.quota-management-list-table-row__cell-content--exclusive]="row.consumeMode === 'exclusive'"
+      [class.quota-management-list-table-row__cell-content--shared]="row.consumeMode === 'shared'"
+      [class.quota-management-list-table-row__cell-content--blocked]="row.consumeMode === 'blocked'"
+    >
+      {{ row.quotaAssignation }}
+    </div>
+  </ng-template>
+</td>
+
+<!-- Column 4: Issued -->
+<ng-container
+  *ngTemplateOutlet="numericRow; context: { $implicit: row.issued, consumeMode: row.consumeMode, shouldReduceOpacity: row.hasOpacity }"
+></ng-container>
+
+<!-- Column 5: Available -->
+<ng-container
+  *ngTemplateOutlet="numericRow; context: { $implicit: row.available, consumeMode: row.consumeMode, shouldReduceOpacity: row.hasOpacity }"
+></ng-container>
+
+<!-- Column 6: Capacity -->
+<ng-container
+  *ngTemplateOutlet="
+    capacityRow;
+    context: {
+      $implicit: row.capacity,
+      consumeMode: row.consumeMode,
+      shouldReduceOpacity: row.hasOpacity,
+      row: row,
+    }
+  "
+></ng-container>
+
+<!-- Column 7: Actions -->
+<td
+  class="quota-management-list-table-row__cell quota-management-list-table-row__cell--last"
+  [class.quota-management-list-table-row__cell--reduced-opacity]="row.hasOpacity"
+  [class.quota-management-list-table-row__cell--actions-disabled]="row.type === rowType.quota && isLiveEditorDisabled()"
+>
+  <div
+    class="quota-management-list-table-row__cell-content quota-management-list-table-row__cell-content--last"
+    [class.quota-management-list-table-row__cell-content--exclusive]="row.consumeMode === 'exclusive'"
+    [class.quota-management-list-table-row__cell-content--shared]="row.consumeMode === 'shared'"
+    [class.quota-management-list-table-row__cell-content--blocked]="row.consumeMode === 'blocked'"
+    [ngSwitch]="row.type"
+  >
+    <ng-container *ngSwitchCase="rowType.quota">
+      <app-quota-actions-menu
+        *ngIf="canEditQuotas"
+        [menuId]="row.id"
+        [disabled]="isLiveEditorDisabled()"
+        (actionSelected)="onQuotaMenuAction($event)"
+      ></app-quota-actions-menu>
+    </ng-container>
+    <ignt-icon
+      *ngSwitchCase="rowType.freeCapacity"
+      class="quota-management-list-table-row__actions-placeholder"
+      name="ellipsis-v"
+      variant="solid"
+      size="sm"
+    ></ignt-icon>
+  </div>
+</td>
+
+<ng-template #numericRow let-value let-consumeMode="consumeMode" let-shouldReduceOpacity="shouldReduceOpacity">
+  <td
+    class="quota-management-list-table-row__cell quota-management-list-table-row__cell--middle"
+    [class.quota-management-list-table-row__cell--reduced-opacity]="shouldReduceOpacity"
+  >
+    <div
+      class="quota-management-list-table-row__cell-content quota-management-list-table-row__cell-content--middle quota-management-list-table-row__cell-content--numeric"
+      [class.quota-management-list-table-row__cell-content--exclusive]="consumeMode === 'exclusive'"
+      [class.quota-management-list-table-row__cell-content--shared]="consumeMode === 'shared'"
+      [class.quota-management-list-table-row__cell-content--blocked]="consumeMode === 'blocked'"
+    >
+      {{ value === null ? '' : value }}
+    </div>
+  </td>
+</ng-template>
+
+<ng-template #capacityRow let-value let-consumeMode="consumeMode" let-row="row" let-shouldReduceOpacity="shouldReduceOpacity">
+  <ng-container
+    *ngTemplateOutlet="
+      formControl ? numericInputRow : numericRow;
+      context: {
+        $implicit: value,
+        consumeMode: consumeMode,
+        row: row.type === rowType.quota && formControl ? row : null,
+        shouldReduceOpacity: shouldReduceOpacity,
+      }
+    "
+  ></ng-container>
+</ng-template>
+
+<ng-template #numericInputRow let-value let-consumeMode="consumeMode" let-row="row" let-shouldReduceOpacity="shouldReduceOpacity">
+  <td
+    class="quota-management-list-table-row__cell quota-management-list-table-row__cell--middle"
+    [class.quota-management-list-table-row__cell--reduced-opacity]="shouldReduceOpacity"
+    [class.quota-management-list-table-row__cell--disabled]="formControl?.disabled"
+  >
+    <div
+      class="quota-management-list-table-row__cell-content quota-management-list-table-row__cell-content--middle quota-management-list-table-row__cell-content--numeric"
+      [class.quota-management-list-table-row__cell-content--exclusive]="consumeMode === 'exclusive'"
+      [class.quota-management-list-table-row__cell-content--shared]="consumeMode === 'shared'"
+      [class.quota-management-list-table-row__cell-content--blocked]="consumeMode === 'blocked'"
+    >
+      <div
+        class="quota-management-list-table-row__capacity-input-wrapper"
+        [class.quota-management-list-table-row__capacity-input-wrapper--error]="formControl?.invalid ?? false"
+        [class.quota-management-list-table-row__capacity-input-wrapper--exclusive]="consumeMode === 'exclusive'"
+        [class.quota-management-list-table-row__capacity-input-wrapper--shared]="consumeMode === 'shared'"
+        [class.quota-management-list-table-row__capacity-input-wrapper--blocked]="consumeMode === 'blocked'"
+      >
+        <div class="quota-management-list-table-row__capacity-input-container">
+          <input
+            *ngIf="formControl"
+            [formControl]="formControl"
+            class="quota-management-list-table-row__capacity-input"
+            [class.quota-management-list-table-row__capacity-input--error]="formControl.invalid"
+            type="number"
+            [attr.aria-label]="'Quota capacity for ' + row.name"
+            [placeholder]="originalCapacityPlaceholder()"
+            [min]="row.issued || 0"
+            [max]="formControl.enabled ? getMaxCapacityForQuota(row) : null"
+            data-testid="capacity-input"
+          />
+        </div>
+      </div>
+    </div>
+  </td>
+</ng-template>
+
+<ng-template #assignationTooltipTemplate>
+  <app-quota-assignation-tooltip-content [ruleFields]="assignationNames"></app-quota-assignation-tooltip-content>
+</ng-template>

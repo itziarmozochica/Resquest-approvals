@@ -1,0 +1,156 @@
+<section class="time-slot-products-selector" data-testid="time-slot-products-selector">
+  <header class="time-slot-products-selector__header">
+    <h4 class="time-slot-products-selector__title">
+      {{ 'sessions.sessionsPerTimeslot.timeSlotProductsSelector.title' | translate }}
+    </h4>
+    <p class="time-slot-products-selector__description">
+      {{ 'sessions.sessionsPerTimeslot.timeSlotProductsSelector.description' | translate }}
+    </p>
+  </header>
+
+  <ignt-input-field
+    class="time-slot-products-selector__search"
+    data-testid="time-slot-products-selector-search"
+    type="text"
+    [disabled]="disabled()"
+    [label]="'sessions.sessionsPerTimeslot.timeSlotProductsSelector.searchLabel' | translate"
+    [placeholder]="'sessions.sessionsPerTimeslot.timeSlotProductsSelector.searchPlaceholder' | translate"
+    [ngModel]="searchTerm()"
+    (ngModelChange)="onSearchChange($event)"
+  ></ignt-input-field>
+
+  <div class="time-slot-products-selector__table">
+    <div class="time-slot-products-selector__table-header">
+      <span class="time-slot-products-selector__column time-slot-products-selector__column--product">
+        {{ 'sessions.sessionsPerTimeslot.timeSlotProductsSelector.columns.product' | translate }}
+      </span>
+      <span class="time-slot-products-selector__column time-slot-products-selector__column--capacity">
+        {{ 'sessions.sessionsPerTimeslot.timeSlotProductsSelector.columns.capacity' | translate }}
+      </span>
+    </div>
+
+    @if (hasNoVisibleGroups()) {
+      <div class="time-slot-products-selector__empty" data-testid="time-slot-products-selector-empty">
+        {{ 'sessions.sessionsPerTimeslot.timeSlotProductsSelector.emptyResults' | translate }}
+      </div>
+    } @else {
+      @for (group of visibleGroups(); track trackGroupById($index, group)) {
+        <div class="time-slot-products-selector__group" [attr.data-testid]="'time-slot-products-selector-group-' + getGroupTestId(group)">
+          @if (group.id !== null) {
+            <div class="time-slot-products-selector__group-row">
+              <button
+                ignt-icon-button
+                size="small"
+                sentiment="tertiary"
+                type="button"
+                class="time-slot-products-selector__collapse-toggle"
+                [icon]="['fal', isGroupCollapsed(group) ? 'chevron-right' : 'chevron-down']"
+                [attr.aria-expanded]="!isGroupCollapsed(group)"
+                [attr.aria-label]="
+                  'sessions.sessionsPerTimeslot.timeSlotProductsSelector.toggleGroupAriaLabel' | translate: { group: group.name || '' }
+                "
+                [attr.data-testid]="'time-slot-products-selector-group-toggle-' + getGroupTestId(group)"
+                (click)="onGroupCollapseToggle(group)"
+              ></button>
+              <ignt-checkbox
+                [checked]="isGroupChecked(group)"
+                [dataTestId]="'time-slot-products-selector-group-checkbox-' + getGroupTestId(group)"
+                [disabled]="isGroupCheckboxDisabled(group)"
+                [label]="group.name || ''"
+                (change)="onGroupToggle(group, $event)"
+              ></ignt-checkbox>
+              @if (hasCollapsedCapacityWarning(group)) {
+                <span
+                  class="time-slot-products-selector__group-capacity-warning"
+                  [attr.data-testid]="'time-slot-products-selector-group-capacity-warning-' + getGroupTestId(group)"
+                >
+                  <ignt-icon aria-hidden="true" name="exclamation-circle" variant="solid"></ignt-icon>
+                  {{ 'sessions.sessionsPerTimeslot.timeSlotProductsSelector.missingGroupCapacities' | translate }}
+                </span>
+              }
+            </div>
+          } @else {
+            <div class="time-slot-products-selector__group-row time-slot-products-selector__group-row--ungrouped">
+              <button
+                ignt-icon-button
+                size="small"
+                sentiment="tertiary"
+                type="button"
+                class="time-slot-products-selector__collapse-toggle"
+                [icon]="['fal', isGroupCollapsed(group) ? 'chevron-right' : 'chevron-down']"
+                [attr.aria-expanded]="!isGroupCollapsed(group)"
+                [attr.aria-label]="
+                  'sessions.sessionsPerTimeslot.timeSlotProductsSelector.toggleGroupAriaLabel'
+                    | translate
+                      : {
+                          group: 'sessions.sessionsPerTimeslot.timeSlotProductsSelector.ungrouped' | translate,
+                        }
+                "
+                [attr.data-testid]="'time-slot-products-selector-group-toggle-' + getGroupTestId(group)"
+                (click)="onGroupCollapseToggle(group)"
+              ></button>
+              <span class="time-slot-products-selector__ungrouped-label">
+                {{ 'sessions.sessionsPerTimeslot.timeSlotProductsSelector.ungrouped' | translate }}
+              </span>
+              @if (hasCollapsedCapacityWarning(group)) {
+                <span
+                  class="time-slot-products-selector__group-capacity-warning"
+                  [attr.data-testid]="'time-slot-products-selector-group-capacity-warning-' + getGroupTestId(group)"
+                >
+                  <ignt-icon aria-hidden="true" name="exclamation-circle" variant="solid"></ignt-icon>
+                  {{ 'sessions.sessionsPerTimeslot.timeSlotProductsSelector.missingGroupCapacities' | translate }}
+                </span>
+              }
+            </div>
+          }
+
+          @if (!isGroupCollapsed(group)) {
+            <ul class="time-slot-products-selector__session-types">
+              @for (sessionType of group.sessionTypes; track trackSessionTypeById($index, sessionType)) {
+                <li
+                  class="time-slot-products-selector__session-type-row"
+                  [class.time-slot-products-selector__session-type-row--existing]="isExisting(sessionType.id)"
+                  [class.time-slot-products-selector__session-type-row--error]="isCapacityMissing(sessionType.id)"
+                  [attr.data-testid]="'time-slot-products-selector-session-type-row-' + sessionType.id"
+                >
+                  <div class="time-slot-products-selector__session-type-selector">
+                    <ignt-checkbox
+                      [checked]="isSelected(sessionType.id)"
+                      [dataTestId]="'time-slot-products-selector-session-type-checkbox-' + sessionType.id"
+                      [disabled]="isTypeDisabled(sessionType.id)"
+                      [label]="sessionType.label"
+                      (change)="onTypeToggle(sessionType.id, $event)"
+                    ></ignt-checkbox>
+                  </div>
+
+                  <div class="time-slot-products-selector__session-type-capacity">
+                    <ignt-input-field
+                      class="time-slot-products-selector__capacity-input"
+                      [attr.data-testid]="'time-slot-products-selector-capacity-input-' + sessionType.id"
+                      type="number"
+                      label=""
+                      [disabled]="isCapacityInputDisabled(sessionType.id)"
+                      [readonly]="isExisting(sessionType.id)"
+                      [ngModel]="getCapacity(sessionType.id) ?? ''"
+                      (ngModelChange)="onCapacityChange(sessionType.id, $event)"
+                    ></ignt-input-field>
+                    @if (isCapacityMissing(sessionType.id)) {
+                      <span
+                        class="time-slot-products-selector__capacity-error"
+                        [id]="'time-slot-products-selector-capacity-error-' + sessionType.id"
+                        [attr.data-testid]="'time-slot-products-selector-capacity-error-' + sessionType.id"
+                      >
+                        <ignt-icon aria-hidden="true" name="exclamation-circle" variant="solid"></ignt-icon>
+                        {{ 'sessions.sessionsPerTimeslot.timeSlotProductsSelector.missingCapacity' | translate }}
+                      </span>
+                    }
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      }
+    }
+  </div>
+</section>

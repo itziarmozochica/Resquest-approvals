@@ -1,0 +1,73 @@
+<ignt-dialog-header>
+  <span class="font-detail__title" [title]="font.familyName">{{ font.familyName }}</span>
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="font-detail">
+    @if (copyableUrl; as url) {
+      <div class="font-detail__url">
+        <span class="font-detail__url-text" [title]="url">{{ url }}</span>
+        <button
+          type="button"
+          ignt-icon-button
+          size="small"
+          sentiment="tertiary"
+          [icon]="copied() ? ['fas', 'check'] : ['fal', 'copy']"
+          [attr.title]="copyLabelKey | translate"
+          [attr.aria-label]="copyLabelKey | translate"
+          (click)="copyUrl()"
+          data-testid="font-detail-copy"
+        ></button>
+      </div>
+    }
+
+    <div class="font-detail__badges">
+      @if (font.origins.includes('google-import')) {
+        <ignt-tag sentiment="info" variant="outline">{{ 'whitelabelFonts.origin.google' | translate }}</ignt-tag>
+      }
+      @if (font.origins.includes('css-face')) {
+        <ignt-tag sentiment="sharp" variant="outline">{{ 'whitelabelFonts.origin.inCss' | translate }}</ignt-tag>
+      }
+    </div>
+
+    <section class="font-detail__references">
+      <p class="font-detail__references-heading">
+        {{ 'whitelabelFontDetail.references.heading' | translate: { count: cssReferences.length } }}
+      </p>
+      @if (cssReferences.length === 0) {
+        <p class="font-detail__references-hint" data-testid="font-detail-references-empty">
+          {{ 'whitelabelFontDetail.references.emptyHint' | translate }}
+        </p>
+      } @else {
+        <ul class="font-detail__references-list" data-testid="font-detail-references-list">
+          @for (reference of cssReferences; track reference.styleId + reference.variable) {
+            <li class="font-detail__references-item">
+              <p class="font-detail__references-variable" [title]="reference.variable">{{ reference.variable }}</p>
+              <p class="font-detail__references-value" [title]="reference.value">{{ reference.value }}</p>
+              @if (reference.styleName; as styleName) {
+                <ignt-tag sentiment="info" variant="outline">{{ styleName }}</ignt-tag>
+              }
+            </li>
+          }
+        </ul>
+        <p class="font-detail__references-hint">{{ 'whitelabelFontDetail.blocked.hint' | translate }}</p>
+      }
+    </section>
+  </div>
+</ignt-dialog-content>
+
+@if (isDeletable) {
+  <ignt-dialog-footer hideCancelButton>
+    <button
+      type="button"
+      igntButton
+      variant="danger"
+      [loading]="deleting()"
+      [disabled]="deleting() || isInUse"
+      (click)="onDelete()"
+      data-testid="font-detail-delete"
+    >
+      {{ 'whitelabelFontDetail.delete' | translate }}
+    </button>
+  </ignt-dialog-footer>
+}

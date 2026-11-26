@@ -1,0 +1,199 @@
+<div class="ambassador-program-rewards">
+  <div class="ambassador-program-rewards__block">
+    <header class="ambassador-program-rewards__page-header">
+      <button class="ambassador-program-rewards__back-button" (click)="goBack()" data-testid="ambassador-program-rewards__back-button">
+        {{ 'common.back' | translate }}
+      </button>
+      <h1 class="ambassador-program-rewards__page-title">{{ 'ambassadorOverview.programs.redeemPoints' | translate }}</h1>
+    </header>
+
+    <div class="ambassador-program-rewards__event-info">
+      <div class="ambassador-program-rewards__event-info-content">
+        <img
+          [src]="program.image"
+          class="ambassador-program-rewards__event-info-image"
+          [alt]="program.title"
+          data-testid="ambassador-program-rewards__event-info-image"
+        />
+        <div class="ambassador-program-rewards__event-info-details">
+          <h2 class="ambassador-program-rewards__event-info-title" data-testid="ambassador-program-rewards__event-info-title">
+            {{ program.title }}
+          </h2>
+          <p class="ambassador-program-rewards__event-info-validity">
+            {{ 'ambassadorOverview.rewards.validUntil' | translate }}
+            <span
+              class="ambassador-program-rewards__event-info-validity-date"
+              data-testid="ambassador-program-rewards__event-info-validity-date"
+              >{{ program.redeemExpirationAt | date: 'd MMM yyyy' }}</span
+            >
+          </p>
+        </div>
+      </div>
+      <div class="ambassador-program-rewards__event-info-points-balance">
+        <span class="ambassador-program-rewards__event-info-points-balance-label">{{
+          'ambassadorOverview.programs.youHave' | translate
+        }}</span>
+        <span
+          class="ambassador-program-rewards__event-info-points-balance-value"
+          data-testid="ambassador-program-rewards__event-info-points-balance-value"
+          >{{ userPoints }}</span
+        >
+        <span class="ambassador-program-rewards__event-info-points-balance-text">{{
+          'ambassadorOverview.programs.points' | translate
+        }}</span>
+      </div>
+    </div>
+
+    <div class="ambassador-program-rewards__filters">
+      <div class="ambassador-program-rewards__filters-left">
+        <ignt-pill
+          [label]="'ambassadorOverview.rewards.availableForMe' | translate"
+          [isActive]="availableForMeFilter()"
+          value="available"
+          (click)="setAvailableForMeFilter(!availableForMeFilter())"
+          data-testid="ambassador-program-rewards__available-for-me-filter"
+        >
+        </ignt-pill>
+        <ignt-pill
+          [label]="''"
+          [isActive]="!!lowestCostFilter()"
+          value="lowest"
+          (click)="setLowestCostFilter()"
+          data-testid="ambassador-program-rewards__lowest-cost-filter"
+        >
+          <fa-icon [fixedWidth]="true" [icon]="['far', 'sort-alt']"></fa-icon>
+          {{ 'ambassadorOverview.rewards.lowestCost' | translate }}
+        </ignt-pill>
+      </div>
+      <ignt-alert>
+        <ng-template #igntAlertContent>
+          <span>
+            {{ 'ambassadorOverview.rewards.checkEventDetails' | translate: { event: program.title } }}
+            <a [href]="program.termsAndConditionsLink" class="ambassador-program-rewards__link">{{
+              'ambassadorOverview.rewards.eventPage' | translate: { event: program.title }
+            }}</a>
+          </span>
+        </ng-template>
+      </ignt-alert>
+    </div>
+
+    <div class="ambassador-program-rewards__content">
+      <h3 class="ambassador-program-rewards__content-title">{{ 'ambassadorOverview.rewards.pickARewardToRedeem' | translate }}</h3>
+
+      <div
+        #rewardsContainer
+        class="ambassador-program-rewards__content-rewards-list"
+        data-testid="ambassador-program-rewards__content-rewards-list"
+      >
+        <div *ngIf="rewards().length === 0 && !isLoading() && !error()">
+          <p data-testid="ambassador-program-rewards__empty-state">
+            {{ 'ambassadorOverview.rewards.noRewardsAvailable' | translate }}
+          </p>
+        </div>
+
+        <div *ngIf="error() && !isLoading()" data-testid="ambassador-program-rewards__error-state">
+          <p>{{ 'ambassadorOverview.rewards.error' | translate }}</p>
+        </div>
+
+        <ignt-points-card
+          *ngFor="let reward of rewards(); let i = index"
+          [points]="reward.points"
+          [title]="reward.title"
+          [availableCount]="reward.displayRealAvailability ? reward.initialStock - reward.redeemedCount : undefined"
+          [availableText]="
+            reward.displayRealAvailability
+              ? ('common.available' | translate)
+              : ('ambassadorOverview.rewards.subjectToAvailability' | translate)
+          "
+          [pointsText]="'ambassadorOverview.rewards.points' | translate"
+          [soldoutText]="'ambassadorOverview.rewards.soldout' | translate"
+          [unavailableText]="'common.notAvailable' | translate"
+          [isSelected]="selectedReward()?.id === reward.id"
+          [status]="reward.soldOut ? 'soldout' : 'available'"
+          (click)="selectReward(reward)"
+          [disabled]="isRedeeming() && selectedReward()?.id !== reward.id"
+          [attr.data-testid]="'ambassador-program-rewards__rewards-cards-' + i"
+        >
+        </ignt-points-card>
+
+        <div *ngIf="isLoading()">
+          <div class="ambassador-program-rewards__loading" data-testid="ambassador-program-rewards__loading">
+            <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'3x'"></fa-icon>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <bottom-slider *ngIf="selectedReward()" [buttonsTemplate]="buttonsTemplate"> </bottom-slider>
+
+  <ng-template #buttonsTemplate>
+    <div class="ambassador-program-rewards__buttons">
+      <ignt-alert
+        *ngIf="selectedReward() && selectedReward().points > userPoints"
+        sentiment="warning"
+        [description]="'ambassadorOverview.rewards.notEnoughPoints' | translate"
+        data-testid="ambassador-program-rewards__not-enough-points-warning"
+      />
+      <ignt-button
+        [fill]="isMobile()"
+        [disabled]="selectedReward().points > userPoints || isRedeeming()"
+        [label]="'ambassadorOverview.rewards.redeem' | translate"
+        (click)="openRedeemConfirmation($event, selectedReward())"
+        data-testid="ambassador-program-rewards__redeem-button"
+      />
+    </div>
+  </ng-template>
+
+  <ng-template #redeemConfirmationTemplate>
+    <ignt-dialog-header>{{ 'ambassadorOverview.rewards.redeemConfirmationTitle' | translate }}</ignt-dialog-header>
+    @if (selectedReward(); as reward) {
+      <ignt-dialog-content>
+        <div class="ambassador-program-rewards__confirmation-sheet" data-testid="ambassador-program-rewards__confirmation-sheet">
+          <div class="ambassador-program-rewards__confirmation-sheet-content">
+            <p
+              [innerHTML]="
+                'ambassadorOverview.rewards.redeemConfirmationSubtitle'
+                  | translate: { title: reward.title, points: reward.points }
+                  | sanitize
+              "
+            ></p>
+            <ignt-points-card
+              [points]="reward.points"
+              [title]="reward.title"
+              [availableCount]="reward.displayRealAvailability ? reward.initialStock - reward.redeemedCount : undefined"
+              [availableText]="
+                reward.displayRealAvailability
+                  ? ('common.available' | translate)
+                  : ('ambassadorOverview.rewards.subjectToAvailability' | translate)
+              "
+              [pointsText]="'ambassadorOverview.rewards.points' | translate"
+              [soldoutText]="'ambassadorOverview.rewards.soldout' | translate"
+              [unavailableText]="'common.notAvailable' | translate"
+              [isSelected]="false"
+              [status]="reward.soldOut ? 'soldout' : 'available'"
+            ></ignt-points-card>
+          </div>
+          <div class="ambassador-program-rewards__disclaimer">
+            <ignt-alert [description]="'Once redeemed, this action can\'t be undone.' | translate"></ignt-alert>
+          </div>
+        </div>
+      </ignt-dialog-content>
+      <ignt-dialog-footer hideCancelButton>
+        <ignt-button
+          fill
+          variant="tertiary"
+          [label]="'common.cancel' | translate"
+          (click)="cancelRedeem()"
+          data-testid="ambassador-program-rewards__cancel-button"
+        />
+        <ignt-button
+          fill
+          [label]="'ambassadorOverview.rewards.redeem' | translate"
+          [loading]="isRedeeming()"
+          (click)="redeemReward($event, reward)"
+          data-testid="ambassador-program-rewards__confirm-redeem-button"
+        />
+      </ignt-dialog-footer>
+    }
+  </ng-template>
+</div>

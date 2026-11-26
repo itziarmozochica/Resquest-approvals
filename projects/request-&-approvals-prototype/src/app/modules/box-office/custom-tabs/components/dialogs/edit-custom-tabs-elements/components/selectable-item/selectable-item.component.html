@@ -1,0 +1,122 @@
+<div class="selectable-item" data-testid="selectable-item">
+  <div
+    class="selectable-item__content"
+    data-testid="selectable-item-content"
+    [attr.data-disabled]="isDisabled()"
+    [class.selectable-item__content--disabled]="isDisabled()"
+    [class.selectable-item__content--level-2]="level() === 2"
+    [class.selectable-item__content--level-3]="level() === 3"
+    [class.selectable-item__content--level-4]="level() === 4"
+    [class.selectable-item__content--level-5]="level() === 5"
+    [class.selectable-item__content--level-6]="level() === 6"
+    [class.selectable-item__content--level-7]="level() === 7"
+    [class.selectable-item__content--level-8]="level() === 8"
+    [class.selectable-item__content--alternate]="hasAlternateBackground()"
+    (click)="onToggleExpand()"
+  >
+    @if (showProducts() ? item().hierarchyElements.length + item().products.length > 0 : item().hierarchyElements.length > 0) {
+      <fa-icon
+        class="selectable-item__icon"
+        data-testid="expand-icon"
+        [class.selectable-item__icon--disabled]="isDisabled()"
+        [icon]="['fas', isExpanded() ? 'chevron-down' : 'chevron-right']"
+      ></fa-icon>
+    }
+    <div class="selectable-item__labels">
+      <div class="selectable-item__labels__name" [class.selectable-item__labels__name--disabled]="isDisabled()">{{ item().name }}</div>
+      <span class="selectable-item__labels__count-info">{{ countInfoText() }}</span>
+    </div>
+    <div class="selectable-item__actions" (click)="$event.stopPropagation()">
+      @if (isSingleSelection()) {
+        <ignt-radio
+          class="selectable-item__actions__radio"
+          data-testid="radio"
+          [value]="item().id"
+          [checked]="selectedIds().includes(item().id)"
+          [disabled]="isDisabled()"
+          (change)="onRadioChange($event)"
+        ></ignt-radio>
+      } @else {
+        <ignt-checkbox
+          class="selectable-item__actions__checkbox"
+          data-testid="checkbox"
+          [checked]="selectedIds().includes(item().id)"
+          [disabled]="isDisabled()"
+          (change)="onCheckboxChange($event)"
+        ></ignt-checkbox>
+      }
+    </div>
+  </div>
+  @if (isExpanded()) {
+    <div class="selectable-item__expanded-content" data-testid="expanded-content">
+      @for (child of item().hierarchyElements; track child.id) {
+        <app-selectable-item
+          class="child-item"
+          data-testid="child-item"
+          [alternateBackgroundIds]="alternateBackgroundIds()"
+          [disabledIds]="disabledIds()"
+          [expandedIds]="expandedIds()"
+          [initialExpandedIds]="initialExpandedIds()"
+          [item]="child"
+          [level]="level() + 1"
+          [selectedIds]="selectedIds()"
+          [selectionMode]="selectionMode()"
+          (deselected)="deselected.emit($event)"
+          (expandedChange)="expandedChange.emit($event)"
+          (productSelected)="productSelected.emit($event)"
+          (selected)="selected.emit($event)"
+        ></app-selectable-item>
+      }
+      @if (showProducts()) {
+        @for (product of item().products; track product.id) {
+          <div
+            class="selectable-item__content"
+            data-testid="product-item"
+            [attr.data-disabled]="isProductDisabled(product.id)"
+            [class.selectable-item__content--disabled]="isProductDisabled(product.id)"
+            [class.selectable-item__content--level-2]="level() + 1 === 2"
+            [class.selectable-item__content--level-3]="level() + 1 === 3"
+            [class.selectable-item__content--level-4]="level() + 1 === 4"
+            [class.selectable-item__content--level-5]="level() + 1 === 5"
+            [class.selectable-item__content--level-6]="level() + 1 === 6"
+            [class.selectable-item__content--level-7]="level() + 1 === 7"
+            [class.selectable-item__content--level-8]="level() + 1 === 8"
+            [class.selectable-item__content--alternate]="hasProductAlternateBackground(product.id)"
+          >
+            <div class="selectable-item__labels">
+              <fa-icon
+                class="selectable-item__product__icon"
+                [class.selectable-item__product__icon--disabled]="isProductDisabled(product.id)"
+                [icon]="['fal', 'image']"
+              ></fa-icon>
+              <div
+                class="selectable-item__labels__sub-name"
+                data-testid="product-name"
+                [class.selectable-item__labels__sub-name--disabled]="isProductDisabled(product.id)"
+              >
+                {{ product.name }}
+              </div>
+            </div>
+            <div class="selectable-item__actions" (click)="$event.stopPropagation()">
+              <ignt-checkbox
+                class="selectable-item__actions__checkbox"
+                data-testid="product-checkbox"
+                [checked]="selectedIds().includes(product.id)"
+                [disabled]="isProductDisabled(product.id)"
+                (change)="onProductTileSelect(product, $event)"
+              ></ignt-checkbox>
+            </div>
+          </div>
+        }
+      }
+    </div>
+  }
+</div>
+@if (isExpanded() && level() > 1 && showProducts()) {
+  <ignt-divider
+    [margin]="false"
+    class="selectable-item__divider"
+    data-testid="divider"
+    [label]="'boxOffice.customTabs.dialogs.editCustomTabTiles.endOfDivider' | translate: { name: item().name }"
+  ></ignt-divider>
+}

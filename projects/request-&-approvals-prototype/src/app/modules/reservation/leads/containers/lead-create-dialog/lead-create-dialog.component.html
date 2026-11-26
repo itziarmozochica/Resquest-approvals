@@ -1,0 +1,212 @@
+<ignt-dialog-header>{{ 'leads.create.title' | translate }}</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <!-- The footer's submit button lives outside this form, so it calls `onSubmit` directly; `ngSubmit`
+       is still wired for the Enter key. -->
+  <form class="lead-create-dialog" [formGroup]="form" (ngSubmit)="onSubmit()">
+    <h3 class="lead-create-dialog__section-title">{{ 'leads.create.sections.leadDetails' | translate }}</h3>
+    <div class="lead-create-dialog__grid">
+      <ignt-typeahead
+        data-testid="lead-create-source"
+        container="body"
+        [isInDialog]="true"
+        [collapseOnClick]="true"
+        [fieldLabel]="('leads.create.fields.source' | translate) + ' *'"
+        [emptyLabel]="'common.selectsPlaceholder' | translate"
+        [options]="sourceOptions"
+        [editable]="false"
+        [selectedOption]="selectedSourceOption()"
+        (selected)="onSourceSelected($event)"
+      />
+
+      <!-- Server-driven lookup like the leads-list owner filter: typing re-queries IAM, scrolling
+           to the bottom loads the next page, the refresh trigger re-renders the open popup once
+           either lands. -->
+      @if (canAssignOwner()) {
+        <ignt-typeahead
+          data-testid="lead-create-owner"
+          container="body"
+          [isInDialog]="true"
+          [collapseOnClick]="true"
+          [fieldLabel]="('leads.create.fields.owner' | translate) + ' *'"
+          [emptyLabel]="'common.selectsPlaceholder' | translate"
+          [options]="ownerOptions()"
+          [minSearchLength]="1"
+          [refreshOnlyWhenOpen]="true"
+          [refreshTrigger]="ownerRefreshTrigger$"
+          [selectedOption]="selectedOwnerOption()"
+          (inputInteraction)="onOwnerSearchChange($event)"
+          (scrollToEnd)="onOwnerScrollEnd()"
+          (selected)="onOwnerSelected($event)"
+        />
+      }
+    </div>
+
+    <h3 class="lead-create-dialog__section-title">{{ 'leads.create.sections.guestInfo' | translate }}</h3>
+    <div class="lead-create-dialog__grid">
+      <ignt-input-field
+        id="leadGuestFirstName"
+        data-testid="lead-create-guest-first-name"
+        formControlName="guestFirstName"
+        [label]="('leads.create.fields.guestFirstName' | translate) + ' *'"
+        [maxlength]="guestNameMaxLength"
+        [customFormErrors]="guestFirstNameErrors"
+      />
+      <ignt-input-field
+        id="leadGuestLastName"
+        data-testid="lead-create-guest-last-name"
+        formControlName="guestLastName"
+        [label]="'leads.create.fields.guestLastName' | translate"
+        [maxlength]="guestNameMaxLength"
+        [customFormErrors]="guestLastNameErrors"
+      />
+      <ignt-input-field
+        id="leadGuestEmail"
+        data-testid="lead-create-guest-email"
+        formControlName="guestEmail"
+        type="email"
+        [label]="('leads.create.fields.guestEmail' | translate) + ' *'"
+        [customFormErrors]="guestEmailErrors"
+      />
+      <!-- Digits and the usual separators only: letters are refused on keypress and by the control's
+           pattern, so a mistyped name cannot end up in the phone column. -->
+      <ignt-input-field
+        id="leadGuestPhone"
+        data-testid="lead-create-guest-phone"
+        formControlName="guestPhone"
+        type="tel"
+        [label]="('leads.create.fields.guestPhone' | translate) + ' *'"
+        [placeholder]="'leads.create.fields.guestPhonePlaceholder' | translate"
+        [customFormErrors]="guestPhoneErrors"
+        (keypress)="onGuestPhoneKeyPress($event)"
+      />
+    </div>
+
+    <h3 class="lead-create-dialog__section-title">{{ 'leads.create.sections.eventInfo' | translate }}</h3>
+    <div class="lead-create-dialog__grid">
+      <!-- City and venue are saved on the lead and narrow the activity choices below; both are
+           optional. All three lists are built from the partner's plans, fetched once and filtered
+           client-side, so only venues carrying at least one activity are offered. -->
+      <ignt-typeahead
+        data-testid="lead-create-city"
+        container="body"
+        [isInDialog]="true"
+        [collapseOnClick]="true"
+        [fieldLabel]="'leads.create.fields.city' | translate"
+        [emptyLabel]="'filters.allCities' | translate"
+        [options]="cityOptions()"
+        [refreshOnlyWhenOpen]="true"
+        [refreshTrigger]="optionsRefreshTrigger$"
+        [selectedOption]="selectedCityOption()"
+        (selected)="onCitySelected($event)"
+        (userInteraction)="onCityInteraction($event)"
+      />
+      <ignt-typeahead
+        data-testid="lead-create-venue"
+        container="body"
+        [isInDialog]="true"
+        [collapseOnClick]="true"
+        [fieldLabel]="'leads.create.fields.venue' | translate"
+        [emptyLabel]="'filters.allVenues' | translate"
+        [options]="venueOptions()"
+        [refreshOnlyWhenOpen]="true"
+        [refreshTrigger]="optionsRefreshTrigger$"
+        [selectedOption]="selectedVenueOption()"
+        (selected)="onVenueSelected($event)"
+        (userInteraction)="onVenueInteraction($event)"
+      />
+      <ignt-typeahead
+        data-testid="lead-create-event-type"
+        container="body"
+        [isInDialog]="true"
+        [collapseOnClick]="true"
+        [fieldLabel]="('leads.create.fields.eventType' | translate) + ' *'"
+        [emptyLabel]="'common.selectsPlaceholder' | translate"
+        [options]="eventTypeOptions"
+        [editable]="false"
+        [selectedOption]="selectedEventTypeOption()"
+        [error]="showEventTypeError()"
+        [errorMessage]="showEventTypeError() ? ('form.error.required' | translate) : null"
+        (selected)="onEventTypeSelected($event)"
+      />
+      <!-- The hint shares the activity's grid cell, so it reads as that field's helper text instead
+           of taking a column of its own. -->
+      <div class="lead-create-dialog__field">
+        <ignt-typeahead
+          data-testid="lead-create-activity"
+          container="body"
+          [isInDialog]="true"
+          [collapseOnClick]="true"
+          [fieldLabel]="'leads.create.fields.activity' | translate"
+          [emptyLabel]="'leads.create.noActivity' | translate"
+          [options]="activityOptions()"
+          [refreshOnlyWhenOpen]="true"
+          [refreshTrigger]="optionsRefreshTrigger$"
+          [selectedOption]="selectedActivityOption()"
+          [error]="showActivityError()"
+          [errorMessage]="showActivityError() ? ('common.notAvailable' | translate) : null"
+          (selected)="onActivitySelected($event)"
+          (userInteraction)="onActivityInteraction($event)"
+        />
+        @if (activityHint()) {
+          <span class="lead-create-dialog__hint" data-testid="lead-create-activity-hint">{{ activityHint() }}</span>
+        }
+      </div>
+      <!-- Native date field like the "Tickets per time slot" one: the design system hides the
+           input's own picker indicator, so the field opens the browser calendar on click and wears
+           the calendar icon itself. -->
+      <div class="lead-create-dialog__date-field" (click)="onPreferredDateClick($event)">
+        <ignt-input-field
+          id="leadPreferredDate"
+          data-testid="lead-create-preferred-date"
+          formControlName="preferredDate"
+          type="date"
+          [label]="('leads.create.fields.preferredDate' | translate) + ' *'"
+          [customFormErrors]="preferredDateErrors"
+        />
+        <ignt-icon class="lead-create-dialog__date-icon" name="calendar" variant="light" aria-hidden="true" />
+      </div>
+      <ignt-input-field
+        id="leadRequestedTicketCount"
+        data-testid="lead-create-guest-count"
+        formControlName="requestedTicketCount"
+        type="text"
+        [label]="('leads.create.fields.guestCount' | translate) + ' *'"
+        [customFormErrors]="requestedTicketCountErrors"
+        (keypress)="onGuestCountKeyPress($event)"
+      />
+    </div>
+
+    <ignt-textarea-field
+      id="leadNotes"
+      data-testid="lead-create-notes"
+      formControlName="notes"
+      [label]="'leads.create.fields.notes' | translate"
+      [helperText]="'common.optional' | translate"
+      [rows]="4"
+      [maxlength]="notesMaxLength"
+      [customFormErrors]="notesErrors"
+    />
+
+    <ignt-checkbox
+      data-testid="lead-create-marketing-consent"
+      formControlName="hasMarketingConsent"
+      [label]="'leads.create.fields.marketingConsent' | translate"
+    />
+
+    @if (errorMessage()) {
+      <p class="lead-create-dialog__error" data-testid="lead-create-error" role="alert">{{ errorMessage()! | translate }}</p>
+    }
+  </form>
+</ignt-dialog-content>
+
+<ignt-dialog-footer [hideCancelButton]="true">
+  <ignt-button data-testid="lead-create-cancel" variant="secondary" [label]="'common.cancel' | translate" (click)="onCancel()" />
+  <ignt-button
+    data-testid="modal-accept-button"
+    [label]="'leads.create.submit' | translate"
+    [disabled]="isSubmitDisabled()"
+    [loading]="isSubmitting()"
+    (click)="onSubmit()"
+  />
+</ignt-dialog-footer>

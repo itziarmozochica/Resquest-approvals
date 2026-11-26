@@ -1,0 +1,276 @@
+<div [fzAssistantHost]="assistantHostConfig" class="dashboard-builder">
+  <div class="dashboard-builder__title">
+    <span class="dashboard-builder__section">{{ 'analyticsHome.pageTitle' | translate }}</span>
+    <h1 class="dashboard-builder__heading" data-testid="page-title">{{ 'analytics.dashboardBuilder.pageTitle' | translate }}</h1>
+  </div>
+
+  <app-lateral-slider-panel />
+
+  <div class="wrapper">
+    <div class="dashboard-builder-container">
+      @if (isLoading()) {
+        <div class="dashboard-builder__loading" data-testid="dashboard-builder-loading">
+          <ignt-icon class="dashboard-builder__loading-icon" name="spinner" variant="solid" [spin]="true"></ignt-icon>
+          <span>{{ 'analytics.dashboardBuilder.loading' | translate }}</span>
+        </div>
+      } @else if (isServiceUnavailable()) {
+        <div class="dashboard-builder__service-unavailable" data-testid="dashboard-builder-service-unavailable">
+          {{ 'analytics.dashboardBuilder.isServiceUnavailable' | translate }}
+        </div>
+      } @else {
+        @if (guidedStepsVisible()) {
+          <app-guided-steps
+            class="dashboard-builder__guided-steps"
+            [badgeLabel]="'reports.dashboardBuilder.guidedSteps.badge' | translate"
+            [dismissAriaLabel]="'reports.dashboardBuilder.guidedSteps.dismiss' | translate"
+            [steps]="guidedSteps()"
+            [subtitle]="'reports.dashboardBuilder.guidedSteps.subtitle' | translate"
+            [title]="guidedStepsTitleKey | translate: { count: guidedSteps().length }"
+            [videoDemoLabel]="'reports.dashboardBuilder.guidedSteps.videoDemoLabel' | translate"
+            data-testid="dashboard-builder-guided-steps"
+            (dismissed)="onGuidedStepsDismissed()"
+            (stepActionClick)="onGuidedStepAction($event)"
+            (videoDemoClick)="onGuidedStepsVideoDemoClick()"
+          />
+        }
+        <div
+          class="dashboard-builder__tabs-wrapper"
+          [class.dashboard-builder__tabs-wrapper--with-delivery-methods]="showsDeliveryMethodsTab"
+        >
+          <ignt-tabs
+            [keepAlive]="true"
+            [selectedIndex]="selectedTabIndex()"
+            (selectedIndexChange)="onTabChange($event)"
+            [hasExtraLine]="true"
+            data-testid="dashboard-builder-tabs"
+          >
+            <ignt-tabs-item
+              [label]="'analytics.dashboardBuilder.chartsTab' | translate"
+              [icon]="['fas', 'chart-bar']"
+              data-testid="dashboard-builder-charts-tab"
+            >
+              <div class="dashboard-builder__tab-content">
+                @if (selectedTab() === 'charts' && canCreateChart()) {
+                  <div class="dashboard-builder__tabs-action" data-testid="dashboard-builder-tabs-action-charts">
+                    <ignt-button
+                      data-testid="dashboard-builder-create-chart"
+                      variant="primary"
+                      [label]="'analytics.dashboardBuilder.chartsActionButton' | translate"
+                      (click)="onCreateChart()"
+                    />
+                  </div>
+                }
+                <div class="dashboard-builder__charts-toolbar">
+                  <ignt-checkbox
+                    class="dashboard-builder__owned-by-me-filter"
+                    [checked]="ownedByMe()"
+                    [disabled]="isFilteredListsLoading()"
+                    [label]="'reports.dashboardBuilder.ownedByMeFilter' | translate"
+                    dataTestId="dashboard-builder-owned-by-me-filter"
+                    (change)="onOwnedByMeChange($event)"
+                  />
+                </div>
+                <div
+                  class="dashboard-builder__grid-container"
+                  [attr.aria-busy]="isFilteredListsLoading()"
+                  data-testid="dashboard-builder-charts-content"
+                >
+                  @if (isFilteredListsLoading()) {
+                    <ng-container
+                      [ngTemplateOutlet]="filteredListsLoading"
+                      [ngTemplateOutletContext]="{ loadingTestId: 'dashboard-builder-charts-filter-loading' }"
+                    />
+                  } @else {
+                    <div class="dashboard-builder__grid">
+                      @for (item of chartsItems(); track item.chartId) {
+                        @let chartIcon = getChartIcon(item);
+                        @let chartTags = getChartTags(item);
+                        <app-item-card
+                          [icon]="chartIcon.name"
+                          [iconVariant]="chartIcon.variant"
+                          [linkUrl]="'/analytics/dashboard-builder/chart/' + item.chartId"
+                          [item]="{
+                            id: item.chartId,
+                            title: item.chartTitle,
+                            type: 'chart',
+                            updatedAt: item.updatedAt,
+                          }"
+                          [owners]="getChartOwners(item.chartId)"
+                          [tags]="chartTags"
+                          [actions]="getChartMenuActions(item)"
+                          (actionClick)="onChartMenuAction($event, item)"
+                          [attr.data-testid]="'dashboard-builder-charts-item-' + item.chartId"
+                        />
+                      } @empty {
+                        <div class="dashboard-builder__empty" data-testid="dashboard-builder-charts-empty">
+                          <ignt-icon class="dashboard-builder__empty-icon" name="chart-bar" variant="solid"></ignt-icon>
+                          <span>{{ 'analytics.dashboardBuilder.noChartsFound' | translate }}</span>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            </ignt-tabs-item>
+            <ignt-tabs-item
+              [label]="'analytics.dashboardBuilder.dashboardsTab' | translate"
+              [icon]="['fal', 'th-large']"
+              data-testid="dashboard-builder-dashboards-tab"
+            >
+              <div class="dashboard-builder__tab-content">
+                @if (selectedTab() === 'dashboards' && canCreateDashboard()) {
+                  <div class="dashboard-builder__tabs-action" data-testid="dashboard-builder-tabs-action-dashboards">
+                    <ignt-button
+                      data-testid="dashboard-builder-create-dashboard"
+                      variant="primary"
+                      [label]="'analytics.dashboardBuilder.dashboardsActionButton' | translate"
+                      (click)="onCreateDashboard()"
+                    />
+                  </div>
+                }
+                <div class="dashboard-builder__charts-toolbar">
+                  <ignt-checkbox
+                    class="dashboard-builder__owned-by-me-filter"
+                    [checked]="ownedByMe()"
+                    [disabled]="isFilteredListsLoading()"
+                    [label]="'reports.dashboardBuilder.ownedByMeFilter' | translate"
+                    dataTestId="dashboard-builder-dashboards-owned-by-me-filter"
+                    (change)="onOwnedByMeChange($event)"
+                  />
+                </div>
+                <div
+                  class="dashboard-builder__grid-container"
+                  [attr.aria-busy]="isFilteredListsLoading()"
+                  data-testid="dashboard-builder-dashboards-content"
+                >
+                  @if (isFilteredListsLoading()) {
+                    <ng-container
+                      [ngTemplateOutlet]="filteredListsLoading"
+                      [ngTemplateOutletContext]="{ loadingTestId: 'dashboard-builder-dashboards-filter-loading' }"
+                    />
+                  } @else {
+                    <div class="dashboard-builder__grid">
+                      @for (item of dashboardsItems(); track item.dashboardId) {
+                        <app-item-card
+                          [icon]="dashboardIcon"
+                          [iconVariant]="'light'"
+                          [linkUrl]="'/analytics/dashboard-builder/dashboard/' + item.dashboardId"
+                          [item]="{
+                            id: item.dashboardId,
+                            title: item.dashboardTitle,
+                            type: 'dashboard',
+                            updatedAt: item.updatedAt,
+                          }"
+                          [owners]="getDashboardOwners(item.dashboardId)"
+                          [actions]="getDashboardMenuActions(item)"
+                          (actionClick)="onDashboardMenuAction($event, item)"
+                          [attr.data-testid]="'dashboard-builder-dashboards-item-' + item.dashboardId"
+                        />
+                      } @empty {
+                        <div class="dashboard-builder__empty" data-testid="dashboard-builder-dashboards-empty">
+                          <ignt-icon class="dashboard-builder__empty-icon" name="th-large" variant="light"></ignt-icon>
+                          <span>{{ 'analytics.dashboardBuilder.noDashboardsFound' | translate }}</span>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            </ignt-tabs-item>
+            @if (showsDeliveryMethodsTab) {
+              <ignt-tabs-item
+                [label]="'analytics.dashboardBuilder.deliveryMethodsTab' | translate"
+                [icon]="['fas', 'paper-plane']"
+                data-testid="dashboard-builder-delivery-methods-tab"
+              >
+                <div class="dashboard-builder__tab-content">
+                  @if (selectedTab() === 'deliveryMethods') {
+                    <div class="dashboard-builder__tabs-action" data-testid="dashboard-builder-tabs-action-delivery-methods">
+                      <ignt-button
+                        data-testid="dashboard-builder-create-delivery-method"
+                        variant="primary"
+                        [label]="'analytics.dashboardBuilder.deliveryMethodsActionButton' | translate"
+                        (click)="onCreateDeliveryMethod()"
+                      />
+                    </div>
+                  }
+                  <p class="dashboard-builder__tab-intro" data-testid="dashboard-builder-delivery-methods-intro">
+                    {{ 'analytics.dashboardBuilder.deliveryMethods.intro' | translate }}
+                  </p>
+                  <!-- Only while selected: `keepAlive` would otherwise fetch the list on every page load and never refresh it. -->
+                  @if (selectedTab() === 'deliveryMethods') {
+                    <app-delivery-methods [isSuperuser]="isSuperuser()" (editDeliveryMethod)="onEditDeliveryMethod($event)" />
+                  }
+                </div>
+              </ignt-tabs-item>
+            }
+            <ignt-tabs-item
+              [label]="'analytics.dashboardBuilder.exportsTab' | translate"
+              [icon]="['far', 'receipt']"
+              data-testid="dashboard-builder-exports-tab"
+            >
+              <div class="dashboard-builder__tab-content dashboard-builder__tab-content--exports">
+                @if (selectedTab() === 'exports' && canCreateExport()) {
+                  <div class="dashboard-builder__tabs-action" data-testid="dashboard-builder-tabs-action-exports">
+                    <ignt-button
+                      data-testid="dashboard-builder-create-export"
+                      variant="primary"
+                      [label]="'analytics.sftpExports.createExportActionButton' | translate"
+                      [disabled]="needsDeliveryMethod()"
+                      (click)="onCreateExport()"
+                    />
+                  </div>
+                  @if (needsDeliveryMethod()) {
+                    <p class="dashboard-builder__tab-intro" data-testid="dashboard-builder-create-export-no-method-hint">
+                      {{ 'analytics.sftpExports.createExportNoMethodHint' | translate }}
+                    </p>
+                  }
+                }
+                <app-scheduled-report-export
+                  [chartOwnerEmailsByChartId]="chartOwnerEmailsByChartId()"
+                  [showsActiveFilter]="showsDeliveryMethodsTab"
+                />
+              </div>
+            </ignt-tabs-item>
+          </ignt-tabs>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+<ng-template #exportPanelContentTemplate>
+  <div class="dashboard-builder__export-panel" data-testid="dashboard-builder-export-panel">
+    @if (isSidePanelOpen()) {
+      <app-create-export-form
+        #createExportFormComponent
+        [chart]="selectedChart()"
+        [availableCharts]="chartsItems()"
+        [source]="selectedExportSource()"
+        [usesSavedMethodsOnly]="showsDeliveryMethodsTab"
+        (formCancel)="onExportFormCancel()"
+        (goToDeliveryMethods)="onExportFormGoToDeliveryMethods()"
+        (formSubmit)="onExportFormSubmit()"
+      />
+    }
+  </div>
+</ng-template>
+
+<ng-template #filteredListsLoading let-loadingTestId="loadingTestId">
+  <div class="dashboard-builder__filtered-load" [attr.data-testid]="loadingTestId" role="status">
+    <ignt-icon class="dashboard-builder__loading-icon" name="spinner" variant="solid" [spin]="true" />
+    <span>{{ 'analytics.dashboardBuilder.loading' | translate }}</span>
+  </div>
+</ng-template>
+
+<ng-template #deliveryMethodPanelContentTemplate>
+  <!-- A new form on every Create or Edit. It stays while the panel slides out, and the closed panel hides it. -->
+  @for (formKey of [deliveryMethodFormKey()]; track formKey) {
+    <app-delivery-method-form
+      [deliveryMethod]="editedDeliveryMethod()"
+      [isShown]="isSidePanelOpen()"
+      (formCancel)="onDeliveryMethodFormClose()"
+      (formSubmit)="onDeliveryMethodFormClose()"
+    />
+  }
+</ng-template>

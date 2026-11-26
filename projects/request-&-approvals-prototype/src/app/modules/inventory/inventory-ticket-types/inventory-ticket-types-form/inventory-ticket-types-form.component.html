@@ -1,0 +1,1212 @@
+<div class="common-session-edit itt-form-layout--modal">
+  <ignt-tabs
+    class="itt-form__tabs"
+    data-testid="itt-form-tabs"
+    [hasExtraLine]="false"
+    [keepAlive]="true"
+    [selectedIndex]="selectedEditTabIndex()"
+    (selectedIndexChange)="selectedEditTabIndex.set($event)"
+  >
+    <ignt-tabs-item [label]="'inventory.ticketTypes.form.tabs.general' | translate">
+      <ng-container *ngTemplateOutlet="generalSettingsTemplate"></ng-container>
+      <ignt-alert
+        class="itt-form__mandatory-alert"
+        [title]="'inventory.ticketTypes.form.mandatoryTabsAlert' | translate"
+        data-testid="itt-form-mandatory-tabs-alert"
+      />
+    </ignt-tabs-item>
+    @if (showDynamicFieldsTab()) {
+      <ignt-tabs-item
+        [label]="(hasRequiredDynamicFields() ? 'dynamicFields.tabs.customFieldsRequired' : 'dynamicFields.tabs.customFields') | translate"
+      >
+        <ng-container *ngTemplateOutlet="dynamicFieldsTemplate"></ng-container>
+      </ignt-tabs-item>
+    }
+    <ignt-tabs-item [label]="'inventory.ticketTypes.form.tabs.content' | translate">
+      <ng-container *ngTemplateOutlet="contentSettingsTemplate"></ng-container>
+    </ignt-tabs-item>
+    <ignt-tabs-item [label]="'inventory.ticketTypes.form.tabs.rulesAndLimits' | translate">
+      <ng-container *ngTemplateOutlet="advancedSettingsTemplate"></ng-container>
+      <ng-container *ngTemplateOutlet="conditionalRulesTemplate"></ng-container>
+    </ignt-tabs-item>
+    @if (hasPartnerTagsEnabled && sessionType !== null) {
+      <ignt-tabs-item [label]="'inventory.ticketTypes.form.tabs.tags' | translate">
+        <ng-container *ngTemplateOutlet="tagsTemplate"></ng-container>
+      </ignt-tabs-item>
+    }
+    @if (canViewExternalCodes && sessionType !== null) {
+      <ignt-tabs-item [label]="'menu.analytics' | translate">
+        <ng-container *ngTemplateOutlet="analyticsTemplate"></ng-container>
+      </ignt-tabs-item>
+    }
+  </ignt-tabs>
+
+  <ng-template #dynamicFieldsTemplate>
+    <div class="common-session-edit__form itt-form">
+      <app-ticket-type-dynamic-fields data-testid="itt-form-dynamic-fields" />
+    </div>
+  </ng-template>
+
+  <ng-template #tagsTemplate>
+    <div class="common-session-edit__form itt-form">
+      <app-ticket-type-tags-field
+        data-testid="itt-form-tags-field"
+        [sessionTypeId]="sessionType?.id ?? null"
+        (tagIdsChange)="tagIdsChange.emit($event)"
+      />
+    </div>
+  </ng-template>
+
+  <ng-template #analyticsTemplate>
+    <div class="common-session-edit__form itt-form">
+      <app-ticket-type-external-codes-field
+        data-testid="itt-form-external-codes-field"
+        [sessionTypeId]="sessionType?.id ?? null"
+        [canAssign]="canAssignExternalCodes && !isInventoryLocked()"
+        (classificationChange)="onExternalCodeClassificationChange($event)"
+      />
+    </div>
+  </ng-template>
+
+  <ng-template #generalSettingsTemplate>
+    <div [formGroup]="formGroup" class="common-session-edit__form itt-form">
+      <fieldset class="wrapper itt-form__identity-fields" data-testid="itt-form-identity-fields">
+        @if (!isRedeemNow()) {
+          <ng-container
+            *ngTemplateOutlet="
+              inputDropdownTemplate;
+              context: {
+                fieldName: 'category',
+                fieldOptions: categoryOptions,
+                selected: category,
+                showNote: isCancellationInsuranceAddOn,
+                noteKey: 'inventory.ticketTypes.form.fields.category.noteCancellationInsurance',
+                isPartnerRestricted: isCancellationInsuranceAddOn && isSuperuser(),
+                customFieldLabel: ('inventory.ticketTypes.form.fields.category.title' | translate) + ' *',
+                testId: 'itt-form-category',
+              }
+            "
+          ></ng-container>
+        }
+        @if (hasFlexibleCancellationAddOnConflict) {
+          <div class="form-error" data-testid="itt-form-category-flexible-cancellation-conflict">
+            <ignt-icon name="exclamation-circle" variant="solid" class="form-error--icon"></ignt-icon>
+            <span class="form-error--message">
+              {{
+                (hasExistingCancellationInsuranceAddOn
+                  ? 'inventory.ticketTypes.form.fields.category.errors.planHasCancellationInsurance'
+                  : 'inventory.ticketTypes.form.fields.category.errors.planHasPremiumRefundPolicy'
+                ) | translate
+              }}
+            </span>
+          </div>
+        }
+        @if (isPRPAddOn && hasPercentageAddOnConflict) {
+          <div class="form-error" data-testid="itt-form-category-percentage-conflict">
+            <ignt-icon name="exclamation-circle" variant="solid" class="form-error--icon"></ignt-icon>
+            <span class="form-error--message">
+              {{ 'inventory.ticketTypes.form.fields.addOnConfiguration.pricingType.errors.onlyOnePercentageAllowed' | translate }}
+            </span>
+          </div>
+        }
+        <div class="cell" data-testid="itt-form-label">
+          @if (hasExplodePipeSelector()) {
+            <app-inventory-ticket-type-label-steps
+              formControlName="label"
+              data-testid="itt-form-label-steps"
+              [selectLabelOnInit]="shouldSelectLabelOnInit"
+            />
+          } @else {
+            <ignt-input-field
+              #simpleLabelInput
+              formControlName="label"
+              id="label"
+              type="text"
+              [class.form-group--readonly]="formGroup.get('label')!.disabled"
+              [class.field--equal-size]="true"
+              [label]="('inventory.ticketTypes.form.fields.label.title' | translate) + ' *'"
+              [customFormErrors]="[
+                {
+                  type: 'required',
+                  message: 'form.error.required' | translate,
+                },
+                {
+                  type: 'min',
+                  message: 'form.error.greaterThanZero' | translate,
+                },
+              ]"
+            ></ignt-input-field>
+          }
+        </div>
+        @if ((isPRPAddOn || isCancellationInsuranceAddOn) && isSuperuser()) {
+          <ng-container
+            *ngTemplateOutlet="
+              inputDropdownTemplate;
+              context: {
+                fieldName: 'addOnConfiguration.partnerVisibility',
+                fieldOptions: isCancellationInsuranceAddOn ? cancellationInsurancePartnerVisibilityOptions : addOnPartnerVisibilityOptions,
+                selected: formGroup.get('addOnConfiguration.partnerVisibility')?.value,
+                showNote: true,
+                isPartnerRestricted: true,
+                testId: 'itt-form-partner-visibility',
+              }
+            "
+          ></ng-container>
+          @if (isPartnerVisibilityCouponWarningVisible) {
+            <div class="cell">
+              <ignt-alert
+                data-testid="itt-form-partner-visibility-coupon-warning"
+                sentiment="warning"
+                [description]="'inventory.ticketTypes.form.fields.addOnConfiguration.partnerVisibility.couponWarning' | translate"
+              />
+            </div>
+          }
+        }
+      </fieldset>
+
+      <h5 class="font-h5 collapsible-title collapsible-title--static" data-testid="itt-form-basic-settings-toggle">
+        {{ 'inventory.ticketTypes.form.sections.basicSettings' | translate }}
+      </h5>
+      <p class="itt-form__section-description">{{ 'inventory.ticketTypes.form.sectionDescriptions.general' | translate }}</p>
+      <fieldset class="wrapper collapsible">
+        @if (!isRedeemNow()) {
+          <div class="cell">
+            <ng-container
+              *ngTemplateOutlet="
+                inputDropdownTemplate;
+                context: {
+                  fieldName: 'productType',
+                  fieldOptions: productTypeOptionsFilter,
+                  selected: productType,
+                  showNote: true,
+                  customFieldLabel: ('inventory.ticketTypes.form.fields.productType.title' | translate) + ' *',
+                  isSearchable: true,
+                }
+              "
+            ></ng-container>
+          </div>
+        }
+        @if (hasCreatePackSessionTypeEnabled && categoryId === 'pack') {
+          <div class="cell itt-form__pack-field">
+            @for (ctrl of sessionTypesGroupArray.controls; track ctrl; let i = $index) {
+              <div class="itt-form__pack-row-wrapper">
+                <div class="wrapper itt-form__pack-row">
+                  <ng-container
+                    *ngTemplateOutlet="
+                      inputDropdownTemplate;
+                      context: {
+                        fieldName: 'sessionTypesGroup.' + i + '.sessionType',
+                        fieldOptions: availableSessionTypes,
+                        selected: sessionTypesGroupArray.at(i).get('sessionType')?.value,
+                        showNote: false,
+                        customFieldLabel: 'inventory.ticketTypes.title' | translate,
+                        isSearchable: true,
+                      }
+                    "
+                  ></ng-container>
+                  <ng-container
+                    *ngTemplateOutlet="
+                      inputTemplate;
+                      context: {
+                        fieldName: 'sessionTypesGroup.' + i + '.quantity',
+                        fieldType: 'number',
+                        showNote: false,
+                        customFieldLabel: 'inventory.ticketTypes.groupForm.fields.sessionTypes.quantity' | translate,
+                        hideErrorLabels: true,
+                      }
+                    "
+                  ></ng-container>
+                  @if (!sessionType) {
+                    <ignt-icon
+                      (click)="sessionTypesGroupArray.controls.length > 1 && removeSessionType(i)"
+                      name="trash-alt"
+                      [variant]="sessionTypesGroupArray.controls.length === 1 ? 'light' : 'solid'"
+                    ></ignt-icon>
+                  }
+                </div>
+                <ng-container
+                  *ngTemplateOutlet="
+                    validationErrors;
+                    context: { error: getControlError(formGroup.get('sessionTypesGroup.' + i + '.quantity')) }
+                  "
+                ></ng-container>
+              </div>
+            }
+            @if (!sessionType) {
+              <span class="itt-form__add-button" (click)="addSessionType()" data-testid="itt-form-new-session-type-button">
+                {{ 'inventory.ticketTypes.form.title.creation' | translate }} <ignt-icon name="plus-circle" variant="solid"></ignt-icon>
+              </span>
+            }
+            <ng-container
+              *ngTemplateOutlet="validationErrors; context: { error: getControlError(formGroup.get('sessionTypesGroup')) }"
+            ></ng-container>
+          </div>
+        }
+        @if (!isRedeemNow() && !isCancellationInsuranceAddOn) {
+          <div class="cell" data-testid="itt-form-base-price">
+            <ng-container
+              *ngTemplateOutlet="
+                inputTemplate;
+                context: {
+                  fieldName: 'basePrice',
+                  fieldType: 'number',
+                  showNote: true,
+                  customFieldLabel:
+                    ((isBasePricePercentage
+                      ? 'inventory.ticketTypes.form.fields.basePrice.percentageTitle'
+                      : 'inventory.ticketTypes.form.fields.basePrice.title'
+                    ) | translate) + ' *',
+                  customNote: isBasePricePercentage ? ('inventory.ticketTypes.form.fields.basePrice.percentageNote' | translate) : null,
+                }
+              "
+            ></ng-container>
+          </div>
+        }
+        <div
+          #groupLockTooltip="igntTooltip"
+          class="cell itt-form__group-field"
+          data-testid="itt-form-group-field"
+          igntTooltip
+          [class.itt-form__group-field--locked]="isGroupLocked"
+          [tooltipDisabled]="!isGroupLockExplained"
+          [tooltipLabel]="'inventory.ticketTypes.form.fields.group.changeNotAllowed' | translate"
+          (pointerdown)="revealGroupLockOnTouch($event, groupLockTooltip)"
+        >
+          <div
+            class="itt-form__group-typeahead"
+            data-testid="itt-form-group-typeahead"
+            [attr.aria-describedby]="isGroupLockExplained ? groupLockReasonId : null"
+            [attr.aria-disabled]="isGroupLockExplained ? 'true' : null"
+            [attr.aria-label]="
+              isGroupLockExplained ? ('inventory.ticketTypes.form.fields.group.lockedLabel' | translate: { group: group?.title }) : null
+            "
+            [attr.role]="isGroupLockExplained ? 'group' : null"
+            [attr.tabindex]="isGroupLockExplained ? 0 : null"
+          >
+            <ignt-typeahead
+              (selected)="formGroup.get('group').setValue($event)"
+              (userInteraction)="onSearchableTypeaheadBlurred('group', $event, false)"
+              [clean]="getSearchableTypeaheadClean$('group')"
+              [editable]="false"
+              [fieldLabel]="('inventory.ticketTypes.form.fields.group.title' | translate) + ' *'"
+              [emptyLabel]="('inventory.ticketTypes.form.fields.group.title' | translate) + ' *'"
+              [options]="groupOptions"
+              [selectedOption]="group"
+              id="itt-form-group"
+              [disabled]="formGroup.get('group').disabled"
+              [class.field--readonly]="formGroup.get('group').disabled"
+              [customPopupClass]="'dropdown-menu--on-sidebar'"
+            ></ignt-typeahead>
+          </div>
+          <div class="itt-form__note">
+            {{ 'inventory.ticketTypes.form.fields.group.note' | translate }}
+          </div>
+          @if (isGroupLocked) {
+            <span
+              aria-disabled="true"
+              class="itt-form__add-button itt-form__add-button--disabled"
+              data-testid="itt-form-new-group-button"
+              role="button"
+              [attr.aria-describedby]="isGroupLockExplained ? groupLockReasonId : null"
+              [attr.tabindex]="isGroupLockExplained ? 0 : null"
+            >
+              {{ 'inventory.ticketTypes.actions.addGroup' | translate }} <ignt-icon name="plus-circle" variant="solid"></ignt-icon>
+            </span>
+          } @else {
+            <span class="itt-form__add-button" (click)="openGroupForm.emit()" data-testid="itt-form-new-group-button">
+              {{ 'inventory.ticketTypes.actions.addGroup' | translate }} <ignt-icon name="plus-circle" variant="solid"></ignt-icon>
+            </span>
+          }
+          @if (isGroupLockExplained) {
+            <span class="visually-hidden" [id]="groupLockReasonId">
+              {{ 'inventory.ticketTypes.form.fields.group.changeNotAllowed' | translate }}
+            </span>
+          }
+        </div>
+      </fieldset>
+
+      @if (isAddOn && (!isCancellationInsuranceAddOn || isSuperuser()) && !isRedeemNow()) {
+        <h5 class="font-h5 collapsible-title collapsible-title--static" data-testid="itt-form-addon-settings-toggle">
+          {{
+            (isCancellationInsuranceAddOn
+              ? 'inventory.ticketTypes.form.sections.ticketProtectionSettings'
+              : 'inventory.ticketTypes.form.sections.addOnSettings'
+            ) | translate
+          }}
+        </h5>
+        <fieldset class="wrapper collapsible">
+          @if (isRegularAddOn || isTransactionFeeAddOn) {
+            @if (isRegularAddOn) {
+              <ng-container
+                *ngTemplateOutlet="
+                  inputDropdownTemplate;
+                  context: {
+                    fieldName: 'addOnConfiguration.selectorType',
+                    fieldOptions: addOnSelectorTypeOptions,
+                    selected: formGroup.get('addOnConfiguration.selectorType')?.value,
+                    showNote: true,
+                    customFieldLabel: ('inventory.ticketTypes.form.fields.addOnConfiguration.selectorType.title' | translate) + ' *',
+                    testId: 'itt-form-selector-type',
+                  }
+                "
+              ></ng-container>
+            }
+            @if (!isSelectionRuleRequired) {
+              <ng-container
+                *ngTemplateOutlet="
+                  inputDropdownTemplate;
+                  context: {
+                    fieldName: 'addOnConfiguration.displayStep',
+                    fieldOptions: addOnDisplayStepOptions,
+                    selected: formGroup.get('addOnConfiguration.displayStep')?.value,
+                    showNote: true,
+                    customFieldLabel: ('inventory.ticketTypes.form.fields.addOnConfiguration.displayStep.title' | translate) + ' *',
+                    testId: 'itt-form-display-step',
+                  }
+                "
+              ></ng-container>
+            }
+            <ng-container
+              *ngTemplateOutlet="
+                inputDropdownTemplate;
+                context: {
+                  fieldName: 'addOnConfiguration.pricingType',
+                  fieldOptions: addOnPricingTypeOptions,
+                  selected: formGroup.get('addOnConfiguration.pricingType')?.value,
+                  showNote: false,
+                  customFieldLabel: ('inventory.ticketTypes.form.fields.addOnConfiguration.pricingType.title' | translate) + ' *',
+                  testId: 'itt-form-pricing-type',
+                }
+              "
+            ></ng-container>
+            @if (isPercentageOverBasePriceAddOn && hasPercentageAddOnConflict) {
+              <div class="form-error" data-testid="itt-form-pricing-type-percentage-conflict">
+                <ignt-icon name="exclamation-circle" variant="solid" class="form-error--icon"></ignt-icon>
+                <span class="form-error--message">
+                  {{ 'inventory.ticketTypes.form.fields.addOnConfiguration.pricingType.errors.onlyOnePercentageAllowed' | translate }}
+                </span>
+              </div>
+            }
+            <ng-container *ngTemplateOutlet="isSelectedByDefaultTemplate"></ng-container>
+            @if (isRegularAddOn) {
+              <div class="cell">
+                <app-session-type-image-upload
+                  data-testid="itt-form-image-upload"
+                  [imageUrl]="imageUrl"
+                  [originalImageUrl]="originalImageUrl"
+                  [uploadedFileName]="uploadedFileName"
+                  [isUploading]="isUploadingImage()"
+                  (fileSelected)="onImageSelected($event)"
+                  (invalidFile)="onImageInvalid()"
+                  (removed)="onImageRemoved()"
+                  (restored)="onImageRestored()"
+                ></app-session-type-image-upload>
+              </div>
+            }
+          }
+          @if (isCancellationInsuranceAddOn) {
+            <ng-container
+              *ngTemplateOutlet="
+                inputDropdownTemplate;
+                context: {
+                  fieldName: 'addOnConfiguration.displayStep',
+                  fieldOptions: addOnDisplayStepOptions,
+                  selected: formGroup.get('addOnConfiguration.displayStep')?.value,
+                  showNote: true,
+                  noteKey: 'inventory.ticketTypes.form.fields.addOnConfiguration.displayStep.noteLockedCancellationInsurance',
+                  customFieldLabel: ('inventory.ticketTypes.form.fields.addOnConfiguration.displayStep.title' | translate) + ' *',
+                  isPartnerRestricted: true,
+                  testId: 'itt-form-display-step',
+                }
+              "
+            ></ng-container>
+            <div class="itt-form__revenue-share" data-testid="itt-form-revenue-share">
+              <span class="itt-form__label">
+                {{ 'inventory.ticketTypes.form.fields.addOnConfiguration.revenueShare.title' | translate }}
+              </span>
+              <div class="itt-form__revenue-share-fields" formGroupName="addOnConfiguration">
+                <ignt-input-field
+                  [formControl]="ticketProtectionProviderShareControl"
+                  id="itt-form-revenue-share-provider"
+                  type="number"
+                  class="form-group--readonly"
+                  [label]="'inventory.ticketTypes.form.fields.addOnConfiguration.revenueShare.provider' | translate"
+                  data-testid="itt-form-revenue-share-provider"
+                ></ignt-input-field>
+                <ignt-input-field
+                  formControlName="partnerSharePercentage"
+                  id="itt-form-revenue-share-partner"
+                  type="number"
+                  [label]="'inventory.ticketTypes.form.fields.addOnConfiguration.revenueShare.partner' | translate"
+                  [customFormErrors]="[
+                    {
+                      type: 'required',
+                      message: 'inventory.ticketTypes.form.fields.addOnConfiguration.revenueShare.requiredError' | translate,
+                    },
+                    { type: 'min', message: 'inventory.ticketTypes.form.fields.addOnConfiguration.revenueShare.error' | translate },
+                    { type: 'max', message: 'inventory.ticketTypes.form.fields.addOnConfiguration.revenueShare.error' | translate },
+                    {
+                      type: 'feverShare',
+                      message: 'inventory.ticketTypes.form.fields.addOnConfiguration.revenueShare.feverShareError' | translate,
+                    },
+                    {
+                      type: 'pattern',
+                      message: 'inventory.ticketTypes.form.fields.addOnConfiguration.revenueShare.decimalsError' | translate,
+                    },
+                  ]"
+                  data-testid="itt-form-revenue-share-partner"
+                ></ignt-input-field>
+                <ignt-input-field
+                  [formControl]="ticketProtectionFeverShareControl"
+                  id="itt-form-revenue-share-fever"
+                  type="number"
+                  class="form-group--readonly"
+                  [label]="'inventory.ticketTypes.form.fields.addOnConfiguration.revenueShare.fever' | translate"
+                  data-testid="itt-form-revenue-share-fever"
+                ></ignt-input-field>
+              </div>
+            </div>
+          }
+          @if (isPRPAddOn) {
+            <ng-container
+              *ngTemplateOutlet="
+                inputDropdownTemplate;
+                context: {
+                  fieldName: 'addOnConfiguration.displayStep',
+                  fieldOptions: addOnDisplayStepOptions,
+                  selected: formGroup.get('addOnConfiguration.displayStep')?.value,
+                  showNote: false,
+                  customFieldLabel: ('inventory.ticketTypes.form.fields.addOnConfiguration.displayStep.title' | translate) + ' *',
+                  isPartnerRestricted: isFeverOnlyPRPAddOn && isSuperuser(),
+                  testId: 'itt-form-display-step',
+                }
+              "
+            ></ng-container>
+          }
+        </fieldset>
+      }
+    </div>
+  </ng-template>
+  <ng-template #isSelectedByDefaultTemplate>
+    <div class="cell" [formGroup]="formGroup">
+      <div class="form-check">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          data-testid="itt-form-is-selected-by-default"
+          id="addOnConfiguration.isSelectedByDefault"
+          [formControl]="$any(formGroup.get('addOnConfiguration.isSelectedByDefault'))"
+        />
+        <label class="form-check-label" for="addOnConfiguration.isSelectedByDefault">
+          {{ 'inventory.ticketTypes.form.fields.addOnConfiguration.isSelectedByDefault.title' | translate }}
+        </label>
+      </div>
+    </div>
+  </ng-template>
+  <ng-template #contentSettingsTemplate>
+    <div [formGroup]="formGroup" class="common-session-edit__form itt-form">
+      <h5 class="font-h5 collapsible-title collapsible-title--static" data-testid="itt-form-content-settings-toggle">
+        {{ 'inventory.ticketTypes.form.sections.contentSettings' | translate }}
+      </h5>
+      <p class="itt-form__section-description">{{ 'inventory.ticketTypes.form.sectionDescriptions.content' | translate }}</p>
+      <fieldset class="wrapper collapsible itt-form__content-fields">
+        @if (isCancellationInsuranceAddOn) {
+          <div class="cell" data-testid="itt-form-provider-details">
+            <h6 class="itt-form__label">{{ 'inventory.ticketTypes.form.fields.details.title' | translate }}</h6>
+            <div class="itt-form__provider-details">
+              <p class="itt-form__provider-details-text" data-testid="itt-form-provider-details-text">
+                {{ 'inventory.ticketTypes.form.fields.details.cancellationInsuranceProviderText' | translate }}
+              </p>
+            </div>
+            <div class="itt-form__note" data-testid="itt-form-provider-details-note">
+              {{ 'inventory.ticketTypes.form.fields.details.noteCancellationInsurance' | translate }}
+            </div>
+          </div>
+        } @else {
+          <div class="cell">
+            <h6 class="itt-form__label">{{ 'inventory.ticketTypes.form.fields.instructions.title' | translate }}</h6>
+            <div [class.form-group--error]="getControlError(formGroup.get('instructions'))">
+              <ignt-rich-text-editor
+                formControlName="instructions"
+                data-testid="session-type-instructions"
+                id="instructions"
+                [features]="inlineLinkListsFeatures"
+                [blockElement]="'p'"
+                [placeholder]="'inventory.ticketTypes.form.fields.instructions.placeholder' | translate"
+              ></ignt-rich-text-editor>
+            </div>
+            <div class="itt-form__note">{{ 'inventory.ticketTypes.form.fields.instructions.note' | translate }}</div>
+          </div>
+
+          <div class="cell">
+            <h6 class="itt-form__label">{{ 'inventory.ticketTypes.form.fields.details.title' | translate }}</h6>
+            <div [class.form-group--error]="getControlError(formGroup.get('details'))">
+              <ignt-rich-text-editor
+                formControlName="details"
+                data-testid="session-type-details"
+                id="details"
+                [features]="inlineLinkListsFeatures"
+                [blockElement]="'p'"
+                [placeholder]="'inventory.ticketTypes.form.fields.details.placeholder' | translate"
+              ></ignt-rich-text-editor>
+            </div>
+            <div class="itt-form__note">{{ 'inventory.ticketTypes.form.fields.details.note' | translate }}</div>
+          </div>
+        }
+
+        @if (sessionType) {
+          <div class="cell">
+            <div class="form-group form-group--fix-height itt-form__tags">
+              <label class="form-label">
+                {{ 'sessions.sessionTypes.edition.field.details.tags' | translate }}
+              </label>
+              <span data-testid="tags-content">
+                @for (tag of sessionType.tags; track $index; let last = $last) {
+                  {{ tag.label }}
+                  @if (!last) {
+                    <span>, </span>
+                  }
+                }
+              </span>
+            </div>
+            <div class="itt-form__note">{{ 'sessions.sessionTypes.edition.field.details.tagsNote' | translate }}</div>
+          </div>
+        }
+      </fieldset>
+    </div>
+  </ng-template>
+  <ng-template #advancedSettingsTemplate>
+    <div [formGroup]="formGroup" class="common-session-edit__form itt-form">
+      <h5 class="font-h5 collapsible-title collapsible-title--static" data-testid="itt-form-advanced-settings-toggle">
+        {{ 'inventory.ticketTypes.form.sections.advancedSettings' | translate }}
+      </h5>
+      <p class="itt-form__section-description">{{ 'inventory.ticketTypes.form.sectionDescriptions.configuration' | translate }}</p>
+      <fieldset class="wrapper collapsible itt-form__rules-fields">
+        @if (formLoaded) {
+          <div class="cell">
+            <h6 class="itt-form__label">
+              {{ 'inventory.ticketTypes.form.fields.allowedNumTickets.title' | translate }}
+            </h6>
+            <div class="wrapper itt-form__quantity-row">
+              <div class="cell">
+                <ng-container
+                  *ngTemplateOutlet="
+                    inputTemplate;
+                    context: { fieldName: 'allowedNumTickets.minimum', fieldType: 'number', showNote: false }
+                  "
+                ></ng-container>
+              </div>
+              <div class="cell">
+                <ng-container
+                  *ngTemplateOutlet="
+                    inputTemplate;
+                    context: { fieldName: 'allowedNumTickets.maximum', fieldType: 'number', showNote: false }
+                  "
+                ></ng-container>
+              </div>
+            </div>
+            <ng-container
+              *ngTemplateOutlet="validationErrors; context: { error: getControlError(formGroup.get('allowedNumTickets')) }"
+            ></ng-container>
+          </div>
+          <div class="cell" data-testid="itt-form-sell-in-fixed-groups">
+            <ignt-wrapper-card [type]="'default'">
+              <ignt-toggle-card
+                class="itt-form__fixed-groups__toggle-button font-sm"
+                data-testid="sell-in-fixed-groups-toggle"
+                [title]="'inventory.ticketTypes.form.fields.ticketSelectorStepQuantity.toggle.title' | translate"
+                (click)="$event.stopPropagation()"
+                [wrapperType]="'unwrapped'"
+                [checked]="sellsInFixedGroups"
+                [disabled]="isInventoryLocked()"
+                (change)="toggleSellInFixedGroups()"
+              >
+              </ignt-toggle-card>
+              @if (sellsInFixedGroups) {
+                <ng-container
+                  *ngTemplateOutlet="
+                    inputTemplate;
+                    context: {
+                      fieldName: 'ticketSelectorStepQuantity',
+                      fieldType: 'number',
+                      showNote: true,
+                      customFieldLabel: ('inventory.ticketTypes.form.fields.ticketSelectorStepQuantity.title' | translate) + ' *',
+                    }
+                  "
+                ></ng-container>
+              }
+            </ignt-wrapper-card>
+          </div>
+        }
+        @if (sessionType && this.allResellerChannels.length > 0 && !isCancellationInsuranceAddOn) {
+          <div class="cell">
+            <ignt-wrapper-card [type]="'default'">
+              <ignt-toggle-card
+                class="itt-form__limit-by-channel__toggle-button font-sm"
+                data-testid="session-type-channels-toggle"
+                [title]="'inventory.ticketTypes.form.fields.allowedNumTicketsPerChannel.title' | translate"
+                (click)="$event.stopPropagation()"
+                [wrapperType]="'unwrapped'"
+                [checked]="showLimitsByChannel"
+                (change)="toggleLimitsByChannel()"
+              >
+              </ignt-toggle-card>
+              @if (showLimitsByChannel) {
+                <div formArrayName="sessionTypeChannels">
+                  @for (channelForm of sessionTypeChannels.controls; track channelForm; let i = $index) {
+                    <div class="wrapper wrapper--row itt-form__limit-by-channel" [formGroup]="$any(channelForm)">
+                      <div class="wrapper cell cell--fill">
+                        <ignt-typeahead
+                          class="cell"
+                          (selected)="selectSessionTypeChannelOption(channelForm, $event)"
+                          [editable]="false"
+                          [fieldLabel]="'inventory.ticketTypes.form.fields.allowedNumTicketsPerChannel.channel' | translate"
+                          [emptyLabel]="'inventory.ticketTypes.form.fields.allowedNumTicketsPerChannel.channel' | translate"
+                          [options]="sessionTypeChannelsOptions"
+                          [selectedOption]="getSessionTypeChannelOption(channelForm.get('channelId')?.value)"
+                          [id]="'session-type-channel-' + i + '-channel-id'"
+                        >
+                        </ignt-typeahead>
+                        <div class="wrapper wrapper--row itt-form__quantity-row">
+                          <div class="cell">
+                            <ng-container
+                              *ngTemplateOutlet="
+                                inputTemplate;
+                                context: {
+                                  fieldName: 'allowedNumTickets.minimum',
+                                  fieldType: 'number',
+                                  showNote: false,
+                                  customFormControl: channelForm.get('allowedNumTickets.minimum'),
+                                }
+                              "
+                            ></ng-container>
+                          </div>
+                          <div class="cell">
+                            <ng-container
+                              *ngTemplateOutlet="
+                                inputTemplate;
+                                context: {
+                                  fieldName: 'allowedNumTickets.maximum',
+                                  fieldType: 'number',
+                                  showNote: false,
+                                  customFormControl: channelForm.get('allowedNumTickets.maximum'),
+                                }
+                              "
+                            ></ng-container>
+                          </div>
+                        </div>
+                        <ng-container
+                          *ngTemplateOutlet="validationErrors; context: { error: getControlError(channelForm.get('allowedNumTickets')) }"
+                        ></ng-container>
+                      </div>
+                      <div class="wrapper cell cell--hug">
+                        <button
+                          ignt-icon-button
+                          type="button"
+                          size="small"
+                          sentiment="tertiary"
+                          class="itt-form__limit-by-channel__remove-button"
+                          [icon]="['fas', 'trash']"
+                          [attr.aria-label]="'inventory.ticketTypes.form.fields.allowedNumTicketsPerChannel.remove' | translate"
+                          (click)="removeChannel(i)"
+                          [disabled]="sessionTypeChannels.length < 2"
+                        ></button>
+                      </div>
+                    </div>
+                  }
+                  <a class="cell itt-form__limit-by-channel__add-button" (click)="addChannel(null)">
+                    <ignt-icon name="plus-circle" variant="solid"></ignt-icon>
+                    {{ 'inventory.ticketTypes.form.fields.allowedNumTicketsPerChannel.add' | translate }}
+                  </a>
+                </div>
+              }
+            </ignt-wrapper-card>
+          </div>
+        }
+        @if (
+          sessionType &&
+          isAddOn &&
+          (!isCancellationInsuranceAddOn || isSuperuser()) &&
+          !isRedeemNow() &&
+          hasChanneliseSessionTypeRulesEnabled
+        ) {
+          <div class="cell">
+            <app-session-type-rules-by-channel
+              data-testid="itt-form-session-type-rules-by-channel"
+              formControlName="channelOverrides"
+              [baseValues]="channelRulesBaseValues()"
+              [channels]="sessionType.sessionTypeChannels ?? []"
+              [ruleContext]="channelRulesRuleContext()"
+            />
+          </div>
+        }
+        <ng-container
+          *ngTemplateOutlet="
+            inputDropdownTemplate;
+            context: {
+              fieldName: 'targetAttendee',
+              fieldOptions: targetAttendeeOptions,
+              selected: targetAttendee,
+              showNote: true,
+              testId: 'itt-form-target-attendee',
+            }
+          "
+        ></ng-container>
+        @if (isSuperuser()) {
+          <div class="cell" data-testid="itt-form-ticket-tier">
+            <ng-container
+              *ngTemplateOutlet="
+                inputTemplate;
+                context: {
+                  fieldName: 'ticketTier',
+                  fieldType: 'number',
+                  min: 1,
+                  showNote: false,
+                  customFieldLabel: ('inventory.ticketTypes.form.fields.ticketTier.title' | translate),
+                  isPartnerRestricted: isSuperuser(),
+                }
+              "
+            ></ng-container>
+          </div>
+        }
+      </fieldset>
+    </div>
+  </ng-template>
+  <ng-template #conditionalRulesTemplate>
+    <div [formGroup]="formGroup" class="common-session-edit__form itt-form">
+      @if (showConditionalRules) {
+        <h5 class="font-h5 collapsible-title collapsible-title--static" data-testid="itt-form-ticket-type-rules-toggle">
+          {{ 'inventory.ticketTypes.form.sections.conditionalRules' | translate }}
+        </h5>
+        <fieldset class="wrapper collapsible itt-form__rules-fields">
+          <ng-container
+            *ngTemplateOutlet="
+              inputDropdownTemplate;
+              context: {
+                fieldName: 'rules.selectionRule',
+                fieldOptions: selectionRuleOptions,
+                selected: formGroup.get('rules.selectionRule')?.value,
+                showNote: true,
+                noteKey: isCheckoutPRPAddOn ? 'inventory.ticketTypes.form.fields.rules.selectionRule.noteCheckoutPRP' : null,
+                customFieldLabel: 'inventory.ticketTypes.form.fields.rules.selectionRule.title' | translate,
+                testId: 'itt-form-selection-rule',
+              }
+            "
+          ></ng-container>
+          @if (isNeedsSessionType) {
+            <div class="cell">
+              <h6 class="itt-form__label">
+                {{ 'inventory.ticketTypes.form.fields.rules.neededSessionTypes.title' | translate }}
+              </h6>
+              <app-multi-select
+                [displayInPlaceMaximum]="1"
+                [isSelectAllVisible]="true"
+                [options]="availableNeededSessionTypes"
+                [placeholder]="'inventory.ticketTypes.form.fields.rules.neededSessionTypes.title' | translate"
+                [selectedOptions]="formGroup.get('rules.neededSessionTypes')?.value ?? []"
+                (selected)="formGroup.get('rules.neededSessionTypes')?.setValue($event)"
+              ></app-multi-select>
+            </div>
+            @if (showVisibleOnlyWhenNeededSessionTypesSelected) {
+              <div class="cell">
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="rules.visibleOnlyWhenNeededSessionTypesSelected"
+                    [formControl]="$any(formGroup.get('rules.visibleOnlyWhenNeededSessionTypesSelected'))"
+                  />
+                  <label class="form-check-label" for="rules.visibleOnlyWhenNeededSessionTypesSelected">
+                    {{ 'inventory.ticketTypes.form.fields.rules.visibleOnlyWhenNeededSessionTypesSelected.title' | translate }}
+                  </label>
+                </div>
+              </div>
+            }
+          }
+          <div class="cell">
+            <ng-container
+              *ngTemplateOutlet="
+                inputDropdownTemplate;
+                context: {
+                  fieldName: 'bookingTimeGranularity',
+                  fieldOptions: bookingTimeGranularityOptions,
+                  selected: bookingTimeGranularity,
+                  showNote: true,
+                  testId: 'itt-form-booking-time-granularity',
+                }
+              "
+            ></ng-container>
+          </div>
+          @if (quantityMatchingRuleState().isVisible) {
+            <div class="cell">
+              <app-ticket-type-quantity-matching-rule
+                [form]="quantityMatchingRuleForm"
+                [selectionStrategy]="quantityMatchingRuleState().strategy"
+                [strategyNoteKey]="quantityMatchingRuleState().noteKey"
+              />
+            </div>
+          }
+        </fieldset>
+      }
+
+      @if (isEntitlementsSetupAvailable()) {
+        <h5
+          class="font-h5 collapsible-title collapsible-title--static d-flex justify-content-between"
+          data-testid="itt-form-entitlements-settings-toggle"
+        >
+          <span>
+            {{ 'inventory.ticketTypes.form.sections.entitlementsSettings' | translate }}
+          </span>
+          <span>
+            <a class="font-h6" [routerLink]="['/entitlements', 'list']">
+              {{ 'inventory.ticketTypes.form.fields.entitlements.manage' | translate }}
+              <ignt-icon [name]="'arrow-up-right-from-square'" variant="solid"></ignt-icon>
+            </a>
+          </span>
+        </h5>
+        <fieldset class="wrapper collapsible">
+          <div class="cell">
+            <p class="mb-1">{{ 'inventory.ticketTypes.form.fields.entitlements.reschedule.title' | translate }}</p>
+            <app-multi-select
+              [options]="rescheduleEntitlements.options"
+              [selectedOptions]="rescheduleEntitlements.selected"
+              [placeholder]="
+                rescheduleEntitlements.isLoading
+                  ? ('common.loading' | translate)
+                  : ('inventory.ticketTypes.form.fields.entitlements.placeholder' | translate)
+              "
+              [displayInPlaceMaximum]="1"
+              [maxSelectedOptions]="1"
+              [isSelectAllVisible]="false"
+              [disabled]="rescheduleEntitlements.isLoading"
+              [scrollEndEnabled]="rescheduleEntitlements.hasMore"
+              (click)="loadEntitlementOptionsOnClick(rescheduleEntitlements)"
+              (scrollEnd)="loadMoreEntitlements(rescheduleEntitlements)"
+              (selected)="onEntitlementsSelected(rescheduleEntitlements, $event)"
+              data-testid="itt-form-entitlements-selector"
+            ></app-multi-select>
+            @if (purchaseEntitlements.selected.length > 0) {
+              <p class="mt-4 mb-1">{{ 'inventory.ticketTypes.form.fields.entitlements.purchase.selectedTitle' | translate }}</p>
+              <div class="d-flex flex-wrap gap-2 mb-2">
+                @for (option of purchaseEntitlements.selected; track option.id) {
+                  <div class="itt-form__entitlement-chip">
+                    <span>{{ option.title }}</span>
+                    <button
+                      ignt-icon-button
+                      type="button"
+                      size="small"
+                      sentiment="tertiary"
+                      class="itt-form__entitlement-chip__remove"
+                      [icon]="['fas', 'circle-xmark']"
+                      [attr.aria-label]="
+                        'inventory.ticketTypes.form.fields.entitlements.removeSelected' | translate: { title: option.title }
+                      "
+                      (click)="removeSelectedEntitlement(purchaseEntitlements, option)"
+                    ></button>
+                  </div>
+                }
+              </div>
+            } @else {
+              <p class="mt-4 mb-1">{{ 'inventory.ticketTypes.form.fields.entitlements.purchase.title' | translate }}</p>
+            }
+            <a class="font-h5" href="#" (click)="openEntitlementsSlider($event, purchaseEntitlements)">
+              {{ 'inventory.ticketTypes.form.fields.entitlements.purchase.action' | translate }}
+              <ignt-icon [name]="'plus-circle'" variant="solid"></ignt-icon>
+            </a>
+
+            @if (shopsEntitlements.selected.length > 0) {
+              <p class="mt-4 mb-1">{{ 'inventory.ticketTypes.form.fields.entitlements.shops.selectedTitle' | translate }}</p>
+              <div class="d-flex flex-wrap gap-2 mb-2">
+                @for (option of shopsEntitlements.selected; track option.id) {
+                  <div class="itt-form__entitlement-chip">
+                    <span>{{ option.title }}</span>
+                    <button
+                      ignt-icon-button
+                      type="button"
+                      size="small"
+                      sentiment="tertiary"
+                      class="itt-form__entitlement-chip__remove"
+                      [icon]="['fas', 'circle-xmark']"
+                      [attr.aria-label]="
+                        'inventory.ticketTypes.form.fields.entitlements.removeSelected' | translate: { title: option.title }
+                      "
+                      (click)="removeSelectedEntitlement(shopsEntitlements, option)"
+                    ></button>
+                  </div>
+                }
+              </div>
+            } @else {
+              <p class="mt-4 mb-1">{{ 'inventory.ticketTypes.form.fields.entitlements.shops.title' | translate }}</p>
+            }
+            <a
+              class="font-h5"
+              href="#"
+              (click)="openEntitlementsSlider($event, shopsEntitlements)"
+              data-testid="itt-form-shops-entitlements-link"
+            >
+              {{ 'inventory.ticketTypes.form.fields.entitlements.shops.action' | translate }}
+              <ignt-icon [name]="'plus-circle'" variant="solid"></ignt-icon>
+            </a>
+          </div>
+        </fieldset>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template
+    #inputTemplate
+    let-fieldName="fieldName"
+    let-fieldType="fieldType"
+    let-showNote="showNote"
+    let-customFieldLabel="customFieldLabel"
+    let-customNote="customNote"
+    let-hideErrorLabels="hideErrorLabels"
+    let-customFormControl="customFormControl"
+    let-isPartnerRestricted="isPartnerRestricted"
+  >
+    @if (isPartnerRestricted) {
+      <div class="itt-form__field-label-row itt-form__label" aria-hidden="true" data-testid="fever-only-field-label">
+        <span>{{ customFieldLabel || ('inventory.ticketTypes.form.fields.' + fieldName + '.title' | translate) }}</span>
+        <app-fever-only-marker />
+      </div>
+    }
+    <ignt-input-field
+      [formControl]="$any(customFormControl ?? formGroup.get(fieldName))"
+      [id]="fieldName"
+      [type]="fieldType"
+      [class.form-group--readonly]="$any(customFormControl ?? formGroup.get(fieldName)).disabled"
+      [class.field--equal-size]="true"
+      [class.itt-form__field-input--partner-restricted]="isPartnerRestricted"
+      [label]="isPartnerRestricted ? '' : customFieldLabel || ('inventory.ticketTypes.form.fields.' + fieldName + '.title' | translate)"
+      [customFormErrors]="[
+        {
+          type: 'required',
+          message: 'form.error.required' | translate,
+        },
+        {
+          type: 'min',
+          message: (fieldName === 'basePrice' ? 'form.error.greaterThanOrEqualZero' : 'form.error.greaterThanZero') | translate,
+        },
+        {
+          type: 'pattern',
+          message:
+            (fieldName === 'ticketSelectorStepQuantity'
+              ? 'inventory.ticketTypes.form.fields.ticketSelectorStepQuantity.patternError'
+              : 'form.error.greaterThanZero'
+            ) | translate,
+        },
+        {
+          type: 'ticketSelectorStepExceedsRange',
+          message: 'inventory.ticketTypes.form.fields.ticketSelectorStepQuantity.rangeError' | translate,
+        },
+      ]"
+      [hideErrorLabels]="hideErrorLabels"
+    ></ignt-input-field>
+    @if (showNote) {
+      <div class="itt-form__note">
+        {{ customNote || ('inventory.ticketTypes.form.fields.' + fieldName + '.note' | translate) }}
+      </div>
+    }
+  </ng-template>
+
+  <ng-template
+    #inputDropdownTemplate
+    let-fieldName="fieldName"
+    let-fieldOptions="fieldOptions"
+    let-selected="selected"
+    let-showNote="showNote"
+    let-customFieldLabel="customFieldLabel"
+    let-isSearchable="isSearchable"
+    let-isPartnerRestricted="isPartnerRestricted"
+    let-noteKey="noteKey"
+    let-testId="testId"
+  >
+    <div class="cell" [attr.data-testid]="testId" [class.itt-form__partner-restricted-cell]="isPartnerRestricted">
+      <ignt-typeahead
+        (selected)="formGroup.get(fieldName).setValue($event)"
+        (userInteraction)="onSearchableTypeaheadBlurred(fieldName, $event, isSearchable)"
+        [clean]="getSearchableTypeaheadClean$(fieldName)"
+        [editable]="isSearchable ?? false"
+        [fieldLabel]="customFieldLabel || 'inventory.ticketTypes.form.fields.' + fieldName + '.title' | translate"
+        [emptyLabel]="customFieldLabel || 'inventory.ticketTypes.form.fields.' + fieldName + '.title' | translate"
+        [options]="fieldOptions"
+        [selectedOption]="selected"
+        id="'itt-form-' + fieldName"
+        [disabled]="formGroup.get(fieldName).disabled"
+        [class.field--readonly]="formGroup.get(fieldName).disabled"
+        [customPopupClass]="'dropdown-menu--on-sidebar'"
+      ></ignt-typeahead>
+      @if (isPartnerRestricted) {
+        <app-fever-only-marker data-testid="fever-only-dropdown-marker" />
+      }
+      @if (showNote) {
+        <div class="itt-form__note">
+          {{ noteKey || 'inventory.ticketTypes.form.fields.' + fieldName + '.note' | translate }}
+        </div>
+      }
+    </div>
+  </ng-template>
+</div>
+
+<app-lateral-slider
+  [showDetails]="purchaseEntitlements.isSliderVisible"
+  [title]="'inventory.ticketTypes.form.fields.entitlements.purchase.title' | translate"
+  [contentTemplate]="purchaseEntitlementsTemplate"
+  (closeSlider)="closeEntitlementsSlider(purchaseEntitlements)"
+>
+</app-lateral-slider>
+
+<ng-template #purchaseEntitlementsTemplate>
+  <div class="itt-form__entitlement-panel">
+    <div class="itt-form__entitlement-panel__content" (click)="loadEntitlementOptionsOnClick(purchaseEntitlements)">
+      <div>
+        @if (purchaseEntitlements.pending.length > 0) {
+          <p class="mb-1 font-h5">{{ 'inventory.ticketTypes.form.fields.entitlements.purchase.sidebar.source.title' | translate }}</p>
+          <p class="mb-2">{{ 'inventory.ticketTypes.form.fields.entitlements.purchase.sidebar.source.description' | translate }}</p>
+        } @else {
+          <p class="mb-1 font-h5">{{ 'inventory.ticketTypes.form.fields.entitlements.purchase.sidebar.available' | translate }}</p>
+        }
+        <app-multi-select
+          [options]="purchaseEntitlements.options"
+          [selectedOptions]="purchaseEntitlements.pending"
+          [placeholder]="
+            purchaseEntitlements.isLoading
+              ? ('common.loading' | translate)
+              : ('inventory.ticketTypes.form.fields.entitlements.placeholder' | translate)
+          "
+          [displayInPlaceMaximum]="1"
+          [isSelectAllVisible]="true"
+          [disabled]="purchaseEntitlements.isLoading"
+          [scrollEndEnabled]="purchaseEntitlements.hasMore"
+          (scrollEnd)="loadMoreEntitlements(purchaseEntitlements)"
+          (selected)="onPendingEntitlementsSelected(purchaseEntitlements, $event)"
+          data-testid="itt-form-purchase-entitlements-selector"
+        ></app-multi-select>
+      </div>
+      <div>
+        <p class="mb-1 font-h5">{{ 'inventory.ticketTypes.form.fields.entitlements.purchase.sidebar.chosen.title' | translate }}</p>
+        <p class="mb-2">{{ 'inventory.ticketTypes.form.fields.entitlements.purchase.sidebar.chosen.description' | translate }}</p>
+        <div class="d-flex flex-wrap gap-2">
+          @for (option of purchaseEntitlements.pending; track option.id) {
+            <div class="itt-form__entitlement-chip">
+              <span>{{ option.title }}</span>
+              <button
+                ignt-icon-button
+                type="button"
+                size="small"
+                sentiment="tertiary"
+                class="itt-form__entitlement-chip__remove"
+                [icon]="['fas', 'circle-xmark']"
+                [attr.aria-label]="'inventory.ticketTypes.form.fields.entitlements.removeSelected' | translate: { title: option.title }"
+                (click)="removePendingEntitlement(purchaseEntitlements, option)"
+              ></button>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+    <div class="lateral-slider-body__footer">
+      <ignt-button variant="tertiary" [label]="'common.cancel' | translate" (click)="closeEntitlementsSlider(purchaseEntitlements)" />
+      <ignt-button [label]="'common.confirm' | translate" (click)="confirmEntitlements(purchaseEntitlements)" />
+    </div>
+  </div>
+</ng-template>
+
+<app-lateral-slider
+  [showDetails]="shopsEntitlements.isSliderVisible"
+  [title]="'inventory.ticketTypes.form.fields.entitlements.shops.title' | translate"
+  [contentTemplate]="shopsEntitlementsTemplate"
+  (closeSlider)="closeEntitlementsSlider(shopsEntitlements)"
+>
+</app-lateral-slider>
+
+<ng-template #shopsEntitlementsTemplate>
+  <div class="itt-form__entitlement-panel">
+    <div class="itt-form__entitlement-panel__content" (click)="loadEntitlementOptionsOnClick(shopsEntitlements)">
+      <div>
+        @if (shopsEntitlements.pending.length > 0) {
+          <p class="mb-1 font-h5">{{ 'inventory.ticketTypes.form.fields.entitlements.shops.sidebar.source.title' | translate }}</p>
+          <p class="mb-2">{{ 'inventory.ticketTypes.form.fields.entitlements.shops.sidebar.source.description' | translate }}</p>
+        } @else {
+          <p class="mb-1 font-h5">{{ 'inventory.ticketTypes.form.fields.entitlements.shops.sidebar.available' | translate }}</p>
+        }
+        <app-multi-select
+          [options]="shopsEntitlements.options"
+          [selectedOptions]="shopsEntitlements.pending"
+          [placeholder]="
+            shopsEntitlements.isLoading
+              ? ('common.loading' | translate)
+              : ('inventory.ticketTypes.form.fields.entitlements.placeholder' | translate)
+          "
+          [displayInPlaceMaximum]="1"
+          [isSelectAllVisible]="true"
+          [disabled]="shopsEntitlements.isLoading"
+          [scrollEndEnabled]="shopsEntitlements.hasMore"
+          (scrollEnd)="loadMoreEntitlements(shopsEntitlements)"
+          (selected)="onPendingEntitlementsSelected(shopsEntitlements, $event)"
+          data-testid="itt-form-shops-entitlements-selector"
+        ></app-multi-select>
+      </div>
+      <div>
+        <p class="mb-1 font-h5">{{ 'inventory.ticketTypes.form.fields.entitlements.shops.sidebar.chosen.title' | translate }}</p>
+        <p class="mb-2">{{ 'inventory.ticketTypes.form.fields.entitlements.shops.sidebar.chosen.description' | translate }}</p>
+        <div class="d-flex flex-wrap gap-2">
+          @for (option of shopsEntitlements.pending; track option.id) {
+            <div class="itt-form__entitlement-chip">
+              <span>{{ option.title }}</span>
+              <button
+                ignt-icon-button
+                type="button"
+                size="small"
+                sentiment="tertiary"
+                class="itt-form__entitlement-chip__remove"
+                [icon]="['fas', 'circle-xmark']"
+                [attr.aria-label]="'inventory.ticketTypes.form.fields.entitlements.removeSelected' | translate: { title: option.title }"
+                (click)="removePendingEntitlement(shopsEntitlements, option)"
+              ></button>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+    <div class="lateral-slider-body__footer">
+      <ignt-button variant="tertiary" [label]="'common.cancel' | translate" (click)="closeEntitlementsSlider(shopsEntitlements)" />
+      <ignt-button [label]="'common.confirm' | translate" (click)="confirmEntitlements(shopsEntitlements)" />
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #validationErrors let-error="error">
+  @if (error) {
+    <div class="form-error">
+      <ignt-icon name="exclamation-circle" variant="solid" class="form-error--icon"></ignt-icon>
+      @switch (error) {
+        @case ('eitherOneOrNoneFilled') {
+          <span class="form-error--message" data-testid="error-mandatory-field">
+            {{ 'form.error.eitherOneOrNoneFilled' | translate }}
+          </span>
+        }
+        @case ('lessOrEqual') {
+          <span class="form-error--message" data-testid="error-mandatory-field">
+            {{ 'form.error.lessOrEqual' | translate }}
+          </span>
+        }
+        @case ('min') {
+          <span class="form-error--message" data-testid="error-min-value-field">
+            {{ 'form.error.greaterThanZero' | translate }}
+          </span>
+        }
+        @case ('atLeastTwoTicketsValidator') {
+          <span class="form-error--message" data-testid="error-mandatory-field">
+            {{ 'form.error.atLeastTwoTicketsValidator' | translate }}
+          </span>
+        }
+        @case ('required') {
+          <span class="form-error--message" data-testid="error-mandatory-field">
+            {{ 'form.error.required' | translate }}
+          </span>
+        }
+      }
+    </div>
+  }
+</ng-template>

@@ -1,0 +1,62 @@
+<ignt-wrapper-card [type]="'default'">
+  <ignt-switch
+    class="session-type-rules-by-channel__switch"
+    [checked]="hasOverrides()"
+    [disabled]="isSwitchDisabled()"
+    [label]="labels().title"
+    (checkedChange)="toggleOverrides($event)"
+  />
+  @for (row of rows(); track row.trackKey; let rowIndex = $index) {
+    <div class="session-type-rules-by-channel__row">
+      <div class="session-type-rules-by-channel__channel">
+        <ignt-typeahead
+          class="session-type-rules-by-channel__channel-picker"
+          [disabled]="isDisabled()"
+          [editable]="false"
+          [emptyLabel]="row.channel.label"
+          [fieldLabel]="row.channel.label"
+          [id]="'session-type-rules-by-channel-' + rowIndex + '-channel'"
+          [options]="row.channel.options"
+          [selectedOption]="row.channel.selectedOption"
+          (selected)="selectChannel(rowIndex, $event)"
+        ></ignt-typeahead>
+        <button
+          ignt-icon-button
+          sentiment="tertiary"
+          size="small"
+          type="button"
+          [attr.aria-label]="labels().removeChannel"
+          [disabled]="isRemoveChannelDisabled()"
+          [icon]="['fas', 'trash']"
+          (click)="removeChannel(rowIndex)"
+        ></button>
+      </div>
+      <div class="session-type-rules-by-channel__settings">
+        @for (setting of row.settings; track setting.key) {
+          <app-channel-override-control
+            [disabled]="isDisabled() || setting.isLocked"
+            [hasOverrideToEmptyOption]="setting.hasOverrideToEmptyOption"
+            [inheritedValueTitle]="setting.inheritedValueTitle"
+            [ngModel]="setting.setting"
+            [ngModelOptions]="{ standalone: true }"
+            [overrideValueOptions]="setting.options"
+            [settingLabel]="setting.label"
+            [testId]="'session-type-rules-by-channel-' + rowIndex + '-' + setting.key"
+            (ngModelChange)="selectSetting(rowIndex, setting.key, $event)"
+          />
+        }
+      </div>
+    </div>
+  }
+  @if (hasOverrides() && hasFreeChannel()) {
+    <ignt-button
+      class="session-type-rules-by-channel__add"
+      size="small"
+      variant="tertiary"
+      [disabled]="isDisabled()"
+      [label]="labels().addChannel"
+      [leadingIcon]="{ name: 'plus-circle', variant: 'solid' }"
+      (click)="addChannel()"
+    />
+  }
+</ignt-wrapper-card>

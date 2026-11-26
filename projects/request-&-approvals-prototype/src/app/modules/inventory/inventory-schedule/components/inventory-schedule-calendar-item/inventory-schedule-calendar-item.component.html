@@ -1,0 +1,195 @@
+<div
+  class="inventory-schedule-calendar-item"
+  [routerLink]="['../view', calendar().id]"
+  queryParamsHandling="preserve"
+  (click)="onRowClick($event)"
+>
+  <div
+    class="inventory-schedule-calendar-item__column inventory-schedule-calendar-item__column--name"
+    data-testid="calendar-item-name-column"
+  >
+    <span class="inventory-schedule-calendar-item__label">
+      {{ 'inventory.schedule.item.name' | translate }}
+    </span>
+    <span class="inventory-schedule-calendar-item__name">
+      <span class="inventory-schedule-calendar-item__value" data-testid="calendar-item-name-value">
+        {{ calendar().name }}
+      </span>
+      @if (isCreating()) {
+        <ignt-tag class="inventory-schedule-calendar-item__status" sentiment="info" data-testid="calendar-item-creating-tag">
+          <ignt-icon name="spinner-third" variant="duotone" size="caption" [spin]="true" />
+          {{ 'inventory.schedule.item.creating' | translate }}
+        </ignt-tag>
+      }
+      @if (isDraft()) {
+        <ignt-tag class="inventory-schedule-calendar-item__status" sentiment="disable" data-testid="calendar-item-draft-tag">
+          {{ 'inventory.schedule.item.draft' | translate }}
+        </ignt-tag>
+      }
+    </span>
+  </div>
+
+  <div
+    class="inventory-schedule-calendar-item__column inventory-schedule-calendar-item__column--dates"
+    data-testid="calendar-item-dates-column"
+  >
+    <span class="inventory-schedule-calendar-item__label">
+      {{ 'inventory.schedule.item.dates' | translate }}
+    </span>
+    @if (calendar().dateRanges.length) {
+      <span class="inventory-schedule-calendar-item__value" data-testid="calendar-item-dates-value" #datesValue>
+        @for (dateRange of calendar().dateRanges; track dateRange.id; let last = $last) {
+          {{ dateRange.startDate | date: 'dd MMM yy' }} - {{ dateRange.endDate | date: 'dd MMM yy' }}{{ last ? '' : ', ' }}
+        }
+      </span>
+    }
+    @if (!calendar().dateRanges.length && calendar().specificDays.length) {
+      <span class="inventory-schedule-calendar-item__value" data-testid="calendar-item-specific-days-value" #datesValue>
+        @for (day of calendar().specificDays; track day; let last = $last) {
+          {{ day | date: 'dd MMM yy' }}{{ last ? '' : ', ' }}
+        }
+      </span>
+    }
+    @if (showSeeAllDates()) {
+      <span
+        class="inventory-schedule-calendar-item__link inventory-schedule-calendar-item__detail-trigger"
+        [appTemplatedTooltip]="datesTooltipTemplate"
+        data-testid="calendar-item-dates-link"
+        (click)="onSeeAllDatesClick()"
+      >
+        {{ 'inventory.schedule.item.seeAll' | translate }}
+      </span>
+    }
+
+    <ng-template #datesTooltipTemplate>
+      <div class="inventory-schedule-calendar-item__tooltip">
+        @for (dateRange of calendar().dateRanges; track dateRange.id) {
+          <p>{{ dateRange.startDate | date: 'dd MMM yy' }} - {{ dateRange.endDate | date: 'dd MMM yy' }}</p>
+        }
+        @if (!calendar().dateRanges.length && calendar().specificDays.length) {
+          <p>
+            @for (day of calendar().specificDays; track day; let last = $last) {
+              {{ day | date: 'dd MMM yy' }}
+              @if (!last) {
+                <span>, </span>
+              }
+            }
+          </p>
+        }
+      </div>
+    </ng-template>
+  </div>
+
+  <div
+    class="inventory-schedule-calendar-item__column inventory-schedule-calendar-item__column--capacity"
+    data-testid="calendar-item-capacity-column"
+  >
+    <span class="inventory-schedule-calendar-item__label">
+      {{ 'inventory.schedule.item.capacityTemplate' | translate }}
+    </span>
+    <span class="inventory-schedule-calendar-item__value" data-testid="calendar-item-capacity-value">
+      {{ calendar().defaultCapacityTemplateName }}
+    </span>
+  </div>
+
+  <div
+    class="inventory-schedule-calendar-item__column inventory-schedule-calendar-item__column--exceptions"
+    data-testid="calendar-item-exceptions-column"
+  >
+    <span class="inventory-schedule-calendar-item__label">
+      {{ 'inventory.schedule.item.exceptions' | translate }}
+    </span>
+    @for (exception of calendar().exceptionCalendars.slice(0, 2); track $index) {
+      <span class="inventory-schedule-calendar-item__value" data-testid="calendar-item-exception-value" #exceptionValue>
+        @if (exception.startDate && exception.endDate) {
+          {{ exception.startDate | date: 'dd MMM yy' }} - {{ exception.endDate | date: 'dd MMM yy' }}
+        }
+        @if (!exception.startDate && !exception.endDate && exception.specificDays.length) {
+          @for (day of exception.specificDays; track day; let last = $last) {
+            {{ day | date: 'dd MMM yy' }}
+            @if (!last) {
+              ,
+            }
+          }
+        }
+      </span>
+    } @empty {
+      <span class="inventory-schedule-calendar-item__value" data-testid="calendar-item-exception-value" #exceptionValue>-</span>
+    }
+    @if (showSeeAllExceptions()) {
+      <span
+        class="inventory-schedule-calendar-item__link inventory-schedule-calendar-item__detail-trigger"
+        [appTemplatedTooltip]="exceptionsTooltipTemplate"
+        data-testid="calendar-item-exceptions-link"
+        (click)="onSeeAllExceptionsClick()"
+      >
+        {{ 'inventory.schedule.item.seeAll' | translate }}
+      </span>
+    }
+
+    <ng-template #exceptionsTooltipTemplate>
+      <div class="inventory-schedule-calendar-item__tooltip">
+        @for (exception of calendar().exceptionCalendars; track $index) {
+          @if (exception.startDate && exception.endDate) {
+            <p>{{ exception.startDate | date: 'dd MMM yy' }} - {{ exception.endDate | date: 'dd MMM yy' }}</p>
+          }
+          @if (!exception.startDate && !exception.endDate && exception.specificDays.length) {
+            <p>
+              @for (day of exception.specificDays; track day; let last = $last) {
+                {{ day | date: 'dd MMM yy' }}
+                @if (!last) {
+                  <span>, </span>
+                }
+              }
+            </p>
+          }
+        }
+      </div>
+    </ng-template>
+  </div>
+
+  <div
+    class="inventory-schedule-calendar-item__column inventory-schedule-calendar-item__column--actions"
+    data-testid="calendar-item-actions-column"
+  >
+    <span class="inventory-schedule-calendar-item__label">
+      {{ 'inventory.schedule.item.actions' | translate }}
+    </span>
+    <button
+      ignt-icon-button
+      type="button"
+      class="inventory-schedule-calendar-item__detail-trigger"
+      sentiment="secondary"
+      size="medium"
+      [icon]="['fal', 'ellipsis-v']"
+      [attr.aria-label]="'inventory.schedule.item.actions' | translate"
+      [igntMenuTriggerFor]="actionsMenu"
+      data-testid="calendar-item-actions-button"
+      (click)="onActionsClick($event)"
+    ></button>
+
+    <ng-template #actionsMenu>
+      <ignt-menu>
+        <ignt-menu-item
+          value="view-details"
+          [label]="'inventory.schedule.item.viewDetails' | translate"
+          data-testid="calendar-item-details-action"
+          (triggered)="onDetailsClick()"
+        >
+          <ignt-icon name="calendar-week" variant="light" />
+        </ignt-menu-item>
+        @if (showDeleteAction()) {
+          <ignt-menu-item
+            sentiment="danger"
+            value="delete"
+            [label]="'inventory.schedule.item.delete' | translate"
+            data-testid="calendar-item-delete-action"
+            (triggered)="onDeleteClick()"
+          >
+            <ignt-icon name="trash-alt" variant="light" />
+          </ignt-menu-item>
+        }
+      </ignt-menu>
+    </ng-template>
+  </div>
+</div>

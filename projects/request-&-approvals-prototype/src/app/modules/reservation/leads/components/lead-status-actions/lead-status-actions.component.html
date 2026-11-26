@@ -1,0 +1,68 @@
+<!-- Nothing to offer means no button: the menu would be empty unless the lead has a reservation to open, a
+     quote to start over, or the user may assign it. -->
+@if (reservation() || canAssign() || canCreateQuote()) {
+  <div class="lead-status-actions">
+    <!-- Enter and Space are defaulted-out on purpose. `igntMenuTriggerFor` wraps `CdkMenuTrigger`,
+         which skips its own Space/Enter handling only when its host is an element the browser already
+         fires a click from. Here the host is the `ignt-button` component, not the native `<button>`
+         inside it, so the keydown toggles the menu open and the native click that follows bubbles up
+         and toggles it shut again — the dropdown would be unreachable by keyboard. Preventing the
+         keydown's default action stops the browser generating that click, leaving exactly one toggle;
+         it does not stop propagation, so the trigger's own handler still runs.
+
+         Same root cause, still open: `CdkMenuTrigger` puts `aria-haspopup`/`aria-expanded` on its
+         host, so they land on `ignt-button` rather than on the native button that takes focus, and a
+         screen reader does not announce the popup state. Every other actions menu in the app hosts
+         the trigger on a real `<button ignt-icon-button>` and has neither problem; a labelled
+         trigger cannot, since the legacy labelled button is banned by `fz/no-fz-original-ignt-button`
+         and `@ignite/common` has no attribute-selector button. The fix belongs in Ignite. -->
+    <ignt-button
+      class="lead-status-actions__trigger"
+      data-testid="lead-status-actions-trigger"
+      [disabled]="disabled()"
+      [igntMenuTriggerFor]="statusActionsMenu"
+      [label]="'common.actions' | translate"
+      [trailingIcon]="triggerIcon"
+      (keydown.enter)="$event.preventDefault()"
+      (keydown.space)="$event.preventDefault()"
+    />
+
+    <ng-template #statusActionsMenu>
+      <ignt-menu>
+        @if (reservation()) {
+          <ignt-menu-item
+            data-testid="lead-status-action-see-reservation"
+            value="see-reservation"
+            [disabled]="disabled()"
+            [label]="'leads.statusChange.actions.seeReservation' | translate"
+            (triggered)="onReservationSelected()"
+          >
+            <ignt-icon aria-hidden="true" name="eye" variant="light" />
+          </ignt-menu-item>
+        }
+        @if (canCreateQuote()) {
+          <ignt-menu-item
+            data-testid="lead-status-action-create-quote"
+            value="create-quote"
+            [disabled]="disabled()"
+            [label]="'leads.statusChange.actions.createQuote' | translate"
+            (triggered)="onCreateQuoteSelected()"
+          >
+            <ignt-icon aria-hidden="true" name="file-invoice" variant="light" />
+          </ignt-menu-item>
+        }
+        @if (canAssign()) {
+          <ignt-menu-item
+            data-testid="lead-status-action-assign"
+            value="assign"
+            [disabled]="disabled()"
+            [label]="(isReassignment() ? 'leads.reassign.action' : 'leads.assign.action') | translate"
+            (triggered)="onAssignSelected()"
+          >
+            <ignt-icon aria-hidden="true" name="user-plus" variant="light" />
+          </ignt-menu-item>
+        }
+      </ignt-menu>
+    </ng-template>
+  </div>
+}

@@ -1,0 +1,282 @@
+<div>
+  <app-sessions-per-timeslot-datetime-picker
+    [filters]="filters"
+    [resultTemplate]="sessionsPerTimeslotTable"
+    [icon]="['fas', 'sort-alt']"
+    [refreshResult]="refreshSearch"
+    (loadResult)="loadResult($event)"
+    (showExtendTimeSlotSlider)="openExtendTimeSlotSlider()"
+    (shouldHideHiddenSessionsChange)="onShouldHideHiddenSessionsChange($event)"
+  >
+    <ng-container slot="button-seating-actions">
+      <ignt-button
+        *ngIf="displayManageQuotasButton && timeSlot && filters && !isDeclarativeInventoryPlan"
+        size="small"
+        [fill]="isMobile()"
+        [label]="'sessions.sessionsPerTimeslot.manageQuotas' | translate"
+        (click)="onClickManageQuotas()"
+        data-testid="manage-quotas-button"
+      />
+    </ng-container>
+  </app-sessions-per-timeslot-datetime-picker>
+</div>
+
+<ng-template #sessionsPerTimeslotTable>
+  <ng-container
+    *ngIf="timeSlot?.staffNote"
+    [ngTemplateOutlet]="timeSlotNoteTemplate"
+    [ngTemplateOutletContext]="{ staffNote: timeSlot?.staffNote }"
+  ></ng-container>
+
+  <app-sessions-per-timeslot-table
+    #sessionsPerTimeslotRegularTable
+    data-testid="sessions-per-timeslot-regular-table"
+    [canEditSession]="canEditSession"
+    [timeSlot]="timeSlot"
+    [sessions]="splittedSessions?.regular"
+    [timezone]="timezone"
+    [displayIgnoreCapacityHint]="true"
+    [isBlockedColumnVisible]="isBlockedColumnVisible"
+    [unfoldFirstGroup]="splittedSessions?.hasRegulars"
+    [isPricesColumnVisible]="isPricesVisible"
+    [startingGroupCount]="splittedSessions?.regularStartingGroupCount"
+    [isSoldExpanded]="isSoldExpanded"
+    [lastUpdatedSessionId]="lastUpdatedSessionId"
+    [lastUpdatedCapacityGroupId]="lastUpdatedCapacityGroupId"
+    (clearLastUpdatedIds)="clearLastUpdatedIds()"
+    (editElement)="editElement($event)"
+  >
+  </app-sessions-per-timeslot-table>
+
+  <app-sessions-per-timeslot-table
+    #sessionsPerTimeslotAddonsTable
+    data-testid="sessions-per-timeslot-addons-table"
+    [canEditSession]="canEditSession"
+    [timeSlot]="timeSlot"
+    [sessions]="splittedSessions?.addOns"
+    [timezone]="timezone"
+    [isBlockedColumnVisible]="isBlockedColumnVisible"
+    [unfoldFirstGroup]="!splittedSessions?.hasRegulars && splittedSessions?.hasAddOns"
+    [isPricesColumnVisible]="isPricesVisible"
+    [startingGroupCount]="splittedSessions?.addonsStartingGroupCount"
+    [isSoldExpanded]="isSoldExpanded"
+    [lastUpdatedSessionId]="lastUpdatedSessionId"
+    [lastUpdatedCapacityGroupId]="lastUpdatedCapacityGroupId"
+    (clearLastUpdatedIds)="clearLastUpdatedIds()"
+    (editElement)="editElement($event)"
+  >
+  </app-sessions-per-timeslot-table>
+
+  <app-sessions-per-timeslot-table
+    #sessionsPerTimeslotPacksTable
+    data-testid="sessions-per-timeslot-packs-table"
+    [canEditSession]="canEditSession"
+    [timeSlot]="timeSlot"
+    [sessions]="splittedSessions?.packs"
+    [isBlockedColumnVisible]="isBlockedColumnVisible"
+    [unfoldFirstGroup]="!splittedSessions?.hasRegulars && !splittedSessions?.hasAddOns && splittedSessions?.hasPacks"
+    [timezone]="timezone"
+    [startingGroupCount]="splittedSessions?.packsStartingGroupCount"
+    [isPricesColumnVisible]="isPricesVisible"
+    [isSoldExpanded]="isSoldExpanded"
+    [lastUpdatedSessionId]="lastUpdatedSessionId"
+    [lastUpdatedCapacityGroupId]="lastUpdatedCapacityGroupId"
+    (clearLastUpdatedIds)="clearLastUpdatedIds()"
+    (editElement)="editElement($event)"
+  >
+  </app-sessions-per-timeslot-table>
+
+  <div class="sessions-per-timeslot-table">
+    <ignt-alert
+      *ngIf="someSessionsIgnoreTimeSlotCapacity"
+      class="ignore-capacity-warning"
+      sentiment="accent"
+      data-testid="ignore-capacity-warning"
+    >
+      <ng-template #igntAlertContent>
+        <span [innerHTML]="'sessions.sessionsPerTimeslot.columnNames.ignoreCapacityWarning' | translate"></span>
+      </ng-template>
+    </ignt-alert>
+
+    <div class="sessions-per-timeslot-table__wrapper">
+      <table class="sessions-per-timeslot-table__content">
+        <ng-container [ngTemplateOutlet]="sessionsPerTimeslotTableHeader"></ng-container>
+
+        <tr class="sessions-per-timeslot-table__header-spacer">
+          <td [attr.colspan]="numCols"></td>
+        </tr>
+
+        <ng-container *ngIf="splittedSessions?.hasRegulars">
+          <ng-container *ngTemplateOutlet="sessionsPerTimeslotRegularTable.tableContent"></ng-container>
+        </ng-container>
+
+        <tr *ngIf="splittedSessions?.hasRegulars && (splittedSessions?.hasAddOns || splittedSessions?.hasPacks)">
+          <td [attr.colspan]="numCols">
+            <ng-container
+              *ngTemplateOutlet="
+                packsAndAddonsMessageTemplate;
+                context: {
+                  hasAddons: splittedSessions?.hasAddOns,
+                  hasPacks: splittedSessions?.hasPacks,
+                }
+              "
+            >
+            </ng-container>
+          </td>
+        </tr>
+
+        <ng-container *ngIf="splittedSessions?.hasPacks">
+          <tr>
+            <td [attr.colspan]="numCols">
+              <div class="sessions-per-timeslot-table__section-separator">
+                <fa-icon [fixedWidth]="true" [icon]="['fal', 'box-open']"></fa-icon>
+                {{ 'sessions.sessionsPerTimeslot.packs' | translate }}
+              </div>
+            </td>
+          </tr>
+          <ng-container *ngTemplateOutlet="sessionsPerTimeslotPacksTable.tableContent"></ng-container>
+        </ng-container>
+
+        <ng-container *ngIf="splittedSessions?.hasAddOns">
+          <tr>
+            <td [attr.colspan]="numCols">
+              <div class="sessions-per-timeslot-table__section-separator">
+                <fa-icon [fixedWidth]="true" [icon]="['fal', 'cart-plus']"></fa-icon>
+                {{ 'sessions.sessionsPerTimeslot.addOns' | translate }}
+              </div>
+            </td>
+          </tr>
+          <ng-container *ngTemplateOutlet="sessionsPerTimeslotAddonsTable.tableContent"></ng-container>
+        </ng-container>
+      </table>
+    </div>
+  </div>
+
+  <ng-template #sessionsPerTimeslotTableHeader>
+    <thead
+      appSessionsPerTimeslotTimeslotHeader
+      *ngIf="timeSlot"
+      [canEditSession]="canEditSession"
+      [rowInput]="timeSlot"
+      [timezone]="timezone"
+      [children]="unfilteredSessions"
+      [isBlockedColumnVisible]="isBlockedColumnVisible"
+      [isPricesColumnVisible]="isPricesVisible"
+      [(isSoldExpanded)]="isSoldExpanded"
+      [partnerId]="filters?.partner?.id"
+      [planId]="filters?.selectedPlan?.id"
+      [planTitle]="filters?.selectedPlan?.title"
+      (editElement)="editElement($event)"
+      class="sessions-per-timeslot-table__header"
+    ></thead>
+  </ng-template>
+</ng-template>
+
+<app-lateral-slider
+  [showDetails]="showLateralSlider"
+  [title]="'sessions.sessionsPerTimeslot.edition.title.' + (timeSlotSelected ? 'timeslot' : codePoolSelected ? 'codePool' : 'session')"
+  [contentTemplate]="editFormTemplate"
+  (closeSlider)="closeLateralSlider()"
+>
+</app-lateral-slider>
+
+<ng-template #editFormTemplate>
+  <app-session-edit-form
+    *ngIf="sessionSelected"
+    [isAssetBasedSession]="isSelectedSessionFromAssetBasedGroup"
+    [session]="sessionSelected"
+    [timezone]="timezone"
+    [isPriceVisible]="isPricesVisible && !forceDisplayPrice"
+    [mustUseTaxBase]="sessions.mustUseTaxBase"
+    [codePoolName]="codePoolName"
+    [availableChannels]="availableChannels"
+    (formChanges)="updateSession($event)"
+  >
+  </app-session-edit-form>
+
+  <app-capacity-group-edit-form
+    *ngIf="codePoolSelected"
+    [codePool]="codePoolSelected"
+    [codePoolName]="codePoolName"
+    [sessionsVisibility]="selectedSessionsVisibility"
+    [sessionsStatus]="selectedSessionsStatus"
+    [timezone]="timezone"
+    (formChanges)="updateCapacityGroupCapacity($event)"
+  >
+  </app-capacity-group-edit-form>
+
+  <app-time-slot-edit-form
+    *ngIf="timeSlotSelected"
+    [timeSlot]="timeSlotSelected"
+    [performer]="timeSlotPerformer"
+    [isCandlelight]="isCandlelight"
+    [timezone]="timezone"
+    [sessionsVisibility]="selectedSessionsVisibility"
+    [sessionsStatus]="selectedSessionsStatus"
+    [addProductsEnabled]="addProductsToTimeSlotEnabled"
+    [sessionTypesInventory]="sessionTypesInventory"
+    [existingSessionTypes]="timeSlotExistingSessionTypes"
+    [existingSessionTypesLoading]="timeSlotExistingSessionTypesLoading"
+    (formChanges)="updateTimeSlot($event)"
+  >
+  </app-time-slot-edit-form>
+</ng-template>
+
+<app-lateral-slider
+  [showDetails]="showExtendTimeSlotSlider"
+  [title]="'sessions.extendTimeSlotForm.slideTitle' | translate"
+  [contentTemplate]="extendTimeSlotFormTemplate"
+  (closeSlider)="closeReplicateSessionSettingsSlider()"
+>
+</app-lateral-slider>
+<ng-template #extendTimeSlotFormTemplate>
+  <app-extend-time-slot-form
+    *ngIf="!extendTimeSlotForm"
+    (cancel)="closeReplicateSessionSettingsSlider()"
+    (extendTimeSlotSubmitted)="setExtendTimeSlotForm($event)"
+    [planId]="planId"
+    [timeslot]="timeSlot"
+    [timezone]="timezone"
+  ></app-extend-time-slot-form>
+  <app-extend-time-slot-preview
+    *ngIf="extendTimeSlotForm && filters?.selectedPlan && filters?.selectedPlace && timeSlot"
+    (cancel)="setExtendTimeSlotForm(null)"
+    (save)="saveExtendTimeSlotSlider($event)"
+    [extendTimeSlotForm]="extendTimeSlotForm"
+    [timezone]="timezone"
+    [mainPlanId]="filters.selectedPlan.id"
+    [placeId]="filters.selectedPlace.id"
+    [timeSlotId]="timeSlot.id"
+    [currentTimeSlotStartsAt]="timeSlot.startsAt"
+    [sessions]="splittedSessions"
+  ></app-extend-time-slot-preview>
+</ng-template>
+
+<ng-template #timeSlotNoteTemplate let-staffNote="staffNote">
+  <ignt-alert
+    class="sessions-per-timeslot-staff-note"
+    data-testid="session-per-timeslot-row-note"
+    [description]="staffNote.message + ' - ' + staffNote.author"
+  />
+</ng-template>
+
+<ng-template let-hasAddons="hasAddons" let-hasPacks="hasPacks" #packsAndAddonsMessageTemplate>
+  <ignt-alert
+    sentiment="warning"
+    class="sessions-per-timeslot-packs-addons-message"
+    data-testid="session-per-timeslot-row-addons-and-packs-message"
+  >
+    <ng-template #igntAlertContent>
+      <ul class="sessions-per-timeslot-packs-addons-message__list">
+        <li *ngIf="hasPacks" class="sessions-per-timeslot-packs-addons-message__list-item">
+          <fa-icon [icon]="['far', 'box-open']" />
+          <span>{{ 'sessions.sessionsPerTimeslot.packsWarningMessage' | translate }}</span>
+        </li>
+        <li *ngIf="hasAddons" class="sessions-per-timeslot-packs-addons-message__list-item">
+          <fa-icon [icon]="['far', 'cart-plus']" />
+          <span>{{ 'sessions.sessionsPerTimeslot.addOnsWarningMessage' | translate }}</span>
+        </li>
+      </ul>
+    </ng-template>
+  </ignt-alert>
+</ng-template>

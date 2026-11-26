@@ -1,0 +1,79 @@
+<section [fzAssistantHost]="assistantHostConfig" class="plan-edition-host content-page" [attr.aria-label]="'menu.contentPlan' | translate">
+  <app-event-selection-band
+    data-testid="content-plan-selectors"
+    [summary]="selectedPlanTitle() || ('planDetail.searchFilters' | translate)"
+  >
+    <app-search-bar
+      data-testid="content-plan-search-bar"
+      [mandatoryFilters]="mandatoryFilters"
+      [screen]="screen.contentPlan"
+      [searchOnChange]="true"
+      (searchEmitter)="loadNewSearch($event)"
+    ></app-search-bar>
+  </app-event-selection-band>
+
+  <div class="content-page__title">
+    <span class="content-page__section">{{ 'menu.events' | translate }}</span>
+    <h1 class="content-page__heading" data-testid="page-title">{{ 'menu.contentPlan' | translate }}</h1>
+  </div>
+
+  @if (editingPlan.getSelectedPlanOption()) {
+    <div class="plan-edition">
+      <app-plan-header-card [planDetail]="selectedPlanDetail" [hasUnsavedChanges]="activeTabHasUnsavedChanges"></app-plan-header-card>
+
+      <div class="plan-edition__body">
+        @if (planEditionShowLockedBanner()) {
+          <app-plan-review-locked-banner></app-plan-review-locked-banner>
+        }
+        @if (tabs().length > 0) {
+          <ignt-tabs
+            class="content-page__tabs plan-edition__tabs"
+            data-testid="plan-edition-tabs"
+            [selectedIndex]="selectedTabIndex()"
+            (selectedIndexChange)="onTabIndexChange($event)"
+          >
+            @for (tab of tabs(); track tab.id) {
+              <ignt-tabs-item [attr.data-testid]="'plan-edition-tab-' + tab.id" [label]="tab.label | translate"></ignt-tabs-item>
+            }
+          </ignt-tabs>
+        }
+        <div class="plan-edition__tab-content">
+          @if (isPlanDetailSettled && tabs().length === 0) {
+            <div class="content-page__state" data-testid="plan-edition-no-editable-section">
+              <ignt-icon aria-hidden="true" name="pen" size="h1" variant="solid" />
+              <span>{{ 'planEdition.noEditableSection' | translate }}</span>
+            </div>
+          }
+          <router-outlet (activate)="onTabActivate($event)" (deactivate)="onTabDeactivate()"></router-outlet>
+        </div>
+        @if (!planEditionLockResolved()) {
+          <div class="plan-edition__lock-loading plan-edition__lock-loading--overlay" data-testid="plan-edition-lock-loading">
+            <ignt-icon class="loader" name="spinner" variant="solid" size="display" [spin]="true"></ignt-icon>
+          </div>
+        }
+      </div>
+
+      @if (showCompatibilityNote) {
+        <div class="information-banner" data-testid="information-banner">
+          <ignt-icon name="info-circle" variant="regular" class="information-banner__icon"></ignt-icon>
+          <div class="information-banner__title">
+            <span [innerHTML]="'planEdition.compatibleDevicesNote' | translate"></span>
+          </div>
+        </div>
+      }
+
+      <div class="plan-edition__help-topic" appHideWrapperOnHelpTopicClose>
+        <app-help-topic-banner
+          [message]="'helpTopics.content.message' | translate"
+          [ctaLabel]="'helpTopics.generic.cta.label' | translate"
+          [ctaLink]="'helpTopics.content.cta.href' | translate"
+        ></app-help-topic-banner>
+      </div>
+    </div>
+  } @else {
+    <div class="content-page__state" data-testid="plan-edition-empty">
+      <ignt-icon aria-hidden="true" name="pen" size="h1" variant="solid" />
+      <span>{{ 'planDetail.noDataSelected' | translate }}</span>
+    </div>
+  }
+</section>

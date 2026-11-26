@@ -1,0 +1,340 @@
+@if (canBrowseOrders()) {
+  <app-event-selection-band
+    data-testid="unified-order-list-selectors"
+    [summary]="selectorsLabel() || ('orders.selectorsToggle' | translate)"
+  >
+    <app-search-bar
+      [mandatoryFilters]="mandatoryFilters"
+      [preselectOnsiteFilters]="onsiteSetupFilters"
+      [searchOnChange]="true"
+      [showVenue]="true"
+      (searchEmitter)="onSearch($event)"
+    />
+  </app-event-selection-band>
+}
+
+<div class="unified-order-list__header" data-testid="unified-order-list-header">
+  <div class="unified-order-list__title">
+    <span class="unified-order-list__section">{{ 'menu.orders' | translate }}</span>
+    <h1 class="unified-order-list__heading" data-testid="page-title">{{ 'menu.orderList' | translate }}</h1>
+  </div>
+  <ignt-button
+    data-testid="unified-order-list-download"
+    variant="secondary"
+    [label]="'common.download' | translate"
+    [trailingIcon]="{ name: 'chevron-down', variant: 'solid' }"
+    [loading]="downloading()"
+    [disabled]="!canDownload()"
+    [igntMenuTriggerFor]="downloadMenu"
+  />
+  <ng-template #downloadMenu>
+    <ignt-menu>
+      @for (option of exportOptionsList; track option.fileType) {
+        <ignt-menu-item [label]="option.label" [value]="option.fileType" (triggered)="onDownload(option)" />
+      }
+      @if (isPartySummaryAvailable()) {
+        <ignt-menu-item
+          data-testid="unified-order-list-download-party-summaries"
+          value="party-summaries"
+          [label]="'reservations.partySummary' | translate"
+          (triggered)="onDownloadPartySummaries()"
+        />
+      }
+    </ignt-menu>
+  </ng-template>
+</div>
+
+@if (accessPending()) {
+  <div class="unified-order-list__access-loader" data-testid="unified-order-list-access-loader">
+    <ignt-icon class="loader" name="spinner" size="display" variant="solid" aria-hidden="true" [spin]="true" />
+  </div>
+} @else {
+  <div class="main-wrapper">
+    <div class="wrapper-card wrapper-card--borderless">
+      <div class="unified-order-list">
+        <div class="unified-order-list__filters">
+          <div class="unified-order-list__toolbar">
+            <div class="unified-order-list__toolbar-start">
+              <app-unified-order-search
+                class="unified-order-list__search"
+                [search]="toolbarSearch()"
+                [showCard]="showCard"
+                [showFullName]="canSearchByFullName"
+                [canSearchByCategory]="canSearchByCategory"
+                [partnerId]="partnerId"
+                [disabled]="!canSearchByCategory && !canSearchByFullName"
+                (searchChange)="onSearchChange($event)"
+              />
+              <ignt-button
+                size="small"
+                data-testid="unified-order-list-filters"
+                [variant]="appliedFilters().length > 0 ? 'primary' : 'tertiary'"
+                [leadingIcon]="{ name: 'sliders-h', variant: 'solid' }"
+                [disabled]="!canOpenFilters()"
+                [label]="
+                  appliedFilters().length > 0
+                    ? ('orders.filtersPanel.filterButtonWithFilters' | translate: { count: appliedFilters().length })
+                    : ('orders.filtersPanel.filterButton' | translate)
+                "
+                (click)="onOpenFilters()"
+              />
+            </div>
+
+            @if (store.hasSearched()) {
+              <div class="unified-order-list__pagination">
+                <button
+                  type="button"
+                  ignt-icon-button
+                  class="flip-rtl"
+                  variant="sharp"
+                  sentiment="tertiary"
+                  size="small"
+                  data-testid="unified-order-list-prev"
+                  [icon]="['fas', 'chevron-left']"
+                  [attr.aria-label]="'common.previous' | translate"
+                  [disabled]="!store.hasPreviousPage() || store.isLoading()"
+                  (click)="onPreviousPage()"
+                ></button>
+                <button
+                  type="button"
+                  ignt-icon-button
+                  class="flip-rtl"
+                  variant="sharp"
+                  sentiment="tertiary"
+                  size="small"
+                  data-testid="unified-order-list-next"
+                  [icon]="['fas', 'chevron-right']"
+                  [attr.aria-label]="'common.next' | translate"
+                  [disabled]="!store.hasNextPage() || store.isLoading()"
+                  (click)="onNextPage()"
+                ></button>
+              </div>
+            }
+          </div>
+
+          @if (appliedFilters().length > 0) {
+            <div class="unified-order-list__filters-bar">
+              <div class="unified-order-list__pills">
+                @for (pill of appliedFilters(); track pill.id) {
+                  <ignt-pill
+                    type="secondary"
+                    data-testid="unified-order-list-filter-pill"
+                    [label]="pill.label"
+                    (clicked)="onRemoveFilter(pill.id)"
+                  />
+                }
+                <ignt-button
+                  variant="tertiary"
+                  size="small"
+                  data-testid="unified-order-list-clear-filters"
+                  [label]="'common.clearAll' | translate"
+                  (click)="onClearAllFilters()"
+                />
+              </div>
+            </div>
+          }
+        </div>
+
+        @if (store.hasSearched()) {
+          <ignt-table
+            class="unified-order-list__table"
+            data-testid="unified-order-list-table"
+            [data]="store.orders()"
+            [isLoading]="store.isLoading()"
+            [interactiveRows]="true"
+            [hasServerSideSorting]="true"
+            [sorting]="sortingState()"
+            (rowInteraction)="onRowClick($event)"
+            (sortingChange)="onSortingChange($event)"
+          >
+            <ignt-table-column
+              key="orderId"
+              columnType="primary"
+              [header]="'orders.tableColumns.orderId' | translate"
+              [sortable]="!isSearching()"
+            >
+              <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+                <span data-testid="unified-order-list-reference">{{ getOrderReference(item) }}</span>
+              </ng-template>
+            </ignt-table-column>
+
+            <ignt-table-column
+              key="purchaseDate"
+              columnType="secondary"
+              [header]="'orders.tableColumns.purchaseDate' | translate"
+              [sortable]="!isSearching()"
+            >
+              <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+                <span
+                  >{{ item.purchaseDate | momentDate: 'mediumDate' : item.placeTimezone }} ·
+                  {{ item.purchaseDate | momentDate: 'HH:mm' : item.placeTimezone }}</span
+                >
+              </ng-template>
+            </ignt-table-column>
+
+            <ignt-table-column key="channel" [header]="'orders.tableColumns.channel' | translate" [sortable]="!isSearching()">
+              <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+                <span>{{ item.channelName || '-' }}</span>
+              </ng-template>
+            </ignt-table-column>
+
+            <ignt-table-column
+              key="fullName"
+              columnType="secondary"
+              [header]="'orders.tableColumns.fullName' | translate"
+              [sortable]="!isSearching()"
+            >
+              <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+                <div class="unified-order-list__buyer">
+                  <span>{{ item.fullName || '-' }}</span>
+                  @if (item.email) {
+                    <span class="unified-order-list__buyer-email">{{ item.email }}</span>
+                  }
+                </div>
+              </ng-template>
+            </ignt-table-column>
+
+            <ignt-table-column
+              key="tickets"
+              [header]="'orders.tableColumns.tickets' | translate"
+              [sortable]="!isSearching() && ticketsSeatsSortEnabled"
+            >
+              <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+                @if (item.ticketCount > 0) {
+                  <ignt-button
+                    variant="tertiary"
+                    size="small"
+                    class="unified-order-list__count-button"
+                    data-testid="unified-order-list-tickets-trigger"
+                    [leadingIcon]="{ name: 'ticket', variant: 'light' }"
+                    [label]="item.ticketCount.toString()"
+                    [ariaLabel]="'orders.tableColumns.ticketsAriaLabel' | translate: { count: item.ticketCount }"
+                    (click)="$event.stopPropagation(); onOpenDetail('tickets', item)"
+                    (keydown)="$event.stopPropagation()"
+                  />
+                } @else {
+                  <span>-</span>
+                }
+              </ng-template>
+            </ignt-table-column>
+
+            @if (seatsColumnVisible() && !isMultiResultSearch()) {
+              <ignt-table-column
+                key="seats"
+                [header]="'orders.tableColumns.seatLabel' | translate"
+                [sortable]="!isSearching() && ticketsSeatsSortEnabled"
+              >
+                <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+                  @if (item.seats.length > 0) {
+                    <ignt-button
+                      variant="tertiary"
+                      size="small"
+                      class="unified-order-list__count-button"
+                      data-testid="unified-order-list-seats-trigger"
+                      [leadingIcon]="{ name: 'loveseat', variant: 'solid' }"
+                      [label]="item.seats.length.toString()"
+                      [ariaLabel]="'orders.tableColumns.seatsAriaLabel' | translate: { count: item.seats.length }"
+                      (click)="$event.stopPropagation(); onOpenDetail('seats', item)"
+                      (keydown)="$event.stopPropagation()"
+                    />
+                  } @else {
+                    <span>-</span>
+                  }
+                </ng-template>
+              </ignt-table-column>
+            }
+
+            <ignt-table-column
+              key="eventName"
+              columnType="secondary"
+              [header]="'orders.tableColumns.eventName' | translate"
+              [sortable]="!isSearching()"
+            >
+              <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+                <span>{{ item.planName || '-' }}</span>
+              </ng-template>
+            </ignt-table-column>
+
+            <ignt-table-column
+              key="eventDate"
+              columnType="secondary"
+              [header]="'orders.tableColumns.eventDay' | translate"
+              [sortable]="!isSearching()"
+            >
+              <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+                <span>{{ item.planDate ? (item.planDate | momentDate: 'mediumDate' : item.placeTimezone) : '-' }}</span>
+              </ng-template>
+            </ignt-table-column>
+
+            <ignt-table-column key="eventTime" [header]="'orders.tableColumns.eventTime' | translate">
+              <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+                <span>{{ item.planDate ? (item.planDate | momentDate: 'HH:mm' : item.placeTimezone) : '-' }}</span>
+              </ng-template>
+            </ignt-table-column>
+
+            @if (!isMultiResultSearch()) {
+              <ignt-table-column key="venue" [header]="'orders.tableColumns.placeName' | translate" [sortable]="!isSearching()">
+                <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+                  <span>{{ item.placeName || '-' }}</span>
+                </ng-template>
+              </ignt-table-column>
+
+              <ignt-table-column key="city" [header]="'orders.tableColumns.cityName' | translate" [sortable]="!isSearching()">
+                <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+                  <span>{{ item.cityName || '-' }}</span>
+                </ng-template>
+              </ignt-table-column>
+
+              <ignt-table-column key="payment" [header]="'orders.tableColumns.payment' | translate" [sortable]="!isSearching()">
+                <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+                  <span data-testid="unified-order-list-payment">{{ getTotalLabel(item) }}</span>
+                </ng-template>
+              </ignt-table-column>
+            }
+
+            <ignt-table-column key="status" columnType="secondary" [header]="'validateTickets.tableColumns.status' | translate">
+              <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+                @if (item.status) {
+                  <ignt-tag
+                    data-testid="unified-order-list-status"
+                    [sentiment]="getStatusSentiment(item.status)"
+                    [variant]="getStatusVariant(item.status)"
+                  >
+                    {{ getStatusLabelKey(item.status) | translate }}
+                  </ignt-tag>
+                } @else {
+                  <span>-</span>
+                }
+              </ng-template>
+            </ignt-table-column>
+          </ignt-table>
+        }
+
+        @if (searchPromptVisible()) {
+          <div class="unified-order-list__placeholder" data-testid="unified-order-list-search-prompt">
+            <ignt-icon class="icon-empty" name="search" variant="light" aria-hidden="true" />
+            <div class="unified-order-list__placeholder-title">{{ 'orders.searchPrompt.title' | translate }}</div>
+            <div>{{ 'orders.searchPrompt.description' | translate }}</div>
+          </div>
+        }
+
+        @if (store.hasSearched() && !store.isLoading() && store.orders().length === 0 && !store.error()) {
+          <div class="unified-order-list__placeholder" data-testid="unified-order-list-no-results">
+            <ignt-icon class="icon-empty" name="box-open" variant="light" aria-hidden="true" />
+            <div class="unified-order-list__placeholder-title">{{ 'orders.noResultsHelp.title' | translate }}</div>
+            <div>{{ 'orders.noResultsHelp.description' | translate }}</div>
+          </div>
+        }
+
+        @if (store.error()) {
+          <div class="unified-order-list__error" data-testid="unified-order-list-error">
+            <span class="unified-order-list__error-text">
+              <ignt-icon class="unified-order-list__error-icon" name="exclamation-triangle" variant="light" aria-hidden="true" />
+              {{ 'errors.generic' | translate }}
+            </span>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}

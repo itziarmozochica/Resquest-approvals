@@ -1,0 +1,177 @@
+<div class="onboarding-wizard">
+  <div class="onboarding-wizard__page">
+    <ignt-breadcrumb class="onboarding-wizard__breadcrumb" [items]="breadcrumbs" />
+
+    <h1 class="onboarding-wizard__title" data-testid="onboarding-wizard-header">
+      {{ 'marketplaceEvents.onboarding.pageTitle' | translate }}
+    </h1>
+
+    @if (isOnChannels()) {
+      <section class="onboarding-wizard__step" data-testid="onboarding-wizard-channels">
+        <header class="onboarding-wizard__intro">
+          <h2 class="onboarding-wizard__intro-title">{{ 'marketplaceEvents.onboarding.channels.title' | translate }}</h2>
+          <p class="onboarding-wizard__intro-description">{{ 'marketplaceEvents.onboarding.channels.description' | translate }}</p>
+        </header>
+
+        <app-wizard-channels-step
+          [channels]="channels()"
+          [hasError]="channelsError()"
+          [isLoading]="isLoadingChannels()"
+          [keptIds]="keptChannelIds()"
+          (allToggled)="toggleAllChannels($event)"
+          (retried)="retryChannels()"
+          (toggled)="toggleChannel($event)"
+        />
+      </section>
+    } @else {
+      <ignt-progress-stepper
+        class="onboarding-wizard__stepper"
+        data-testid="onboarding-wizard-stepper"
+        [allowItemActivate]="!isPublishing()"
+        [ariaLabel]="'marketplaceEvents.onboarding.stepperLabel' | translate"
+        [items]="steps"
+        [showNavigation]="false"
+        [stepCountLabel]="stepCountLabel"
+        [(currentIndex)]="stepIndex"
+      />
+
+      <section class="onboarding-wizard__step" [attr.data-testid]="'onboarding-wizard-step-' + step()">
+        @if (step() === stepEnum.EVENTS) {
+          <app-wizard-events-step
+            [areAllSelected]="areAllEventsSelected()"
+            [catalogueSize]="eventsCatalogueSize()"
+            [emptyMessageKey]="eventsEmptyMessageKey()"
+            [hasError]="eventsError()"
+            [hasSelectedMatches]="hasSelectedMatchingEvents()"
+            [isLoading]="isLoadingEvents()"
+            [isSelectingMatches]="isSelectingMatchingEvents()"
+            [pageIndex]="eventsPageIndex()"
+            [search]="eventSearch()"
+            [selectedCount]="selectedEventCount()"
+            [selectedIds]="selectedEventIds()"
+            [totalEvents]="totalEvents()"
+            [visibleEvents]="events()"
+            (allToggled)="toggleAllEvents($event)"
+            (matchesSelected)="selectMatchingEvents()"
+            (pageChanged)="goToEventsPage($event)"
+            (retried)="retryEvents()"
+            (searchChanged)="searchEvents($event)"
+            (toggled)="toggleEvent($event)"
+          />
+        }
+
+        @if (hasOpenedRules() && partnerId !== null) {
+          <div [hidden]="step() !== stepEnum.RULES">
+            <app-distributor-group-rules
+              data-testid="onboarding-wizard-rules"
+              [groupId]="null"
+              [partnerId]="partnerId"
+              [showTitle]="false"
+            />
+          </div>
+        }
+
+        @if (step() === stepEnum.REVIEW) {
+          @if (publishError(); as error) {
+            <ignt-alert data-testid="onboarding-wizard-publish-error" sentiment="danger" [description]="error | translate" />
+          }
+
+          <app-onboarding-review-step
+            [events]="reviewEvents()"
+            [hasError]="reviewError()"
+            [isLoading]="isLoadingReview()"
+            [isTruncated]="reviewTruncated()"
+            [keptChannels]="keptChannels()"
+            [maxEvents]="maxPlansPerPublish"
+            [publishNowIds]="publishNowIds()"
+            (detailsOpened)="openEventDetails($event)"
+            (publishNowToggled)="togglePublishNow($event)"
+            (retried)="retryReview()"
+          />
+        }
+      </section>
+    }
+  </div>
+
+  <footer class="onboarding-wizard__footer">
+    @if (isOnChannels()) {
+      <ignt-button
+        data-testid="onboarding-wizard-skip"
+        variant="secondary"
+        [fill]="isPhone()"
+        [label]="'marketplaceEvents.onboarding.skip' | translate"
+        (click)="leave()"
+      />
+      <ignt-button
+        data-testid="onboarding-wizard-start"
+        variant="primary"
+        [disabled]="isLoadingChannels()"
+        [fill]="isPhone()"
+        [label]="'marketplaceEvents.onboarding.channels.start' | translate"
+        (click)="startSetup()"
+      />
+    } @else {
+      <div class="onboarding-wizard__footer-start">
+        @if (isFirstStep() && !hasChannelsScreen()) {
+          <ignt-button
+            data-testid="onboarding-wizard-skip"
+            variant="secondary"
+            [fill]="isPhone()"
+            [label]="'marketplaceEvents.onboarding.skip' | translate"
+            (click)="leave()"
+          />
+        } @else if (!isLastStep()) {
+          <ignt-button
+            data-testid="onboarding-wizard-skip"
+            variant="tertiary"
+            [fill]="isPhone()"
+            [label]="'marketplaceEvents.onboarding.skip' | translate"
+            (click)="leave()"
+          />
+        }
+      </div>
+
+      <div class="onboarding-wizard__footer-end">
+        @if (!isFirstStep()) {
+          <ignt-button
+            data-testid="onboarding-wizard-back"
+            variant="secondary"
+            [disabled]="isPublishing()"
+            [fill]="isPhone()"
+            [label]="'distributors.groups.wizard.backTo' | translate: { step: previousStepLabel() }"
+            (click)="back()"
+          />
+        } @else if (hasChannelsScreen()) {
+          <ignt-button
+            data-testid="onboarding-wizard-back"
+            variant="secondary"
+            [fill]="isPhone()"
+            [label]="'marketplaceEvents.onboarding.channels.backTo' | translate"
+            (click)="back()"
+          />
+        }
+
+        @if (isLastStep()) {
+          <ignt-button
+            data-testid="onboarding-wizard-publish"
+            variant="primary"
+            [disabled]="isPublishDisabled()"
+            [fill]="isPhone()"
+            [label]="publishLabel()"
+            [loading]="isPublishing() || isLoadingReview()"
+            (click)="publish()"
+          />
+        } @else {
+          <ignt-button
+            data-testid="onboarding-wizard-continue"
+            variant="primary"
+            [disabled]="isContinueDisabled()"
+            [fill]="isPhone()"
+            [label]="'distributors.groups.wizard.continue' | translate"
+            (click)="continue()"
+          />
+        }
+      </div>
+    }
+  </footer>
+</div>

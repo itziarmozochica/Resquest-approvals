@@ -1,0 +1,88 @@
+<div class="group-add">
+  <ignt-button
+    class="group-add__back"
+    data-testid="group-add-back"
+    size="small"
+    variant="tertiary"
+    [disabled]="isAdding()"
+    [label]="'distributors.groups.members.add.back' | translate"
+    [leadingIcon]="backIcon"
+    (click)="goBack()"
+  />
+
+  <p class="group-add__intro" data-testid="group-add-intro" [innerHTML]="introKey() | translate: { name: escapedGroupName() }"></p>
+
+  @if (isOverLimit()) {
+    <span class="group-add__limit" data-testid="group-add-limit">
+      {{ 'distributors.groups.members.add.limit' | translate: { max: addLimit } }}
+    </span>
+  }
+
+  @if (hasError()) {
+    <div class="group-add__message" data-testid="group-add-error">
+      {{ 'distributors.loadError' | translate }}
+
+      <div class="group-add__message-actions">
+        <ignt-button
+          size="small"
+          variant="secondary"
+          data-testid="group-add-retry"
+          [label]="'distributors.retry' | translate"
+          (click)="load()"
+        />
+        @if (searchQuery()) {
+          <ignt-button
+            size="small"
+            variant="tertiary"
+            data-testid="group-add-clear-search"
+            [label]="'distributors.groups.members.clearSearch' | translate"
+            (click)="clearSearch()"
+          />
+        }
+      </div>
+    </div>
+  } @else {
+    <ignt-table
+      layout="table"
+      [data]="candidates()"
+      [hasFullWidthSearch]="true"
+      [hasServerSidePagination]="true"
+      [isLoading]="isLoading()"
+      [pageIndex]="pageIndex()"
+      [pageSize]="pageSize"
+      [searchConfig]="searchConfig()"
+      [totalRowCount]="total()"
+      (paginationChange)="onPaginationChange($event)"
+      (searchChanged)="onSearchChanged($event)"
+    >
+      <ignt-table-column [header]="''" [width]="48">
+        <ng-template igntTableHeaderTemplate>
+          @if (candidates().length) {
+            <ignt-checkbox
+              dataTestId="group-add-select-all"
+              [ariaLabel]="'distributors.groups.members.add.selectAll' | translate"
+              [checked]="areAllRowsSelected()"
+              (change)="toggleAllRows()"
+            />
+          }
+        </ng-template>
+        <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+          <ignt-checkbox
+            dataTestId="group-add-checkbox"
+            [ariaLabel]="item.name"
+            [attr.data-selected]="isRowSelected(item) ? '' : null"
+            [checked]="isRowSelected(item)"
+            (change)="toggleRow(item)"
+          />
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column key="name" columnType="primary" [header]="'distributors.columns.distributor' | translate" [width]="400">
+        <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+          <span class="group-add__name" data-testid="group-add-name">{{ item.name }}</span>
+          <span class="group-add__meta" data-testid="group-add-meta">{{ rowMeta(item) }}</span>
+        </ng-template>
+      </ignt-table-column>
+    </ignt-table>
+  }
+</div>

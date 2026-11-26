@@ -1,0 +1,92 @@
+<div class="manage-translations-editor-other-translations" data-testid="manage-translations-editor-other-translations">
+  <h3 class="manage-translations-editor-other-translations__title">
+    {{ 'manageTranslations.editor.otherTranslations.title' | translate }}
+  </h3>
+
+  @if (!selectedKeyId()) {
+    <p
+      class="manage-translations-editor-other-translations__select-key"
+      data-testid="manage-translations-editor-other-translations-select-key"
+      role="status"
+      aria-live="polite"
+    >
+      {{ 'manageTranslations.editor.otherTranslations.selectKey' | translate }}
+    </p>
+  } @else {
+    <div
+      class="manage-translations-editor-other-translations__body"
+      data-testid="manage-translations-editor-other-translations-body"
+      [attr.aria-busy]="loading()"
+    >
+      @for (fetchError of fetchErrors(); track fetchError.scope) {
+        <div
+          class="manage-translations-editor-other-translations__error"
+          role="alert"
+          data-testid="manage-translations-editor-other-translations-fetch-error"
+        >
+          <p class="manage-translations-editor-other-translations__error-message">
+            {{ fetchErrorLabelKey(fetchError.scope) | translate }}
+          </p>
+          @if (fetchErrorDetailKey(fetchError.httpStatus); as detailKey) {
+            <p class="manage-translations-editor-other-translations__error-detail">{{ detailKey | translate }}</p>
+          } @else if (fetchError.message) {
+            <p class="manage-translations-editor-other-translations__error-detail">{{ fetchError.message }}</p>
+          }
+        </div>
+      }
+
+      @if (rows().length > 0) {
+        <ul
+          class="manage-translations-editor-other-translations__list"
+          [class.manage-translations-editor-other-translations__list--refreshing]="loading()"
+          data-testid="manage-translations-editor-other-translations-list"
+        >
+          @for (row of rows(); track row.relationId + '|' + row.languageTag) {
+            <li class="manage-translations-editor-other-translations__row" data-testid="manage-translations-editor-other-translations-row">
+              <p
+                class="manage-translations-editor-other-translations__row-label"
+                data-testid="manage-translations-editor-other-translations-row-label"
+              >
+                {{ row.projectName }} · {{ row.languageTag }}
+              </p>
+              <p
+                class="manage-translations-editor-other-translations__row-value"
+                data-testid="manage-translations-editor-other-translations-row-value"
+              >
+                {{ row.value }}
+              </p>
+              <p
+                class="manage-translations-editor-other-translations__row-author"
+                data-testid="manage-translations-editor-other-translations-row-author"
+              >
+                @if (row.lastModified; as modified) {
+                  {{ modified.by ?? ((modified.isErased ? 'audit.row.erasedAuthor' : 'audit.row.unknownAuthor') | translate) }} ·
+                  <time [attr.datetime]="modified.at">{{ modified.at | date: 'd MMM y' }}</time>
+                } @else {
+                  {{ 'manageTranslations.editor.otherTranslations.unchangedSinceActivation' | translate }}
+                }
+              </p>
+            </li>
+          }
+        </ul>
+      } @else if (loading()) {
+        <p
+          class="manage-translations-editor-other-translations__loading-placeholder"
+          data-testid="manage-translations-editor-other-translations-loading"
+          role="status"
+          aria-live="polite"
+        >
+          {{ 'manageTranslations.editor.otherTranslations.loading' | translate }}
+        </p>
+      } @else if (fetchErrors().length === 0) {
+        <p class="manage-translations-editor-other-translations__empty" data-testid="manage-translations-editor-other-translations-empty">
+          {{ 'manageTranslations.editor.otherTranslations.empty' | translate }}
+        </p>
+      }
+    </div>
+
+    <p class="manage-translations-editor-other-translations__footer" data-testid="manage-translations-editor-other-translations-footer">
+      {{ 'manageTranslations.editor.otherTranslations.footerOmitted' | translate }}
+    </p>
+  }
+</div>

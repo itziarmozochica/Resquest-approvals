@@ -1,0 +1,130 @@
+<div class="bulk-partial-refund-title">
+  <span class="bulk-partial-refund-title__section">{{ 'menu.orders' | translate }}</span>
+  <h1 class="bulk-partial-refund-title__heading" data-testid="page-title">{{ 'menu.bulkPartialRefunds' | translate }}</h1>
+</div>
+
+<div class="bulk-partial-refund-header" data-testid="bulk-partial-refund-header">
+  <div class="bulk-partial-refund-header__top">
+    <app-refund-step-track [currentStep]="store.step()" />
+
+    <!-- Held while the job is in flight: leaving would not take the request back, and the agent
+         would be left thinking nothing was sent. -->
+    <button
+      ignt-icon-button
+      class="bulk-partial-refund-header__close icon-button--sharp-tertiary-contrast"
+      type="button"
+      size="small"
+      sentiment="tertiary"
+      variant="sharp"
+      data-testid="bulk-partial-refund-cancel"
+      [attr.aria-label]="'common.close' | translate"
+      [disabled]="store.job().isLoading"
+      [icon]="closeIcon"
+      (click)="leave()"
+    ></button>
+  </div>
+
+  <p class="bulk-partial-refund-header__intro" data-testid="bulk-partial-refund-intro">
+    {{ 'orders.bulkPartialRefunds.steps.' + store.step() + '.intro' | translate }}
+  </p>
+
+  @if (store.step() === steps.SelectTickets) {
+    <div class="bulk-partial-refund-header__filters" data-testid="bulk-partial-refund-filters">
+      <app-search-bar
+        data-testid="bulk-partial-refund-search-bar"
+        [searchButtonLabel]="'orders.bulkPartialRefunds.selectTickets.search'"
+        [showCalendar]="true"
+        [showVenue]="true"
+        (searchEmitter)="onSearch($event)"
+      ></app-search-bar>
+    </div>
+  }
+</div>
+
+<div class="bulk-partial-refund" data-testid="bulk-partial-refund-wizard">
+  <section class="bulk-partial-refund__body" data-testid="bulk-partial-refund-step-body">
+    @switch (store.step()) {
+      @case (steps.SelectTickets) {
+        <app-select-tickets-step />
+      }
+      @case (steps.DefineRefund) {
+        <app-define-refund-step />
+      }
+      @case (steps.ReviewConfirm) {
+        <app-review-confirm-step />
+      }
+    }
+  </section>
+</div>
+
+@if (!store.isQueued()) {
+  <div class="bulk-partial-refund__actions" data-testid="bulk-partial-refund-actions">
+    @if (store.step() === steps.SelectTickets && store.selectedSessionIds().size > 0) {
+      <p class="bulk-partial-refund__selection-count" data-testid="bulk-partial-refund-selection-count">
+        {{
+          'orders.bulkPartialRefunds.selectTickets.selectionSummary'
+            | translate
+              : {
+                  slots: store.selectedTimeSlotCount() | number,
+                  ticketTypes: store.selectedSessionIds().size | number,
+                  tickets: store.selectedTicketCount() | number,
+                }
+        }}
+      </p>
+    }
+
+    @if (store.isLastStep() && store.refundTotals().length > 0) {
+      <p
+        class="bulk-partial-refund__total"
+        [class.bulk-partial-refund__total--updating]="store.preview().isLoading"
+        data-testid="bulk-partial-refund-total"
+      >
+        <span class="bulk-partial-refund__total-label">
+          {{ 'orders.bulkPartialRefunds.reviewConfirm.confirm.total' | translate }}
+        </span>
+
+        @for (total of store.refundTotals(); track total.currency) {
+          <span class="bulk-partial-refund__total-amount">{{ total.amount | currency: total.currency : 'symbol-narrow' }}</span>
+        }
+      </p>
+    }
+
+    <div class="bulk-partial-refund__forward">
+      @if (!store.isFirstStep()) {
+        <ignt-button
+          class="bulk-partial-refund__back"
+          data-testid="bulk-partial-refund-back"
+          sentiment="brand"
+          variant="secondary"
+          [disabled]="store.job().isLoading"
+          [label]="'common.back' | translate"
+          (click)="store.goBack()"
+        />
+      }
+
+      @if (!store.isLastStep()) {
+        <ignt-button
+          class="bulk-partial-refund__primary"
+          data-testid="bulk-partial-refund-continue"
+          variant="primary"
+          [disabled]="!store.canContinue()"
+          [label]="'common.continue' | translate"
+          (click)="store.goForward()"
+        />
+      } @else {
+        <ignt-button
+          class="bulk-partial-refund__primary"
+          data-testid="bulk-partial-refund-confirm"
+          variant="primary"
+          [disabled]="!store.canConfirm()"
+          [label]="
+            store.job().isLoading
+              ? ('orders.bulkPartialRefunds.reviewConfirm.confirm.sending' | translate)
+              : ('orders.bulkPartialRefunds.reviewConfirm.confirm.label' | translate: { tickets: store.refundTicketCount() | number })
+          "
+          (click)="store.confirm()"
+        />
+      }
+    </div>
+  </div>
+}

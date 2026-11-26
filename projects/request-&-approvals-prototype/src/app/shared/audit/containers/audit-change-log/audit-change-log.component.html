@@ -1,0 +1,89 @@
+<p class="audit-change-log__subtitle" data-testid="audit-change-log-subtitle">
+  @if (scopeName(); as name) {
+    {{ 'audit.changeLog.scopeSubtitle' | translate: { label: (scopeLabelKey | translate), name } }}
+  } @else {
+    {{ allScopesLabelKey | translate }}
+  }
+</p>
+
+<app-audit-change-log-filters
+  class="audit-change-log__filters"
+  [actorOptions]="actorOptions()"
+  [typeOptions]="typeOptions()"
+  [value]="filters()"
+  (actorSearch)="onActorSearch($event)"
+  (valueChange)="onFiltersChange($event)"
+></app-audit-change-log-filters>
+
+@if (firstPageError(); as loadError) {
+  <div class="audit-change-log__error" data-testid="audit-change-log-error">
+    <ignt-alert sentiment="danger" role="alert" [description]="loadError.messageKey | translate"></ignt-alert>
+    <ignt-button
+      variant="secondary"
+      size="small"
+      [label]="'audit.changeLog.retry' | translate"
+      data-testid="audit-change-log-retry"
+      (click)="onRetry()"
+    />
+  </div>
+}
+
+@if (isFirstLoad()) {
+  <p class="audit-change-log__status" aria-live="polite" data-testid="audit-change-log-loading">
+    {{ 'audit.changeLog.loading' | translate }}
+  </p>
+} @else if (isEmpty()) {
+  <p class="audit-change-log__status" data-testid="audit-change-log-empty">{{ 'audit.changeLog.empty' | translate }}</p>
+}
+
+<div class="audit-change-log__list" [class.audit-change-log__list--reloading]="isLoading() && !isFirstLoad()">
+  @for (group of dayGroups(); track group.day) {
+    <section class="audit-change-log__day" [attr.aria-labelledby]="'audit-change-log-day-' + group.day">
+      <h3 class="audit-change-log__day-header" [id]="'audit-change-log-day-' + group.day" data-testid="audit-change-log-day">
+        {{ group.labelKey | translate: group.labelParams }}
+      </h3>
+      <ul class="audit-change-log__rows">
+        @for (changeRow of group.rows; track changeRow.change.changeId) {
+          <li class="audit-change-log__row">
+            <app-audit-change-row
+              [row]="changeRow"
+              [allScopesLabelKey]="allScopesLabelKey"
+              [i18nPrefix]="i18nPrefix"
+              [detailOpen]="openDetailIds().has(changeRow.change.changeId)"
+              [technicalOpen]="openTechnicalIds().has(changeRow.change.changeId)"
+              [businessEntries]="businessEntries()[changeRow.change.changeId] ?? null"
+              [allEntries]="allEntries()[changeRow.change.changeId] ?? null"
+              [restoreDisabled]="restoringChangeId() !== null"
+              [hostActions]="rowActions()[changeRow.change.changeId] ?? []"
+              (restore)="onRestore(changeRow)"
+              (hostAction)="onHostAction($event, changeRow)"
+              (detailToggle)="onDetailToggle(changeRow.change.changeId)"
+              (technicalToggle)="onTechnicalToggle(changeRow.change.changeId)"
+              (moreBusinessEntries)="onMoreBusinessEntries(changeRow.change.changeId)"
+              (moreTechnicalEntries)="onMoreTechnicalEntries(changeRow.change.changeId)"
+            ></app-audit-change-row>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+</div>
+
+@if (loadMoreError(); as loadError) {
+  <div class="audit-change-log__error" data-testid="audit-change-log-load-more-error">
+    <ignt-alert sentiment="danger" role="alert" [description]="loadError.messageKey | translate"></ignt-alert>
+    <ignt-button
+      variant="secondary"
+      size="small"
+      [label]="'audit.changeLog.retry' | translate"
+      data-testid="audit-change-log-load-more-retry"
+      (click)="onRetry()"
+    />
+  </div>
+} @else if (isLoadingMore()) {
+  <p class="audit-change-log__status" aria-live="polite" data-testid="audit-change-log-loading-more">
+    {{ 'audit.changeLog.loadingMore' | translate }}
+  </p>
+} @else if (isEnd()) {
+  <p class="audit-change-log__status" data-testid="audit-change-log-end">{{ 'audit.changeLog.end' | translate }}</p>
+}

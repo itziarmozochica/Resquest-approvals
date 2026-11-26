@@ -1,0 +1,43 @@
+<section class="tasks-page" [attr.aria-label]="'menu.tasks' | translate">
+  <app-event-selection-band data-testid="tasks-selectors" [summary]="selectedPlanTitle() || ('tasks.searchFilters' | translate)">
+    <app-search-bar
+      data-testid="tasks-search-bar"
+      [mandatoryFilters]="mandatoryFilters"
+      [preselectActiveCity]="false"
+      [searchOnChange]="true"
+      (searchEmitter)="loadNewSearch($event)"
+    ></app-search-bar>
+  </app-event-selection-band>
+
+  <div class="tasks-page__title">
+    <span class="tasks-page__section">{{ 'menu.settings' | translate }}</span>
+    <h1 class="tasks-page__heading" data-testid="page-title">{{ 'menu.tasks' | translate }}</h1>
+  </div>
+
+  <div class="tasks-page__content">
+    <app-tasks-filters (filtersChanged)="onTasksFiltersUpdated($event)" [tasksFilters]="tasksFilters$ | async"></app-tasks-filters>
+    <app-tasks-table
+      [jobRequestSummaries]="jobRequestSummaries$ | async"
+      [loading]="loading"
+      (orderTableChanged)="orOrderTableChanged($event)"
+      [tasksOrderBy]="tasksOrderBy$ | async"
+    >
+    </app-tasks-table>
+    <br />
+    <ng-container *ngIf="jobRequestSummariesPaginationInfo$ | async as pagination">
+      <ng-container *ngIf="pagination.totalCount > 0">
+        <div class="tasks__pagination-container" data-testid="tasks-pagination-container">
+          <app-pagination-with-numbers
+            (numPageSelected)="onNumPageSelectedFilter($event)"
+            [totalCountResults]="pagination.totalCount"
+            [selectedPage]="pagination.currenPage"
+            [pageSize]="pagination.pageSize"
+            [previousPage]="pagination.prev"
+            [nextPage]="pagination.next"
+          >
+          </app-pagination-with-numbers>
+        </div>
+      </ng-container>
+    </ng-container>
+  </div>
+</section>

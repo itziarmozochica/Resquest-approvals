@@ -1,0 +1,216 @@
+<app-go-back [goBackTitle]="'menu.whitelabel' | translate" [urlGoBack]="'/whitelabels'"></app-go-back>
+<app-page-title
+  [title]="'whitelabelEditor.pageTitle' | translate: { name: whitelabelName ? (whitelabelName | uppercase) : '' }"
+  class="new-design"
+></app-page-title>
+
+<div class="whitelabel-editor">
+  <div class="whitelabel-editor__container">
+    @if (loading()) {
+      <div class="whitelabel-editor__loader">
+        <ignt-icon aria-hidden="true" name="spinner" variant="solid" size="display" [spin]="true" />
+      </div>
+    } @else if (variants().length === 0) {
+      <div class="wrapper-card wrapper-card--elevation-100 wrapper-card--custom-mobile whitelabel-editor__card">
+        <p class="whitelabel-editor__field-hint">{{ 'whitelabelEditor.noStylesConfigured' | translate }}</p>
+      </div>
+    } @else {
+      <div class="wrapper-card wrapper-card--elevation-100 wrapper-card--custom-mobile whitelabel-editor__card">
+        <div class="whitelabel-editor__variant-header">
+          <div class="whitelabel-editor__variant-controls">
+            @if (variants().length > 1) {
+              <app-editor-select
+                class="whitelabel-editor__variant-select"
+                inputId="variant-select"
+                testId="whitelabel-editor-variant-select"
+                [label]="'whitelabelEditor.variantLabel' | translate"
+                [options]="variantOptions()"
+                [placeholder]="'common.search' | translate"
+                [selected]="selectedVariantValue()"
+                (picked)="onVariantPicked($event)"
+              />
+            }
+
+            @if (sections().length > 0) {
+              <app-editor-select
+                class="whitelabel-editor__section-picker"
+                inputId="section-select"
+                testId="whitelabel-editor-section-picker"
+                [label]="'whitelabelEditor.sectionPicker.label' | translate"
+                [options]="sectionOptions()"
+                [placeholder]="'whitelabelEditor.sectionPicker.searchPlaceholder' | translate"
+                [selected]="selectedSection()"
+                (picked)="onSectionPicked($event)"
+              />
+            }
+          </div>
+
+          <div class="whitelabel-editor__variant-header-actions">
+            @if (whitelabelId && !isReadOnly) {
+              <ignt-button
+                variant="secondary"
+                data-testid="wl-editor-media-library"
+                [label]="'whitelabelEditor.mediaLibrary' | translate"
+                [routerLink]="['/whitelabels/media-gallery', whitelabelId]"
+              />
+            }
+            @if (!isReadOnly) {
+              <ignt-button
+                data-testid="wl-editor-save"
+                [disabled]="!hasEdits() || !allValid() || applying()"
+                [label]="(applying() ? 'common.saving' : 'common.save') | translate"
+                [loading]="applying()"
+                (click)="apply()"
+              />
+            }
+          </div>
+        </div>
+
+        <div class="whitelabel-editor__workspace">
+          <div class="whitelabel-editor__editor-panel" [class.whitelabel-editor__editor-panel--full]="!showPreview()">
+            <div class="whitelabel-editor__editor-body">
+              <div class="whitelabel-editor__section-content">
+                @if (showNoSectionItemsHint()) {
+                  <p class="whitelabel-editor__field-hint">{{ 'whitelabelEditor.noSectionItems' | translate }}</p>
+                } @else {
+                  <div
+                    class="whitelabel-editor__items"
+                    data-testid="wl-editor-items"
+                    [attr.aria-busy]="isLoadingStyles()"
+                    [class.whitelabel-editor__items--grid]="selectedSection() === 'colors'"
+                    [class.whitelabel-editor__items--loading]="isLoadingStyles()"
+                    [inert]="isReadOnly || isLoadingStyles()"
+                  >
+                    @for (card of itemCards(); track $index) {
+                      <section class="whitelabel-editor__card-group" [hidden]="!isCardVisible(card)">
+                        @if (card.group) {
+                          <h2 class="whitelabel-editor__card-title" data-testid="wl-editor-card-title">{{ cardLabel(card.group) }}</h2>
+                        }
+                        <ng-container [ngTemplateOutlet]="cardRows" [ngTemplateOutletContext]="{ $implicit: card }" />
+                      </section>
+                    }
+
+                    <ng-template #cardRows let-card>
+                      <section class="whitelabel-editor__card-rows">
+                        @for (item of card.items; track item.key) {
+                          @let w = getWidgetConfig(item);
+                          @let itemType = item.item_type.toUpperCase();
+                          @let link = itemLinks().get(item.key);
+                          @let isLinkCopied = linkCopy.copiedValue() === link;
+                          <div
+                            #itemRow
+                            class="whitelabel-editor__row"
+                            [attr.data-editor-item]="item.key"
+                            [class.whitelabel-editor__row--highlighted]="isLinkCopied || highlightedItemKey() === item.key"
+                            [hidden]="!isItemVisibleInSection(item)"
+                          >
+                            @switch (itemType) {
+                              @case ('FAVICON') {
+                                <app-editor-item-media
+                                  [accept]="w?.accept ?? '*/*'"
+                                  [item]="item"
+                                  [selectedConfig]="selectedConfigObj()"
+                                  [supportedLocales]="mediaLocales().supportedLocales"
+                                  [defaultLocale]="mediaLocales().defaultLocale"
+                                  [whitelabelId]="whitelabelId"
+                                  (uploadError)="onUploadError($event)"
+                                />
+                              }
+                              @case ('IMAGE') {
+                                <app-editor-item-media
+                                  [accept]="w?.accept ?? '*/*'"
+                                  [item]="item"
+                                  [selectedConfig]="selectedConfigObj()"
+                                  [supportedLocales]="mediaLocales().supportedLocales"
+                                  [defaultLocale]="mediaLocales().defaultLocale"
+                                  [whitelabelId]="whitelabelId"
+                                  (uploadError)="onUploadError($event)"
+                                />
+                              }
+                              @case ('FONT') {
+                                <app-editor-item-font
+                                  [accept]="w?.accept ?? '*/*'"
+                                  [allStyles]="allUniqueStyles()"
+                                  [item]="item"
+                                  [mergedStylesCss]="mergedStylesCss()"
+                                  [styleId]="selectedStyleId()"
+                                  [whitelabelId]="whitelabelId"
+                                  (uploadError)="onUploadError($event)"
+                                />
+                              }
+                              @case ('LIST') {
+                                <app-editor-item-list [item]="item" [selectedConfig]="selectedConfigObj()" />
+                              }
+                              @case ('TOGGLE') {
+                                <app-editor-item-toggle [item]="item" [selectedConfig]="selectedConfigObj()" />
+                              }
+                              @case ('COLOR') {
+                                <app-editor-item-color [item]="item" [mergedStylesCss]="mergedStylesCss()" />
+                              }
+                              @case ('NUMBER') {
+                                <app-editor-item-number
+                                  [item]="item"
+                                  [mergedStylesCss]="mergedStylesCss()"
+                                  [selectedConfig]="selectedConfigObj()"
+                                />
+                              }
+                              @case ('STRING_LIST') {
+                                <app-editor-item-string-list [item]="item" [selectedConfig]="selectedConfigObj()" />
+                              }
+                              @case ('ENUM') {
+                                <app-editor-item-enum
+                                  [item]="item"
+                                  [mergedStylesCss]="mergedStylesCss()"
+                                  [selectedConfig]="selectedConfigObj()"
+                                />
+                              }
+                              @case ('KEYVALUE') {
+                                <app-editor-item-keyvalue [item]="item" [selectedConfig]="selectedConfigObj()" />
+                              }
+                              @case ('LOCALIZED_TEXT') {
+                                <app-editor-item-localized-text [item]="item" [selectedConfig]="selectedConfigObj()" />
+                              }
+                              @case ('TEXT') {
+                                <app-editor-item-text [item]="item" [selectedConfig]="selectedConfigObj()" />
+                              }
+                              @case ('TEXTAREA') {
+                                <app-editor-item-text [item]="item" [selectedConfig]="selectedConfigObj()" />
+                              }
+                              @default {
+                                <p class="editor-item__hint" data-testid="wl-editor-unsupported-item">
+                                  {{ 'whitelabelEditor.unsupportedItem' | translate: { type: item.item_type } }}
+                                </p>
+                              }
+                            }
+                            @if (!isReadOnly) {
+                              <a
+                                class="whitelabel-editor__row-link"
+                                data-testid="wl-editor-item-link"
+                                [attr.aria-label]="'whitelabelEditor.copyItemLink' | translate"
+                                [attr.data-item-link]="item.key"
+                                [class.whitelabel-editor__row-link--copied]="isLinkCopied"
+                                [href]="link"
+                                [title]="'whitelabelEditor.copyItemLink' | translate"
+                                (click)="$event.preventDefault(); linkCopy.copy(link ?? '')"
+                              >
+                                <ignt-icon aria-hidden="true" size="sm" variant="light" [name]="isLinkCopied ? 'check' : 'link'" />
+                              </a>
+                            }
+                          </div>
+                        }
+                      </section>
+                    </ng-template>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          @if (showPreview()) {
+            <app-whitelabel-editor-preview />
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>

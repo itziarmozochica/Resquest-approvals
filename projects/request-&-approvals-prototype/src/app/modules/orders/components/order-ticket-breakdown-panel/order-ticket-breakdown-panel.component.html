@@ -1,0 +1,74 @@
+<div class="order-ticket-breakdown-panel">
+  <div class="order-ticket-breakdown-panel__search">
+    <ignt-icon aria-hidden="true" class="order-ticket-breakdown-panel__search-icon" name="search" variant="regular"></ignt-icon>
+    <input
+      class="order-ticket-breakdown-panel__search-input"
+      type="text"
+      [attr.aria-label]="'orders.ticketListPanel.searchPlaceholder' | translate"
+      [disabled]="loadState() !== 'success'"
+      [placeholder]="'orders.ticketListPanel.searchPlaceholder' | translate"
+      [value]="searchTerm()"
+      (input)="onSearchInput($event)"
+    />
+  </div>
+
+  <div class="order-ticket-breakdown-panel__content">
+    @if (loadState() === 'loading' || loadState() === 'idle') {
+      <div class="order-ticket-breakdown-panel__spinner" data-testid="order-ticket-breakdown-loading">
+        <ignt-icon aria-hidden="true" class="loader" name="spinner" size="display" variant="solid" [spin]="true"></ignt-icon>
+      </div>
+    } @else {
+      @switch (loadState()) {
+        @case ('error') {
+          <div
+            class="order-ticket-breakdown-panel__state order-ticket-breakdown-panel__state--error"
+            data-testid="order-ticket-breakdown-error"
+          >
+            <span>{{ 'orders.ticketListPanel.error' | translate }}</span>
+            <button
+              igntButton
+              type="button"
+              sentiment="secondary"
+              size="small"
+              data-testid="order-ticket-breakdown-retry"
+              [leadingIcon]="['fas', 'repeat']"
+              (click)="retryLoad.emit()"
+            >
+              {{ 'orders.ticketListPanel.retry' | translate }}
+            </button>
+          </div>
+        }
+        @case ('success') {
+          @if (filteredTickets().length === 0) {
+            <div class="order-ticket-breakdown-panel__state" data-testid="order-ticket-breakdown-empty">
+              <span>{{ 'orders.ticketListPanel.noResults' | translate }}</span>
+            </div>
+          } @else {
+            <div class="order-ticket-breakdown-panel__ticket-groups" data-testid="order-ticket-breakdown-list">
+              @for (ticket of filteredTickets(); track ticket.ticketId) {
+                <app-order-ticket-breakdown-group
+                  [expanded]="isTicketExpanded(ticket)"
+                  [ticket]="ticket"
+                  (expandToggle)="toggleTicketExpanded(ticket.ticketId)"
+                ></app-order-ticket-breakdown-group>
+              }
+            </div>
+          }
+        }
+      }
+    }
+  </div>
+
+  <div class="order-ticket-breakdown-panel__footer">
+    <button
+      igntButton
+      type="button"
+      sentiment="primary"
+      data-testid="order-ticket-breakdown-close"
+      [fill]="true"
+      (click)="closePanel.emit()"
+    >
+      {{ 'orders.ticketListPanel.close' | translate }}
+    </button>
+  </div>
+</div>

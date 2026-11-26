@@ -1,0 +1,188 @@
+<div class="product-catalog" data-testid="product-catalog">
+  <section class="product-catalog__table-card" [class.product-catalog__empty--invalid]="productsMissing()">
+    <div class="product-catalog__table-scroll">
+      <table class="product-catalog__table" data-testid="product-catalog-table">
+        <colgroup>
+          <col class="product-catalog__product-col" />
+          <col class="product-catalog__capacity-col" />
+          <col class="product-catalog__price-col" />
+          <col class="product-catalog__type-col" />
+          <col class="product-catalog__action-col" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>{{ 'informationRequests.schedule.tickets.productName' | translate }}</th>
+            <th>{{ 'informationRequests.schedule.tickets.capacity' | translate }}</th>
+            <th>{{ priceLabelKey() | translate }}</th>
+            <th>{{ 'informationRequests.schedule.tickets.productType' | translate }}</th>
+            <th aria-label="Actions"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (product of products(); track product.id; let productIndex = $index) {
+            <tr data-testid="product-catalog-row">
+              <td>
+                <input
+                  type="text"
+                  class="form-control"
+                  [class.product-catalog__invalid]="productFieldInvalid(productIndex, 'name')"
+                  [value]="product.name"
+                  [disabled]="readOnly()"
+                  (input)="setProductField(productIndex, 'name', $any($event.target).value)"
+                  [attr.placeholder]="'informationRequests.schedule.tickets.productPlaceholder' | translate"
+                  [attr.data-testid]="'product-catalog-name-' + productIndex"
+                />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  min="0"
+                  class="form-control"
+                  [class.product-catalog__invalid]="productFieldInvalid(productIndex, 'capacity')"
+                  [value]="product.capacity ?? ''"
+                  [disabled]="readOnly()"
+                  (input)="setProductField(productIndex, 'capacity', $any($event.target).value)"
+                  [attr.placeholder]="'informationRequests.schedule.tickets.capacityPlaceholder' | translate"
+                  [attr.data-testid]="'product-catalog-capacity-' + productIndex"
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  class="form-control"
+                  [class.product-catalog__invalid]="productFieldInvalid(productIndex, 'pricing')"
+                  [value]="product.pricing ?? ''"
+                  [disabled]="readOnly()"
+                  (input)="setProductField(productIndex, 'pricing', $any($event.target).value)"
+                  [attr.placeholder]="
+                    ('informationRequests.schedule.tickets.pricePlaceholder' | translate) +
+                    (currencyPrefix() ? ' (' + currencyPrefix() + ')' : '')
+                  "
+                  [attr.data-testid]="'product-catalog-pricing-' + productIndex"
+                />
+              </td>
+              <td>
+                <div class="product-catalog__type">
+                  @if (productTaxRates().length) {
+                    <select
+                      class="form-select"
+                      [disabled]="readOnly()"
+                      (change)="setProductType(productIndex, $any($event.target).value)"
+                      [attr.data-testid]="'product-catalog-type-' + productIndex"
+                    >
+                      @for (option of productTaxRates(); track option.productType) {
+                        <option [value]="option.productType" [selected]="option.productType === effectiveProductType(product)">
+                          {{ optionLabel(option) }}
+                        </option>
+                      }
+                    </select>
+                  } @else {
+                    <small class="product-catalog__tax product-catalog__tax--muted">
+                      {{ 'informationRequests.schedule.tickets.taxRateUnavailable' | translate }}
+                    </small>
+                  }
+                </div>
+              </td>
+              <td class="product-catalog__actions">
+                @if (products().length > 1 && !readOnly()) {
+                  <button
+                    type="button"
+                    class="product-catalog__remove"
+                    (click)="removeProduct(productIndex)"
+                    [attr.data-testid]="'product-catalog-remove-' + productIndex"
+                  >
+                    {{ 'informationRequests.schedule.remove' | translate }}
+                  </button>
+                }
+              </td>
+            </tr>
+            <tr class="product-catalog__demand-row">
+              <td colspan="5">
+                <div class="product-catalog__demand">
+                  <div class="product-catalog__demand-head">
+                    <div>
+                      <strong>{{ 'informationRequests.schedule.tickets.demandPricingTitle' | translate }}</strong>
+                    </div>
+                    <div class="product-catalog__demand-actions">
+                      @if (!subcategory(productIndex, 'peak') && !readOnly()) {
+                        <button type="button" class="product-catalog__add-band" (click)="addSubcategory(productIndex, 'peak')">
+                          {{
+                            'informationRequests.schedule.tickets.addBand'
+                              | translate: { band: ('informationRequests.schedule.tickets.peak' | translate) }
+                          }}
+                        </button>
+                      }
+                      @if (!subcategory(productIndex, 'valley') && !readOnly()) {
+                        <button type="button" class="product-catalog__add-band" (click)="addSubcategory(productIndex, 'valley')">
+                          {{
+                            'informationRequests.schedule.tickets.addBand'
+                              | translate: { band: ('informationRequests.schedule.tickets.valley' | translate) }
+                          }}
+                        </button>
+                      }
+                    </div>
+                  </div>
+
+                  @if (subcategory(productIndex, 'peak') || subcategory(productIndex, 'valley')) {
+                    <div class="product-catalog__bands">
+                      @for (band of demandBands; track band.category) {
+                        @if (subcategory(productIndex, band.category); as sub) {
+                          <label
+                            class="product-catalog__band"
+                            [class.product-catalog__band--peak]="band.category === 'peak'"
+                            [class.product-catalog__band--valley]="band.category === 'valley'"
+                          >
+                            <span>{{ band.labelKey | translate }}</span>
+                            <input
+                              type="text"
+                              class="form-control"
+                              [class.product-catalog__invalid]="
+                                subcategoryInvalid(productIndex, band.category) || bandPriceViolation(productIndex, band.category)
+                              "
+                              [value]="sub.pricing ?? ''"
+                              [disabled]="readOnly()"
+                              (input)="setSubcategoryPricing(productIndex, band.category, $any($event.target).value)"
+                              [attr.placeholder]="
+                                ('informationRequests.schedule.tickets.demandPricePlaceholder' | translate) +
+                                (currencyPrefix() ? ' (' + currencyPrefix() + ')' : '')
+                              "
+                              [attr.data-testid]="'product-catalog-' + band.category + '-' + productIndex"
+                            />
+                            @if (!readOnly()) {
+                              <button
+                                type="button"
+                                class="product-catalog__remove"
+                                (click)="removeSubcategory(productIndex, band.category)"
+                              >
+                                {{ 'informationRequests.schedule.remove' | translate }}
+                              </button>
+                            }
+                            @if (bandPriceViolation(productIndex, band.category)) {
+                              <small
+                                class="product-catalog__error"
+                                [attr.data-testid]="'product-catalog-' + band.category + '-error-' + productIndex"
+                              >
+                                {{ band.errorKey | translate }}
+                              </small>
+                            }
+                          </label>
+                        }
+                      }
+                    </div>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (!readOnly()) {
+      <div class="product-catalog__table-foot">
+        <button type="button" class="product-catalog__add" (click)="addProduct()" data-testid="product-catalog-add">
+          {{ 'informationRequests.schedule.tickets.add' | translate }}
+        </button>
+      </div>
+    }
+  </section>
+</div>

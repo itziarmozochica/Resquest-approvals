@@ -1,0 +1,87 @@
+@use 'foundations' as foundations;
+
+/**
+ * A box that scrolls sideways, with an edge shadow on whichever side still has content behind it.
+ * Without one a table cut mid-column reads as a table that simply ends there, and the columns past
+ * the edge are never looked for.
+ *
+ * The shadow is an overlay rather than the usual trick of painting gradients on the scrolling box's
+ * own background: table cells carry opaque backgrounds of their own, so anything painted back there
+ * is covered by the first row it meets.
+ */
+/** Isolated so the shadows' `z-index` cannot paint over a sticky bar scrolling past the table. */
+:host {
+  display: block;
+  isolation: isolate;
+  position: relative;
+}
+
+.scroll-shadow__viewport {
+  overflow-x: auto;
+
+  /** The consumer's own gutter, so the content can start inside it and still scroll edge to edge. */
+  padding-inline: var(--scroll-shadow-padding-inline, 0);
+}
+
+:host::before,
+:host::after {
+  block-size: 100%;
+  content: '';
+  inline-size: foundations.$space-4;
+  inset-block-start: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity 150ms ease-out;
+  z-index: 1;
+}
+
+/**
+ * A gradient rather than the design system's own edge shadows: those are tuned for a card lifted
+ * slightly off the page, and over a busy table they are so nearly invisible that they answer no
+ * question. Neutral rather than the primary those tokens are mixed from, which at this weight
+ * reads as a blue band down the table instead of as a shadow over it.
+ */
+:host::before {
+  background: linear-gradient(to right, rgba(foundations.$palette-neutral-900, 0.22), rgba(foundations.$palette-neutral-900, 0));
+  inset-inline-start: 0;
+}
+
+:host::after {
+  background: linear-gradient(to left, rgba(foundations.$palette-neutral-900, 0.22), rgba(foundations.$palette-neutral-900, 0));
+  inset-inline-end: 0;
+}
+
+:host(.scroll-shadow--block) > .scroll-shadow__viewport {
+  max-block-size: var(--scroll-shadow-max-block-size, none);
+  overflow: hidden auto;
+}
+
+:host(.scroll-shadow--block)::before,
+:host(.scroll-shadow--block)::after {
+  block-size: foundations.$space-4;
+  inline-size: 100%;
+  inset-inline: 0;
+}
+
+:host(.scroll-shadow--block)::before {
+  background: linear-gradient(to bottom, rgba(foundations.$palette-neutral-900, 0.22), rgba(foundations.$palette-neutral-900, 0));
+}
+
+:host(.scroll-shadow--block)::after {
+  background: linear-gradient(to top, rgba(foundations.$palette-neutral-900, 0.22), rgba(foundations.$palette-neutral-900, 0));
+  inset-block: auto 0;
+}
+
+:host(.scroll-shadow--before)::before,
+:host(.scroll-shadow--after)::after {
+  opacity: 1;
+}
+
+/** The shadow says where the content runs to; fading it in is decoration on top of that. */
+@media (prefers-reduced-motion: reduce) {
+  :host::before,
+  :host::after {
+    transition: none;
+  }
+}

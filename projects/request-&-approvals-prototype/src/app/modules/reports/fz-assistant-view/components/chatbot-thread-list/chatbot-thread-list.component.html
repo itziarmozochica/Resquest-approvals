@@ -1,0 +1,33 @@
+<div #scrollContainer class="chatbot-thread-list__body" (scroll)="onBodyScroll($event)">
+  @for (thread of threads(); track trackByThreadId($index, thread)) {
+    <div class="chatbot-thread-list__item">
+      @if (renamingThreadId() === thread.id) {
+        <app-chatbot-thread-rename [initialTitle]="thread.title" (close)="onRenameCancel()" (save)="onRenameSave(thread.id, $event)" />
+      } @else {
+        <app-chatbot-thread-item
+          [thread]="thread"
+          [isActive]="thread.id === activeThreadId()"
+          [isMenuDisabled]="thread.id === pendingTitleThreadId()"
+          (select)="onItemSelect(thread.id)"
+          (menuActionClick)="onItemMenuAction(thread.id, $event)"
+        />
+      }
+    </div>
+  }
+
+  @if (showEmptyState()) {
+    <p class="chatbot-thread-list__empty" data-testid="chatbot-thread-list-empty">
+      @if (searchActive()) {
+        {{ noResultsMessageKey() | translate: { query: searchQuery() } }}
+      } @else {
+        {{ emptyMessageKey() | translate }}
+      }
+    </p>
+  }
+</div>
+
+@if (isLoading()) {
+  <div class="chatbot-thread-list__loading" data-testid="chatbot-thread-list-loading">
+    <ignt-icon name="spinner-third" variant="duotone" [fixedWidth]="true" [spin]="true" />
+  </div>
+}

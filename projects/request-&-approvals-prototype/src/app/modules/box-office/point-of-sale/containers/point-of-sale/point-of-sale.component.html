@@ -1,0 +1,1241 @@
+<div class="oss" data-testid="oss-main-container">
+  <div class="main oss-wrapper-card wrapper-card--elevation-100">
+    <div class="oss-search-overlay" [class.oss-search-overlay--visible]="isSearchVisible()" [style.z-index]="isSearchVisible() ? 2 : -1">
+      <app-oss-search
+        #ossSearchComponent
+        [locale]="core.locale"
+        [isMobile]="isMobile() || isTablet()"
+        (sessionSelected)="onSessionSelected($event)"
+        (closeSearch)="onCloseSearch()"
+      ></app-oss-search>
+    </div>
+    <div class="main-content oss-main-content" [class.oss-main-content--dimmed]="isSearchVisible()">
+      <div class="oss-content-wrapper">
+        @if (isMobile() || isTablet()) {
+          <ng-container *ngTemplateOutlet="reservationSettlementBanners"></ng-container>
+        }
+        @if (!(isMobile() || isTablet()) && core.hasActivePlanSelected()) {
+          <app-oss-buttons-section
+            class="main-content__buttons"
+            [hasProductCatalog]="core.hasProductCatalog() && !isReservationSettlementMode()"
+            [isLoadingProductCatalog]="core.isLoadingProductCatalog()"
+            [isProductCatalogLoaded]="core.isProductCatalogLoaded()"
+            [locale]="core.locale"
+            [selectedPlaceId]="core.activeOssPlanConfig()?.placeId"
+            [selectedPlan]="core.plan"
+            [showPlanPlaceSelector]="shouldShowPlanPlaceSelector() && canChangePlan() && !isReservationSettlementMode()"
+            [selectedTab]="activeTab().type"
+            [selectedCustomTabDatetime]="core.activeCustomTab()?.datetimeSelected"
+            [timezone]="core.timezone"
+            [canIdentifyMember]="canIdentifyMember()"
+            [canIdentifyMemberAccount]="canIdentifyMemberAccount()"
+            [memberAccountMemberships]="memberAccountMemberships"
+            [membershipsMember]="membershipsData.member"
+            (identifyMemberAccount)="identifyMemberAccount()"
+            (identifyMember)="identifyMembershipsMember()"
+            (openDateSelectorModal)="selectNewDate()"
+            (openModalPlan)="selectNewPlan()"
+            (openSearch)="onShowSearch($event)"
+            (removeMember)="removeMembershipsMember()"
+            (removeMemberAccount)="removeMemberAccount()"
+          ></app-oss-buttons-section>
+        }
+        <!-- parity-carve-out:ticket-selector:start — the flag-on branch, a sanctioned structural divergence from the OSS template. -->
+        @if (isTicketSelectorRearchitectEnabled) {
+          <pos-ticket-selector
+            [isMobile]="isMobile()"
+            [isTablet]="isTablet()"
+            [style.--fzt-tickets-section-bottom-clearance]="core.nonConfirmedCart ? cartBarClearance : null"
+            [isCustomTabDateSelectorModalOpen]="isCustomTabDateSelectorModalOpen()"
+            [dateSelectorTemplate]="dateSelectorTemplate"
+            [placeholderTemplate]="tabPlaceholderTemplate"
+            [seatingTemplate]="ossSeatingSelector"
+            (scrollToCartItem)="scrollToCartItem($event)"
+          />
+          <ng-template #tabPlaceholderTemplate>
+            @if (!core.activeOnsiteSetup()) {
+              <ng-container *ngTemplateOutlet="onsiteSetupEmptyState"></ng-container>
+            } @else if (core.activeOnsiteSetup() && !core.activePlan()) {
+              <ng-container *ngTemplateOutlet="planEmptyState"></ng-container>
+            }
+          </ng-template>
+        } @else {
+          <!-- parity-carve-out:ticket-selector:end — the flag-off branch below is the OSS markup. -->
+          <ignt-tabs
+            class="main-content__tabs"
+            [class.main-content__tabs--hide-header]="!core.hasActivePlanSelected()"
+            data-testid="oss-tabs-container"
+            [hasExtraLine]="false"
+            [keepAlive]="core.manageAsFreeSeatingMap"
+            [selectedIndex]="activeTabIndex()"
+            (selectedIndexChange)="selectTab($event)"
+            [tourAnchorId]="'tabsSelection'"
+          >
+            <ng-container *ngFor="let tab of core.availableTabs(); let i = index">
+              @if (tab === 'seating' && !isReservationSettlementMode()) {
+                <ignt-tabs-item [label]="'oneStopShop.tabs.seating' | translate" [icon]="['fal', 'loveseat']" data-testid="oss-seating-tab">
+                  <ng-container *ngTemplateOutlet="seatingTabContent"></ng-container>
+                </ignt-tabs-item>
+              }
+
+              @if (tab === 'tickets_and_addons') {
+                <ignt-tabs-item
+                  [label]="(core.manageAsFreeSeatingMap ? 'oneStopShop.tabs.addOns' : 'oneStopShop.tabs.ticketsAndAddOns') | translate"
+                  [icon]="core.manageAsFreeSeatingMap ? ['fal', 'cart-plus'] : ['fal', 'ticket-alt']"
+                  [attr.data-testid]="'oss-tickets-tab'"
+                >
+                  <ng-container *ngTemplateOutlet="ticketsAndAddonsTabContent"></ng-container>
+                </ignt-tabs-item>
+              } @else if (tab === 'custom_tabs') {
+                <ignt-tabs-item
+                  [label]="core.customTabNames()[translateTabIndexToCustomTabsIndex(i)]"
+                  [icon]="core.customTabIcons()[translateTabIndexToCustomTabsIndex(i)]"
+                  data-testid="oss-custom-tabs-tab"
+                >
+                  <ng-container
+                    *ngTemplateOutlet="customTabsTabContent; context: { tabIndex: translateTabIndexToCustomTabsIndex(i) }"
+                  ></ng-container>
+                </ignt-tabs-item>
+              }
+            </ng-container>
+          </ignt-tabs>
+          <!-- parity-carve-out:ticket-selector-close:start -->
+        }
+        <!-- parity-carve-out:ticket-selector-close:end -->
+      </div>
+    </div>
+  </div>
+  @if (!(isMobile() || isTablet())) {
+    <div class="aside-container" [@fadeAnimation]>
+      <ng-container *ngTemplateOutlet="reservationSettlementBanners"></ng-container>
+      @if (core.modifiedOrder()) {
+        <div class="oss-order-modification-banner" data-testid="oss-order-modification-banner">
+          <div class="oss-order-modification-banner__info">
+            <h2 class="oss-order-modification-banner__title">
+              {{ core.modifiedOrderBannerTitleKey() | translate }}
+            </h2>
+            <p class="oss-order-modification-banner__order-id" data-testid="oss-order-modification-banner-order-id">
+              <ignt-icon name="ticket" variant="light" size="caption" class="oss-order-modification-banner__order-id-icon"></ignt-icon>
+              {{ core.modifiedOrder()?.externalId ?? core.modifiedOrder()?.id ?? '' }}
+            </p>
+          </div>
+          <div class="oss-order-modification-banner__actions">
+            <a
+              igntLink
+              sentiment="primary"
+              size="caption"
+              href="#"
+              (click)="$event.preventDefault(); showModifiedOrderModal()"
+              data-testid="oss-see-order-button"
+            >
+              {{ 'boxOffice.orderModificationBanner.seeOrder' | translate }}
+            </a>
+            <a
+              igntLink
+              sentiment="danger"
+              size="caption"
+              routerLink="/validation"
+              [queryParams]="{ type: 'order', id: core.modifiedOrder()?.id }"
+            >
+              {{ 'boxOffice.orderModificationBanner.exit' | translate }}
+            </a>
+          </div>
+        </div>
+      }
+      <div class="onsite-setup">
+        <div class="onsite-setup__wrapper">
+          <div class="onsite-setup__title">
+            @if (core.activeOnsiteSetup()) {
+              <span data-testid="onsite-setup-title" (click)="onOnSiteSetupTitleClick()">
+                {{ core.displayedOnsiteSetup() || 'Default onsite name' }}
+              </span>
+              <div class="onsite-setup__venue">
+                <ignt-icon name="landmark" variant="light" size="caption"></ignt-icon>
+                {{ core.displayedOnsiteSetupPlace() || 'Default onsite place' }}
+              </div>
+            }
+          </div>
+          <div class="onsite-setup__buttons">
+            @if (canChangeOnsiteSetup()) {
+              <button
+                ignt-icon-button
+                [igntTourAnchor]="'setupSelection'"
+                class="onsite-setup__button"
+                data-testid="onsite-setup-button"
+                (click)="selectOnsiteSetup()"
+                [icon]="['fas', 'cog']"
+                sentiment="secondary"
+              ></button>
+            }
+
+            @if (core.activeOnsiteSetup() && core.hasFiscalActions()) {
+              <app-oss-fiscal-actions
+                [countryCode]="core.activeOnsiteSetup()?.place?.country_iso_code_2"
+                data-testid="oss-fiscal-actions"
+              ></app-oss-fiscal-actions>
+            }
+
+            @if (core.activeOnsiteSetup() && core.isLinkDeviceButtonVisible()) {
+              <button
+                ignt-icon-button
+                class="onsite-setup__button onsite-setup__button--linked-device"
+                [igntTourAnchor]="'adyenDeviceSelection'"
+                (click)="onLinkDeviceButtonClick()"
+                title="Select linked device"
+                [icon]="['fas', 'mobile-android-alt']"
+                sentiment="secondary"
+                data-testid="oss-linked-device-button"
+              ></button>
+            }
+
+            @if (core.cartHasItems()) {
+              <button
+                ignt-icon-button
+                class="onsite-setup__button onsite-setup__button--clear-cart"
+                [disabled]="core.paymentInProgress"
+                (click)="clearAllCart()"
+                [icon]="['fas', 'trash-alt']"
+                sentiment="secondary"
+                variant="danger"
+                title="Clear all cart items"
+                data-testid="oss-clear-cart-button"
+              ></button>
+            }
+          </div>
+        </div>
+      </div>
+      <ng-container *ngTemplateOutlet="asideContentDetail"></ng-container>
+    </div>
+  }
+</div>
+
+@if (isMobile() || isTablet()) {
+  <div class="overlay" [class.overlay--fade]="isCartDetailOpened"></div>
+  <div class="sticky-panel" [class.sticky-panel--hidden-mobile]="!core.nonConfirmedCart" [class.sticky-panel--open]="isCartDetailOpened">
+    <div class="sticky-panel__wrapper">
+      <div class="sticky-panel__content">
+        <header class="bo-aside-header bo-aside-header--visible-mobile">
+          <div class="bo-aside-header__wrapper">
+            <div class="bo-aside-header__title d-block d-lg-none" data-testid="cart-items-count-mobile">
+              {{ 'oneStopShop.cart.total' | translate }}: {{ core.currentNumberOfTickets }}
+              {{ core.currentNumberOfTickets !== 1 ? ('oneStopShop.cart.items' | translate) : ('oneStopShop.cart.item' | translate) }}
+            </div>
+            <div class="bo-aside-header__supporting-text bo-aside-header__supporting-text--total d-block">
+              <ng-container *ngIf="core.nonConfirmedCart">
+                <ng-container *ngIf="!core.cartHasEffectiveDiscount; else showEffectiveDiscountTemplateMobile">
+                  @let cartTotalMoney = modifyOrderTotal() ?? core.cartTotalMoney;
+                  <span data-testid="cart-total-price">
+                    {{
+                      cartTotalMoney
+                        ? (cartTotalMoney.amount | currency: cartTotalMoney.currency : 'symbol-narrow' : null : core.locale)
+                        : '-'
+                    }}
+                  </span>
+                </ng-container>
+              </ng-container>
+            </div>
+          </div>
+          <div class="bo-aside-header__actions">
+            <button
+              ignt-icon-button
+              *ngIf="core.cartHasItems() && isCartDetailOpened"
+              size="small"
+              [disabled]="core.paymentInProgress"
+              (click)="clearAllCart()"
+              [icon]="['fas', 'trash-alt']"
+              sentiment="primary"
+              variant="danger"
+              title="Clear all cart items"
+              data-testid="oss-clear-cart-button"
+            ></button>
+
+            <button
+              igntButton
+              sentiment="secondary"
+              size="small"
+              variant="sharp"
+              (click)="isCartDetailOpened = !isCartDetailOpened"
+              class="mobile-button d-lg-none"
+              data-testid="toggle-open-close-cart-detail"
+              [leadingIcon]="isCartDetailOpened ? ['fas', 'eye-slash'] : null"
+            >
+              {{ 'boxOffice.cart.' + (isCartDetailOpened ? 'hideCart' : 'title') | translate }}
+            </button>
+          </div>
+        </header>
+        <div class="wrapper-card--elevation-100 wrapper-card" [class.wrapper-card--no-borders]="isCartDetailOpened">
+          <app-oss-cart-detail
+            class="sticky-panel__cart-detail"
+            [class.has-coupon-button]="(core.couponCodeApplied$ | async) === false"
+            [addCounterSessionId]="core.addCounterSessionId"
+            [cart]="core.nonConfirmedCart"
+            [forceDisableIncreaseCounter]="core.forceDisableIncreaseCounter"
+            [isCartLocked]="isReservationSettlementMode()"
+            [couponDiscount]="core.effectiveCombinedCoupon ?? core.coupon"
+            [couponsCount]="core.combinedCoupons.length"
+            [couponRemainingBalance]="core.couponRemainingBalance"
+            [currentVenueId]="core.selectedPlace?.id"
+            [currentPlanId]="core.selectedPlan?.id"
+            [currentSelectedDatetime]="core.currentSelectedDatetime"
+            [isMobile]="true"
+            [isLoading]="core.isLoadingCart"
+            [planDiscounts]="membershipsData.planDiscounts"
+            [plansById]="core.availablePlansById()"
+            [seatingProvider]="core.seatingProvider"
+            [showClearAll]="core.seatingProvider !== seatingProviderEnum.ONEBOX"
+            [showPrice]="true"
+            [showSeatingInModal]="false"
+            [productTicketTypes]="core.productTypes"
+            [ticketTypes]="core.ticketTypes"
+            [timezone]="core.timezone"
+            (clearAllConfirmed)="core.onClearAllConfirmed()"
+            (discountRemoved)="core.removeAppliedDiscount()"
+            (timeslotActivated)="core.onTimeslotActivatedFromCart($event)"
+            (updatedSessionIdCounter)="core.updateSessionIdCounter($event)"
+          ></app-oss-cart-detail>
+        </div>
+      </div>
+    </div>
+    <div class="sticky-panel__footer" data-testid="oss-cart-footer" *ngIf="core.nonConfirmedCart || core.isLoadingCart">
+      @if (core.isModifyOrderMode()) {
+        <ng-container *ngTemplateOutlet="modifyOrderCarriedAdjustmentTemplate"></ng-container>
+        <ng-container *ngTemplateOutlet="modifyOrderPriceDifferenceTemplate"></ng-container>
+      } @else if (core.isCouponCombinationUiActive()) {
+        @if (core.canAddMoreCoupons()) {
+          <button
+            igntButton
+            sentiment="tertiary"
+            size="small"
+            (click)="core.openAddAdditionalCouponModal()"
+            data-testid="oss-add-additional-coupon-button"
+          >
+            {{ 'oneStopShop.cart.addAdditionalCoupon' | translate }}
+          </button>
+        }
+      } @else if (!isReservationSettlementMode()) {
+        @if ((core.couponCodeApplied$ | async) === false) {
+          <app-coupon-code-selector
+            class="coupon-footer"
+            [error]="core.couponError"
+            (couponCode)="core.applyCouponDiscountOneStep($event.code, $event.lazyCouponType)"
+            [couponCodeApplied$]="core.couponCodeApplied$"
+            [onsiteSetupIdSelected]="core.onsiteSetupSelected.id"
+            [scannedCode]="core.scannedCouponCode"
+            [enablePromoCodesTracking]="true"
+            (modalOpened)="modalCouponCodeOpened()"
+            (modalClosed)="handleCouponModalClosed()"
+            [buttonSentiment]="'tertiary'"
+            [buttonSize]="'small'"
+            [hasLeadingIcon]="false"
+          ></app-coupon-code-selector>
+        }
+      }
+
+      <ng-container *ngTemplateOutlet="showPayButtonForOneStepFlowMobile; context: { money: core.cartTotalMoney }"></ng-container>
+    </div>
+  </div>
+}
+
+@if (isMobile() || isTablet()) {
+  <app-lateral-slider
+    [showDetails]="showMobileDateSelector()"
+    [title]="mobileDateSelectorTitleKey | translate"
+    [contentTemplate]="dateSelectorTemplate"
+    (closeSlider)="showMobileDateSelector.set(false)"
+    data-testid="mobile-date-selector-slider"
+  >
+  </app-lateral-slider>
+}
+
+<app-lateral-slider
+  [showDetails]="core.showPaymentsInLateral"
+  [title]="'boxOffice.settings.actions.onsiteSetup.paymentMethods.place_holder'"
+  [contentTemplate]="oneStepFlowButtonsTicketingTemplate"
+  (closeSlider)="core.showPaymentsInLateral = false"
+  data-testid="payment-methods-slider"
+>
+</app-lateral-slider>
+
+<ng-template #customTabsTabContent let-tabIndex="tabIndex">
+  <ng-container *ngIf="core.customTabHasTilesData()[tabIndex] && !isCustomTabDateSelectorModalOpen(); else loadingSection">
+    <app-oss-hierarchy-tiles
+      class="main-content__tab-custom-tabs"
+      (addUnitBySessionId)="core.addUnitBySessionId($event)"
+      [forceDisableIncreaseCounter]="core.forceDisableIncreaseCounter"
+      [isCartLocked]="isReservationSettlementMode()"
+      [initialLevel]="core.customTabHierarchyLevels()[tabIndex]"
+      [sessionAvailabilityMap]="core.customTileSessionAvailabilityMaps()[tabIndex]"
+      [showTicketAvailabilityInfo]="!core.useCacheEnabled"
+      [locale]="core.locale"
+    ></app-oss-hierarchy-tiles>
+  </ng-container>
+</ng-template>
+
+<ng-template #ticketsAndAddonsTabContent>
+  <ng-container
+    *ngTemplateOutlet="
+      tabContentBase;
+      context: {
+        cssClass: core.manageAsFreeSeatingMap ? 'main-content__tab-addons' : 'main-content__tab-tickets',
+        showTabletLayout: !core.manageAsFreeSeatingMap && isTablet(),
+        selectorTemplate: ossTicketsAndAddonsSelector,
+      }
+    "
+  ></ng-container>
+</ng-template>
+
+<ng-template #seatingTabContent>
+  <ng-container
+    *ngTemplateOutlet="
+      tabContentBase;
+      context: {
+        cssClass: 'main-content__tab-seating',
+        showTabletLayout: isTablet(),
+        selectorTemplate: ossSeatingSelector,
+      }
+    "
+  ></ng-container>
+</ng-template>
+
+<ng-template #tabContentBase let-cssClass="cssClass" let-showTabletLayout="showTabletLayout" let-selectorTemplate="selectorTemplate">
+  @if (core.activeOnsiteSetup() && core.activePlan() && !core.isLoadingNewSearch()) {
+    <app-oss-tickets-section [class]="cssClass" [isMobile]="isMobile()" [isTablet]="showTabletLayout">
+      <ng-container *ngTemplateOutlet="ossDateSelector" dateSelector></ng-container>
+      <ng-container ticketSelector>
+        <ng-container *ngTemplateOutlet="selectorTemplate"></ng-container>
+      </ng-container>
+    </app-oss-tickets-section>
+  } @else if (!core.activeOnsiteSetup()) {
+    <app-oss-tickets-section [class]="cssClass" [isMobile]="isMobile()" [isTablet]="showTabletLayout">
+      <ng-container ticketSelector>
+        <ng-container *ngTemplateOutlet="onsiteSetupEmptyState"></ng-container>
+      </ng-container>
+    </app-oss-tickets-section>
+  } @else if (core.activeOnsiteSetup() && !core.activePlan()) {
+    <app-oss-tickets-section [class]="cssClass" [isMobile]="isMobile()" [isTablet]="showTabletLayout">
+      <ng-container ticketSelector>
+        <ng-container *ngTemplateOutlet="planEmptyState"></ng-container>
+      </ng-container>
+    </app-oss-tickets-section>
+  } @else {
+    <ng-container *ngTemplateOutlet="loadingSection"></ng-container>
+  }
+</ng-template>
+
+<ng-template #onsiteSetupEmptyState>
+  <div class="oss-onsite-setup-empty" data-testid="oss-onsite-setup-empty">
+    @switch (onsiteSetupStore.ticketSelectorPlaceholder()) {
+      @case ('noSetups') {
+        <fz-empty-state
+          testId="oss-no-onsite-setups-empty-state"
+          [title]="'oneStopShop.onsiteSetupEmptyState.noOnsiteSetups.title'"
+          [description]="'oneStopShop.onsiteSetupEmptyState.noOnsiteSetups.description'"
+          [label]="'oneStopShop.onsiteSetupEmptyState.noOnsiteSetups.label'"
+          (emptyStateClick)="navigateToBoxOfficeSettings()"
+        />
+      }
+      @case ('noSelection') {
+        <fz-empty-state
+          testId="oss-no-selection-empty-state"
+          [title]="'oneStopShop.onsiteSetupEmptyState.noSelection.title'"
+          [description]="'oneStopShop.onsiteSetupEmptyState.noSelection.description'"
+          [label]="'oneStopShop.onsiteSetupEmptyState.noSelection.label'"
+          (emptyStateClick)="selectOnsiteSetup()"
+        />
+      }
+      @default {
+        <ng-container *ngTemplateOutlet="loadingSection"></ng-container>
+      }
+    }
+  </div>
+</ng-template>
+
+<ng-template #planEmptyState>
+  <div class="oss-plan-empty" data-testid="oss-plan-empty">
+    @switch (ticketSelectorPlaceholder()) {
+      @case ('noPlans') {
+        <fz-empty-state
+          testId="oss-no-plans-empty-state"
+          [title]="'oneStopShop.planEmptyState.noPlans.title'"
+          [description]="'oneStopShop.planEmptyState.noPlans.description'"
+          [label]="'oneStopShop.planEmptyState.noPlans.label'"
+          (emptyStateClick)="navigateToCreateEvent()"
+        />
+      }
+      @case ('noSelection') {
+        <fz-empty-state
+          testId="oss-no-plan-selection-empty-state"
+          [title]="'oneStopShop.planEmptyState.noSelection.title'"
+          [description]="'oneStopShop.planEmptyState.noSelection.description'"
+          [label]="'oneStopShop.planEmptyState.noSelection.label'"
+          (emptyStateClick)="selectPlan()"
+        />
+      }
+      @case ('awaitingSelection') {
+        <div data-testid="oss-plan-awaiting-selection"></div>
+      }
+      @default {
+        <ng-container *ngTemplateOutlet="loadingSection"></ng-container>
+      }
+    }
+  </div>
+</ng-template>
+
+<ng-template #ossTicketsAndAddonsSelector>
+  <ng-container ticketSelector>
+    <app-oss-ticket-selector
+      [@fadeAnimation]
+      [isStepQuantityEnabled]="true"
+      [showAddonsInASeparateSection]="!core.manageAsFreeSeatingMap"
+      [showHiddenInASeparateSection]="false"
+      [productTypes]="core.manageAsFreeSeatingMap ? [] : core.productTypes"
+      [ticketTypes]="core.manageAsFreeSeatingMap ? core.ticketTypesForAddonsTab : core.ticketTypes"
+      [ongoingMultiDayTicketGroups]="core.ongoingMultiDayTicketGroups"
+      [showTicketAvailabilityInfo]="!this.core.useCacheEnabled"
+      [ticketTypeCounterBySessionId]="core.selectedTicketsBySessionId"
+      [ticketTypeCounterBySessionType]="core.selectedTicketsBySessionType"
+      [hasExplodePipe]="core.hasExplodePipe"
+      [isInOverrideZone]="core.isInOverrideZone"
+      [showPrices]="true"
+      [locale]="core.locale"
+      (ticketTypeCounterChange)="core.newSelectTicketCounter($event, false)"
+      (hasErrors)="core.setTicketCounterHasErrors($event)"
+      [allowMultiSession]="core.allowMultiSessionPurchase"
+      [allowMultiTimeSlot]="core.allowMultiTimeSlotSelection"
+      [onsiteSetup]="core.onsiteSetupSelected"
+      [usePriceViewer]="!core.showOnlyTotalInPriceViewer"
+      [forceDisableIncreaseCounter]="core.forceDisableIncreaseCounter"
+      [isCartLocked]="isReservationSettlementMode()"
+      [ignoreMaximumTicketsAllowedPerBooking]="core.canOverrideCapacities"
+      [discounts]="membershipsData.planDiscounts"
+      [updateTicketTypeCounter]="core.updateTicketTypeCounter"
+      (addUnitBySessionId)="core.addUnitBySessionId($event)"
+      (ticketIncremented)="scrollToCartItem($event)"
+      [isLoading]="core.isLoadingSessions || core.isLoadingDateSessions"
+      [tourAnchorId]="core.manageAsFreeSeatingMap ? '' : 'tileSelection'"
+    ></app-oss-ticket-selector>
+  </ng-container>
+</ng-template>
+
+<ng-template #ossDateSelector>
+  @if (!(isMobile() || isTablet())) {
+    <ng-container *ngTemplateOutlet="dateSelectorTemplate"></ng-container>
+  }
+</ng-template>
+
+<!-- parity-carve-out:seating-selector:start (real-time bindings and the eye-button gate on lego wrappers; legacy OSS is frozen and never gained real-time support) -->
+<ng-template #ossSeatingSelector>
+  <div class="oss-seating-selector" [class.oss-seating-selector--awaiting-session]="isRealTimeMapAwaitingSession()">
+    <ng-container *ngIf="core.seatingMapUrl as mapUrl">
+      @if (isSeatingMapMirrorAvailable()) {
+        <button
+          ignt-icon-button
+          class="oss-seating-selector__fullscreen-button"
+          [icon]="core.seatingFullscreenButtonIcon()"
+          sentiment="secondary"
+          type="button"
+          (click)="core.toggleSecondScreenSeatingMapVisibility()"
+          data-testid="oss-seating-fullscreen-button"
+        ></button>
+      }
+      <seating-selector
+        #seatingSelector
+        [seatingMapUrl]="mapUrl"
+        [state]="core.seatingMapState"
+        [locale]="core.locale"
+        [manageAsFreeSeatingMap]="core.manageAsFreeSeatingMap"
+        [shouldRestoreToBeginning]="core.shouldRestoreToBeginning"
+        [showTopBar]="false"
+        (selectSeats)="core.selectSeats($event)"
+        (updateSeatsInCart)="core.updateSeatsInCart($event)"
+        (realTimeSelectionChange)="setRealTimeSelection($event)"
+        (sessionStarted)="onRealTimeSessionStarted()"
+        (clearSelectionRequested)="core.onClearSelectionRequested()"
+        (confirmSeating)="core.confirmSeating($event)"
+        (continueRestore)="core.continueRestore()"
+      >
+      </seating-selector>
+    </ng-container>
+  </div>
+</ng-template>
+<!-- parity-carve-out:seating-selector:end -->
+
+<ng-template #oneStepFlowButtonsTicketingTemplate>
+  <div class="payment-methods__body">
+    @if (core.cartTotalMoney?.amount > 0) {
+      <div class="payment-methods__grid-box" data-testid="payment-buttons">
+        @for (payment of core.paymentTypes; track payment) {
+          <button
+            class="payment-methods__button"
+            [class.payment-methods__button--selected]="core.paymentType() === payment"
+            [disabled]="core.addSessionsToCartIsDisabled() || core.payWithCardIsDisabled(payment)"
+            [title]="core.getCardDisabledTooltip(payment) ? (core.getCardDisabledTooltip(payment) | translate) : null"
+            (click)="core.selectPaymentType(payment)"
+            data-testid="payment-button"
+          >
+            @if (core.getButtonImageUrl(payment); as imageUrl) {
+              <div class="payment-images">
+                <img class="payment-images__icon" alt="" [src]="imageUrl" />
+              </div>
+            }
+            <div class="payment-labels">
+              {{ core.getButtonLabel(payment) }}
+            </div>
+          </button>
+        }
+      </div>
+    } @else {
+      <ng-container *ngTemplateOutlet="freePaymentButtonTemplate"></ng-container>
+    }
+  </div>
+  <div class="payment-methods__footer">
+    <div class="button-container-footer">
+      <button igntButton sentiment="secondary" [fill]="true" (click)="core.showPaymentsInLateral = false">
+        {{ 'boxOffice.order.notes.closeButton' | translate }}
+      </button>
+      <button
+        igntButton
+        [fill]="true"
+        [disabled]="!core.isPaymentsMenuConfirmButtonEnabled()"
+        (click)="core.clickOnPayOneStep(core.paymentType())"
+      >
+        {{ 'common.confirm' | translate }}
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #freePaymentButtonTemplate>
+  <div class="free-payment-button">
+    <button
+      igntButton
+      class="oss-actions__button d-block"
+      [fill]="true"
+      size="large"
+      [disabled]="core.addSessionsToCartIsDisabled()"
+      (click)="core.clickOnPayOneStep(PaymentTypeEnum.FREE)"
+      data-testid="pay-with-free-button"
+    >
+      {{ 'common.confirm' | translate }}
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #asideContentDetail>
+  <div class="aside__detail">
+    <app-oss-cart-detail
+      [igntTourAnchor]="'manageYourOrder'"
+      class="aside__detail-content"
+      [addCounterSessionId]="core.addCounterSessionId"
+      [cart]="core.nonConfirmedCart"
+      [forceDisableIncreaseCounter]="core.forceDisableIncreaseCounter"
+      [isCartLocked]="isReservationSettlementMode()"
+      [couponDiscount]="core.effectiveCombinedCoupon ?? core.coupon"
+      [couponsCount]="core.combinedCoupons.length"
+      [couponRemainingBalance]="core.couponRemainingBalance"
+      [currentVenueId]="core.selectedPlace?.id"
+      [currentPlanId]="core.selectedPlan?.id"
+      [currentSelectedDatetime]="core.currentSelectedDatetime"
+      [isMobile]="false"
+      [isLoading]="core.isLoadingCart"
+      [planDiscounts]="membershipsData.planDiscounts"
+      [plansById]="core.availablePlansById()"
+      [seatingProvider]="core.seatingProvider"
+      [showClearAll]="core.seatingProvider !== seatingProviderEnum.ONEBOX"
+      [showPrice]="true"
+      [showSeatingInModal]="false"
+      [productTicketTypes]="core.productTypes"
+      [ticketTypes]="core.ticketTypes"
+      [timezone]="core.timezone"
+      (clearAllConfirmed)="core.onClearAllConfirmed()"
+      (discountRemoved)="core.removeAppliedDiscount()"
+      (timeslotActivated)="core.onTimeslotActivatedFromCart($event)"
+      (updatedSessionIdCounter)="core.updateSessionIdCounter($event)"
+    ></app-oss-cart-detail>
+    <ng-container *ngIf="core.nonConfirmedCart || core.isLoadingCart">
+      <div class="aside__detail-footer" data-testid="oss-cart-footer">
+        <ng-container *ngTemplateOutlet="modifyOrderCarriedAdjustmentTemplate"></ng-container>
+        <div class="cart-footer__total-price">
+          <div class="cart-footer__total-price-label" data-testid="cart-items-count">
+            {{ 'oneStopShop.cart.total' | translate }}
+            ({{ core.currentNumberOfTickets }}
+            {{ core.currentNumberOfTickets !== 1 ? ('oneStopShop.cart.items' | translate) : ('oneStopShop.cart.item' | translate) }})
+          </div>
+          <div class="cart-footer__total-price-amount">
+            <div class="cart-footer__total-price-values">
+              <ng-container *ngIf="core.nonConfirmedCart && !core.cartHasEffectiveDiscount; else showEffectiveDiscountTemplate">
+                @let cartTotalMoney = modifyOrderTotal() ?? core.cartTotalMoney;
+                <span data-testid="cart-total-price">
+                  {{
+                    cartTotalMoney
+                      ? (cartTotalMoney.amount | currency: cartTotalMoney.currency : 'symbol-narrow' : null : core.locale)
+                      : '-'
+                  }}
+                </span>
+              </ng-container>
+            </div>
+            @if (core.isModifyOrderMode()) {
+              <ng-container *ngTemplateOutlet="modifyOrderPriceDifferenceTemplate"></ng-container>
+            } @else if (core.isCouponCombinationUiActive()) {
+              @if (core.canAddMoreCoupons()) {
+                <button
+                  igntButton
+                  sentiment="tertiary"
+                  size="small"
+                  (click)="core.openAddAdditionalCouponModal()"
+                  data-testid="oss-add-additional-coupon-button"
+                >
+                  {{ 'oneStopShop.cart.addAdditionalCoupon' | translate }}
+                </button>
+              }
+            } @else if (!isReservationSettlementMode()) {
+              @if ((core.couponCodeApplied$ | async) === false) {
+                <app-coupon-code-selector
+                  class="coupon-footer"
+                  [error]="core.couponError"
+                  (couponCode)="core.applyCouponDiscountOneStep($event.code, $event.lazyCouponType)"
+                  [couponCodeApplied$]="core.couponCodeApplied$"
+                  [onsiteSetupIdSelected]="core.onsiteSetupSelected.id"
+                  [scannedCode]="core.scannedCouponCode"
+                  [enablePromoCodesTracking]="true"
+                  (modalOpened)="modalCouponCodeOpened()"
+                  (modalClosed)="handleCouponModalClosed()"
+                  [buttonSentiment]="'tertiary'"
+                  [buttonSize]="'small'"
+                  [hasLeadingIcon]="false"
+                ></app-coupon-code-selector>
+              }
+            }
+          </div>
+        </div>
+        <ng-container *ngTemplateOutlet="showPayButtonForOneStepFlow; context: { money: core.cartTotalMoney }"></ng-container>
+      </div>
+    </ng-container>
+  </div>
+
+  <ng-template #showPayButtonForOneStepFlow let-money="money">
+    @if (core.isModifyOrderMode()) {
+      <ng-container *ngTemplateOutlet="modifyOrderActionsTemplate"></ng-container>
+    } @else {
+      <ng-container *ngTemplateOutlet="payButtonForOneStepFlowContent; context: { money: money }"></ng-container>
+    }
+  </ng-template>
+
+  <ng-template #payButtonForOneStepFlowContent let-money="money">
+    <ng-container *ngIf="money?.amount > 0; else freePaymentButtonTemplate">
+      @if (core.isNewPaymentFlowActive()) {
+        <div class="oss-actions oss-actions--stackable">
+          <ng-container
+            *ngTemplateOutlet="checkoutModalPayButtons; context: { disabled: core.addSessionsToCartIsDisabled() }"
+          ></ng-container>
+        </div>
+      } @else {
+        @if (core.showCommonPaymentButton) {
+          <div class="oss-actions">
+            <button
+              class="oss-actions__button button button--large button--primary button--fill"
+              [disabled]="core.addSessionsToCartIsDisabled()"
+              (click)="core.openLateralPayments()"
+              data-testid="ticket-step-add-cart"
+            >
+              {{ 'oneStopShop.pay' | translate }}
+            </button>
+          </div>
+        } @else {
+          <ng-container [ngTemplateOutlet]="directlyShowPaymentMethodsForOneStepFlow"></ng-container>
+        }
+      }
+    </ng-container>
+
+    <ng-template #directlyShowPaymentMethodsForOneStepFlow>
+      <div class="oss-actions oss-actions--stackable" data-testid="payment-buttons">
+        <button
+          igntButton
+          *ngFor="let payment of core.paymentTypes; let i = index"
+          class="oss-actions__button d-block"
+          [fill]="true"
+          size="large"
+          [title]="(core.getCardDisabledTooltip(payment) | translate) || core.getButtonLabel(payment)"
+          [attr.aria-label]="core.getButtonLabel(payment)"
+          [sentiment]="i % 2 === 0 && core.paymentTypes?.length > 1 ? 'secondary' : 'primary'"
+          [disabled]="core.addSessionsToCartIsDisabled() || core.payWithCardIsDisabled(payment)"
+          (click)="core.clickOnPayOneStep(payment, true)"
+          data-testid="payment-button"
+        >
+          @if (core.getButtonImageUrl(payment); as imageUrl) {
+            <img
+              class="oss-actions__button__icon"
+              [class.oss-actions__button__icon--tintable]="core.isButtonImageTintable(payment)"
+              alt=""
+              [src]="imageUrl"
+            />
+            @if (core.isButtonImageTintable(payment)) {
+              {{ core.getButtonLabel(payment) }}
+            }
+          } @else {
+            {{ core.getButtonLabel(payment) }}
+          }
+        </button>
+      </div>
+    </ng-template>
+  </ng-template>
+</ng-template>
+
+<ignt-ui-tour [config]="tourConfig" [isOpen]="isTourOpen" (tourComplete)="onTourComplete()" #tourComponent> </ignt-ui-tour>
+
+<ng-template #manageOrderTourTemplate>
+  <p class="tour__content--description">{{ 'oneStopShop.tour.steps.manageYourOrder.content' | translate }}</p>
+  <ignt-alert class="oss-tour-alert" [description]="'oneStopShop.tour.steps.manageYourOrder.infoBox' | translate" />
+</ng-template>
+
+<ng-template #loadingSection>
+  <div class="spinner-container">
+    <div class="spinner">
+      <ignt-icon class="loader" name="spinner" variant="solid" size="display" [spin]="true"></ignt-icon>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #showEffectiveDiscountTemplate let-money="money">
+  <span data-testid="cart-total-price-without-discount" class="cart-footer__total-price-without-discount">
+    {{
+      core.cartTotalMoneyWithoutCoupon.amount | currency: core.cartTotalMoneyWithoutCoupon.currency : 'symbol-narrow' : null : core.locale
+    }}
+  </span>
+  <span data-testid="cart-total-price-with-discount" class="cart-footer__total-price-with-discount">
+    {{
+      core.cartTotalMoney
+        ? (core.cartTotalMoney.amount | currency: core.cartTotalMoney.currency : 'symbol-narrow' : null : core.locale)
+        : '-'
+    }}
+  </span>
+</ng-template>
+
+<ng-template #modifyOrderPriceDifferenceTemplate>
+  @if (core.getModifyOrderPriceDifference(); as priceDifference) {
+    <span class="cart-footer__price-difference" data-testid="modify-order-price-difference">
+      {{ 'reservations.modify.priceDifference' | translate }}: {{ priceDifference.amount > 0 ? '+' : ''
+      }}{{ priceDifference.amount | currency: priceDifference.currency : 'symbol-narrow' : null : core.locale }}
+    </span>
+  }
+</ng-template>
+
+<ng-template #modifyOrderCarriedAdjustmentTemplate>
+  @if (modifyOrderCarriedAdjustment(); as carriedAdjustment) {
+    <div class="cart-footer__carried-adjustment" data-testid="modify-order-carried-adjustment">
+      <span class="cart-footer__carried-adjustment-label">
+        {{ core.modifiedOrder()?.cart?.adjustment?.concept || ('reservations.modify.summaryOverridePrice' | translate) }}
+      </span>
+      <span class="cart-footer__carried-adjustment-amount">
+        {{ carriedAdjustment.amount > 0 ? '+' : ''
+        }}{{ carriedAdjustment.amount | currency: carriedAdjustment.currency : 'symbol-narrow' : null : core.locale }}
+      </span>
+    </div>
+  }
+</ng-template>
+
+<ng-template #showPayButtonForOneStepFlowMobile let-money="money">
+  @if (core.isModifyOrderMode()) {
+    <ng-container *ngTemplateOutlet="modifyOrderActionsTemplate"></ng-container>
+  } @else {
+    <ng-container *ngTemplateOutlet="payButtonForOneStepFlowMobileContent; context: { money: money }"></ng-container>
+  }
+</ng-template>
+
+<ng-template #modifyOrderActionsTemplate>
+  @if (core.modifyOrderPaymentCart()) {
+    <ng-container *ngTemplateOutlet="modifyOrderPaymentButtonsTemplate"></ng-container>
+  } @else {
+    <div class="oss-actions">
+      <button
+        igntButton
+        [fill]="true"
+        size="large"
+        class="oss-actions__button d-block"
+        [disabled]="core.confirmModifyOrderIsDisabled()"
+        (click)="core.confirmModifyOrder()"
+        data-testid="confirm-modify-order-button"
+      >
+        {{ 'oneStopShop.modifyOrder.confirm' | translate }}
+      </button>
+    </div>
+  }
+</ng-template>
+
+<ng-template #modifyOrderPaymentButtonsTemplate>
+  <div class="oss-actions" [class.oss-actions--stackable]="core.isNewPaymentFlowActive()" data-testid="modify-order-payment-buttons">
+    @if (core.isNewPaymentFlowActive()) {
+      <ng-container *ngTemplateOutlet="checkoutModalPayButtons; context: { disabled: core.paymentInProgress }"></ng-container>
+    } @else {
+      @for (payment of core.paymentTypes; track payment; let i = $index) {
+        <button
+          igntButton
+          class="oss-actions__button d-block"
+          [fill]="true"
+          size="large"
+          [title]="(core.getCardDisabledTooltip(payment) | translate) || core.getButtonLabel(payment)"
+          [attr.aria-label]="core.getButtonLabel(payment)"
+          [sentiment]="i % 2 === 0 && core.paymentTypes?.length > 1 ? 'secondary' : 'primary'"
+          [disabled]="core.paymentInProgress || core.payWithCardIsDisabled(payment)"
+          (click)="core.payModifyOrderDifference(payment)"
+          data-testid="modify-order-payment-button"
+        >
+          @if (core.getButtonImageUrl(payment); as imageUrl) {
+            <img
+              class="oss-actions__button__icon"
+              [class.oss-actions__button__icon--tintable]="core.isButtonImageTintable(payment)"
+              alt=""
+              [src]="imageUrl"
+            />
+            @if (core.isButtonImageTintable(payment)) {
+              {{ core.getButtonLabel(payment) }}
+            }
+          } @else {
+            {{ core.getButtonLabel(payment) }}
+          }
+        </button>
+      }
+      <button
+        igntButton
+        sentiment="tertiary"
+        size="large"
+        class="oss-actions__button d-block"
+        [fill]="true"
+        [disabled]="core.paymentInProgress"
+        (click)="core.cancelModifyOrderPayment()"
+        data-testid="modify-order-payment-cancel"
+      >
+        {{ 'common.cancel' | translate }}
+      </button>
+    }
+  </div>
+</ng-template>
+
+<ng-template #payButtonForOneStepFlowMobileContent let-money="money">
+  <ng-container *ngIf="money?.amount > 0; else freePaymentButtonTemplateMobile">
+    @if (core.isNewPaymentFlowActive()) {
+      <div class="oss-actions oss-actions--stackable">
+        <ng-container *ngTemplateOutlet="checkoutModalPayButtons; context: { disabled: core.addSessionsToCartIsDisabled() }"></ng-container>
+      </div>
+    } @else {
+      @if (core.showCommonPaymentButton) {
+        <div class="oss-actions">
+          <button
+            class="oss-actions__button button button--large button--primary button--fill"
+            [disabled]="core.addSessionsToCartIsDisabled()"
+            (click)="core.openLateralPayments()"
+            data-testid="ticket-step-add-cart"
+          >
+            {{ 'oneStopShop.pay' | translate }}
+          </button>
+        </div>
+      } @else {
+        <ng-container [ngTemplateOutlet]="directlyShowPaymentMethodsForOneStepFlowMobile"></ng-container>
+      }
+    }
+  </ng-container>
+
+  <ng-template #directlyShowPaymentMethodsForOneStepFlowMobile>
+    <div class="oss-actions oss-actions--stackable" data-testid="payment-buttons">
+      <button
+        igntButton
+        *ngFor="let payment of core.paymentTypes; let i = index"
+        class="oss-actions__button d-block"
+        [fill]="true"
+        size="large"
+        [title]="(core.getCardDisabledTooltip(payment) | translate) || core.getButtonLabel(payment)"
+        [attr.aria-label]="core.getButtonLabel(payment)"
+        [sentiment]="i % 2 === 0 && core.paymentTypes?.length > 1 ? 'secondary' : 'primary'"
+        [disabled]="core.addSessionsToCartIsDisabled() || core.payWithCardIsDisabled(payment)"
+        (click)="core.clickOnPayOneStep(payment, true)"
+        data-testid="payment-button"
+      >
+        @if (core.getButtonImageUrl(payment); as imageUrl) {
+          <img
+            class="oss-actions__button__icon"
+            [class.oss-actions__button__icon--tintable]="core.isButtonImageTintable(payment)"
+            alt=""
+            [src]="imageUrl"
+          />
+          @if (core.isButtonImageTintable(payment)) {
+            {{ core.getButtonLabel(payment) }}
+          }
+        } @else {
+          {{ core.getButtonLabel(payment) }}
+        }
+      </button>
+    </div>
+  </ng-template>
+</ng-template>
+
+<ng-template #freePaymentButtonTemplateMobile>
+  <div class="free-payment-button">
+    <button
+      igntButton
+      class="oss-actions__button d-block"
+      [fill]="true"
+      size="large"
+      [disabled]="core.addSessionsToCartIsDisabled()"
+      (click)="core.clickOnPayOneStep(PaymentTypeEnum.FREE)"
+      data-testid="pay-with-free-button"
+    >
+      {{ 'common.confirm' | translate }}
+    </button>
+  </div>
+</ng-template>
+
+<!-- Setup Modal Content Template for Lateral Slider -->
+<ng-template #setupModalContentTemplate>
+  <app-oss-onsite-setup-modal
+    [hasActiveShiftAndActiveOnsiteSetup]="!!core.activeShift() && !!core.activeOnsiteSetup()"
+    [hasCloseButton]="setupModalHasCloseButton()"
+    [preselectedOnsiteSetupId]="preselectedOnsiteSetupId()"
+    [preselectedVenueId]="preselectedVenueId()"
+    (close)="onOnsiteSetupSelectedFromSlider($event)"
+  ></app-oss-onsite-setup-modal>
+</ng-template>
+
+<!-- Plan Selection Modal Content Template for Lateral Slider -->
+<ng-template #planSelectionModalContentTemplate>
+  <app-oss-plan-selection-modal
+    [hasCloseButton]="planModalHasCloseButton()"
+    [plans]="core.availablePlans()"
+    [currentPlanConfig]="core.activeOssPlanConfig()"
+    [disabledPlanIds]="core.getDisabledPlanIdsForPlanSelectionModal()"
+    (close)="onPlanSelectedFromSlider($event)"
+  />
+</ng-template>
+
+<!-- parity-carve-out:date-selector:start — first sanctioned structural divergence from the OSS template (B2BS-1599). -->
+<ng-template #dateSelectorTemplate>
+  @if (!isReservationSettlementMode()) {
+    <pos-date-selector [igntTourAnchor]="'dateAndTimeSelector'" [@fadeAnimation] [isMobile]="isMobile()" [isTablet]="isTablet()" />
+  }
+</ng-template>
+<!-- parity-carve-out:date-selector:end -->
+
+<ng-template #showEffectiveDiscountTemplateMobile>
+  <span data-testid="cart-total-price-without-discount" class="cart-footer__total-price-without-discount">
+    {{
+      core.cartTotalMoneyWithoutCoupon.amount | currency: core.cartTotalMoneyWithoutCoupon.currency : 'symbol-narrow' : null : core.locale
+    }}
+  </span>
+  <span data-testid="cart-total-price-with-discount" class="cart-footer__total-price-with-discount">
+    {{
+      core.cartTotalMoney
+        ? (core.cartTotalMoney.amount | currency: core.cartTotalMoney.currency : 'symbol-narrow' : null : core.locale)
+        : '-'
+    }}
+  </span>
+</ng-template>
+
+<ng-template #headerCenterTemplate>
+  <div class="oss-header-center">
+    @if (core.plan?.name) {
+      @if (!canChangePlan() || isReservationSettlementMode()) {
+        <div class="oss-header-center__plan-selection" data-testid="oss-mobile-plan-selection-static">
+          <ng-container *ngTemplateOutlet="headerPlanSummaryTemplate"></ng-container>
+        </div>
+      } @else {
+        <a class="oss-header-center__plan-selection" (click)="selectNewPlan()">
+          <ng-container *ngTemplateOutlet="headerPlanSummaryTemplate"></ng-container>
+        </a>
+      }
+    }
+  </div>
+</ng-template>
+
+<ng-template #headerPlanSummaryTemplate>
+  <span class="oss-header-center__plan-name" data-testid="oss-mobile-plan-name">{{ core.plan?.name }}</span>
+  @if (partyHeaderSelection(); as party) {
+    <span class="oss-header-center__plan-date" data-testid="oss-mobile-party-selection">
+      <ignt-icon name="calendar" variant="light" size="caption"></ignt-icon>
+      <span data-testid="oss-mobile-party-date">{{ party.dateLabel }} {{ party.hourLabel }}</span>
+      <ignt-icon class="oss-header-center__party-icon" name="users" variant="light" size="caption"></ignt-icon>
+      <span data-testid="oss-mobile-party-size">{{ party.partySize }}</span>
+    </span>
+  } @else if (!isPartyMembersMode() && core.currentSelectedDatetime) {
+    <span class="oss-header-center__plan-date" data-testid="oss-mobile-plan-date">
+      <ignt-icon name="calendar" variant="light" size="caption"></ignt-icon>
+      {{ core.currentSelectedDatetime | ossMomentDate: 'EEE, MMM d, yyyy HH:mma' : core.timezone : core.locale }}
+    </span>
+  }
+</ng-template>
+
+<!-- parity-carve-out:release-tickets:start (the release-seats step as an Ignite modal, B2BP-1996; legacy OSS is frozen and keeps its bottom sheet) -->
+<ng-template #releaseTicketsTemplate>
+  <ignt-dialog-header hideCloseButton>{{ 'oneStopShop.releaseTickets.header.title' | translate }}</ignt-dialog-header>
+
+  <ignt-dialog-content>
+    <div class="release-tickets" data-testid="release-tickets-sheet">
+      <ignt-alert sentiment="positive" [title]="'oneStopShop.releaseTickets.paymentSuccess' | translate" />
+
+      <div class="release-tickets__body">
+        <div class="release-tickets__header">
+          <h5 class="release-tickets__header--title">
+            {{ 'oneStopShop.releaseTickets.selectTitle' | translate: { count: core.releaseTicketsRequiredCount() } }}
+          </h5>
+          <p class="release-tickets__header--description">
+            {{
+              'oneStopShop.releaseTickets.selectDescription'
+                | translate
+                  : {
+                      addCount: core.releaseTicketsAddedCount(),
+                      replaceCount: core.releaseTicketsRequiredCount(),
+                      totalCount: core.releaseTicketSeats().length,
+                    }
+            }}
+          </p>
+        </div>
+
+        <ul class="release-tickets__list">
+          @for (ticket of core.releaseTicketSeats(); track ticket.id) {
+            <li
+              class="release-tickets__list--item"
+              data-testid="release-tickets-item"
+              [class.release-tickets__list--item-selected]="core.releaseTicketSelections()[$index]"
+              [class.release-tickets__list--item-disabled]="
+                !core.releaseTicketSelections()[$index] && core.releaseTicketsSelectedCount() >= core.releaseTicketsRequiredCount()
+              "
+              (click)="core.toggleReleaseTicketSelection($index)"
+            >
+              <div class="release-tickets__list--item-info">
+                <span class="release-tickets__list--item-category">{{ ticket.sessionTicketReceiptLabel || ticket.sessionName }}</span>
+                <span class="release-tickets__list--item-label">
+                  @if (ticket.seat || ticket.spot?.label) {
+                    {{ ticket.seat ?? ticket.spot?.label }} -
+                  }
+                  {{ ticket.unitPrice.amount | currency: ticket.unitPrice.currency }}
+                </span>
+              </div>
+              <ignt-checkbox
+                [checked]="core.releaseTicketSelections()[$index]"
+                [disabled]="
+                  !core.releaseTicketSelections()[$index] && core.releaseTicketsSelectedCount() >= core.releaseTicketsRequiredCount()
+                "
+                (click)="$event.stopPropagation()"
+                (change)="core.toggleReleaseTicketSelection($index)"
+              />
+            </li>
+          }
+        </ul>
+
+        <div class="release-tickets__counter">
+          <span class="release-tickets__counter--value" data-testid="release-tickets-counter-value"
+            >{{ core.releaseTicketsSelectedCount() }}/{{ core.releaseTicketsRequiredCount() }}</span
+          >
+          <span class="release-tickets__counter--text">{{ 'oneStopShop.releaseTickets.counterText' | translate }}</span>
+        </div>
+      </div>
+    </div>
+  </ignt-dialog-content>
+
+  <ignt-dialog-footer hideCancelButton>
+    <ignt-button
+      fill
+      [disabled]="!isReleaseTicketsEnabled()"
+      [label]="'oneStopShop.releaseTickets.button.label' | translate"
+      (click)="releaseTickets()"
+      data-testid="release-tickets-button"
+    />
+  </ignt-dialog-footer>
+</ng-template>
+<!-- parity-carve-out:release-tickets:end -->
+
+<app-confirmation-dialog></app-confirmation-dialog>
+
+<!-- The checkout-modal pay actions, shared by the normal sale and the modify-order price difference. -->
+<!-- parity-carve-out:cart-pay-buttons:start (the configured quick actions, B2BO-8666; legacy OSS is frozen and keeps its Card / Cash derivation) -->
+<ng-template #checkoutModalPayButtons let-disabled="disabled">
+  @let quickActions = footerQuickActions();
+  @let hasQuickPayments = quickActions.length > 1 || quickActions[0]?.type === 'payment_method';
+  @for (action of quickActions; track $index) {
+    @if (action.type === 'payment_method') {
+      <button
+        igntButton
+        [fill]="true"
+        size="large"
+        sentiment="primary"
+        class="oss-actions__button d-block"
+        [class.oss-actions__main]="action.main === true"
+        [title]="(action.method.delegated ? null : (core.getCardDisabledTooltip(action.method.type) | translate)) || action.method.label"
+        [disabled]="disabled || (!action.method.delegated && core.payWithCardIsDisabled(action.method.type))"
+        (click)="openQuickPayment(action.method)"
+        [attr.data-testid]="
+          'quick-pay-' + action.method.type + (action.method.labelSuffixKey ? (action.method.delegated ? '-delegated' : '-integrated') : '')
+        "
+      >
+        @if (action.method.imageUrl; as imageUrl) {
+          <img
+            class="oss-actions__button__icon"
+            [class.oss-actions__button__icon--tintable]="core.isButtonImageTintable(action.method.type)"
+            alt=""
+            [src]="imageUrl"
+          />
+        }
+        {{ action.method.label }}
+        @if (action.method.labelSuffixKey; as suffixKey) {
+          ({{ suffixKey | translate }})
+        }
+      </button>
+    } @else {
+      <button
+        igntButton
+        [fill]="true"
+        size="large"
+        [sentiment]="hasQuickPayments ? 'secondary' : 'primary'"
+        class="oss-actions__button oss-actions__own-row d-block"
+        [disabled]="disabled"
+        (click)="core.openSplitPaymentOptionsModal()"
+        data-testid="split-payment-pay-button"
+      >
+        {{ (hasQuickPayments ? 'boxOffice.seeMoreOptions' : 'boxOffice.pay') | translate }}
+      </button>
+    }
+  }
+</ng-template>
+<!-- parity-carve-out:cart-pay-buttons:end -->
+
+<ng-template #reservationSettlementBanners>
+  @if (isReservationSettlementMismatch()) {
+    <ignt-alert
+      sentiment="negative"
+      data-testid="oss-reservation-settlement-mismatch"
+      [title]="reservationSettlementMismatchCopy().title | translate"
+      [description]="reservationSettlementMismatchCopy().description | translate"
+    />
+  }
+  @if (isReservationSettlementRejected()) {
+    <ignt-alert
+      sentiment="negative"
+      data-testid="oss-reservation-settlement-rejected"
+      [title]="'boxOffice.reservationSettlementBanner.rejectedTitle' | translate"
+      [description]="'boxOffice.reservationSettlementBanner.rejectedDescription' | translate"
+    />
+  }
+  @if (isReservationSettlementMode()) {
+    <div class="oss-order-modification-banner" data-testid="oss-reservation-settlement-banner">
+      <div class="oss-order-modification-banner__info">
+        <h2 class="oss-order-modification-banner__title">
+          {{ 'boxOffice.reservationSettlementBanner.title' | translate }}
+        </h2>
+        <p class="oss-order-modification-banner__order-id" data-testid="oss-reservation-settlement-banner-description">
+          <ignt-icon name="ticket" variant="light" size="caption" class="oss-order-modification-banner__order-id-icon"></ignt-icon>
+          {{ 'boxOffice.reservationSettlementBanner.description' | translate }}
+        </p>
+      </div>
+      <div class="oss-order-modification-banner__actions">
+        <a
+          igntLink
+          sentiment="danger"
+          size="caption"
+          href="#"
+          (click)="$event.preventDefault(); exitReservationSettlement()"
+          data-testid="oss-reservation-settlement-exit"
+        >
+          {{ 'boxOffice.reservationSettlementBanner.exitPayment' | translate }}
+        </a>
+      </div>
+    </div>
+  }
+</ng-template>

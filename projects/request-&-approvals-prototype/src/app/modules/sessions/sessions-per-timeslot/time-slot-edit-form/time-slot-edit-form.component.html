@@ -1,0 +1,196 @@
+<div class="common-session-edit lateral-slider-body__wrapper time-slot-edit-form">
+  <div class="common-session-edit__header time-slot-edit-form__header">
+    <div class="time-slot-edit-form__header-subtitle">
+      {{ timeSlot?.startsAt | momentDate: 'd MMM yyyy' : timezone }}
+    </div>
+
+    <div class="time-slot-edit-form__header-title">
+      {{ 'sessions.sessionsPerTimeslot.edition.header.timeslot' | translate }} {{ timeSlot?.startsAt | momentDate: 'HH:mm' : timezone }}
+    </div>
+  </div>
+
+  <ignt-alert
+    class="common-session-edit__message-banner"
+    [description]="'sessions.sessionsPerTimeslot.edition.timeSlotBannerMessage' | translate"
+  ></ignt-alert>
+
+  <ng-container *ngIf="formLoaded">
+    <form [formGroup]="formGroup" class="common-session-edit__form">
+      <ng-container
+        [ngTemplateOutlet]="inputTemplate"
+        [ngTemplateOutletContext]="{ fieldName: 'capacity', fieldType: 'number', hideField: !showCapacity }"
+      >
+      </ng-container>
+
+      <div class="input-inline">
+        <div class="mixed-status-switch-container" *ngIf="formGroup.get('status') as control">
+          <app-mixed-status-switch
+            data-testid="custom-switch-time-slot-status"
+            *ngIf="sessionsStatus"
+            class="mixed-status-switch"
+            [fieldName]="'status'"
+            [icon]="['fal', 'chart-line']"
+            [isMixed]="sessionsStatus === sessionsStatusEnum.MIXED"
+            [mixedLabel]="'sessions.sessionsPerTimeslot.visibility.mixed'"
+            [checkedLabel]="'sessions.sessionsPerTimeslot.status.purchasable'"
+            [uncheckedLabel]="'sessions.sessionsPerTimeslot.forcedSaleClosure'"
+            [control]="control"
+            [enableBulkEdition]="statusEnableSwitch.checked"
+          ></app-mixed-status-switch>
+
+          <label class="custom-switch__enabler" [class.custom-switch__enabler--hidden]="sessionsStatus !== sessionsStatusEnum.MIXED">
+            <input
+              data-testid="custom-switch-time-slot-status-enabler"
+              #statusEnableSwitch
+              (change)="updateSwitchStatusOnBulkEditCheckboxChange(control, $event.target.checked)"
+              type="checkbox"
+            />
+            <span>{{ 'sessions.sessionsPerTimeslot.enableBulkEditWhenMixedStatus' | translate }}</span>
+          </label>
+        </div>
+
+        <div class="mixed-status-switch-container" *ngIf="formGroup.get('visibility') as control">
+          <app-mixed-status-switch
+            data-testid="custom-switch-time-slot-visibility"
+            *ngIf="sessionsVisibility"
+            [fieldName]="'visibility'"
+            class="mixed-status-switch"
+            [icon]="['fal', 'eye-slash']"
+            [isMixed]="sessionsVisibility === sessionsVisibilityEnum.MIXED"
+            [mixedLabel]="'sessions.sessionsPerTimeslot.visibility.mixed'"
+            [checkedLabel]="'sessions.sessionsPerTimeslot.visibility.visible'"
+            [uncheckedLabel]="'sessions.sessionsPerTimeslot.visibility.hidden'"
+            [control]="control"
+            [enableBulkEdition]="visibilityEnableSwitch.checked"
+          ></app-mixed-status-switch>
+
+          <label
+            class="custom-switch__enabler"
+            [class.custom-switch__enabler--hidden]="sessionsVisibility !== sessionsVisibilityEnum.MIXED"
+          >
+            <input
+              data-testid="custom-switch-time-slot-visibility-enabler"
+              #visibilityEnableSwitch
+              (change)="updateSwitchStatusOnBulkEditCheckboxChange(control, $event.target.checked)"
+              type="checkbox"
+            />
+            <span>{{ 'sessions.sessionsPerTimeslot.enableBulkEditWhenMixedStatus' | translate }}</span>
+          </label>
+        </div>
+      </div>
+
+      <ignt-alert
+        class="bulk-edit-warning"
+        *ngIf="
+          (formGroup.get('status').dirty && sessionsStatus === sessionsStatusEnum.MIXED) ||
+          (formGroup.get('visibility').dirty && sessionsVisibility === sessionsStatusEnum.MIXED)
+        "
+        sentiment="warning"
+        [description]="'sessions.sessionsPerTimeslot.bulkEditWarningMessage' | translate"
+      ></ignt-alert>
+
+      <div>
+        <div class="form-subtitle">
+          {{ 'sessions.sessionsPerTimeslot.edition.field.note' | translate }}
+        </div>
+        <div [class.form-group--error]="getControlError(formGroup.get('note'))">
+          <ignt-rich-text-editor
+            [placeholder]="'sessions.sessionsPerTimeslot.edition.field.notePlaceholder' | translate"
+            class="time-slot-edit-form__note-editor"
+            [features]="INLINE_TEXT_FEATURES"
+            [blockElement]="'p'"
+            formControlName="note"
+            data-testid="time-slot-note"
+            id="note"
+          ></ignt-rich-text-editor>
+          <ng-container
+            *ngTemplateOutlet="validationErrors; context: { error: getControlError(formGroup.get('note')), control: formGroup.get('note') }"
+          >
+          </ng-container>
+        </div>
+      </div>
+
+      <div class="form-group" *ngIf="isCandlelight()">
+        <ignt-input-field
+          id="performer"
+          data-testid="time-slot-performer"
+          formControlName="performer"
+          [customFormErrors]="[{ message: 'sessions.sessionsPerTimeslot.edition.field.performerMaxLength' | translate, type: 'maxlength' }]"
+          [label]="'sessions.sessionsPerTimeslot.edition.field.performer' | translate"
+          [placeholder]="'sessions.sessionsPerTimeslot.edition.field.performerPlaceholder' | translate"
+        />
+      </div>
+
+      <ng-container *ngIf="addProductsEnabled">
+        <div class="time-slot-edit-form__add-products" data-testid="time-slot-edit-form-add-products">
+          <app-time-slot-products-selector
+            [formControl]="formGroup.controls.newProducts"
+            [sessionTypesInventory]="sessionTypesInventory"
+            [existingSessionTypes]="existingSessionTypes"
+            [existingSessionTypesLoading]="existingSessionTypesLoading"
+          ></app-time-slot-products-selector>
+
+          <app-time-slot-new-products-settings
+            *ngIf="hasNewProductsSelected()"
+            [form]="formGroup.controls.newProductsSettings"
+            [timezone]="timezone"
+          ></app-time-slot-new-products-settings>
+        </div>
+      </ng-container>
+    </form>
+  </ng-container>
+</div>
+<div class="lateral-slider-body__footer">
+  <ignt-button variant="tertiary" [label]="'sessions.sessionsPerTimeslot.edition.button.discard' | translate" (click)="cancel()" />
+
+  <ignt-button
+    [label]="'sessions.sessionsPerTimeslot.edition.button.save' | translate"
+    data-testid="time-slot-save-button"
+    [disabled]="isSaveButtonDisabled()"
+    (click)="save()"
+  />
+</div>
+
+<ng-template #inputTemplate let-fieldName="fieldName" let-fieldType="fieldType" let-hideField="hideField">
+  <div *ngIf="!hideField">
+    <div class="form-group" [class.form-group--error]="getControlError(formGroup.get(fieldName))">
+      <label [for]="fieldName" class="form-label" translate>
+        {{ 'sessions.sessionsPerTimeslot.edition.field.' + fieldName }}
+      </label>
+      <input
+        [id]="fieldName"
+        [attr.data-testid]="'time-slot-' + fieldName"
+        [type]="fieldType"
+        [formControl]="formGroup.get(fieldName)"
+        [min]="0"
+        autocomplete="off"
+        class="form-input"
+      />
+    </div>
+    <ng-container
+      [ngTemplateOutlet]="validationErrors"
+      [ngTemplateOutletContext]="{ error: getControlError(formGroup.get(fieldName)), control: formGroup.get(fieldName) }"
+    >
+    </ng-container>
+  </div>
+</ng-template>
+
+<ng-template #validationErrors let-error="error" let-control="control">
+  <ng-container *ngIf="error">
+    <div class="form-error" [ngSwitch]="error">
+      <ignt-icon class="form-error--icon" name="exclamation-circle" variant="solid"></ignt-icon>
+      <span class="form-error--message" *ngSwitchCase="'required'" data-testid="error-mandatory-field">
+        {{ 'form.error.mandatoryField' | translate }}
+      </span>
+      <span class="form-error--message" *ngSwitchCase="'min'" data-testid="error-min-value-field">
+        {{ 'form.error.greaterThanZero' | translate }}
+      </span>
+      <span class="form-error--message" *ngSwitchCase="'max'" data-testid="error-max-value-field">
+        {{ 'form.error.maxValue' | translate: { value: control?.errors?.['max']?.max } }}
+      </span>
+      <span class="form-error--message" *ngSwitchCase="'biggerOrEqualThanSoldUnits'" data-testid="error-less-sold-units-value-field">
+        {{ 'form.error.biggerOrEqualThanSoldUnits' | translate }}
+      </span>
+    </div>
+  </ng-container>
+</ng-template>

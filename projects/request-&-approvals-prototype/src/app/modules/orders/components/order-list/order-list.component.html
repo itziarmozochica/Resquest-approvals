@@ -1,0 +1,136 @@
+<ignt-expansion-panel variant="menu" [label]="selectedPlanTitle()" [closeIt]="closeIt()" [isCollapsed]="false">
+  <app-page-title page-title [title]="'orders.tableTitle' | translate" class="new-design"></app-page-title>
+  <app-search-bar
+    [preselectOnsiteFilters]="onsiteSetupFilters"
+    [mandatoryFilters]="mandatoryFilters"
+    [screen]="screen.orders"
+    [showVenue]="true"
+    (hasAllMandatoryFilters)="hasAllMandatoryFilters($event)"
+    (searchEmitter)="loadNewSearch($event)"
+  >
+  </app-search-bar>
+</ignt-expansion-panel>
+<div class="main-wrapper">
+  <div class="wrapper-card wrapper-card--elevation-100 wrapper-card--custom-mobile">
+    <div class="order-list">
+      <div class="order-list__header">
+        <div class="order-list__filters">
+          <app-order-filters-panel [loading]="isLoading" [showSeats]="hasSeatingPlans">
+            @if (lastQuery && !hasError) {
+              <div orderFiltersPanelTrailingActions>
+                <ng-container *ngTemplateOutlet="exportButtonTemplate"></ng-container>
+              </div>
+            }
+          </app-order-filters-panel>
+        </div>
+      </div>
+
+      @if (lastQuery) {
+        <app-order-table
+          #ordersTable
+          [enableTicketsSeatsAndTicketHoldersSort]="enableTicketsSeatsAndTicketHoldersSort"
+          [orders]="orders"
+          [showPartnerTotal]="showPartnerTotal"
+          [showSeatsColumn]="hasSeatingPlans"
+          [sortable]="true"
+          [sortBy]="lastQuery.sortBy ?? null"
+          [sortDirection]="lastQuery.sortDirection ?? null"
+          class="order-list__table"
+          data-testid="order-list-table"
+          (seatCellClick)="onSeatDetailOpen($event)"
+          (ticketCellClick)="onTicketDetailOpen($event)"
+          (sortColumnClick)="onOrdersSortColumnClick($event)"
+        ></app-order-table>
+      }
+
+      @if (isLoading) {
+        <div class="order-list__skeleton" data-testid="order-list-loading" role="status" aria-busy="true">
+          @for (row of orders?.length ? nextPageSkeletonRows : firstPageSkeletonRows; track row) {
+            <ignt-skeleton-base class="order-list__skeleton-row" [animation]="true" [height]="40" />
+          }
+          <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
+        </div>
+      }
+
+      @if (orders?.length === 0 && !isLoading && !hasError) {
+        <div class="order-list__no-results" data-testid="order-list-no-results">
+          <ignt-icon aria-hidden="true" class="icon-empty" name="receipt" variant="regular"></ignt-icon>
+          <div>{{ 'orders.noResults' | translate }}</div>
+        </div>
+      }
+
+      @if (hasError) {
+        <div class="order-list__error" data-testid="order-list-error">
+          <span class="order-list__error-text">
+            <ignt-icon aria-hidden="true" class="order-list__error-icon" name="exclamation-triangle" variant="light"></ignt-icon>
+            {{ 'errors.generic' | translate }}
+          </span>
+          <button (click)="retrySearch()" class="order-list__repeat-button" data-testid="order-list-retry">
+            <ignt-icon aria-hidden="true" name="repeat" variant="solid"></ignt-icon>
+            {{ 'orders.retryButton' | translate }}
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="order-list__help-topic" appHideWrapperOnHelpTopicClose>
+    <app-help-topic-banner
+      [message]="'helpTopics.cancellations.message' | translate"
+      [ctaLabel]="'helpTopics.generic.cta.label' | translate"
+      [ctaLink]="'helpTopics.cancellations.cta.href' | translate"
+    ></app-help-topic-banner>
+  </div>
+</div>
+<ng-template #exportButtonTemplate>
+  <span class="orders-export__button" data-testid="orders-download-button">
+    <app-export-list-button
+      [exportOptionsDisabled]="!orders?.length"
+      [exportOptionsList]="exportOptionsList"
+      (clickOption)="downloadOrders($event)"
+    >
+      <span translate>common.download</span>
+      <span class="orders-export__icon-slot">
+        @if (loadingDownloadOrders) {
+          <ignt-icon
+            aria-hidden="true"
+            class="orders-export__loading-icon export-list-button__icon"
+            name="spinner-third"
+            variant="duotone"
+            [spin]="true"
+          ></ignt-icon>
+        } @else {
+          <ignt-icon class="orders-export__chevron" name="chevron-down" variant="solid" aria-hidden="true"></ignt-icon>
+        }
+      </span>
+    </app-export-list-button>
+  </span>
+</ng-template>
+
+<ng-template #orderDetailPanelTitleTemplate>
+  @if (selectedOrder && orderDetailPanelKind === 'seats') {
+    <div>{{ 'orders.seatListPanel.title' | translate: { orderId: selectedOrder.orderId } }}</div>
+  } @else if (selectedOrder) {
+    <div>{{ 'orders.ticketListPanel.title' | translate: { orderId: selectedOrder.orderId } }}</div>
+  }
+</ng-template>
+
+@if (lastQuery) {
+  <app-lateral-slider
+    [closeOnBackdropClick]="true"
+    [showDetails]="selectedOrder !== null"
+    [titleTemplate]="orderDetailPanelTitleTemplate"
+    (closeSlider)="onClosePanel()"
+  >
+    @if (selectedOrder && orderDetailPanelKind === 'seats') {
+      <app-order-seat-list-panel [seats]="selectedOrder.seats" (closePanel)="onClosePanel()"></app-order-seat-list-panel>
+    } @else if (selectedOrder && orderDetailPanelKind === 'tickets') {
+      <app-order-ticket-breakdown-panel
+        [loadState]="ticketPanelLoadState()"
+        [tickets]="ticketPanelTickets()"
+        (closePanel)="onClosePanel()"
+        (retryLoad)="onTicketPanelRetry()"
+      ></app-order-ticket-breakdown-panel>
+    }
+  </app-lateral-slider>
+}

@@ -1,0 +1,146 @@
+<app-scroll-shadow class="partial-refund-rows-table__table-scroll">
+  <div
+    class="partial-refund-rows-table__table fz-table fz-table--striped"
+    [class.partial-refund-rows-table__table--per-ticket]="perTicket()"
+  >
+    <header class="fz-table__header">
+      <div class="fz-table__row">
+        <div class="fz-table__cell table__header--bold">
+          {{ 'orders.bulkPartialRefunds.reviewConfirm.table.ticketType' | translate }}
+        </div>
+        @if (!perTicket()) {
+          <div class="fz-table__cell fz-table__cell--number table__header--bold" data-testid="partial-refund-rows-table-tickets-header">
+            {{ 'orders.bulkPartialRefunds.reviewConfirm.table.tickets' | translate }}
+          </div>
+        }
+        <div class="fz-table__cell fz-table__cell--currency table__header--bold" data-testid="partial-refund-rows-table-base-header">
+          {{ baseColumnLabel() | translate }}
+        </div>
+        @if (!perTicket()) {
+          <div
+            class="fz-table__cell fz-table__cell--currency table__header--bold"
+            data-testid="partial-refund-rows-table-refund-per-ticket-header"
+          >
+            {{ 'orders.bulkPartialRefunds.reviewConfirm.table.refundPerTicket' | translate }}
+          </div>
+        }
+        @if (showAlreadyRefunded()) {
+          <div
+            class="fz-table__cell fz-table__cell--currency table__header--bold"
+            data-testid="partial-refund-rows-table-already-refunded-header"
+          >
+            {{ 'orders.bulkPartialRefunds.reviewConfirm.table.alreadyRefunded' | translate }}
+          </div>
+        }
+        <div class="fz-table__cell fz-table__cell--currency table__header--bold">
+          {{ 'orders.bulkPartialRefunds.reviewConfirm.table.remaining' | translate }}
+        </div>
+        <div class="fz-table__cell fz-table__cell--currency table__header--bold" data-testid="partial-refund-rows-table-refund-header">
+          {{ refundColumnLabel() | translate }}
+        </div>
+        <div class="fz-table__cell fz-table__cell--currency table__header--bold">
+          {{ 'orders.bulkPartialRefunds.reviewConfirm.table.remainingAfter' | translate }}
+        </div>
+      </div>
+    </header>
+
+    <div class="fz-table__body">
+      @for (row of section().rows; track $index) {
+        <div class="fz-table__row" [class.fz-table__row--warning]="row.isCapped" data-testid="partial-refund-rows-table-row">
+          <div class="fz-table__cell">
+            <p class="partial-refund-rows-table__ticket-type">
+              {{ row.ticketTypeLabel }}
+
+              @if (row.isCapped) {
+                <span class="partial-refund-rows-table__capped-tag" data-testid="partial-refund-rows-table-capped-tag">
+                  {{ 'orders.bulkPartialRefunds.reviewConfirm.table.capped' | translate }}
+                </span>
+              }
+            </p>
+
+            @if (row.isCapped) {
+              <p class="partial-refund-rows-table__capped-detail">
+                {{
+                  'orders.bulkPartialRefunds.reviewConfirm.table.cappedDetail'
+                    | translate: { available: row.remainingAmount | currency: row.currency : 'symbol-narrow' }
+                }}
+              </p>
+            } @else if (row.alreadyRefundedAmount > 0) {
+              <p class="partial-refund-rows-table__ticket-note">
+                {{ 'orders.bulkPartialRefunds.reviewConfirm.table.refundedBefore' | translate }}
+              </p>
+            } @else {
+              <p class="partial-refund-rows-table__ticket-note">
+                {{ 'orders.bulkPartialRefunds.reviewConfirm.table.noPriorRefunds' | translate }}
+              </p>
+            }
+          </div>
+
+          @if (!perTicket()) {
+            <div class="fz-table__cell fz-table__cell--number">{{ row.ticketsCount | number }}</div>
+          }
+          <div class="fz-table__cell fz-table__cell--currency" data-testid="partial-refund-rows-table-base-per-ticket">
+            {{ row.refundableBasePerTicket | currency: row.currency : 'symbol-narrow' }}
+          </div>
+          @if (!perTicket()) {
+            <div class="fz-table__cell fz-table__cell--currency" data-testid="partial-refund-rows-table-refund-per-ticket">
+              {{ row.refundAmountPerTicket | currency: row.currency : 'symbol-narrow' }}
+            </div>
+          }
+          @if (showAlreadyRefunded()) {
+            <div
+              class="fz-table__cell fz-table__cell--currency"
+              [class.partial-refund-rows-table__deduction]="row.alreadyRefundedAmount > 0"
+            >
+              {{ row.alreadyRefundedAmount > 0 ? '−' : '' }}{{ row.alreadyRefundedAmount | currency: row.currency : 'symbol-narrow' }}
+            </div>
+          }
+          <div class="fz-table__cell fz-table__cell--currency">
+            {{ row.remainingAmount | currency: row.currency : 'symbol-narrow' }}
+          </div>
+          <div class="fz-table__cell fz-table__cell--currency partial-refund-rows-table__emphasis">
+            {{ row.refundAmount | currency: row.currency : 'symbol-narrow' }}
+          </div>
+          <div class="fz-table__cell fz-table__cell--currency">
+            {{ row.remainingAmountAfter | currency: row.currency : 'symbol-narrow' }}
+          </div>
+        </div>
+      }
+    </div>
+
+    <footer class="fz-table__footer">
+      <div class="fz-table__row partial-refund-rows-table__total-row" data-testid="partial-refund-rows-table-total-row">
+        <div class="fz-table__cell partial-refund-rows-table__emphasis">
+          {{ 'orders.bulkPartialRefunds.reviewConfirm.table.total' | translate }}
+        </div>
+        @if (!perTicket()) {
+          <div class="fz-table__cell fz-table__cell--number partial-refund-rows-table__emphasis">
+            {{ section().totals.ticketsCount | number }}
+          </div>
+        }
+        <div class="fz-table__cell fz-table__cell--currency" data-testid="partial-refund-rows-table-base-per-ticket">—</div>
+        @if (!perTicket()) {
+          <div class="fz-table__cell fz-table__cell--currency" data-testid="partial-refund-rows-table-refund-per-ticket">—</div>
+        }
+        @if (showAlreadyRefunded()) {
+          <div
+            class="fz-table__cell fz-table__cell--currency"
+            [class.partial-refund-rows-table__deduction]="section().totals.alreadyRefundedAmount > 0"
+          >
+            {{ section().totals.alreadyRefundedAmount > 0 ? '−' : ''
+            }}{{ section().totals.alreadyRefundedAmount | currency: section().currency : 'symbol-narrow' }}
+          </div>
+        }
+        <div class="fz-table__cell fz-table__cell--currency">
+          {{ section().totals.remainingAmount | currency: section().currency : 'symbol-narrow' }}
+        </div>
+        <div class="fz-table__cell fz-table__cell--currency partial-refund-rows-table__grand-total">
+          {{ section().totals.refundAmount | currency: section().currency : 'symbol-narrow' }}
+        </div>
+        <div class="fz-table__cell fz-table__cell--currency partial-refund-rows-table__emphasis">
+          {{ section().totals.remainingAmountAfter | currency: section().currency : 'symbol-narrow' }}
+        </div>
+      </div>
+    </footer>
+  </div>
+</app-scroll-shadow>

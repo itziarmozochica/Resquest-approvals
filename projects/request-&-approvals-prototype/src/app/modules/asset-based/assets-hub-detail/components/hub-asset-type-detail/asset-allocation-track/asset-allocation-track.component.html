@@ -1,0 +1,113 @@
+<div class="allocation-track">
+  <div class="allocation-track__hint-row">
+    <p class="allocation-track__hint" translate>assetsHubs.detail.assetTypeForm.allocation.hint</p>
+    <button
+      ignt-icon-button
+      type="button"
+      size="small"
+      sentiment="tertiary"
+      [icon]="['fas', 'info-circle']"
+      [attr.aria-label]="'assetsHubs.detail.assetTypeForm.allocation.example.ariaLabel' | translate"
+      (click)="onOpenExample()"
+      data-testid="allocation-open-example"
+    ></button>
+  </div>
+
+  <div class="allocation-track__source-area" data-source-area [class.allocation-track__source-area--remove-ready]="removeReady()">
+    <span class="allocation-track__source-label" translate>assetsHubs.detail.assetTypeForm.allocation.unplaced</span>
+    <div class="allocation-track__source-items">
+      @for (item of unplacedItems(); track item.id) {
+        <div
+          class="allocation-track__chip allocation-track__chip--source"
+          [style.width.px]="chipSize()"
+          [style.height.px]="chipSize()"
+          (pointerdown)="onSourcePointerDown($event, item)"
+          [attr.data-testid]="'allocation-source-' + item.id"
+          [appTemplatedTooltip]="assetLabelTooltip"
+          [appTemplatedTooltipContext]="{ label: item.label }"
+        >
+          <span class="allocation-track__chip-label">{{ item.label }}</span>
+        </div>
+      }
+      @if (unplacedItems().length === 0) {
+        <span class="allocation-track__source-empty" translate>assetsHubs.detail.assetTypeForm.allocation.allPlaced</span>
+      }
+    </div>
+  </div>
+
+  <div class="allocation-track__row">
+    <div class="allocation-track__scroll">
+      <div #track class="allocation-track__track" [style.height.px]="trackHeight()" [style.width.px]="trackWidth()">
+        <div class="allocation-track__line"></div>
+
+        @for (slot of slots(); track slot) {
+          <div
+            class="allocation-track__slot"
+            [class.allocation-track__slot--gap]="isGapSlot(slot)"
+            [class.allocation-track__slot--target]="targetSlot() === slot"
+            [class.allocation-track__slot--vacated]="draggingPlacementSlot() === slot"
+            [style.left.px]="slotCenterX(slot)"
+            [style.height.px]="chipSize()"
+            [style.width.px]="chipSize()"
+          >
+            @if (isGapSlot(slot)) {
+              <span class="allocation-track__slot-label" translate>assetsHubs.detail.assetTypeForm.allocation.gapLabel</span>
+            }
+          </div>
+        }
+
+        @for (placement of placements(); track placement.id) {
+          <div
+            class="allocation-track__chip"
+            [class.allocation-track__chip--dragging]="draggingId() === placement.id"
+            [style.left.px]="slotCenterX(placement.slot)"
+            [style.height.px]="chipSize()"
+            [style.width.px]="chipSize()"
+            (pointerdown)="onCirclePointerDown($event, placement)"
+            [attr.data-testid]="'allocation-chip-' + placement.id"
+            [appTemplatedTooltip]="assetLabelTooltip"
+            [appTemplatedTooltipContext]="{ label: placement.label }"
+          >
+            <span class="allocation-track__chip-label">{{ placement.label }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <ignt-button
+      variant="secondary"
+      sentiment="neutral"
+      size="small"
+      [label]="'−'"
+      [disabled]="!canRemoveSlot()"
+      [ariaLabel]="'assetsHubs.detail.assetTypeForm.allocation.removeSpace' | translate"
+      (click)="removeSlot()"
+      data-testid="allocation-remove-slot"
+    ></ignt-button>
+    <ignt-button
+      variant="secondary"
+      sentiment="neutral"
+      size="small"
+      [label]="'+'"
+      [ariaLabel]="'assetsHubs.detail.assetTypeForm.allocation.addSpace' | translate"
+      (click)="addSlot()"
+      data-testid="allocation-add-slot"
+    ></ignt-button>
+  </div>
+
+  @if (floatingVisible()) {
+    <div
+      class="allocation-track__floating"
+      [style.left.px]="floatingX()"
+      [style.top.px]="floatingY()"
+      [style.height.px]="chipSize()"
+      [style.width.px]="chipSize()"
+    >
+      <span class="allocation-track__chip-label">{{ floatingLabel() }}</span>
+    </div>
+  }
+</div>
+
+<ng-template #assetLabelTooltip let-label="label">
+  <span class="allocation-track__tooltip">{{ label }}</span>
+</ng-template>

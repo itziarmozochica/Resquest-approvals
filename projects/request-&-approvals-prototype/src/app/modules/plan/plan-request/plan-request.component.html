@@ -1,0 +1,107 @@
+<div class="box-office-content">
+  <ng-container *ngTemplateOutlet="formCard"></ng-container>
+  <div class="plan-request-content__buttons">
+    <ng-container *ngTemplateOutlet="buttonsForm"></ng-container>
+  </div>
+</div>
+
+<ng-template #formCard>
+  <div class="box-office-content__content-card plan-request-content__content-card">
+    <div *ngIf="planRequest">
+      <ng-container [ngSwitch]="currentStep?.id">
+        <ng-container *ngSwitchCase="eventSetUpFormStep.id">
+          <app-plan-setup (updatePlanRequest)="updatePlanRequest($event)" [planRequest]="planRequest"></app-plan-setup>
+        </ng-container>
+        <ng-container *ngSwitchCase="ticketsInformationFormStep.id">
+          <app-plan-request-tickets-information
+            (updatePlanRequest)="updatePlanRequest($event)"
+            [planRequest]="planRequest"
+            [validationMethodOptions]="validationMethodOptions"
+            [codesTypeOptions]="codesTypeOptions"
+            [codesValidationOptions]="codesValidationOptions"
+          ></app-plan-request-tickets-information>
+        </ng-container>
+        <ng-container *ngSwitchCase="photosFormStep.id">
+          <app-plan-request-photos (updatePlanRequest)="updatePlanRequest($event)" [planRequest]="planRequest"></app-plan-request-photos>
+        </ng-container>
+        <ng-container *ngSwitchCase="reviewFormStep.id">
+          <app-plan-request-review
+            [userEmail]="planRequest.b2bUser?.email ?? ''"
+            [planRequest]="planRequest"
+            (updateIsFormValid)="updateIsFormValid($event)"
+          ></app-plan-request-review>
+        </ng-container>
+      </ng-container>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #buttonsForm>
+  <ng-container [ngSwitch]="currentStep?.id">
+    <ng-container *ngSwitchCase="eventSetUpFormStep.id">
+      <button
+        class="box-office-content__button box-office-content__button--outline plan-request-content__button--outline"
+        (click)="clickGoBack()"
+        data-testid="plan-request-cancel-button"
+      >
+        {{ 'common.cancel' | translate }}
+      </button>
+      <button
+        class="box-office-content__button plan-request-content__button"
+        (click)="nextStep()"
+        data-testid="plan-request-next-button-event-setup"
+      >
+        {{ 'planRequest.saveAndContinue' | translate }}
+      </button>
+    </ng-container>
+    <ng-container *ngSwitchCase="ticketsInformationFormStep.id">
+      <button
+        class="box-office-content__button box-office-content__button--outline plan-request-content__button--outline"
+        (click)="previousStep()"
+        data-testid="plan-request-back-button-tickets-information"
+      >
+        {{ 'common.back' | translate }}
+      </button>
+      <button
+        class="box-office-content__button plan-request-content__button"
+        (click)="nextStep()"
+        data-testid="plan-request-next-button-tickets-information"
+      >
+        {{ 'planRequest.saveAndContinue' | translate }}
+      </button>
+    </ng-container>
+    <ng-container *ngSwitchCase="photosFormStep.id">
+      <button
+        class="box-office-content__button box-office-content__button--outline plan-request-content__button--outline"
+        (click)="previousStep()"
+        data-testid="plan-request-back-button-photos"
+      >
+        {{ 'common.back' | translate }}
+      </button>
+      <button
+        class="box-office-content__button plan-request-content__button"
+        (click)="nextStep()"
+        data-testid="plan-request-next-button-photos"
+      >
+        {{ 'planRequest.saveAndContinue' | translate }}
+      </button>
+    </ng-container>
+    <ng-container *ngSwitchCase="reviewFormStep.id">
+      <button
+        class="box-office-content__button box-office-content__button--outline plan-request-content__button--outline"
+        (click)="previousStep()"
+        data-testid="plan-request-back-button-review"
+      >
+        {{ 'common.back' | translate }}
+      </button>
+      <button
+        class="box-office-content__button plan-request-content__button"
+        [disabled]="!isFormValid"
+        (click)="sendPlanRequest()"
+        data-testid="plan-request-send-button"
+      >
+        {{ 'planRequest.submit' | translate }}
+      </button>
+    </ng-container>
+  </ng-container>
+</ng-template>

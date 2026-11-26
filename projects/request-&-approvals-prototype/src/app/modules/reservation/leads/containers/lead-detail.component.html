@@ -1,0 +1,384 @@
+<div class="lead-detail" data-testid="lead-detail">
+  <app-page-title
+    class="light"
+    [backLabel]="'leads.detail.backToList' | translate"
+    [backRoute]="'/reservations/leads'"
+    [section]="'leads.pageTitle' | translate"
+    [sectionLink]="'/reservations/leads'"
+    [sectionQueryParams]="listQueryParams()"
+    [subsections]="[{ copy: { label: 'leads.copyId' | translate, value: leadId() } }]"
+    [title]="'leads.detail.title' | translate"
+  ></app-page-title>
+
+  <div class="lead-detail__content main-wrapper">
+    @if (store.isLoading()) {
+      <p class="lead-detail__loading" data-testid="lead-detail-loading">{{ 'common.loading' | translate }}</p>
+    } @else if (store.notFound()) {
+      <div class="lead-detail__placeholder" data-testid="lead-detail-not-found">
+        <ignt-icon class="lead-detail__placeholder-icon" name="receipt" variant="regular" aria-hidden="true" />
+        <h2 class="lead-detail__placeholder-title">{{ 'leads.detail.notFound' | translate }}</h2>
+        <p class="lead-detail__placeholder-text">{{ 'leads.detail.notFoundDescription' | translate }}</p>
+        <ignt-button
+          data-testid="lead-detail-back-to-list"
+          variant="secondary"
+          [label]="'leads.detail.backToList' | translate"
+          (click)="onBackToList()"
+        />
+      </div>
+    } @else if (store.error()) {
+      <div class="lead-detail__placeholder" data-testid="lead-detail-error">
+        <span class="lead-detail__error-text">
+          <ignt-icon class="lead-detail__error-icon" name="exclamation-triangle" variant="light" aria-hidden="true" />
+          {{ 'errors.generic' | translate }}
+        </span>
+        <ignt-button data-testid="lead-detail-retry" variant="secondary" [label]="'common.retry' | translate" (click)="onRetry()" />
+      </div>
+    } @else {
+      @if (store.lead(); as lead) {
+        <!-- Top-right of the page body, as designed. The shared page title is a fixed dark band with
+             no slot for actions, so the bar lives here; it renders nothing when the lead offers neither
+             a conversion, an assignment, nor a navigable reservation. -->
+        @if (canConvertLead() || canAssignLead() || navigableReservation()) {
+          <div class="lead-detail__actions">
+            @if (canConvertLead()) {
+              <ignt-button
+                data-testid="lead-detail-convert-button"
+                variant="primary"
+                [disabled]="store.isUpdating() || quotePendingAction() !== null"
+                [label]="(hasVisibleQuotes() ? 'leads.detail.convertQuote' : 'leads.detail.convert') | translate"
+                (click)="onConvert()"
+              />
+            }
+            @if (canAssignLead() || navigableReservation() || canModifyQuote()) {
+              <app-lead-status-actions
+                [canAssign]="canAssignLead()"
+                [canCreateQuote]="canModifyQuote()"
+                [disabled]="store.isUpdating() || quotePendingAction() !== null"
+                [isReassignment]="lead.owner !== null"
+                [reservation]="navigableReservation()"
+                (assignSelected)="onAssignLead()"
+                (createQuoteSelected)="onCreateQuote()"
+                (reservationSelected)="onGoToReservation()"
+              />
+            }
+          </div>
+        }
+
+        <ignt-wrapper-card [elevation]="1">
+          <div class="lead-detail__header-card">
+            <div class="lead-detail__summary">
+              <app-lead-status-tag
+                layout="inline"
+                [availableStatuses]="availableStatuses()"
+                [category]="lead.statusCategory"
+                [disabled]="store.isUpdating() || quotePendingAction() !== null"
+                [status]="lead.status"
+                (statusSelected)="onStatusSelected($event)"
+              />
+              <h2 class="lead-detail__guest-name" data-testid="lead-detail-guest-name">{{ lead.guestFullName || lead.guestEmail }}</h2>
+            </div>
+
+            <div class="lead-detail__group" data-testid="lead-detail-guest-info">
+              <h3 class="lead-detail__group-title">{{ 'leads.detail.guest' | translate }}</h3>
+              <div class="lead-detail__contact" data-testid="lead-detail-guest-email">
+                <ignt-icon name="envelope" variant="light" aria-hidden="true" />
+                <span>{{ lead.guestEmail }}</span>
+              </div>
+              <div class="lead-detail__contact" data-testid="lead-detail-guest-phone">
+                <ignt-icon name="phone" variant="light" aria-hidden="true" />
+                <span>
+                  @if (hasValue(lead.guestPhone)) {
+                    {{ lead.guestPhone }}
+                  } @else {
+                    <app-lead-empty-value required [lead]="lead" />
+                  }
+                </span>
+              </div>
+              @if (lead.marketingConsent) {
+                <div class="lead-detail__contact lead-detail__contact--consent" data-testid="lead-detail-marketing-consent">
+                  <ignt-icon name="check" variant="regular" aria-hidden="true" />
+                  <span>{{ 'leads.detail.marketingConsent' | translate }}</span>
+                </div>
+              } @else {
+                <div class="lead-detail__contact lead-detail__contact--muted" data-testid="lead-detail-marketing-consent">
+                  <span>{{ 'leads.detail.noMarketingConsent' | translate }}</span>
+                </div>
+              }
+              @if (canEditLead()) {
+                <ignt-button
+                  class="lead-detail__guest-edit"
+                  data-testid="lead-detail-edit-guest-button"
+                  size="small"
+                  variant="tertiary"
+                  [disabled]="store.isUpdating()"
+                  [label]="'common.edit' | translate"
+                  [leadingIcon]="{ name: 'pen', variant: 'light' }"
+                  (click)="onEditGuest()"
+                />
+              }
+            </div>
+
+            <div class="lead-detail__group" data-testid="lead-detail-lead-details">
+              <h3 class="lead-detail__group-title">{{ 'leads.detail.leadDetails' | translate }}</h3>
+              <dl class="lead-detail__meta">
+                <div class="lead-detail__meta-row">
+                  <dt>{{ 'leads.detail.created' | translate }}</dt>
+                  <dd data-testid="lead-detail-created-at">
+                    {{ lead.createdAt | date: 'mediumDate' }} ({{ lead.createdAt | leadRelativeAge }})
+                  </dd>
+                </div>
+                <div class="lead-detail__meta-row">
+                  <dt>{{ 'leads.detail.source' | translate }}</dt>
+                  <dd data-testid="lead-detail-source">{{ 'leads.sources.' + lead.source | translate }}</dd>
+                </div>
+                <div class="lead-detail__meta-row">
+                  <dt>{{ 'leads.detail.owner' | translate }}</dt>
+                  <dd data-testid="lead-detail-owner">{{ lead.owner ? lead.owner.name || '—' : ('leads.unassigned' | translate) }}</dd>
+                </div>
+              </dl>
+            </div>
+
+            @if (navigableReservation(); as reservation) {
+              <div class="lead-detail__group" data-testid="lead-detail-reservation-id">
+                <h3 class="lead-detail__group-title">{{ 'leads.detail.reservationId' | translate }}</h3>
+                <dl class="lead-detail__meta">
+                  <div class="lead-detail__meta-row lead-detail__meta-row--locator">
+                    <dt>{{ 'leads.detail.reservation.locator' | translate }}</dt>
+                    <dd>
+                      <app-reservation-locator-cell
+                        data-testid="lead-detail-reservation-link"
+                        [disabled]="store.isUpdating()"
+                        [locator]="reservation.locator"
+                        (navigate)="onGoToReservation()"
+                      />
+                    </dd>
+                  </div>
+                  @if (payableReservation(); as payable) {
+                    @if (payable.paymentDeadline) {
+                      <div class="lead-detail__meta-row">
+                        <dt>{{ 'leads.detail.reservation.paymentDeadline' | translate }}</dt>
+                        <dd data-testid="lead-detail-reservation-deadline">
+                          {{ payable.paymentDeadline | date: 'short' }}
+                          @if (isReservationAboutToExpire()) {
+                            <span class="lead-detail__reservation-badge" data-testid="lead-detail-reservation-about-to-expire">
+                              {{ 'leads.detail.reservation.aboutToExpire' | translate }}
+                            </span>
+                          }
+                        </dd>
+                      </div>
+                    }
+                  }
+                </dl>
+              </div>
+            }
+            @if (expiredReservation(); as reservation) {
+              <div class="lead-detail__group" data-testid="lead-detail-reservation-expired">
+                <h3 class="lead-detail__group-title">
+                  <ignt-icon name="exclamation-triangle" variant="light" aria-hidden="true" />
+                  {{ 'leads.detail.reservation.expired.title' | translate }}
+                </h3>
+                <dl class="lead-detail__meta">
+                  <div class="lead-detail__meta-row">
+                    <dt>{{ 'leads.detail.reservation.locator' | translate }}</dt>
+                    <dd data-testid="lead-detail-reservation-expired-locator">{{ reservation.locator }}</dd>
+                  </div>
+                </dl>
+                @if (isDepositForfeited()) {
+                  <p class="lead-detail__reservation-notice" data-testid="lead-detail-deposit-forfeited">
+                    {{ 'leads.detail.reservation.depositForfeited' | translate }}
+                  </p>
+                }
+              </div>
+            }
+            @if (cancelledReservation(); as reservation) {
+              <div class="lead-detail__group" data-testid="lead-detail-reservation-cancelled">
+                <h3 class="lead-detail__group-title">
+                  <ignt-icon name="times-circle" variant="light" aria-hidden="true" />
+                  {{ 'leads.detail.reservation.cancelled.title' | translate }}
+                </h3>
+                <dl class="lead-detail__meta">
+                  <div class="lead-detail__meta-row">
+                    <dt>{{ 'leads.detail.reservation.locator' | translate }}</dt>
+                    <dd data-testid="lead-detail-reservation-cancelled-locator">{{ reservation.locator }}</dd>
+                  </div>
+                </dl>
+              </div>
+            }
+          </div>
+        </ignt-wrapper-card>
+
+        <!-- Event request (with the quote and the reservation's activity journey under it, when there are
+             any) on the left and, on the right, the status card past the pipeline followed by the activity
+             timeline, as designed. While the lead is in the pipeline the banner sits inside the event request
+             instead, next to the fields it names. Informational only: it gates nothing. -->
+        <div class="lead-detail__main">
+          <div class="lead-detail__primary">
+            <ignt-wrapper-card class="lead-detail__event-card" [elevation]="1">
+              <div class="lead-detail__event-request">
+                <header class="lead-detail__event-header">
+                  <h2 class="lead-detail__event-title">{{ 'leads.detail.eventRequestTitle' | translate }}</h2>
+                  @if (canEditLead()) {
+                    <ignt-button
+                      data-testid="lead-detail-edit-button"
+                      size="small"
+                      variant="tertiary"
+                      [disabled]="store.isUpdating()"
+                      [label]="'common.edit' | translate"
+                      [leadingIcon]="{ name: 'pen', variant: 'light' }"
+                      (click)="onEdit()"
+                    />
+                  }
+                  <!-- Folding the request away only earns its place once a quote gives the card something
+                     to make room for, so the control appears with the quote and not before. The lead
+                     names its quotes, so this is known before the quote itself has been read. -->
+                  @if (latestQuoteRef()) {
+                    <button
+                      ignt-icon-button
+                      data-testid="lead-detail-event-request-toggle"
+                      sentiment="tertiary"
+                      size="small"
+                      [attr.aria-expanded]="isEventRequestExpanded()"
+                      [attr.aria-label]="'leads.detail.eventRequestToggle' | translate"
+                      [icon]="['fal', isEventRequestExpanded() ? 'chevron-up' : 'chevron-down']"
+                      (click)="onToggleEventRequest()"
+                    ></button>
+                  }
+                </header>
+
+                @if (isEventRequestExpanded()) {
+                  @if (statusBanner(); as banner) {
+                    @if (isPipelineLead()) {
+                      <app-lead-status-banner [banner]="banner" />
+                    }
+                  }
+
+                  <dl class="lead-detail__fields">
+                    <div class="lead-detail__field">
+                      <dt>{{ 'leads.detail.eventType' | translate }}</dt>
+                      <dd data-testid="lead-detail-event-type">
+                        @if (hasValue(lead.eventType)) {
+                          {{ lead.eventType }}
+                        } @else {
+                          <app-lead-empty-value [lead]="lead" />
+                        }
+                      </dd>
+                    </div>
+                    <div class="lead-detail__field">
+                      <dt>{{ 'leads.detail.guestCount' | translate }}</dt>
+                      <dd data-testid="lead-detail-guest-count">
+                        @if (lead.requestedTicketCount !== null) {
+                          {{ 'leads.detail.guestCountValue' | translate: { count: lead.requestedTicketCount } }}
+                        } @else {
+                          <app-lead-empty-value required [lead]="lead" />
+                        }
+                      </dd>
+                    </div>
+                    <div class="lead-detail__field">
+                      <dt>{{ 'leads.detail.preferredDate' | translate }}</dt>
+                      <dd data-testid="lead-detail-preferred-date">
+                        @if (hasValue(lead.preferredDate)) {
+                          {{ lead.preferredDate | date: 'mediumDate' }}
+                        } @else {
+                          <app-lead-empty-value required [lead]="lead" />
+                        }
+                      </dd>
+                    </div>
+                    <div class="lead-detail__field">
+                      <dt>{{ 'leads.detail.preferredTimeWindow' | translate }}</dt>
+                      <dd data-testid="lead-detail-preferred-time-window">
+                        @if (hasValue(lead.preferredTimeWindow)) {
+                          {{ lead.preferredTimeWindow }}
+                        } @else {
+                          <app-lead-empty-value [lead]="lead" />
+                        }
+                      </dd>
+                    </div>
+                    <div class="lead-detail__field">
+                      <dt>{{ 'leads.detail.activities' | translate }}</dt>
+                      <dd data-testid="lead-detail-activities">
+                        @if (plan()?.name; as planName) {
+                          {{ planName }}
+                        } @else if (lead.planId === null) {
+                          <app-lead-empty-value required [lead]="lead" />
+                        } @else {
+                          —
+                        }
+                      </dd>
+                    </div>
+                    <div class="lead-detail__field">
+                      <dt>{{ 'leads.detail.location' | translate }}</dt>
+                      <dd data-testid="lead-detail-location">
+                        @if (location(); as locationLabel) {
+                          {{ locationLabel }}
+                        } @else if (lead.cityId === null && lead.placeId === null) {
+                          <app-lead-empty-value [lead]="lead" />
+                        } @else {
+                          —
+                        }
+                      </dd>
+                    </div>
+                    <div class="lead-detail__field lead-detail__field--full">
+                      <dt>{{ 'leads.detail.notes' | translate }}</dt>
+                      <dd class="lead-detail__notes" data-testid="lead-detail-notes">
+                        @if (lead.notes) {
+                          {{ lead.notes }}
+                        } @else {
+                          <span class="lead-detail__notes-empty">{{ 'leads.detail.noNotes' | translate }}</span>
+                        }
+                      </dd>
+                    </div>
+                  </dl>
+                }
+              </div>
+            </ignt-wrapper-card>
+
+            @if (isQuoteListVisible()) {
+              <ignt-wrapper-card class="lead-detail__quote-card" [elevation]="1">
+                <app-lead-quote-list
+                  [canActOnQuotes]="canConvertLead()"
+                  [hasMore]="hasMoreQuotes()"
+                  [isLeadQuotable]="isQuotable()"
+                  [isLeadUpdating]="store.isUpdating()"
+                  [leadId]="lead.id"
+                  [pendingQuote]="quotePendingAction()"
+                  [rows]="quoteRows()"
+                  [totalCount]="totalQuoteCount()"
+                  (convertQuote)="onConvertQuote($event)"
+                  (modifyQuote)="onModifyQuote($event)"
+                  (quoteExpand)="onQuoteExpanded($event)"
+                  (sendQuote)="onSendQuote($event)"
+                  (showMore)="onShowMoreQuotes()"
+                />
+              </ignt-wrapper-card>
+            }
+
+            @if (partnerId() && liveReservation(); as reservation) {
+              <app-lead-reservation-journey [partnerId]="partnerId()" [reservationId]="reservation.reservationId" />
+            }
+          </div>
+
+          <div class="lead-detail__aside">
+            @if (statusBanner(); as banner) {
+              @if (!isPipelineLead()) {
+                <app-lead-status-banner [banner]="banner" />
+              }
+            }
+            @if (statusDetails(); as details) {
+              <app-lead-status-details [details]="details" />
+            }
+            @if (showTags() && tagsTarget(); as target) {
+              <ignt-wrapper-card class="lead-detail__tags-card" [elevation]="1">
+                <app-booking-tags-row data-testid="lead-detail-tags" [canEdit]="canEditTags()" [target]="target" />
+              </ignt-wrapper-card>
+            }
+            @if (partnerId()) {
+              <ignt-wrapper-card class="lead-detail__activity-card" [elevation]="1">
+                <app-lead-activity-timeline [canLogActivity]="canLogActivity()" [leadId]="lead.id" [partnerId]="partnerId()" />
+              </ignt-wrapper-card>
+            }
+          </div>
+        </div>
+      }
+    }
+  </div>
+</div>

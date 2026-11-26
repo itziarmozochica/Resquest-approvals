@@ -1,0 +1,83 @@
+<ignt-dialog-header data-testid="identify-member-account-modal-title">
+  {{ 'boxOffice.memberAccount.identify.button' | translate }}
+</ignt-dialog-header>
+
+<ignt-dialog-content data-testid="identify-member-account-modal-content">
+  @if (currentMemberships.length > 0) {
+    <div class="identify-member-account-modal__current" data-testid="identify-member-account-modal-current">
+      <span class="identify-member-account-modal__current-title">
+        {{ 'boxOffice.memberAccount.modal.currentMemberships' | translate }}
+      </span>
+      <ul class="identify-member-account-modal__current-list" data-dd-action-name="Identified member accounts list">
+        @for (membership of currentMemberships; track membership.membershipId) {
+          @let hasHolderName = membership.holderName !== null;
+          <li class="identify-member-account-modal__current-item" data-testid="identify-member-account-modal-current-item">
+            @if (hasHolderName) {
+              <span class="identify-member-account-modal__current-holder" data-testid="identify-member-account-modal-current-holder">
+                {{ membership.holderName }}
+              </span>
+            }
+            <span
+              class="identify-member-account-modal__current-membership"
+              data-testid="identify-member-account-modal-current-membership"
+              [class.identify-member-account-modal__current-membership--under-holder]="hasHolderName"
+            >
+              {{
+                'boxOffice.memberAccount.modal.membership' | translate: { membership: membership.membershipName, tier: membership.tierName }
+              }}
+            </span>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+
+  <div class="identify-member-account-modal__prompt">
+    <div class="identify-member-account-modal__message">
+      <ignt-icon name="address-card" variant="light" aria-hidden="true" />
+      <span>{{ 'boxOffice.memberAccount.modal.instructions' | translate }}</span>
+    </div>
+    <form class="identify-member-account-modal__form" [formGroup]="formGroup" (ngSubmit)="identify()">
+      <div class="identify-member-account-modal__control field">
+        <ignt-input-field
+          id="memberAccountValue"
+          type="text"
+          data-testid="identify-member-account-modal-input-value"
+          formControlName="value"
+          [label]="'boxOffice.memberAccount.modal.valueLabel' | translate"
+          [required]="true"
+          [customFormErrors]="[
+            {
+              type: 'required',
+              message: 'form.error.required' | translate,
+            },
+            {
+              type: 'serverError',
+              message: (formGroup.get('value')?.errors?.serverError | translate),
+            },
+          ]"
+        />
+      </div>
+    </form>
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer [hideCancelButton]="true">
+  <ignt-button
+    fill
+    variant="tertiary"
+    data-testid="identify-member-account-modal-cancel-button"
+    [label]="'common.cancel' | translate"
+    (click)="closeModal()"
+  />
+  <ignt-button
+    fill
+    variant="primary"
+    data-testid="identify-member-account-modal-confirm-button"
+    [ariaLabel]="'boxOffice.memberAccount.identify.button' | translate"
+    [disabled]="isLoading() || getValue().trim().length === 0"
+    [label]="'boxOffice.memberAccount.identify.button' | translate"
+    [loading]="isLoading()"
+    (click)="identify()"
+  />
+</ignt-dialog-footer>

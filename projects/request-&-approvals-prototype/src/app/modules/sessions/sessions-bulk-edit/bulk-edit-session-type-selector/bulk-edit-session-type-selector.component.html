@@ -1,0 +1,156 @@
+<form>
+  <div class="bulk-session-search-filter">
+    <input
+      data-testid="bulk-session-search-filter-input"
+      #searchFilterInput
+      class="bulk-session-search-filter__input"
+      type="text"
+      [formControl]="searchFilter"
+      [placeholder]="'sessions.sessionsPerTimeslot.bulkEdit.searchTicketTypes' | translate"
+    />
+    <ignt-icon (click)="searchFilterInput.focus()" class="bulk-session-search-filter__icon" name="search" variant="solid"></ignt-icon>
+  </div>
+
+  <label class="bulk-session-toggle-select-all">
+    <input data-testid="bulk-session-toggle-select-all" type="checkbox" [formControl]="toggleSelectAll" />
+    <span>
+      {{ 'sessions.sessionsPerTimeslot.bulkEdit.tickets' | translate }}
+      @if (selectedItemsCount$ | async; as selectedItemsCount) {
+        <span data-testid="bulk-session-selected-items-count">
+          ({{
+            selectedItemsCount.selectedCount === selectedItemsCount.total && selectedItemsCount.selectedCount > 0
+              ? ('common.all' | translate)
+              : selectedItemsCount.selectedCount
+          }})
+        </span>
+      }
+    </span>
+  </label>
+
+  @if (filteredGroupedSessionTypes$ | async; as filteredGroupedSessionTypes) {
+    <ul class="bulk-session-types-list">
+      @if (allowTimeSlotSelection) {
+        <ng-container [ngTemplateOutlet]="timeslotSelectorTemplate"></ng-container>
+      }
+    </ul>
+    @for (group of getSelectableGroups(filteredGroupedSessionTypes); track group.id) {
+      <ul class="bulk-session-types-list">
+        <ng-container
+          [ngTemplateOutlet]="group.id === 0 ? sessionTypesTemplate : groupTemplate"
+          [ngTemplateOutletContext]="{ $implicit: group }"
+        >
+        </ng-container>
+      </ul>
+    }
+    @if (getBlockedGroups(filteredGroupedSessionTypes); as blockedGroups) {
+      @if (blockedGroups.length) {
+        <ignt-alert
+          class="bulk-session-types-list__asset-based-warning"
+          data-testid="bulk-edit-asset-based-capacity-group-banner"
+          sentiment="warning"
+          [description]="'sessions.sessionsPerTimeslot.edition.error.assetBasedCapacityGroupCapacityUpdateNotAllowed' | translate"
+        ></ignt-alert>
+        @for (group of blockedGroups; track group.id) {
+          <ul class="bulk-session-types-list">
+            <ng-container [ngTemplateOutlet]="groupTemplate" [ngTemplateOutletContext]="{ $implicit: group }"></ng-container>
+          </ul>
+        }
+      }
+    }
+  }
+</form>
+
+<ng-template #sessionTypesTemplate let-group>
+  @for (sessionType of group.items; track sessionType.id) {
+    <li class="bulk-session-types-list__session-type">
+      @if (sessionTypesAndGroupsSelection.controls.sessionTypeIds.controls[sessionType.id]; as control) {
+        <label
+          class="bulk-session-types-list__session-type-label"
+          [class.bulk-session-types-list__session-type-label--disabled]="
+            isCapacityBlockingActive && isAssetBasedSessionType(sessionType.id)
+          "
+          data-testid="bulk-session-types-list-session-type-label"
+        >
+          <input type="checkbox" [formControl]="control" data-testid="bulk-session-types-list-session-type-checkbox" />
+          <ignt-icon name="ticket-alt" variant="light"></ignt-icon>
+          <ngb-highlight [result]="sessionType?.label" [term]="searchFilter.value"></ngb-highlight>
+          @if (control.value) {
+            <ng-container [ngTemplateOutlet]="sessionValue" [ngTemplateOutletContext]="{ isGroup: false }"></ng-container>
+          }
+        </label>
+      }
+    </li>
+  }
+</ng-template>
+
+<ng-template #groupTemplate let-group>
+  @if (sessionTypesAndGroupsSelection.controls.groupIds.controls[group.id]; as control) {
+    <li class="bulk-session-types-list__group">
+      <label
+        class="bulk-session-types-list__group-label"
+        [class.bulk-session-types-list__group-label--disabled]="isCapacityBlockingActive && isAssetBasedGroup(group.id)"
+        data-testid="bulk-session-types-list-session-group-label"
+      >
+        <input data-testid="bulk-session-types-list-session-group-checkbox" type="checkbox" [formControl]="control" />
+        <div>
+          <div class="bulk-session-types-list__group-legend">
+            {{ 'sessions.sessionsPerTimeslot.capacityGroup' | translate }}
+          </div>
+          <div class="bulk-session-types-list__group-name">
+            <ngb-highlight [result]="group.label" [term]="searchFilter.value"></ngb-highlight>
+          </div>
+        </div>
+        @if (control.value) {
+          <ng-container [ngTemplateOutlet]="sessionValue" [ngTemplateOutletContext]="{ isGroup: true }"></ng-container>
+        }
+      </label>
+      <ul class="bulk-session-types-list__sub-list">
+        <ng-container [ngTemplateOutlet]="sessionTypesTemplate" [ngTemplateOutletContext]="{ $implicit: group }"></ng-container>
+      </ul>
+    </li>
+  }
+</ng-template>
+
+<ng-template #timeslotSelectorTemplate>
+  @if (sessionTypesAndGroupsSelection.controls.timeSlot; as control) {
+    <li class="bulk-session-types-list__time-slot">
+      <label class="bulk-session-types-list__time-slot-label" data-testid="bulk-session-types-list-time-slot-label">
+        <input type="checkbox" [formControl]="control" data-testid="bulk-session-types-list-time-slot-checkbox" />
+        {{ 'sessions.sessionsPerTimeslot.bulkEdit.timeSlotCapacity' | translate }}
+        @if (control.value && appliedValue?.capacity) {
+          <span data-testid="bulk-session-types-list-time-slot-capacity" class="bulk-session-types-list__time-slot-capacity">{{
+            appliedValue?.capacity
+          }}</span>
+        }
+      </label>
+    </li>
+  }
+</ng-template>
+
+<ng-template #sessionValue let-isGroup="isGroup">
+  <div class="bulk-session-types-list__session-type-value">
+    @if (appliedValue?.capacity) {
+      <span data-testid="bulk-session-types-list-time-slot-capacity" class="bulk-session-types-list__session-type-capacity">
+        {{ appliedValue?.capacity }}
+      </span>
+    }
+    @if (!isGroup && appliedValue?.salesStatus !== undefined) {
+      <span class="bulk-session-types-list__session-type-status">
+        <app-on-off-badge
+          data-testid="bulk-session-types-list-session-type-sales-status"
+          [isOn]="appliedValue?.salesStatus"
+        ></app-on-off-badge>
+      </span>
+    }
+    @if (!isGroup && appliedValue?.visibility !== undefined) {
+      <span class="bulk-session-types-list__session-type-visibility">
+        <ignt-icon
+          data-testid="bulk-session-types-list-session-type-visibility"
+          class="horizontal-switch__icon"
+          [name]="appliedValue?.visibility ? 'eye' : 'eye-slash'"
+          variant="light"
+        ></ignt-icon>
+      </span>
+    }
+  </div>
+</ng-template>

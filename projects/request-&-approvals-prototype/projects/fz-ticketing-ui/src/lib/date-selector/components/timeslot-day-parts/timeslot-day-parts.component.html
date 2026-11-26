@@ -1,0 +1,99 @@
+<article class="date-time-selector__hours" data-testid="hours-selector-container">
+  <div class="only-in-desktop">
+    @for (part of vm().dayParts; track part.section) {
+      <div class="time-selector">
+        <div
+          class="time-selector__hour-block"
+          data-testid="toggle-sessions-range-button"
+          [class.time-selector__hour-block--disabled]="part.containsSelection"
+        >
+          <span>
+            <strong>{{ sectionLabel(part) }}</strong
+            >{{ hoursCaptionSuffix(part) }}
+          </span>
+          <button
+            ignt-icon-button
+            sentiment="tertiary"
+            size="small"
+            type="button"
+            variant="sharp"
+            [attr.aria-expanded]="isSectionOpen(part)"
+            [attr.aria-label]="translations().toggleRangeAriaLabel"
+            [disabled]="part.containsSelection"
+            [icon]="chevronIcon(part)"
+            (click)="onSectionToggle(part)"
+          ></button>
+        </div>
+        @if (isSectionOpen(part)) {
+          <div class="tile-wrapper tile-wrapper--grid" [attr.data-testid]="`${part.section}-session`">
+            <ng-container [ngTemplateOutlet]="partTiles" [ngTemplateOutletContext]="{ isFirst: $first, isLast: $last, part: part }" />
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="only-in-mobile">
+    <ignt-tabs [hasExtraLine]="true" [selectedIndex]="selectedTabIndex()" (selectedIndexChange)="onTabIndexChange($event)">
+      @for (part of vm().dayParts; track part.section) {
+        <ignt-tabs-item [label]="sectionLabel(part)">
+          <div class="tile-wrapper tile-wrapper--row-date" [attr.data-testid]="`${part.section}-session`">
+            <ng-container [ngTemplateOutlet]="partTiles" [ngTemplateOutletContext]="{ isFirst: $first, isLast: $last, part: part }" />
+          </div>
+        </ignt-tabs-item>
+      }
+    </ignt-tabs>
+  </div>
+</article>
+
+<!-- Three literal tiles, not a loop: the template stays within the cyclomatic-complexity limit. -->
+<ng-template #skeletonTiles>
+  <ignt-skeleton-base
+    class="tile-wrapper__skeleton"
+    data-testid="hour-skeleton"
+    [animation]="true"
+    [height]="skeletonTileHeight()"
+    [white]="useWhiteSkeleton()"
+  />
+  <ignt-skeleton-base
+    class="tile-wrapper__skeleton"
+    data-testid="hour-skeleton"
+    [animation]="true"
+    [height]="skeletonTileHeight()"
+    [white]="useWhiteSkeleton()"
+  />
+  <ignt-skeleton-base
+    class="tile-wrapper__skeleton"
+    data-testid="hour-skeleton"
+    [animation]="true"
+    [height]="skeletonTileHeight()"
+    [white]="useWhiteSkeleton()"
+  />
+</ng-template>
+
+<ng-template #partTiles let-isFirst="isFirst" let-isLast="isLast" let-part="part">
+  <ng-container [ngTemplateOutlet]="isFirst && vm().loadingHours.before ? skeletonTiles : null" />
+  @for (timeslot of part.timeslots; track timeslot.datetimeKey) {
+    <button
+      class="tile-wrapper__item tile"
+      data-testid="hour-item"
+      type="button"
+      [attr.aria-disabled]="timeslot.isDisabled"
+      [attr.aria-pressed]="timeslot.isSelected"
+      [class.selected]="timeslot.isSelected"
+      [class.tile--disabled]="timeslot.isDisabled"
+      [class.tile--selected]="timeslot.isSelected"
+      [class.tile--with-caption]="timeslot.showCapacity"
+      (click)="onTimeslotClick(timeslot)"
+    >
+      {{ timeslot.timeLabel }}
+      @if (timeslot.showCapacity) {
+        <div class="tile-caption" data-testid="hour-capacity">
+          {{ timeslot.capacity }}
+          <ignt-icon name="ticket-alt" size="caption" variant="light" />
+        </div>
+      }
+    </button>
+  }
+  <ng-container [ngTemplateOutlet]="isLast && vm().loadingHours.after ? skeletonTiles : null" />
+</ng-template>

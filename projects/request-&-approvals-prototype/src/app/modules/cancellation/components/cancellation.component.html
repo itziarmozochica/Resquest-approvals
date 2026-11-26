@@ -1,0 +1,147 @@
+<div #pageTitle>
+  <app-page-title [title]="'menu.cancellation' | translate" class="new-design"></app-page-title>
+</div>
+
+<div class="container" *ngIf="!isLoading && order !== null; else loadingTemplate">
+  <div class="cancellation-card" #cancellationCard data-testid="cancellation-card">
+    <div class="order-cancellation-wrapper">
+      <app-order-cancellation-header [viewOrder]="order" [hasReschedule]="false" />
+    </div>
+    <div class="rows">
+      <div class="order-details">
+        <app-order-cancellation-detail
+          [cancellationCart]="order.cart ?? null"
+          [orderId]="order.id"
+          [step]="cancellationStep"
+          [loyaltyPoints]="order.loyaltyPoints ?? null"
+          [orderEntranceTicketCardsSelection]="orderEntranceTicketCardsSelection"
+          [orderCancellationRecords]="order.userCancellationRecords ?? null"
+        ></app-order-cancellation-detail>
+      </div>
+      <div class="order-tickets">
+        @if (cancellationStep === CancellationStep.REIMBURSEMENT_SUMMARY && paidDeposit; as deposit) {
+          @if (cancellationReimbursementType === ReimbursementType.Voucher) {
+            <ignt-alert
+              class="cancellation__deposit-warning"
+              data-testid="cancellation-deposit-voucher-full-value-warning"
+              sentiment="warning"
+              [title]="'cancellation.depositVoucherFullValue.title' | translate"
+              [description]="
+                'cancellation.depositVoucherFullValue.description'
+                  | translate
+                    : {
+                        voucherAmount:
+                          order.cart?.total?.amount
+                          | currency: order.cart?.total?.currency ?? deposit.calculatedAmount?.currency ?? 'USD' : 'symbol-narrow',
+                        depositAmount:
+                          deposit.calculatedAmount?.amount
+                          | currency: deposit.calculatedAmount?.currency ?? order.cart?.total?.currency ?? 'USD' : 'symbol-narrow',
+                        settlementAmount: settlementAmount?.amount | currency: settlementAmount?.currency ?? 'USD' : 'symbol-narrow',
+                      }
+              "
+            />
+          } @else {
+            <ignt-alert
+              class="cancellation__deposit-warning"
+              data-testid="cancellation-deposit-not-refundable-warning"
+              sentiment="warning"
+              [title]="'cancellation.depositNotRefundable.title' | translate"
+              [description]="
+                'cancellation.depositNotRefundable.description'
+                  | translate
+                    : {
+                        depositAmount:
+                          deposit.calculatedAmount?.amount
+                          | currency: deposit.calculatedAmount?.currency ?? order.cart?.total?.currency ?? 'USD' : 'symbol-narrow',
+                        settlementAmount: settlementAmount?.amount | currency: settlementAmount?.currency ?? 'USD' : 'symbol-narrow',
+                      }
+              "
+            />
+          }
+        }
+        <app-order-cancellation-ticket-selector
+          [canForceCancelProviderOrders]="canForceCancelProviderOrders()"
+          [showForceCancelProviderOrder]="showForceCancelProviderOrder()"
+          [canSelectCancellationReason]="canSelectCancellationReason()"
+          [tickets]="tickets"
+          [ticketsSummaries]="this.getTicketSummaries()"
+          [totalCancellationDisabled]="!orderAllowsPartialCancellation"
+          [isPolishFiscalBoxOffice]="isPolishFiscalBoxOffice"
+          (cancellationFormDataChange)="onCancellationFormDataChange($event)"
+          (onsiteSetupChange)="handleOnsiteSetupChange()"
+          (refundRequested)="handleRefundRequested($event)"
+          (orderEntranceTicketCardsSelection)="onOrderEntranceTicketCardsSelectionChange($event)"
+          [cancellationStep]="cancellationStep"
+          [order]="order"
+          [splitPackDisabled]="!(orderAllowsSplitPack && isSplitPackEnabled)"
+          (splitPackConfirm)="confirmSplitPack($event)"
+        ></app-order-cancellation-ticket-selector>
+      </div>
+    </div>
+  </div>
+
+  <div class="mobile-navigation-buttons-wrapper" data-testid="mobile-navigation-buttons-wrapper">
+    <ng-container *ngTemplateOutlet="navigationButtons; context: { shouldScroll: true, scrollAnchor: cancellationCard }"></ng-container>
+  </div>
+  <div class="desktop-navigation-buttons-wrapper" data-testid="desktop-navigation-buttons-wrapper">
+    <ng-container *ngTemplateOutlet="navigationButtons; context: { shouldScroll: false, scrollAnchor: cancellationCard }"></ng-container>
+  </div>
+</div>
+
+<ng-template #loadingTemplate>
+  <div class="spinner" data-testid="spinner">
+    <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'4x'"></fa-icon>
+  </div>
+</ng-template>
+
+<ng-template #navigationButtons let-shouldScroll="shouldScroll" let-scrollAnchor="scrollAnchor">
+  <div [ngSwitch]="cancellationStep">
+    <div *ngSwitchCase="CancellationStep.ORDER_DETAIL" class="cancellation-buttons">
+      <button
+        type="button"
+        igntButton
+        sentiment="secondary"
+        size="large"
+        data-testid="back-step-0-button"
+        (click)="shouldScroll ? scrollTo(scrollAnchor) : undefined; goBack()"
+      >
+        {{ 'cancellation.buttons.backStep1' | translate }}
+      </button>
+
+      <button
+        type="button"
+        igntButton
+        sentiment="primary"
+        size="large"
+        data-testid="continue-step-0-button"
+        (click)="shouldScroll ? scrollTo(scrollAnchor) : undefined; continueFromOrderDetail()"
+      >
+        {{ 'cancellation.buttons.continueStep0' | translate }}
+      </button>
+    </div>
+    <div *ngSwitchCase="CancellationStep.REIMBURSEMENT_SUMMARY" class="cancellation-buttons">
+      <button
+        type="button"
+        igntButton
+        sentiment="secondary"
+        size="large"
+        data-testid="back-step-1-button"
+        (click)="shouldScroll ? scrollTo(scrollAnchor) : undefined; setCancellationStep(CancellationStep.ORDER_DETAIL)"
+      >
+        {{ 'cancellation.buttons.backStep1' | translate }}
+      </button>
+
+      <button
+        type="button"
+        igntButton
+        sentiment="primary"
+        size="large"
+        data-testid="confirm-cancellation-button"
+        (click)="shouldScroll ? scrollTo(scrollAnchor) : undefined; confirmCancellation()"
+        [disabled]="!canConfirmCancellation() || isResolvingRefundPaymentMethod()"
+      >
+        {{ 'cancellation.buttons.continueStep1' | translate }}
+      </button>
+    </div>
+  </div>
+</ng-template>

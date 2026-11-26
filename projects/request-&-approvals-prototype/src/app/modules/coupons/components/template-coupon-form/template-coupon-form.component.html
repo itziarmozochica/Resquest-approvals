@@ -1,0 +1,709 @@
+<form class="coupon-form cell cell--fill" *ngIf="templateCouponForm" [formGroup]="templateCouponForm" (ngSubmit)="onSubmit()">
+  <!-- General info section -->
+  <section class="coupon-form__section">
+    <h3 class="font-h3">{{ 'coupons.form.generalInfo.title' | translate }}</h3>
+    <fieldset class="fieldset">
+      <legend class="fieldset__legend">
+        {{ 'coupons.form.generalInfo.fieldsetsHelpTexts.details' | translate }}
+      </legend>
+      <div class="wrapper-card wrapper">
+        <label class="cell field" data-testid="template-coupon-general-info__title">
+          <input
+            #formField
+            class="field__input"
+            type="text"
+            formControlName="title"
+            data-form-control-key="title"
+            maxlength="20"
+            [placeholder]="'coupons.form.generalInfo.fields.title.label' | translate"
+          />
+          <span class="field__label">{{ 'coupons.form.generalInfo.fields.title.label' | translate }}</span>
+          <ng-container
+            [ngTemplateOutlet]="helper"
+            [ngTemplateOutletContext]="{
+              controlName: 'title',
+              helpText: 'coupons.form.generalInfo.fields.title.helpText' | translate,
+            }"
+          ></ng-container>
+        </label>
+        <label class="cell field" data-testid="template-coupon-general-info__description">
+          <textarea
+            class="field__input field__textarea"
+            formControlName="description"
+            [placeholder]="'coupons.form.generalInfo.fields.description.label' | translate"
+          ></textarea>
+          <span class="field__label">{{ 'coupons.form.generalInfo.fields.description.label' | translate }}</span>
+          <span class="field__helper">{{ 'coupons.form.generalInfo.fields.description.helpText' | translate }}</span>
+        </label>
+      </div>
+    </fieldset>
+  </section>
+
+  <!-- Attributes section -->
+  <section class="coupon-form__section">
+    <h3 class="font-h3">{{ 'coupons.form.attributes.title' | translate }}</h3>
+    <div class="fieldset-list">
+      <fieldset class="fieldset">
+        <legend class="fieldset__legend">
+          {{ 'coupons.form.attributes.fieldsetsHelpTexts.code' | translate }}
+        </legend>
+        <div class="wrapper-card wrapper">
+          <ul class="group-list coupon-type">
+            <ng-container *ngIf="isFeatureEnabled">
+              <li class="group-list__item list-item radio-item coupon-type__item">
+                <ignt-radio-group formControlName="couponType">
+                  <div
+                    #couponCard
+                    class="wrapper wrapper-card coupon-type__selector"
+                    [class.coupon-type__selector--selected]="templateCouponForm.controls.couponType.value === couponTypeOption"
+                    [class.coupon-type__selector--disabled]="templateCouponForm.controls.couponType.disabled"
+                    *ngFor="let couponTypeOption of couponTypes"
+                    (click)="templateCouponForm.controls.couponType.setValue(couponTypeOption)"
+                  >
+                    <ignt-radio
+                      [value]="couponTypeOption"
+                      [name]="'couponType'"
+                      [label]="'coupons.form.attributes.fields.couponType.types.' + couponTypeOption | translate"
+                      [description]="'coupons.form.attributes.fields.couponType.helpers.' + couponTypeOption | translate"
+                      [disabled]="templateCouponForm.controls.couponType.disabled"
+                      [dataTestId]="'template-coupon-attributes__discount-type__' + couponTypeOption"
+                    ></ignt-radio>
+                  </div>
+                </ignt-radio-group>
+              </li>
+            </ng-container>
+            <ng-container *ngIf="isFeatureEnabled && couponType === 'unique'">
+              <li class="coupon-type__item coupon-type__item--no-border">
+                <label class="field" data-testid="template-coupon-usage-limits__count-to-create">
+                  <input
+                    #formField
+                    class="field__input"
+                    formControlName="countToCreate"
+                    data-form-control-key="countToCreate"
+                    appAutoformatNumericInput
+                    [decimalPlaces]="0"
+                    min="0"
+                    max="100000"
+                    [placeHolderValue]="'coupons.form.attributes.fields.countToCreate.label' | translate"
+                  />
+                  <span class="field__label">{{ 'coupons.form.attributes.fields.countToCreate.label' | translate }}</span>
+                  <ng-container
+                    [ngTemplateOutlet]="helper"
+                    [ngTemplateOutletContext]="{
+                      controlName: 'countToCreate',
+                      helpText: 'coupons.form.attributes.fields.countToCreate.helpText' | translate,
+                    }"
+                  ></ng-container>
+                </label>
+              </li>
+            </ng-container>
+            <li class="group-list__item list-item coupon-type__item coupon-type__code-container">
+              <label class="field" data-testid="template-coupon-attributes__code">
+                <input
+                  #formField
+                  class="field__input"
+                  type="text"
+                  formControlName="code"
+                  data-form-control-key="code"
+                  pattern="[a-zA-Z0-9]{0,14}"
+                  (input)="onCodeInput($event)"
+                  [placeholder]="'coupons.form.attributes.fields.code.label' | translate"
+                />
+                <span class="field__label">{{ 'coupons.form.attributes.fields.code.label' | translate }}</span>
+                <ng-container
+                  [ngTemplateOutlet]="helper"
+                  [ngTemplateOutletContext]="{
+                    controlName: 'code',
+                    helpText: 'coupons.form.generalInfo.fields.title.helpText' | translate,
+                  }"
+                ></ng-container>
+              </label>
+              <ng-container *ngIf="couponType === 'unique'">
+                <div class="wrapper wrapper-card coupon-type__code-container__test-code">
+                  <label class="coupon-type__code-container__test-code__label">
+                    <span>{{ 'coupons.form.attributes.fields.couponType.testCode.labelStrong' | translate }}</span>
+                    <span>{{ 'coupons.form.attributes.fields.couponType.testCode.label' | translate }}</span>
+                  </label>
+                  <label class="wrapper coupon-type__code-container__test-code__code">
+                    <ignt-icon name="badge-percent" variant="regular" aria-hidden="true"></ignt-icon>
+                    <span>{{ templateCouponForm.controls.code.value }}3F79</span>
+                  </label>
+                </div>
+              </ng-container>
+            </li>
+            <li class="group-list__item list-item coupon-type__item">
+              <label class="cell field" data-testid="template-coupon-attributes__code">
+                <ng-container *ngIf="couponType === 'default'; else uniqueText">
+                  <span class="field__helper">{{ 'coupons.form.attributes.fields.code.helpText' | translate }}</span>
+                </ng-container>
+                <ng-template #uniqueText>
+                  <span class="field__helper">
+                    {{ 'coupons.form.attributes.fields.couponType.uniqueCouponType.label' | translate }}
+                  </span>
+                </ng-template>
+              </label>
+            </li>
+          </ul>
+        </div>
+      </fieldset>
+      <fieldset class="fieldset">
+        <legend class="fieldset__legend">{{ 'coupons.form.attributes.fieldsetsHelpTexts.discount' | translate }}</legend>
+        <div class="wrapper-card wrapper discount-type-wrapper">
+          <ul class="group-list">
+            <li class="group-list__item list-item radio-item">
+              <ignt-radio-group formControlName="discountType">
+                @for (discountType of discountTypeRadioOptions; track discountType) {
+                  <div class="discount-type__selector">
+                    <ignt-radio
+                      [value]="discountType"
+                      [name]="'discountType'"
+                      [label]="'coupons.form.attributes.fields.discountType.types.' + discountType | translate"
+                      [disabled]="isDiscountKindLockedOnEdit"
+                      [dataTestId]="'template-coupon-attributes__discount-type__' + discountType"
+                    ></ignt-radio>
+                  </div>
+                }
+              </ignt-radio-group>
+            </li>
+            <li class="group-list__item list-item">
+              <ng-container *ngIf="templateCouponForm.controls.discountType.value === 'bundle'; else discountQuantityInput">
+                <ul class="group-list">
+                  <li class="group-list__item list-item">
+                    <label class="cell cell--fill-sm field" data-testid="template-coupon-attributes__bundle-buy">
+                      <input
+                        #formField
+                        class="field__input"
+                        formControlName="bundleBuy"
+                        data-form-control-key="bundleBuy"
+                        appAutoformatNumericInput
+                        min="0"
+                        [placeHolderValue]="'coupons.form.attributes.fields.bundleBuy.label' | translate"
+                      />
+                      <span class="field__label">{{ 'coupons.form.attributes.fields.bundleBuy.label' | translate }}</span>
+                      <ng-container
+                        [ngTemplateOutlet]="helper"
+                        [ngTemplateOutletContext]="{
+                          controlName: 'bundleBuy',
+                          helpText: 'coupons.form.attributes.fields.bundleBuy.helpText' | translate,
+                        }"
+                      ></ng-container>
+                    </label>
+                    <label class="cell cell--fill-sm field" data-testid="template-coupon-attributes__bundle-pay">
+                      <input
+                        #formField
+                        class="field__input"
+                        formControlName="bundlePay"
+                        data-form-control-key="bundlePay"
+                        appAutoformatNumericInput
+                        min="0"
+                        [placeHolderValue]="'coupons.form.attributes.fields.bundlePay.label' | translate"
+                      />
+                      <span class="field__label">{{ 'coupons.form.attributes.fields.bundlePay.label' | translate }}</span>
+                      <ng-container
+                        [ngTemplateOutlet]="helper"
+                        [ngTemplateOutletContext]="{
+                          controlName: 'bundlePay',
+                          helpText: 'coupons.form.attributes.fields.bundlePay.helpText' | translate,
+                        }"
+                      ></ng-container>
+                    </label>
+                  </li>
+                </ul>
+                <label class="cell cell--fill-sm field" data-testid="template-coupon-attributes__bundle-usage-limit">
+                  <input
+                    #formField
+                    class="field__input"
+                    formControlName="bundleUsageLimit"
+                    data-form-control-key="bundleUsageLimit"
+                    appAutoformatNumericInput
+                    min="0"
+                    [placeHolderValue]="'coupons.form.attributes.fields.bundleUsageLimit.label' | translate"
+                  />
+                  <span class="field__label">{{ 'coupons.form.attributes.fields.bundleUsageLimit.label' | translate }}</span>
+                  <ng-container
+                    [ngTemplateOutlet]="helper"
+                    [ngTemplateOutletContext]="{
+                      controlName: 'bundleUsageLimit',
+                      helpText: 'coupons.form.attributes.fields.bundleUsageLimit.helpText' | translate,
+                    }"
+                  ></ng-container>
+                  <div class="mt-3">
+                    <ignt-alert>
+                      <ng-template #igntAlertContent>
+                        <span [innerHTML]="'coupons.form.infoBanners.bundleUsageLimits' | translate"></span>
+                      </ng-template>
+                    </ignt-alert>
+                  </div>
+                </label>
+              </ng-container>
+              <ng-template #discountQuantityInput>
+                <label class="cell cell--fill-sm field" data-testid="template-coupon-attributes__discount-quantity">
+                  <input
+                    *ngIf="templateCouponForm.controls.discountType.value === 'money'"
+                    #formField
+                    class="field__input"
+                    formControlName="discountQuantity"
+                    data-form-control-key="discountQuantity"
+                    appAutoformatNumericInput
+                    min="0"
+                    [decimalPlaces]="2"
+                    [currency]="this.templateCouponForm.controls.currencyIdentifier.value"
+                    [placeHolderValue]="'coupons.form.attributes.fields.discountQuantity.label' | translate"
+                  />
+                  <input
+                    *ngIf="templateCouponForm.controls.discountType.value === 'percentage'"
+                    #formField
+                    class="field__input"
+                    formControlName="discountQuantity"
+                    data-form-control-key="discountQuantity"
+                    appAutoformatNumericInput
+                    min="0"
+                    max="100"
+                    [decimalPlaces]="2"
+                    suffixText=" %"
+                    [placeHolderValue]="'coupons.form.attributes.fields.discountQuantity.label' | translate"
+                  />
+                  <span class="field__label">{{ 'coupons.form.attributes.fields.discountQuantity.label' | translate }}</span>
+                  <ng-container
+                    [ngTemplateOutlet]="helper"
+                    [ngTemplateOutletContext]="{
+                      controlName: 'discountQuantity',
+                      helpText: 'coupons.form.attributes.fields.discountQuantity.helpText' | translate,
+                    }"
+                  ></ng-container>
+                  @if (templateCouponForm.controls.discountType.value === 'money') {
+                    <div class="mt-3">
+                      <ignt-alert>
+                        <ng-template #igntAlertContent>
+                          <span [innerHTML]="'coupons.form.infoBanners.moneyCurrencyInfo' | translate"></span>
+                        </ng-template>
+                      </ignt-alert>
+                    </div>
+                  }
+                </label>
+              </ng-template>
+            </li>
+            <li *ngIf="hasApplyToSurchargeEnabled()" class="group-list__item list-item">
+              <div class="list-item__content cell--fill">
+                <div class="list-item__label">
+                  <strong>{{ 'coupons.form.usageLimits.global.includeFees.title' | translate }}</strong>
+                  <span>{{ 'coupons.form.optionalField' | translate }}</span>
+                </div>
+                <div class="list-item__supporting-text">{{ 'coupons.form.usageLimits.global.includeFees.description' | translate }}</div>
+              </div>
+              <div class="cell--hug" data-testid="template-coupon-attributes__apply-to-surcharge__toggle">
+                <ignt-toggle
+                  id="apply-to-surcharge"
+                  [checked]="templateCouponForm.controls.appliesToSurcharge.value"
+                  [disabled]="templateCouponForm.disabled"
+                  (change)="onApplyToSurchargeChange($event)"
+                ></ignt-toggle>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </fieldset>
+      <fieldset class="fieldset">
+        <h3 class="font-h3">{{ 'coupons.form.usageLimits.title' | translate }}</h3>
+        <p class="usage-limits__helper-text" data-testid="template-coupon-usage-limits__helper-text">
+          {{ 'coupons.form.usageLimits.helperText' | translate }}
+        </p>
+        <div class="usage-limits">
+          <legend class="fieldset__legend">
+            {{ 'coupons.form.usageLimits.global.title' | translate }}
+          </legend>
+          <fieldset class="fieldset usage-limits__card">
+            <div class="usage-limits__row usage-limits__row--two">
+              <label class="cell field" data-testid="template-coupon-usage-limits__available-usages">
+                <input
+                  #formField
+                  class="field__input"
+                  formControlName="availableRedeems"
+                  data-form-control-key="availableRedeems"
+                  appAutoformatNumericInput
+                  min="0"
+                  max="2000000"
+                  [placeHolderValue]="'coupons.form.attributes.fields.availableUsages.label' | translate"
+                />
+                <span class="field__label">{{ 'coupons.form.attributes.fields.availableUsages.label' | translate }}</span>
+                <ng-container
+                  [ngTemplateOutlet]="helper"
+                  [ngTemplateOutletContext]="{
+                    controlName: 'availableRedeems',
+                    helpText: 'coupons.form.attributes.fields.availableUsages.helpText' | translate,
+                  }"
+                ></ng-container>
+                <span class="field__helper total-promo-budget" *ngIf="totalPromoBudget() as totalPromoBudget">
+                  <b>{{ 'coupons.form.attributes.fields.totalPromoBudget.helpText' | translate }}</b>
+                  <span class="badge">{{ totalPromoBudget }}</span>
+                </span>
+              </label>
+              <label class="cell field" data-testid="template-coupon-usage-limits__tickets-purchasable">
+                <input
+                  #formField
+                  class="field__input"
+                  formControlName="numberOfTicketsPurchasable"
+                  data-form-control-key="numberOfTicketsPurchasable"
+                  appAutoformatNumericInput
+                  min="0"
+                  max="1000000000"
+                  [placeHolderValue]="'coupons.form.usageLimits.global.ticketsPurchasable.label' | translate"
+                />
+                <span class="field__label">{{ 'coupons.form.usageLimits.global.ticketsPurchasable.label' | translate }}</span>
+                <ng-container
+                  [ngTemplateOutlet]="helper"
+                  [ngTemplateOutletContext]="{
+                    controlName: 'numberOfTicketsPurchasable',
+                    helpText: 'coupons.form.usageLimits.global.ticketsPurchasable.helpText' | translate,
+                  }"
+                ></ng-container>
+              </label>
+            </div>
+            <label class="cell field" data-testid="template-coupon-usage-limits__available-purchases">
+              <input
+                #formField
+                class="field__input"
+                formControlName="availablePurchases"
+                data-form-control-key="availablePurchases"
+                appAutoformatNumericInput
+                min="0"
+                max="1000000000"
+                [placeHolderValue]="'coupons.form.usageLimits.global.availablePurchases.label' | translate"
+              />
+              <span class="field__label">{{ 'coupons.form.usageLimits.global.availablePurchases.label' | translate }}</span>
+              <ng-container
+                [ngTemplateOutlet]="helper"
+                [ngTemplateOutletContext]="{
+                  controlName: 'availablePurchases',
+                  helpText: 'coupons.form.usageLimits.global.availablePurchases.helpText' | translate,
+                }"
+              ></ng-container>
+            </label>
+          </fieldset>
+
+          <legend class="fieldset__legend">
+            {{ 'coupons.form.usageLimits.perUser.title' | translate }}
+          </legend>
+          <fieldset class="fieldset usage-limits__card">
+            <label class="cell field" data-testid="template-coupon-usage-limits__max-uses-per-user">
+              <input
+                #formField
+                class="field__input"
+                formControlName="maxUsesPerUser"
+                data-form-control-key="maxUsesPerUser"
+                appAutoformatNumericInput
+                min="0"
+                max="1000000000"
+                [placeHolderValue]="'coupons.form.attributes.fields.maxUsesPerUser.label' | translate"
+              />
+              <span class="field__label">{{ 'coupons.form.attributes.fields.maxUsesPerUser.label' | translate }}</span>
+              <ng-container
+                [ngTemplateOutlet]="helper"
+                [ngTemplateOutletContext]="{
+                  controlName: 'maxUsesPerUser',
+                  helpText: 'coupons.form.attributes.fields.maxUsesPerUser.helpText' | translate,
+                }"
+              ></ng-container>
+            </label>
+          </fieldset>
+
+          <ng-container *ngIf="templateCouponForm.controls.discountType.value === 'percentage'">
+            <legend class="fieldset__legend">
+              {{ 'coupons.form.usageLimits.perOrder.title' | translate }}
+            </legend>
+            <fieldset class="fieldset usage-limits__card">
+              <label class="cell field" data-testid="template-coupon-usage-limits__tickets-per-order">
+                <input
+                  #formField
+                  class="field__input"
+                  formControlName="maxTicketsPerOrder"
+                  data-form-control-key="maxTicketsPerOrder"
+                  appAutoformatNumericInput
+                  min="0"
+                  max="1000"
+                  [placeHolderValue]="'coupons.form.attributes.fields.maxTicketsPerOrder.label' | translate"
+                />
+                <span class="field__label">{{ 'coupons.form.attributes.fields.maxTicketsPerOrder.label' | translate }}</span>
+                <ng-container
+                  [ngTemplateOutlet]="helper"
+                  [ngTemplateOutletContext]="{
+                    controlName: 'maxTicketsPerOrder',
+                    helpText: 'coupons.form.attributes.fields.maxTicketsPerOrder.helpText' | translate,
+                  }"
+                ></ng-container>
+              </label>
+              <label class="cell field" data-testid="template-coupon-usage-limits__min-tickets-per-order">
+                <input
+                  #formField
+                  class="field__input"
+                  formControlName="minTicketsPerOrder"
+                  data-form-control-key="minTicketsPerOrder"
+                  appAutoformatNumericInput
+                  min="0"
+                  max="1000"
+                  [placeHolderValue]="'coupons.form.attributes.fields.minTicketsPerOrder.label' | translate"
+                />
+                <span class="field__label">{{ 'coupons.form.attributes.fields.minTicketsPerOrder.label' | translate }}</span>
+                <ng-container
+                  [ngTemplateOutlet]="helper"
+                  [ngTemplateOutletContext]="{
+                    controlName: 'minTicketsPerOrder',
+                    helpText: 'coupons.form.attributes.fields.minTicketsPerOrder.helpText' | translate,
+                  }"
+                ></ng-container>
+              </label>
+            </fieldset>
+          </ng-container>
+
+          <fieldset class="usage-limits__summary" *ngIf="totalCouponsUsages() as totalCouponsUsages">
+            <legend class="usage-limits__summary-label">
+              {{ 'coupons.form.usageLimits.summary.label' | translate }}
+            </legend>
+            <span class="usage-limits__summary-value">{{ totalCouponsUsages }}</span>
+          </fieldset>
+        </div>
+      </fieldset>
+      <fieldset class="fieldset">
+        <legend class="fieldset__legend">
+          {{ 'coupons.form.attributes.fieldsetsHelpTexts.activationPeriod' | translate }}
+        </legend>
+        <div class="wrapper-card wrapper">
+          <ul class="group-list">
+            <li class="group-list__item list-item">
+              <div class="list-item__content cell--fill">
+                <div class="list-item__label">
+                  <strong>{{ 'coupons.form.attributes.fields.startDate.label' | translate }}</strong>
+                  <span>{{ 'coupons.form.optionalField' | translate }}</span>
+                </div>
+                <div class="list-item__supporting-text">{{ 'coupons.form.attributes.fields.startDate.helpText' | translate }}</div>
+              </div>
+              <div class="cell--hug" data-testid="template-coupon-attributes__end-start__switch">
+                <ignt-toggle
+                  #enableStartDate
+                  id="enable-start-date"
+                  [checked]="enabledStartDate()"
+                  [disabled]="templateCouponForm.disabled"
+                  (change)="enableStartDate.checked || clearControlValue('startDate')"
+                ></ignt-toggle>
+              </div>
+              <div class="cell" *ngIf="enableStartDate.checked">
+                <div
+                  class="coupon-form__date-time-wrapper"
+                  [class.coupon-form__date-time-wrapper--error]="shouldShowDateTimeError('startDate')"
+                  [formGroup]="$any(templateCouponForm.controls.startDate)"
+                >
+                  <label class="coupon-form__date-field">
+                    <span class="coupon-form__date-field-label">{{
+                      'coupons.form.attributes.fields.startDate.part.date' | translate
+                    }}</span>
+                    <input
+                      #formField
+                      class="coupon-form__date-field-input"
+                      type="date"
+                      formControlName="date"
+                      data-form-control-key="startDate"
+                      [min]="getDateForInput(minStartDate)"
+                      [max]="getDateForInput(getDateFromDateTime(templateCouponForm.controls.expirationDate.value))"
+                      data-testid="template-coupon-attributes__start-date"
+                    />
+                  </label>
+                  <label class="coupon-form__date-field">
+                    <span class="coupon-form__date-field-label">{{
+                      'coupons.form.attributes.fields.startDate.part.time' | translate
+                    }}</span>
+                    <input
+                      #formField
+                      class="coupon-form__date-field-input"
+                      type="time"
+                      formControlName="time"
+                      data-form-control-key="startDate"
+                      data-testid="template-coupon-attributes__start-time"
+                    />
+                  </label>
+                </div>
+                <ng-container
+                  [ngTemplateOutlet]="dateTimeHelper"
+                  [ngTemplateOutletContext]="{
+                    controlName: 'startDate',
+                    helpText: '',
+                  }"
+                ></ng-container>
+              </div>
+            </li>
+            <li class="group-list__item list-item">
+              <div class="list-item__content cell--fill">
+                <div class="list-item__label">
+                  <strong>{{ 'coupons.form.attributes.fields.expirationDate.label' | translate }}</strong>
+                </div>
+                <div class="list-item__supporting-text">{{ 'coupons.form.attributes.fields.expirationDate.helpText' | translate }}</div>
+              </div>
+              <div class="cell">
+                <div
+                  class="coupon-form__date-time-wrapper"
+                  [class.coupon-form__date-time-wrapper--error]="shouldShowDateTimeError('expirationDate')"
+                  [formGroup]="$any(templateCouponForm.controls.expirationDate)"
+                >
+                  <label class="coupon-form__date-field">
+                    <span class="coupon-form__date-field-label">{{
+                      'coupons.form.attributes.fields.expirationDate.part.date' | translate
+                    }}</span>
+                    <input
+                      #formField
+                      class="coupon-form__date-field-input"
+                      type="date"
+                      formControlName="date"
+                      data-form-control-key="expirationDate"
+                      [min]="getDateForInput(minEndDate)"
+                      data-testid="template-coupon-attributes__expiration-date"
+                    />
+                  </label>
+                  <label class="coupon-form__date-field">
+                    <span class="coupon-form__date-field-label">{{
+                      'coupons.form.attributes.fields.expirationDate.part.time' | translate
+                    }}</span>
+                    <input
+                      #formField
+                      class="coupon-form__date-field-input"
+                      type="time"
+                      formControlName="time"
+                      data-form-control-key="expirationDate"
+                      data-testid="template-coupon-attributes__expiration-time"
+                    />
+                  </label>
+                </div>
+                <ng-container
+                  [ngTemplateOutlet]="dateTimeHelper"
+                  [ngTemplateOutletContext]="{
+                    controlName: 'expirationDate',
+                    helpText: '',
+                  }"
+                ></ng-container>
+              </div>
+            </li>
+          </ul>
+          <ignt-alert class="message-banner-full-width" sentiment="accent">
+            <ng-template #igntAlertContent>
+              <span [innerHTML]="'coupons.form.infoBanners.timezoneUsed' | translate"></span>
+            </ng-template>
+          </ignt-alert>
+        </div>
+      </fieldset>
+    </div>
+  </section>
+
+  <!-- Assignments section -->
+  <section class="coupon-form__section">
+    <h3 class="font-h3">{{ 'coupons.form.assignments.title' | translate }}</h3>
+    <div class="fieldset-list">
+      <fieldset class="fieldset">
+        <legend class="fieldset__legend">
+          {{ 'coupons.form.assignments.fieldsetsHelpTexts.plans' | translate }}
+        </legend>
+        <div class="wrapper-card wrapper event-plan-selector">
+          <app-multi-select
+            #formField
+            data-form-control-key="restrictedCityIds"
+            class="cell cell--hug-md"
+            [options]="cities()"
+            [selectedOptions]="selectedCities()"
+            [placeholder]="'coupons.form.assignments.fields.cities.label' | translate"
+            [displayInPlaceMaximum]="1"
+            (selected)="onSelectCities($event)"
+            [errorMessage]="errorMessage()"
+            data-testid="template-coupon-assignments__city-ids"
+          >
+          </app-multi-select>
+          <app-multi-select
+            class="cell cell--fill-md"
+            [options]="planOptions()"
+            [selectedOptions]="selectedPlanOptions()"
+            [placeholder]="'coupons.form.assignments.fields.plans.label' | translate"
+            [helpText]="'coupons.form.assignments.fields.plans.helpText' | translate"
+            [displayInPlaceMaximum]="1"
+            (selected)="onSelectPlanOptions($event)"
+            [disabled]="selectedCities().length === 0"
+            data-testid="template-coupon-assignments__plan-ids"
+          >
+          </app-multi-select>
+        </div>
+      </fieldset>
+      <fieldset class="fieldset">
+        <legend class="fieldset__legend">
+          {{ 'coupons.form.assignments.fieldsetsHelpTexts.channels' | translate }}
+        </legend>
+        <div class="wrapper-card">
+          <app-multi-select
+            class="cell cell--hug-md"
+            [options]="channelOptions()"
+            [selectedOptions]="selectedChannelOptions()"
+            [placeholder]="'coupons.form.assignments.fields.channels.label' | translate"
+            [displayInPlaceMaximum]="1"
+            [helpText]="'coupons.form.assignments.fields.channels.helpText' | translate"
+            (selected)="onSelectChannelOptions($event)"
+            [disabled]="channelOptions().length === 0"
+            data-testid="template-coupon-assignments__channel-ids"
+          >
+          </app-multi-select>
+        </div>
+      </fieldset>
+      <ng-container>
+        <fieldset class="fieldset">
+          <legend class="fieldset__legend">
+            {{ 'coupons.form.assignments.fieldsetsHelpTexts.timeslots' | translate }}
+          </legend>
+          <div class="wrapper-card">
+            <app-time-slot-filters
+              #formField
+              #timeSlotFiltersComponent
+              controlKey="timeSlotFilters"
+              data-form-control-key="timeSlotFilters"
+            />
+          </div>
+        </fieldset>
+      </ng-container>
+      <fieldset class="fieldset">
+        <legend class="fieldset__legend">
+          {{ 'coupons.form.assignments.fieldsetsHelpTexts.ticketTypes' | translate }}
+        </legend>
+        <app-template-coupon-session-type-selector
+          [planOptions]="planOptions()"
+          [restrictedPlanIds]="templateCouponForm.controls.restrictedPlanIds.value"
+          [restrictedSessionTypeIds]="templateCouponForm.controls.restrictedSessionTypeIds.value"
+          (restrictedSessionTypeIdsChange)="onSessionTypeIdsChange($event)"
+        />
+      </fieldset>
+    </div>
+  </section>
+
+  <ignt-alert *ngIf="!isEditMode" [description]="'coupons.form.infoBanners.automaticActivation' | translate" />
+
+  <div class="form-buttons wrapper">
+    <ignt-button
+      htmlType="submit"
+      [fill]="isMobile()"
+      [label]="'coupons.form.buttons.' + formMode | translate"
+      data-testid="form-template-coupon-button"
+    ></ignt-button>
+  </div>
+</form>
+<app-coupon-preview class="coupon-form__preview cell cell--hug" *ngIf="couponPreview" [couponPreview]="couponPreview"></app-coupon-preview>
+
+<ng-template #helper let-controlName="controlName" let-helpText="helpText">
+  <span class="field__helper">
+    <ng-container *ngIf="!shouldShowControlError(controlName)">{{ helpText }}</ng-container>
+    <ng-container *ngIf="shouldShowControlError(controlName)">
+      <ignt-icon class="form-error--icon" name="exclamation-circle" variant="solid" aria-hidden="true"></ignt-icon>
+      {{ getErrorMessage(controlName) | translate }}
+    </ng-container>
+  </span>
+</ng-template>
+
+<ng-template #dateTimeHelper let-controlName="controlName" let-helpText="helpText">
+  <span class="field__helper">
+    <ng-container *ngIf="!shouldShowDateTimeError(controlName)">{{ helpText }}</ng-container>
+    <ng-container *ngIf="shouldShowDateTimeError(controlName)">
+      <ignt-icon class="form-error--icon" name="exclamation-circle" variant="solid" aria-hidden="true"></ignt-icon>
+      {{ getDateTimeErrorMessage(controlName) | translate }}
+    </ng-container>
+  </span>
+</ng-template>

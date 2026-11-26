@@ -1,0 +1,114 @@
+<div class="product-variations" data-testid="product-variations">
+  <ignt-tabs class="product-variations__tabs" [hasExtraLine]="false">
+    <ignt-tabs-item [label]="'retailSetup.productVariations.productsTab' | translate">
+      @if (showEmptyProductsState()) {
+        <fz-empty-state
+          class="product-variations__empty-state"
+          testId="product-variations-empty-state"
+          showLeadingIcon
+          description="retailSetup.emptyProductsState.description"
+          label="retailSetup.emptyProductsState.label"
+          title="retailSetup.emptyProductsState.title"
+          [leadingIcon]="syncProductsIcon"
+          (emptyStateClick)="syncProducts()"
+        />
+      } @else {
+        <ignt-table
+          [data]="productVariations()"
+          [filterConfig]="filterConfig()"
+          [hasServerSidePagination]="true"
+          [isLoading]="isLoadingProducts()"
+          [pageIndex]="pageIndex()"
+          [pageSize]="pageSize()"
+          [searchConfig]="searchConfig()"
+          [totalRowCount]="totalCount()"
+          (filterClearAll)="onFilterClearAll()"
+          (filterClosed)="onFilterClosed($event)"
+          (filterPillRemoved)="onFilterPillRemoved($event)"
+          (paginationChange)="onServerPagination($event)"
+          (searchChanged)="searchChanged($event)"
+        >
+          <ignt-table-column columnType="primary" key="name" [header]="'retailSetup.productVariations.columns.name' | translate">
+            <ng-template let-productVariation="item" [igntTableColumnTemplateType]="columnTemplateType()">
+              <div class="product-variations__name-cell">
+                <div class="product-variations__thumb" aria-hidden="true">
+                  @if (productVariation.images[0]?.url; as thumbUrl) {
+                    <img alt="" class="product-variations__thumb-img" height="40" width="40" [ngSrc]="thumbUrl" />
+                  } @else {
+                    <ignt-icon class="product-variations__thumb-fallback" name="image" size="sm" variant="light" />
+                  }
+                </div>
+                <div class="product-variations__name-label">
+                  @if (isNewProduct(productVariation.createdAt)) {
+                    <span class="product-variations__new-badge">{{ 'retailSetup.productVariations.newBadge' | translate }}</span>
+                  }
+                  <span class="product-variations__name-text">{{ productVariation.name }}</span>
+                </div>
+              </div>
+            </ng-template>
+          </ignt-table-column>
+          <ignt-table-column columnType="secondary" key="sku" [header]="'retailSetup.productVariations.columns.sku' | translate">
+            <ng-template let-productVariation="item" [igntTableColumnTemplateType]="columnTemplateType()">
+              {{ productVariation.sku ?? '—' }}
+            </ng-template>
+          </ignt-table-column>
+          @if (showExternalId()) {
+            <ignt-table-column
+              columnType="secondary"
+              key="externalId"
+              [header]="'retailSetup.productVariations.columns.externalId' | translate"
+            />
+          }
+          <ignt-table-column
+            columnType="secondary"
+            key="warehouses"
+            [header]="'retailSetup.productVariations.columns.warehouses' | translate"
+          >
+            <ng-template let-productVariation="item" [igntTableColumnTemplateType]="columnTemplateType()">
+              @let warehouseCount = productVariation.warehouses.length;
+              @let warehouseNoun =
+                (warehouseCount === 1 ? 'retailSetup.productVariations.warehouse' : 'retailSetup.productVariations.warehouses') | translate;
+              <ignt-button
+                size="small"
+                variant="tertiary"
+                [ariaLabel]="'retailSetup.productVariations.warehouseDetails.openPanelAriaLabel' | translate"
+                [attr.data-testid]="`product-variations-warehouse-cell-${productVariation.id}`"
+                [label]="`${warehouseCount} ${warehouseNoun}`"
+                (click)="openWarehouseDetails(productVariation)"
+              />
+            </ng-template>
+          </ignt-table-column>
+          <ignt-table-column
+            columnType="secondary"
+            key="distribution"
+            [header]="'retailSetup.productVariations.columns.distribution' | translate"
+          >
+            <ng-template let-productVariation="item" [igntTableColumnTemplateType]="columnTemplateType()">
+              @if (productVariation.plansDistributionCount > 0) {
+                @let eventCount = productVariation.plansDistributionCount;
+                @let eventNoun =
+                  (eventCount === 1
+                    ? 'retailSetup.productVariations.distribution.event'
+                    : 'retailSetup.productVariations.distribution.events'
+                  ) | translate;
+                <ignt-button
+                  size="small"
+                  variant="tertiary"
+                  [ariaLabel]="'retailSetup.productVariations.distribution.openModalAriaLabel' | translate"
+                  [attr.data-testid]="`product-variations-distribution-cell-${productVariation.id}`"
+                  [label]="`${eventCount} ${eventNoun}`"
+                  (click)="openDistributions(productVariation)"
+                />
+              } @else {
+                <span class="product-variations__no-distribution">
+                  <ignt-icon aria-hidden="true" name="triangle-exclamation" size="sm" variant="regular" />
+                  {{ 'retailSetup.productVariations.distribution.noSalesRouting' | translate }}
+                </span>
+              }
+            </ng-template>
+          </ignt-table-column>
+        </ignt-table>
+      }
+    </ignt-tabs-item>
+  </ignt-tabs>
+</div>

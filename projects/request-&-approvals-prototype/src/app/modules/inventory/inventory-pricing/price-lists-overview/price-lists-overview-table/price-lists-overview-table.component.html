@@ -1,0 +1,294 @@
+<div class="table-layout--horizontal-scroll-container">
+  <table class="price-list-table">
+    <thead class="price-list-table__header">
+      <tr class="price-list-table__row">
+        <ng-container *ngIf="isReSortPriorityActive() && !isShowingArchived">
+          <th *ngIf="canModifyPriceLists()" class="price-list-table__cell price-list-table__cell--mini"></th>
+        </ng-container>
+        <th *ngIf="!isShowingArchived" class="price-list-table__cell price-list-table__cell--mini">
+          <span>{{ 'sessions.pricing.priceListsOverview.priority' | translate }}</span>
+        </th>
+        <th class="price-list-table__cell price-list-table__cell--name">
+          {{ 'sessions.pricing.priceListsOverview.priceListName' | translate }}
+        </th>
+        <th class="price-list-table__cell">
+          <span class="tooltip-header-cell" igntTooltip [tooltipLabel]="'sessions.pricing.priceListsOverview.channelsTooltip' | translate">
+            {{ 'sessions.pricing.priceListsOverview.channels' | translate }}
+          </span>
+        </th>
+        <th class="price-list-table__cell">
+          <span class="tooltip-header-cell" igntTooltip [tooltipLabel]="'sessions.pricing.priceListsOverview.timeslotsTooltip' | translate">
+            {{ 'sessions.pricing.priceListsOverview.timeSlots' | translate }}
+          </span>
+        </th>
+        <th class="price-list-table__cell">
+          <span
+            class="tooltip-header-cell"
+            igntTooltip
+            [tooltipLabel]="'sessions.pricing.priceListsOverview.inheritedPriceListsTooltip' | translate"
+          >
+            {{ 'sessions.pricing.priceListsOverview.inheritedPriceLists' | translate }}
+          </span>
+        </th>
+        <th class="price-list-table__cell">
+          {{ 'sessions.pricing.priceListsOverview.status' | translate }}
+        </th>
+        <th *ngIf="!isShowingArchived" class="price-list-table__cell">
+          <span
+            class="tooltip-header-cell"
+            igntTooltip
+            [tooltipLabel]="'sessions.pricing.priceListsOverview.activationTimeTooltip' | translate"
+          >
+            {{ 'sessions.pricing.priceListsOverview.activationTime' | translate }}
+          </span>
+        </th>
+        <th *ngIf="canModifyPriceLists()" class="price-list-table__cell">
+          {{ 'sessions.pricing.priceListsOverview.actions' | translate }}
+        </th>
+      </tr>
+    </thead>
+
+    <tbody
+      cdkDropList
+      (cdkDropListDropped)="onDropOrderChange($event)"
+      data-testid="price-list-table-body"
+      class="price-list-table__body price-list-table__body--spacing"
+    >
+      <tr
+        cdkDrag
+        cdkDragLockAxis="y"
+        [cdkDragDisabled]="!isReSortPriorityActive() || !isRowReorderable(row)"
+        *ngFor="let row of rows(); trackBy: trackByRow"
+        [attr.data-testid]="rowTestId(row)"
+        class="price-list-table__row"
+        [class.price-list-table__row--level]="row.type === 'level'"
+        [class.price-list-table__row--family]="row.type === 'familyHeader' || row.type === 'level'"
+        [style.--family-color]="familyColor(row.priceList)"
+        [class.price-list-table__row--accent]="row.priceList.hasPricesToBeSet"
+        [class.price-list-table__row--disabled]="basePriceListHasPricesToBeSet && row.priceList.parentPriceListId !== undefined"
+      >
+        <ng-container *ngIf="isReSortPriorityActive() && !isShowingArchived">
+          <td *ngIf="canModifyPriceLists()" data-testid="price-list-table-drag" class="price-list-table__cell price-list-table__cell--mini">
+            <span
+              *ngIf="isRowReorderable(row)"
+              cdkDragHandle
+              class="drag-drop-handle button-icon"
+              data-testid="price-list-table-drag-handle"
+            >
+              <ignt-icon class="drag-drop-icon" name="grip-vertical" variant="solid" />
+            </span>
+          </td>
+        </ng-container>
+        <td *ngIf="!isShowingArchived" class="price-list-table__cell price-list-table__cell--mini" data-testid="price-list-table-prio">
+          {{ priorityLabel(row) }}
+        </td>
+        <td class="price-list-table__cell price-list-table__cell--name" [class.price-list-table__cell--indent]="row.type === 'level'">
+          <div class="price-list-name-row">
+            <span
+              *ngIf="row.type === 'familyHeader' && !isReSortPriorityActive()"
+              class="price-list-family-toggle"
+              data-testid="price-list-family-toggle"
+              role="button"
+              tabindex="0"
+              [attr.aria-expanded]="row.isExpanded"
+              [attr.aria-label]="'sessions.pricing.priceListsOverview.family.toggleLabel' | translate: { name: row.priceList.name }"
+              (click)="toggleFamily(row.familyId)"
+              (keydown.enter)="toggleFamily(row.familyId)"
+              (keydown.space)="$event.preventDefault(); toggleFamily(row.familyId)"
+            >
+              <ignt-icon aria-hidden="true" [name]="row.isExpanded ? 'chevron-down' : 'chevron-right'" variant="solid" />
+            </span>
+            <ignt-icon *ngIf="row.type === 'familyHeader'" class="price-list-family-icon" name="layer-group" variant="solid" />
+            <span
+              data-testid="price-list-table-name"
+              class="price-list-name"
+              [class.price-list-name--clickable]="
+                !(basePriceListHasPricesToBeSet && row.priceList.parentPriceListId !== undefined) &&
+                !isReSortPriorityActive() &&
+                !isPrioritySaveConfirmationPending
+              "
+              (click)="
+                !(basePriceListHasPricesToBeSet && row.priceList.parentPriceListId !== undefined) &&
+                  !isReSortPriorityActive() &&
+                  !isPrioritySaveConfirmationPending &&
+                  priceListIdSelected.emit(row.priceList.id)
+              "
+              igntTooltip
+              [tooltipLabel]="
+                basePriceListHasPricesToBeSet && row.priceList.parentPriceListId !== undefined
+                  ? ('sessions.pricing.warningFillBasePriceListTooltip' | translate)
+                  : null
+              "
+            >
+              {{ row.priceList.name }}
+            </span>
+            <ignt-tag *ngIf="row.type === 'single' && !row.priceList.parentPriceListId" [sentiment]="'accent'" [variant]="'outline'">{{
+              'sessions.pricing.basePriceListTag' | translate
+            }}</ignt-tag>
+            <ng-container *ngIf="row.type === 'familyHeader'">
+              <ignt-tag [sentiment]="'info'" [variant]="'outline'" data-testid="price-list-family-badge">{{
+                'sessions.pricing.priceListsOverview.family.badge' | translate: { count: row.levelCount }
+              }}</ignt-tag>
+            </ng-container>
+          </div>
+          <span data-testid="prices-to-be-set-text" *ngIf="row.priceList.hasPricesToBeSet" class="price-list-subtitle">
+            {{ 'sessions.pricing.priceListsOverview.pricesToBeSet' | translate }}
+          </span>
+        </td>
+        <td data-testid="price-list-table-channel-list" class="price-list-table__cell">
+          <ng-container *ngIf="row.priceList.channelsList; else allCell">
+            <span class="price-list-channels">
+              {{ row.priceList.channelsList }}
+            </span>
+          </ng-container>
+        </td>
+        <td data-testid="price-list-table-time-slots" class="price-list-table__cell">
+          <div *ngIf="row.priceList.targetedTier || row.priceList.targetedTimeSlots?.length; else allCell" class="price-list-tiers">
+            <ng-container
+              *ngIf="row.priceList.targetedTier"
+              [ngTemplateOutlet]="tierBadge"
+              [ngTemplateOutletContext]="{
+                $implicit: row.priceList.targetedTier,
+              }"
+            >
+            </ng-container>
+            <ng-container
+              *ngIf="(row.priceList.targetedTimeSlots?.length ?? 0) > 0"
+              [ngTemplateOutlet]="timeslots"
+              [ngTemplateOutletContext]="{
+                $implicit: row.priceList.targetedTimeSlots ?? [],
+              }"
+            >
+            </ng-container>
+          </div>
+        </td>
+        <td data-testid="price-list-table-parent" class="price-list-table__cell">
+          <ng-container *ngIf="row.priceList.parentPriceListName; else emptyCell">
+            {{ row.priceList.parentPriceListName }}
+          </ng-container>
+        </td>
+        <td data-testid="price-list-table-enabled" class="price-list-table__cell">
+          <ng-container [ngSwitch]="row.priceList.status">
+            <ng-container *ngSwitchCase="'ACTIVE'">
+              <ng-container *ngTemplateOutlet="activeTag"></ng-container>
+            </ng-container>
+            <ng-container *ngSwitchCase="'SCHEDULED'">
+              <ng-container *ngTemplateOutlet="scheduledTag"></ng-container>
+            </ng-container>
+            <ng-container *ngSwitchCase="'INACTIVE'">
+              <ng-container *ngTemplateOutlet="inactiveTag"></ng-container>
+            </ng-container>
+            <ng-container *ngSwitchCase="'EXPIRED'">
+              <ng-container *ngTemplateOutlet="expiredTag"></ng-container>
+            </ng-container>
+          </ng-container>
+        </td>
+        <td *ngIf="!isShowingArchived" data-testid="price-list-table-activation" class="price-list-table__cell">
+          <ng-container
+            *ngIf="(row.priceList.activationRanges?.length ?? 0) > 0; else emptyCell"
+            [ngTemplateOutlet]="dateRangeList"
+            [ngTemplateOutletContext]="{
+              $implicit: row.priceList.activationRanges,
+            }"
+          >
+          </ng-container>
+        </td>
+        <td *ngIf="canModifyPriceLists()" data-testid="price-list-table-actions" class="price-list-table__cell">
+          <ng-container *ngIf="row.priceList.parentPriceListId !== undefined">
+            <ignt-icon
+              *ngIf="!isShowingArchived"
+              class="archive-icon"
+              [class.archive-icon--enabled]="canArchive(row.priceList)"
+              name="archive"
+              variant="solid"
+              igntTooltip
+              [tooltipLabel]="'sessions.pricing.priceListsOverview.archivePriceList' | translate"
+              (click)="canArchive(row.priceList) && onArchivePriceList(row.priceList.id)"
+            />
+            <ignt-icon
+              *ngIf="isShowingArchived"
+              class="archive-icon archive-icon--enabled"
+              name="box-open"
+              variant="solid"
+              igntTooltip
+              [tooltipLabel]="'sessions.pricing.priceListsOverview.unarchivePriceList' | translate"
+              (click)="onUnarchivePriceList(row.priceList.id)"
+            />
+          </ng-container>
+          <ng-container *ngIf="row.priceList.parentPriceListId === undefined">
+            <ng-container *ngTemplateOutlet="emptyCell"></ng-container>
+          </ng-container>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<ng-template #timeslots let-timeslotsList>
+  <div class="range-cell" [appTemplatedTooltip]="timeslotsTooltipTemplate">
+    {{
+      'sessions.pricing.priceListsOverview.dateRange'
+        | translate
+          : {
+              dateFrom: timeslotsList[0].startDate,
+              dateTo: timeslotsList[0].endDate,
+            }
+    }}
+    <ng-container *ngIf="timeslotsList.length > 1">...</ng-container>
+  </div>
+
+  <ng-template #timeslotsTooltipTemplate>
+    <app-timeslots-tooltip-content [timeslots]="timeslotsList"></app-timeslots-tooltip-content>
+  </ng-template>
+</ng-template>
+
+<ng-template #dateRangeList let-ranges>
+  <ng-container *ngFor="let range of ranges">
+    <div class="range-cell">
+      {{
+        'sessions.pricing.priceListsOverview.dateRange'
+          | translate
+            : {
+                dateFrom: range.from | momentDate: 'yyyy-MM-dd' : timezone,
+                dateTo: range.to | momentDate: 'yyyy-MM-dd' : timezone,
+              }
+      }}
+    </div>
+  </ng-container>
+</ng-template>
+
+<ng-template #emptyCell> - </ng-template>
+
+<ng-template #allCell>
+  <span>{{ 'sessions.pricing.priceListsOverview.all' | translate }}</span>
+</ng-template>
+
+<ng-template #tierBadge let-tier>
+  <ignt-tag data-testid="price-list-table-time-slots-tier" [sentiment]="sentimentTag[tier.color]" [variant]="'outline'">{{
+    tier.name
+  }}</ignt-tag>
+</ng-template>
+
+<ng-template #activeTag>
+  <ignt-tag sentiment="positive" [variant]="'outline'">
+    {{ 'sessions.pricing.priceListsOverview.active' | translate }}
+  </ignt-tag>
+</ng-template>
+
+<ng-template #inactiveTag>
+  <ignt-tag sentiment="danger" [variant]="'outline'">
+    {{ 'sessions.pricing.priceListsOverview.inactive' | translate }}
+  </ignt-tag>
+</ng-template>
+
+<ng-template #scheduledTag>
+  <ignt-tag sentiment="positive" [variant]="'outline'">
+    {{ 'sessions.pricing.priceListsOverview.scheduled' | translate }}
+  </ignt-tag>
+</ng-template>
+
+<ng-template #expiredTag>
+  <ignt-tag sentiment="danger" [variant]="'outline'">
+    {{ 'sessions.pricing.priceListsOverview.expired' | translate }}
+  </ignt-tag>
+</ng-template>

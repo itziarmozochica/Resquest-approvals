@@ -1,0 +1,188 @@
+<div class="upload-codes-wizard">
+  <div class="modal-header">
+    <h4 class="modal-title">
+      <i class="fas fa-magic"></i>
+      {{ 'accessControl.uploadCodes.wizard.title' | translate }}
+    </h4>
+  </div>
+
+  <div class="modal-body" *ngIf="isProcessing">
+    <div class="loading-container">
+      <div class="spinner">
+        <i class="fas fa-spinner fa-spin"></i>
+      </div>
+      <p>{{ 'accessControl.uploadCodes.wizard.processing' | translate }}</p>
+    </div>
+  </div>
+
+  <div class="modal-body" *ngIf="!isProcessing && state">
+    <div class="step-progress">
+      <div class="steps" [attr.data-current-step]="state.currentStep">
+        <div
+          *ngFor="let step of [1, 2, 3, 4, 5, 6]"
+          class="step"
+          [class.current]="step === state.currentStep"
+          [class.completed]="isStepCompleted(step)"
+          [class.accessible]="isStepAccessible(step)"
+          (click)="isStepAccessible(step) ? goToStep(step) : null"
+        >
+          <div class="step-icon" [attr.data-step]="step">
+            <i [class]="getStepIcon(step)"></i>
+          </div>
+          <div class="step-label">
+            {{ getStepTitle(step) | translate }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-content">
+      <app-column-mapping
+        *ngIf="state.currentStep === 1"
+        [csvHeaders]="state.csvHeaders"
+        [csvRows]="state.csvRows"
+        [delimiter]="state.delimiter"
+        [mapping]="state.columnMapping"
+        (mappingChange)="onColumnMappingChange($event)"
+        (delimiterChange)="onDelimiterChange($event)"
+      ></app-column-mapping>
+
+      <app-session-type-mapping
+        *ngIf="state.currentStep === 2"
+        [uniqueSessionTypes]="state.uniqueSessionTypes"
+        [availableSessionTypes]="availableSessionTypes"
+        [mapping]="state.sessionTypeMapping"
+        [csvRows]="state.csvRows"
+        [sessionTypeColumnIndex]="state.columnMapping.sessionType"
+        (mappingChange)="onSessionTypeMappingChange($event)"
+      ></app-session-type-mapping>
+
+      <app-timeslot-mapping
+        *ngIf="state.currentStep === 3"
+        [uniqueTimeslots]="state.uniqueTimeslots"
+        [mapping]="state.timeslotMapping"
+        [csvRows]="state.csvRows"
+        [timeslotColumnIndex]="state.columnMapping.timeslot"
+        [planId]="planId"
+        [placeId]="placeId"
+        [timezone]="timezone"
+        (mappingChange)="onTimeslotMappingChange($event)"
+        (dateRangeChange)="onDateRangeChange($event)"
+      ></app-timeslot-mapping>
+
+      <app-mapping-summary
+        *ngIf="state.currentStep === 4"
+        [csvHeaders]="state.csvHeaders"
+        [csvRows]="state.csvRows"
+        [columnMapping]="state.columnMapping"
+        [sessionTypeMapping]="state.sessionTypeMapping"
+        [timeslotMapping]="state.timeslotMapping"
+        [uniqueSessionTypes]="state.uniqueSessionTypes"
+        [uniqueTimeslots]="state.uniqueTimeslots"
+        [availableSessionTypes]="availableSessionTypes"
+        [availableTimeslots]="availableTimeslots"
+        [fileName]="state.file?.name || ''"
+        [timezone]="timezone"
+      ></app-mapping-summary>
+
+      <div *ngIf="state.currentStep === 5">
+        <div *ngIf="isLoadingPreview" class="loading-preview">
+          <i class="fas fa-spinner fa-spin"></i>
+          <span>{{ 'accessControl.uploadCodes.wizard.preview.loading' | translate }}</span>
+        </div>
+
+        <div *ngIf="previewError" class="preview-error">
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>{{ previewError }}</span>
+          </div>
+        </div>
+
+        <app-preview-step
+          *ngIf="previewData && !isLoadingPreview"
+          [previewData]="previewData"
+          [fileName]="state.file?.name || ''"
+          [timezone]="timezone"
+        ></app-preview-step>
+      </div>
+
+      <div *ngIf="state.currentStep === 6">
+        <div *ngIf="isProcessingUpload" class="loading-upload">
+          <i class="fas fa-spinner fa-spin"></i>
+          <span>{{ 'accessControl.uploadCodes.wizard.uploadSummary.processing' | translate }}</span>
+        </div>
+
+        <div *ngIf="uploadError" class="upload-error">
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>{{ uploadError }}</span>
+          </div>
+        </div>
+
+        <app-upload-success-step
+          *ngIf="successData && !isProcessingUpload"
+          [successData]="successData"
+          [timezone]="timezone"
+        ></app-upload-success-step>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-footer" *ngIf="!isProcessing && state">
+    <div class="footer-buttons-left">
+      <button type="button" class="btn btn-secondary" (click)="cancel()" *ngIf="state.currentStep < 6">
+        <i class="fas fa-times"></i>
+        {{ 'common.cancel' | translate }}
+      </button>
+    </div>
+
+    <div class="footer-buttons-right">
+      <button
+        type="button"
+        class="btn btn-outline-primary"
+        [disabled]="state.currentStep === 1"
+        (click)="previousStep()"
+        *ngIf="state.currentStep > 1 && state.currentStep < 6"
+      >
+        <i class="fas fa-chevron-left"></i>
+        {{ 'accessControl.uploadCodes.wizard.previous' | translate }}
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-outline-primary"
+        *ngIf="state.currentStep === 5"
+        [disabled]="!canProceedToNextStep()"
+        (click)="proceedWithStrategy('merge')"
+      >
+        <i class="fas fa-plus"></i>
+        {{ 'accessControl.uploadCodes.preview.confirmMerge' | translate }}
+      </button>
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        *ngIf="state.currentStep === 5"
+        [disabled]="!canProceedToNextStep()"
+        (click)="proceedWithStrategy('replace')"
+      >
+        <i class="fas fa-trash"></i>
+        {{ 'accessControl.uploadCodes.preview.confirmReplace' | translate }}
+      </button>
+      <button type="button" class="btn btn-primary" [disabled]="!canProceedToNextStep()" (click)="nextStep()" *ngIf="state.currentStep < 5">
+        {{ 'accessControl.uploadCodes.wizard.next' | translate }}
+        <i class="fas fa-chevron-right"></i>
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-success"
+        [disabled]="!canProceedToNextStep()"
+        (click)="complete()"
+        *ngIf="state.currentStep === 6"
+      >
+        <i class="fas fa-check"></i>
+        {{ 'accessControl.uploadCodes.wizard.complete' | translate }}
+      </button>
+    </div>
+  </div>
+</div>

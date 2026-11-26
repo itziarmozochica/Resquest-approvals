@@ -1,0 +1,97 @@
+<div class="distributor-members" data-testid="distributor-members">
+  <div [hidden]="isMemberFormOpen()" data-testid="distributor-members-list">
+    <p class="form-label form-label--no-margin">{{ 'businessManagement.members.title' | translate }}</p>
+    <div class="distributor-members__header">
+      <div class="helper-paragraph">
+        {{ 'businessManagement.members.description' | translate: { businessName: businessName() } }}
+      </div>
+      @if (canManageMembers()) {
+        <ignt-button
+          data-testid="distributor-members-add"
+          variant="secondary"
+          [label]="'businessManagement.members.add' | translate"
+          [disabled]="isLoading() || hasError() || isMemberFormOpen() || !hasAssignableRoles()"
+          (click)="openAddMember()"
+        />
+      }
+    </div>
+
+    @if (hasError()) {
+      <p class="distributor-members__error" role="alert" data-testid="distributor-members-error">{{ 'errors.generic' | translate }}</p>
+    } @else if (isEmpty()) {
+      <p class="distributor-members__empty" data-testid="distributor-members-empty">{{ 'businessManagement.members.empty' | translate }}</p>
+    } @else {
+      <ignt-table data-testid="distributor-members-table" [data]="members()" [isLoading]="isLoading()">
+        <ignt-table-column key="name" columnType="primary" [header]="'businessManagement.members.table.name' | translate">
+          <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+            <span data-testid="distributor-members-name">{{ item.name }}</span>
+          </ng-template>
+        </ignt-table-column>
+        <ignt-table-column key="email" columnType="secondary" [header]="'businessManagement.members.table.email' | translate">
+          <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+            <span data-testid="distributor-members-email">{{ item.email }}</span>
+          </ng-template>
+        </ignt-table-column>
+        <ignt-table-column key="roleKey" columnType="secondary" [header]="'businessManagement.members.table.role' | translate">
+          <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+            <span data-testid="distributor-members-role">{{ item.roleKey | translate }}</span>
+          </ng-template>
+        </ignt-table-column>
+        <ignt-table-column key="isActive" columnType="secondary" [header]="'businessManagement.members.table.status' | translate">
+          <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+            <span data-testid="distributor-members-status">{{
+              (item.isActive ? 'businessManagement.members.status.active' : 'businessManagement.members.status.inactive') | translate
+            }}</span>
+          </ng-template>
+        </ignt-table-column>
+        @if (canManageMembers()) {
+          <ignt-table-column header="" align="right" columnType="action">
+            <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+              @if (item.canChangeRole) {
+                <ignt-button
+                  data-testid="distributor-members-change-role"
+                  variant="tertiary"
+                  size="small"
+                  [label]="'common.edit' | translate"
+                  [disabled]="isMemberFormOpen() || !hasAssignableRoles()"
+                  (click)="$event.stopPropagation(); openChangeRole(item)"
+                />
+              }
+              @if (item.canToggleActive) {
+                <ignt-button
+                  data-testid="distributor-members-toggle-active"
+                  variant="tertiary"
+                  size="small"
+                  [label]="(item.isActive ? 'userManagement.deactivate' : 'userManagement.reactivate') | translate"
+                  [disabled]="isMemberFormOpen()"
+                  (click)="$event.stopPropagation(); toggleActive(item)"
+                />
+              }
+            </ng-template>
+          </ignt-table-column>
+        }
+      </ignt-table>
+      @if (isPartial()) {
+        <p class="distributor-members__partial" data-testid="distributor-members-partial">
+          {{ 'businessManagement.members.partialList' | translate: { shown: members().length, total: totalMembers() } }}
+        </p>
+      }
+    }
+  </div>
+  <ng-container #memberFormHost />
+  @if (memberForm(); as form) {
+    <div class="only-in-mobile" data-testid="distributor-members-form-actions">
+      <bottom-slider [buttonsTemplate]="formButtons" />
+    </div>
+    <ng-template #formButtons>
+      <ignt-button
+        data-testid="distributor-members-form-cancel"
+        variant="secondary"
+        fill
+        [label]="'common.cancel' | translate"
+        (click)="closeMemberForm()"
+      />
+      <ignt-button data-testid="distributor-members-form-save" fill [label]="form.saveLabelKey | translate" (click)="form.save()" />
+    </ng-template>
+  }
+</div>

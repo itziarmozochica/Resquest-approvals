@@ -1,0 +1,202 @@
+<ignt-wrapper-card>
+  <div class="delayed-ticket-release-section">
+    <div class="delayed-ticket-release-section__toggle-row">
+      <div class="delayed-ticket-release-section__text-group delayed-ticket-release-section__text-group--loose">
+        <h4 class="delayed-ticket-release-section__title delayed-ticket-release-section__title--large">
+          {{ 'eventSettings.delayedTicketRelease.title' | translate }}
+        </h4>
+        <p class="delayed-ticket-release-section__description delayed-ticket-release-section__description--large">
+          {{ 'eventSettings.delayedTicketRelease.description' | translate }}
+        </p>
+      </div>
+      <ignt-toggle
+        [checked]="enabled()"
+        [disabled]="!canEditPlan()"
+        (change)="onEnabledChange($event)"
+        data-testid="delayed-ticket-release-toggle"
+      />
+    </div>
+
+    @if (enabled()) {
+      <ignt-wrapper-card>
+        <div
+          class="delayed-ticket-release-section__column delayed-ticket-release-section__column--loose"
+          [formGroup]="formGroup()"
+          data-testid="delayed-ticket-release-content"
+        >
+          <div class="delayed-ticket-release-section__rule-name">
+            @if (isEditingName()) {
+              <ignt-input-field
+                [label]="'eventSettings.delayedTicketRelease.ruleName' | translate"
+                type="text"
+                formControlName="ruleName"
+                (blurred)="finishEditingName()"
+                data-testid="rule-name-input"
+              />
+            } @else {
+              <span
+                class="delayed-ticket-release-section__title delayed-ticket-release-section__title--large"
+                data-testid="rule-name-display"
+                >{{ ruleName() }}</span
+              >
+              <button
+                type="button"
+                igntButton
+                sentiment="tertiary"
+                size="small"
+                [leadingIcon]="['far', 'pen-to-square']"
+                [disabled]="!canEditPlan()"
+                (click)="startEditingName()"
+                data-testid="rule-name-edit-btn"
+              ></button>
+            }
+          </div>
+
+          @if (sharedPlanNames().length > 0) {
+            <ignt-alert
+              data-testid="shared-plans-alert"
+              sentiment="accent"
+              [description]="
+                'eventSettings.delayedTicketRelease.alert.sharedPlans' | translate: { planNames: sharedPlanNames().join(', ') }
+              "
+            />
+          }
+
+          <div class="delayed-ticket-release-section__column">
+            <div class="delayed-ticket-release-section__toggle-row">
+              <div class="delayed-ticket-release-section__text-group">
+                <h5 class="delayed-ticket-release-section__title">
+                  {{ 'eventSettings.delayedTicketRelease.releaseTiming.title' | translate }}
+                </h5>
+                <p class="delayed-ticket-release-section__description">
+                  {{ 'eventSettings.delayedTicketRelease.releaseTiming.description' | translate }}
+                </p>
+              </div>
+              <ignt-toggle
+                [checked]="releaseTimingEnabled()"
+                [disabled]="!canEditPlan()"
+                (change)="onReleaseTimingEnabledChange($event)"
+                data-testid="release-timing-toggle"
+              />
+            </div>
+
+            @if (releaseTimingEnabled()) {
+              <div class="delayed-ticket-release-section__column" data-testid="release-timing-options">
+                <div class="delayed-ticket-release-section__inline-fields">
+                  <ignt-radio
+                    [checked]="releaseMode() === 'ONE_TIME'"
+                    [disabled]="!canEditPlan()"
+                    [label]="'eventSettings.delayedTicketRelease.releaseTiming.specificDateTime' | translate"
+                    [description]="'eventSettings.delayedTicketRelease.releaseTiming.specificDateTimeDescription' | translate"
+                    value="ONE_TIME"
+                    name="release-mode"
+                    (change)="onReleaseModeChange('ONE_TIME')"
+                    data-testid="release-mode-one-time"
+                  />
+                  <ignt-radio
+                    [checked]="releaseMode() === 'PER_TIME_SLOT'"
+                    [disabled]="!canEditPlan()"
+                    [label]="'eventSettings.delayedTicketRelease.releaseTiming.relativeToEvent' | translate"
+                    [description]="'eventSettings.delayedTicketRelease.releaseTiming.relativeToEventDescription' | translate"
+                    value="PER_TIME_SLOT"
+                    name="release-mode"
+                    (change)="onReleaseModeChange('PER_TIME_SLOT')"
+                    data-testid="release-mode-per-time-slot"
+                  />
+                </div>
+
+                @if (releaseMode() === 'ONE_TIME') {
+                  <div class="delayed-ticket-release-section__inline-fields" data-testid="one-time-fields">
+                    <ignt-native-date-input
+                      type="datetime-local"
+                      [value]="releaseDatetime()"
+                      [disabled]="!canEditPlan()"
+                      [hasError]="releaseDatetimeHasError()"
+                      [errorMessage]="releaseDatetimeErrorMessage()"
+                      (valueChange)="onReleaseDatetimeChange($event)"
+                      (blurred)="onReleaseDatetimeBlurred()"
+                      data-testid="release-datetime-input"
+                    />
+                    @if (timezoneLabel()) {
+                      <span class="delayed-ticket-release-section__small-text">{{ timezoneLabel() }}</span>
+                    }
+                  </div>
+                } @else {
+                  <div class="delayed-ticket-release-section__inline-fields" data-testid="per-time-slot-fields">
+                    <div>
+                      <ignt-input-field
+                        [label]="'eventSettings.delayedTicketRelease.releaseTiming.amount' | translate"
+                        type="number"
+                        formControlName="durationAmount"
+                        [hideErrorLabels]="true"
+                        data-testid="duration-amount-input"
+                      />
+                    </div>
+                    <div>
+                      <ignt-typeahead
+                        [fieldLabel]="'eventSettings.delayedTicketRelease.releaseTiming.unit' | translate"
+                        [options]="durationUnitOptions()"
+                        [selectedOption]="selectedDurationUnit()"
+                        [disabled]="!canEditPlan()"
+                        [editable]="false"
+                        (selected)="onDurationUnitSelect($event)"
+                        data-testid="duration-unit-select"
+                      />
+                    </div>
+                    <span class="delayed-ticket-release-section__small-text">
+                      {{ 'eventSettings.delayedTicketRelease.releaseTiming.beforeEvent' | translate }}
+                    </span>
+                  </div>
+                  <ignt-field-error
+                    [showError]="formGroup().controls.durationAmount.touched && formGroup().controls.durationAmount.hasError('required')"
+                  >
+                    {{ 'eventSettings.delayedTicketRelease.validation.enterValidTime' | translate }}
+                  </ignt-field-error>
+                  <ignt-field-error
+                    [showError]="formGroup().controls.durationAmount.touched && formGroup().controls.durationAmount.hasError('min')"
+                  >
+                    {{ 'eventSettings.delayedTicketRelease.validation.enterValidTime' | translate }}
+                  </ignt-field-error>
+                  <ignt-field-error [formControlValue]="formGroup().controls.durationAmount" errorName="noActiveTimeSlot">
+                    {{ 'eventSettings.delayedTicketRelease.validation.noActiveTimeSlot' | translate }}
+                  </ignt-field-error>
+                  <ignt-field-error [formControlValue]="formGroup().controls.durationAmount" errorName="pastTrigger">
+                    {{ 'eventSettings.delayedTicketRelease.validation.pastTrigger' | translate }}
+                  </ignt-field-error>
+                  <ignt-field-error [formControlValue]="formGroup().controls.durationAmount" errorName="releaseBeforeReminder">
+                    {{ 'eventSettings.delayedTicketRelease.validation.releaseBeforeReminder' | translate }}
+                  </ignt-field-error>
+                }
+              </div>
+            }
+          </div>
+
+          <ignt-wrapper-card>
+            <div class="delayed-ticket-release-section__toggle-row">
+              <div class="delayed-ticket-release-section__text-group">
+                <h5 class="delayed-ticket-release-section__title">
+                  {{ 'eventSettings.delayedTicketRelease.blockSeats.title' | translate }}
+                </h5>
+                <p class="delayed-ticket-release-section__description">
+                  {{ 'eventSettings.delayedTicketRelease.blockSeats.description' | translate }}
+                </p>
+              </div>
+              <ignt-toggle
+                [checked]="isSeatingBlocked()"
+                [disabled]="!canEditPlan()"
+                (change)="onSeatingBlockedChange($event)"
+                data-testid="seating-blocked-toggle"
+              />
+            </div>
+          </ignt-wrapper-card>
+
+          <ignt-alert
+            data-testid="release-warning-alert"
+            sentiment="warning"
+            [description]="'eventSettings.delayedTicketRelease.alert.notValidUntilRelease' | translate"
+          />
+        </div>
+      </ignt-wrapper-card>
+    }
+  </div>
+</ignt-wrapper-card>

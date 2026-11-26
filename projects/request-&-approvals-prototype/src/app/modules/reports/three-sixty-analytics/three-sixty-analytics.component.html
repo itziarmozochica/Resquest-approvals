@@ -1,0 +1,194 @@
+<app-event-selection-band
+  data-testid="three-sixty-analytics-selectors"
+  [summary]="selectedPlansSummary() || ('analytics.analytics360.selectEvents' | translate)"
+  [foldWhenComplete]="false"
+>
+  <ng-container [ngTemplateOutlet]="filtersTemplate"></ng-container>
+</app-event-selection-band>
+<div class="three-sixty-analytics__title">
+  <div class="three-sixty-analytics__title-content">
+    <span class="three-sixty-analytics__section">{{ sectionKey | translate }}</span>
+    <h1 class="three-sixty-analytics__heading" data-testid="page-title">{{ pageTitleKey | translate }}</h1>
+  </div>
+  <!-- Hidden on Attendance: it reports no money, so the picker would change nothing. -->
+  @if (selectCurrencyTemplate && isCurrencyPickerVisible) {
+    <div class="three-sixty-analytics__currency">
+      <ng-container [ngTemplateOutlet]="selectCurrencyTemplate"></ng-container>
+    </div>
+  }
+</div>
+<div class="main-wrapper">
+  <!--
+    Two slots, one element. On the plan mount the banner sits here, on the page background above the
+    card and only once the graphs are in — where `/plans/dashboard` had it before #12837. The reports
+    mount keeps it as the card's first row, which is the only place it has ever been there (PRD-4718).
+  -->
+  @if (showFzAssistantBannerAboveCard && isFzAssistantEligible && !loadingGraphs) {
+    <ng-container [ngTemplateOutlet]="fzAssistantBanner"></ng-container>
+  }
+  <div class="wrapper-card wrapper-card--elevation-100" data-testid="three-sixty-analytics-card">
+    @if (!showFzAssistantBannerAboveCard && isFzAssistantEligible) {
+      <ng-container [ngTemplateOutlet]="fzAssistantBanner"></ng-container>
+    }
+    @if (outage && !loadingGraphs) {
+      <ignt-alert
+        class="my-4 d-block"
+        sentiment="warning"
+        [description]="'outage.message' | translate"
+        data-testid="outage-banner"
+      ></ignt-alert>
+    }
+    <div class="dashboard-data">
+      @if (loadingGraphs) {
+        <div data-testid="three-sixty-analytics-loading" class="loader">
+          <ignt-icon name="spinner" variant="solid" [spin]="true" size="h1"></ignt-icon>
+        </div>
+      }
+      @if (graphs && !loadingGraphs) {
+        <app-graphs-tab
+          [graphs]="graphs"
+          [selectedGraph]="selectedGraph"
+          (tabSelected)="onTabSelected($event)"
+          dataTestId="three-sixty-analytics-tab"
+        ></app-graphs-tab>
+        @if (isSinglePlanDashboardSelected) {
+          <!--
+            Same contract as the Real Time tab: the picker above stays on screen either way, but whether
+            it is still yours to change depends on the dashboard. The ones whose cards never read the
+            currency are pinned to the event's own and the copy says so; the rest honour what is picked
+            and the copy leaves it alone.
+          -->
+          <ignt-alert
+            class="my-4 d-block"
+            [description]="
+              (isCurrencyLockedToLocal
+                ? 'analytics.analytics360.singlePlanDashboard.noticeWithCurrency'
+                : 'analytics.analytics360.singlePlanDashboard.notice'
+              ) | translate
+            "
+            data-testid="three-sixty-analytics-single-plan-notice"
+          ></ignt-alert>
+        }
+        @if (isRealTimeTabSelected) {
+          <!-- Not dismissible on purpose: a dismissal would need to be remembered somewhere. -->
+          @if (realTimeNotice) {
+            <ignt-alert
+              class="my-4 d-block"
+              sentiment="warning"
+              [description]="realTimeNotice"
+              data-testid="three-sixty-analytics-real-time-notice"
+            ></ignt-alert>
+          }
+          @if (realTimeEmbeddedSelection && realTimeDashboardId) {
+            <app-real-time-embedded-frame
+              [dashboardId]="realTimeDashboardId"
+              [selection]="realTimeEmbeddedSelection"
+              [frameTitle]="realTimeFrameTitle"
+              theme="light"
+              dataTestIdPrefix="three-sixty-analytics-real-time"
+            ></app-real-time-embedded-frame>
+          } @else {
+            <app-real-time-empty-selection
+              [title]="'analytics.analytics360.nothingSelected.title' | translate"
+              [detail]="'analytics.realTime.nothingSelected.detail' | translate"
+              [hint]="'analytics.analytics360.nothingSelected.sameCurrency' | translate"
+              imageSrc="assets/images/reports/360-inspiration.svg"
+              dataTestIdPrefix="three-sixty-analytics-real-time"
+            ></app-real-time-empty-selection>
+          }
+        } @else if (isSelectedGraphUnavailable) {
+          <!--
+            The tab stays on the bar, selected, and this replaces its report. Says only what the
+            response supports — the dashboard is not among the ones this selection returns — because
+            neither mechanism that removes it (per-plan rules, compatibility suppression) tells us
+            which one did. The hint covers the common case without claiming it as the cause.
+          -->
+          <div class="nothing-selected" data-testid="three-sixty-analytics-unavailable-dashboard">
+            <h4 class="font-h3" data-testid="three-sixty-analytics-unavailable-dashboard-title">
+              {{ 'analytics.analytics360.unavailableDashboard.title' | translate }}
+            </h4>
+            <p data-testid="three-sixty-analytics-unavailable-dashboard-detail">
+              {{ 'analytics.analytics360.unavailableDashboard.detail' | translate }}
+            </p>
+            <p data-testid="three-sixty-analytics-unavailable-dashboard-hint">
+              {{ 'analytics.analytics360.unavailableDashboard.hint' | translate }}
+            </p>
+            <img src="assets/images/reports/360-inspiration.svg" alt="" data-testid="three-sixty-analytics-unavailable-dashboard-image" />
+          </div>
+        } @else {
+          <div class="dashboard-row-result">
+            @for (graph of graphs; track graph.id) {
+              @if (selectedGraph && selectedGraph.id === graph.id && graph.url) {
+                <iframe
+                  data-testid="three-sixty-analytics-iframe"
+                  class="dashboard-row-result__graph"
+                  border="0"
+                  frameborder="0"
+                  width="100%"
+                  allowtransparency
+                  [src]="graph.url | safeUrl"
+                  appIframeResizer
+                  title="Thread Content"
+                >
+                </iframe>
+              }
+            }
+          </div>
+        }
+      }
+      @if (!graphs && !loadingGraphs) {
+        <div class="nothing-selected" data-testid="three-sixty-analytics-nothing-selected">
+          <h4 class="font-h3" data-testid="three-sixty-analytics-nothing-selected-title">
+            {{ 'analytics.analytics360.nothingSelected.title' | translate }}
+          </h4>
+          <p data-testid="three-sixty-analytics-nothing-selected-detail">
+            {{ 'analytics.analytics360.nothingSelected.detail' | translate }}
+          </p>
+          <p data-testid="three-sixty-analytics-nothing-selected-same-currency">
+            {{ 'analytics.analytics360.nothingSelected.sameCurrency' | translate }}
+          </p>
+          <img
+            src="assets/images/reports/360-inspiration.svg"
+            alt="Inspiration image"
+            data-testid="three-sixty-analytics-inspiration-image"
+          />
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="help-topic" data-testid="three-sixty-analytics-finance-terms-info" appHideWrapperOnHelpTopicClose>
+    <app-help-topic-banner
+      [message]="'helpTopics.analytics.message' | translate"
+      [ctaLabel]="'helpTopics.generic.cta.label' | translate"
+      [ctaLink]="'helpTopics.analytics.cta.href' | translate"
+    ></app-help-topic-banner>
+  </div>
+</div>
+
+<ng-template #fzAssistantBanner>
+  <app-fz-assistant-banner
+    buttonSentiment="secondary"
+    data-testid="three-sixty-analytics-fz-assistant-banner"
+    (dismissed)="isFzAssistantEligible = false"
+  ></app-fz-assistant-banner>
+</ng-template>
+
+<ng-template #filtersTemplate>
+  <app-filters class="new-design">
+    <div class="reports-filters">
+      <form (submit)="$event.preventDefault()">
+        <fieldset class="fieldset">
+          <app-three-sixty-analytics-filters
+            data-testid="app-three-sixty-analytics-filters"
+            [singlePlanSelection]="isSinglePlanSelectionActive"
+            [currencyLockedToLocal]="isCurrencyLockedToLocal"
+            (selectCurrencyTemplateInitialised)="setSelectCurrencyTemplate($event)"
+            (filtersSelected)="onFiltersSelected($event)"
+          >
+          </app-three-sixty-analytics-filters>
+        </fieldset>
+      </form>
+    </div>
+  </app-filters>
+</ng-template>

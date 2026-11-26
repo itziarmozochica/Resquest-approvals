@@ -1,0 +1,70 @@
+<ignt-dialog-header>
+  {{ 'fundraising.patronDetails.relationships.lifecycle.removeHeadOfHousehold.title' | translate }}
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="patron-rel-remove-head-of-household-dialog">
+    <p
+      class="patron-rel-remove-head-of-household-dialog__confirm"
+      [innerHTML]="
+        'fundraising.patronDetails.relationships.lifecycle.removeHeadOfHousehold.confirm'
+          | translate: { householdName: dialogData.householdName, removedMemberName: dialogData.removedMemberName }
+      "
+    ></p>
+
+    <ignt-alert
+      [title]="'fundraising.patronDetails.relationships.lifecycle.removeHeadOfHousehold.alertTitle' | translate"
+      sentiment="warning"
+      [showCloseButton]="false"
+    >
+      <ng-template #igntAlertContent>
+        <span
+          [innerHTML]="
+            'fundraising.patronDetails.relationships.lifecycle.removeHeadOfHousehold.alertBody'
+              | translate: { householdName: dialogData.householdName, removedMemberName: dialogData.removedMemberName }
+          "
+        ></span>
+      </ng-template>
+    </ignt-alert>
+
+    <div class="patron-rel-remove-head-of-household-dialog__members">
+      @for (member of dialogData.candidateMembers; track member.userAssociationId) {
+        <ignt-list-item
+          class="patron-rel-remove-head-of-household-dialog__member"
+          [class.patron-rel-remove-head-of-household-dialog__member--selected]="isSelectedMember(member.userAssociationId)"
+          [title]="member.name"
+          [description]="member.roleLabel ?? ''"
+          [leadingIconTemplate]="avatarTpl"
+          [clickable]="true"
+          type="unwrapped"
+          (click)="onMemberClick(member.userAssociationId)"
+        >
+          <ng-template #avatarTpl>
+            <app-avatar-initials
+              class="patron-rel-remove-head-of-household-dialog__avatar-initials"
+              [avatarUrl]="member.imageUrl ?? undefined"
+              [name]="member.name"
+              [size]="36"
+            />
+          </ng-template>
+          <div trailing-modifier class="patron-rel-remove-head-of-household-dialog__member-trailing">
+            <ignt-radio [checked]="isSelectedMember(member.userAssociationId)" />
+          </div>
+        </ignt-list-item>
+
+        @if (!$last) {
+          <ignt-divider [margin]="false" />
+        }
+      }
+    </div>
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer [hideCancelButton]="true">
+  <button type="button" igntButton sentiment="tertiary" (click)="dismiss()">
+    {{ 'common.cancel' | translate }}
+  </button>
+  <button type="button" igntButton sentiment="primary" variant="danger" [disabled]="isRemoveDisabled" (click)="onSubmit()">
+    {{ 'common.remove' | translate }}
+  </button>
+</ignt-dialog-footer>

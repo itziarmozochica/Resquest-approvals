@@ -1,0 +1,80 @@
+<div class="lateral-slider-body__wrapper">
+  <!-- <div class="bordered-wrapper"> -->
+  <!-- Archived List Alert -->
+  @if (isArchived()) {
+    <div class="price-list-item-form__archived-banner">
+      <ignt-alert
+        [description]="'sessions.pricing.priceList.archivedListReadOnlyMessage' | translate"
+        data-testid="archived-list-alert"
+      ></ignt-alert>
+    </div>
+  }
+
+  <!-- Points-mode editor for Redeem Now plans -->
+  @if (currencyMode() === 'points') {
+    <div class="points-edit-container">
+      <div class="section-title">
+        <span class="section-title__text">{{ 'sessions.pricing.priceListItem.form.pointsPrice.title' | translate }}</span>
+      </div>
+      <div class="bordered-form-container">
+        <label class="field">
+          <input
+            appAutoformatNumericInput
+            autocomplete="off"
+            class="field__input"
+            data-testid="points-price-input"
+            min="1"
+            [decimalPlaces]="0"
+            [formControl]="pointsPriceControl"
+            [placeHolderValue]="'sessions.pricing.priceListItem.form.pointsPrice.placeholder' | translate"
+          />
+          <span class="field__label">{{ 'sessions.pricing.priceListItem.form.pointsPrice.title' | translate }}</span>
+        </label>
+      </div>
+      <div class="lateral-slider-body__footer">
+        <button
+          data-testid="save-points-price-button"
+          class="button button--large button--primary button--fill"
+          [disabled]="isArchived() || pointsPriceControl.invalid"
+          (click)="emitPointsPrice()"
+        >
+          {{ 'common.save' | translate }}
+        </button>
+      </div>
+    </div>
+  } @else if (isPercentageOverBasePriceAddOn()) {
+    <!-- PRP: Componente autónomo (maneja su form, preview y botón) -->
+    @if (prpPriceData()) {
+      <app-price-list-item-prp-edit
+        data-testid="prp-edit-form"
+        [currency]="currency()"
+        [isArchived]="isArchived()"
+        [item]="prpPriceData()!.price"
+        [isPack]="false"
+        [packBreakdownDefinition]="null"
+        [priceData]="prpPriceData()!"
+        (savePriceClicked)="setPriceClicked.emit($event)"
+      ></app-price-list-item-prp-edit>
+    }
+  } @else {
+    <!-- NO-PRP: Componente autónomo (maneja su servicio, steps y botones) -->
+    <app-price-list-item-edit-with-preview
+      data-testid="non-prp-edit-with-preview"
+      [currency]="currency()"
+      [isArchived]="isArchived()"
+      [isBasePriceList]="isBasePriceList()"
+      [isDynamicPricingFamilyMember]="isDynamicPricingFamilyMember()"
+      [isPriceListItemDirtyFromOutside]="isPriceListItemDirtyFromOutside()"
+      [restrictShopProductPriceEditing]="restrictShopProductPriceEditing()"
+      [parentPriceListId]="parentPriceListId()"
+      [planId]="planId()"
+      [planSessionTypes]="planSessionTypes()"
+      [priceListId]="priceListId()"
+      [priceListItems]="priceListItems()"
+      [sessionTypeId]="sessionTypeId()"
+      (cancelClicked)="cancelClicked.emit()"
+      (setPriceClicked)="setPriceClicked.emit($event)"
+    ></app-price-list-item-edit-with-preview>
+  }
+  <!-- </div> -->
+</div>

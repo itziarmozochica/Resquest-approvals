@@ -1,0 +1,96 @@
+<div class="whitelabel-audit">
+  <div class="whitelabel-audit__details">
+    @if (diffFields.length > 0) {
+      <div class="whitelabel-audit__diff-container">
+        @for (field of diffFields; track field.fieldName) {
+          <div class="whitelabel-audit__diff-field">
+            @if (field.showLabel) {
+              <div class="whitelabel-audit__diff-label">{{ field.label }}</div>
+            }
+            <inline-diff
+              class="whitelabel-audit__diff-viewer whitelabel-audit__diff-viewer--{{ field.diffViewerType }}"
+              [oldText]="field.oldValue"
+              [newText]="field.newValue"
+              [lineContextSize]="4"
+            />
+          </div>
+        }
+      </div>
+    } @else if (!isLoading) {
+      <div class="whitelabel-audit__empty-diff">
+        <span>{{ 'whitelabelConfiguration.noChanges' | translate }}</span>
+      </div>
+    }
+  </div>
+
+  <div class="whitelabel-audit__list">
+    <div class="whitelabel-audit__list-title">{{ 'whitelabelConfiguration.versionHistory' | translate }}</div>
+
+    @if (isLoading) {
+      <div class="whitelabel-audit__loading">{{ 'common.loading' | translate }}</div>
+    } @else {
+      <ul>
+        @if (hasRecords) {
+          @for (record of auditRecords; track record.id; let i = $index) {
+            <li
+              (click)="selectRecord(record)"
+              class="whitelabel-audit__item"
+              [class.whitelabel-audit__item--selected]="selectedRecord?.id === record.id"
+            >
+              <span class="whitelabel-audit__item-date">{{ record.updated_at | date: 'yyyy-MM-dd HH:mm' }}</span>
+
+              @for (field of entityConfig?.listConfig?.additionalFields ?? []; track field) {
+                <span class="whitelabel-audit__item-additional">{{ getAdditionalFieldValue(record, field) }}</span>
+              }
+
+              <span class="whitelabel-audit__item-updated-by">{{ record.updated_by }}</span>
+
+              @if (isRestorationEnabled && selectedRecord?.id === record.id) {
+                @if (i === 0) {
+                  <span class="whitelabel-audit__item-active-version">
+                    {{ 'whitelabelConfiguration.restoreActiveVersion' | translate }}
+                  </span>
+                } @else if (selectedDetail?.id === record.id) {
+                  @if (recordHasChanges(record.id)) {
+                    <button
+                      igntButton
+                      size="small"
+                      (click)="requestRestore(); $event.stopPropagation()"
+                      class="whitelabel-audit__item-restore-button"
+                    >
+                      {{ 'whitelabelConfiguration.restoreVersion' | translate }}
+                    </button>
+                  } @else {
+                    <span class="whitelabel-audit__item-no-changes-to-restore">
+                      {{ 'whitelabelConfiguration.noChanges' | translate }}
+                    </span>
+                  }
+                } @else {
+                  <div class="whitelabel-audit__item-loading-placeholder"></div>
+                }
+              }
+            </li>
+          }
+
+          @if (hasNext) {
+            <li class="whitelabel-audit__item whitelabel-audit__item--load-more">
+              <button class="whitelabel-audit__load-more-button" (click)="loadMore()" [disabled]="isLoadingMore">
+                {{ isLoadingMore ? ('common.loading' | translate) : ('common.seeMore' | translate) }}
+              </button>
+            </li>
+          }
+        } @else {
+          <li class="whitelabel-audit__item whitelabel-audit__item--empty">
+            <span class="whitelabel-audit__empty-message">{{ 'whitelabelConfiguration.noChanges' | translate }}</span>
+          </li>
+        }
+      </ul>
+    }
+
+    @if (totalRecords > 0 && !isLoading) {
+      <div class="whitelabel-audit__total">
+        {{ 'pagination.showingResults' | translate: { start: 1, end: auditRecords.length, total: totalRecords } }}
+      </div>
+    }
+  </div>
+</div>

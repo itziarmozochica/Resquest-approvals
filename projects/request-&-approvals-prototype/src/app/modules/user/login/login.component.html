@@ -1,0 +1,76 @@
+<ng-container>
+  <ng-container *ngIf="!showOrganizationSelector()">
+    <div class="login-full-viewport-height">
+      <div class="login-form-container">
+        <div class="external-container" [class.external-container--pin-pad-mode]="showNfcPinPad()">
+          <div class="external-container__form" data-testid="login-form">
+            @if (!showNfcPinPad()) {
+              @if (logo()) {
+                <div class="external-container__form-logo">
+                  <img [src]="logo()" />
+                </div>
+              }
+              <div class="external-container__form-title" translate>login.logIn</div>
+              <app-login-form
+                [isLoading]="isLoadingOrganizations"
+                [success]="success"
+                [banner]="banner()"
+                (loginEmitter)="onLogin()"
+              ></app-login-form>
+              @if (canShowNfcLogin()) {
+                <div class="login-nfc-section">
+                  <div class="external-container__separator">
+                    <span translate>common.or</span>
+                  </div>
+                  <button
+                    (click)="onNfcLoginClick()"
+                    class="button button--large button--secondary button--fill external-container__nfc-button"
+                    data-testid="nfc-login-button"
+                    type="button"
+                  >
+                    <ignt-icon name="address-card" size="h4" variant="light"></ignt-icon>
+                    <span>{{ 'login.nfc.loginByIdentificationCard' | translate }}</span>
+                  </button>
+                </div>
+              }
+              <app-back-to-odoo-pos-button></app-back-to-odoo-pos-button>
+            } @else {
+              <app-nfc-login
+                [forceShowPinPad]="true"
+                [initialNfcCardData]="nfcCardData()"
+                (loginSuccess)="onLogin()"
+                (showPinPadChange)="showNfcPinPad.set($event)"
+              ></app-nfc-login>
+            }
+          </div>
+        </div>
+      </div>
+      @if (!isDualScreen() && !showNfcPinPad()) {
+        <app-footer [ngClass]="{ 'no-pointer-events': true }"></app-footer>
+      }
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="showOrganizationSelector()">
+    <app-no-organization-message
+      *ngIf="noOrganizationsFound"
+      [belongsToMarketplace]="organizationsOnlyOnMarketplace"
+      (logoutEmitter)="logout()"
+      class="login-full-viewport-height"
+      data-testid="no-organization-message"
+    ></app-no-organization-message>
+    <app-select-organization
+      *ngIf="!noOrganizationsFound"
+      class="login-full-viewport-height"
+      [loading]="isLoadingOrganizations"
+      [organizations]="organizations"
+      (loadMoreOrganizations)="loadMore()"
+      (searchOrganization)="searchOrganization($event)"
+      (selectedOrganization)="selectOrganizationFromComponent($event)"
+      (showDeletedChanged)="showDeletedOrganizations($event)"
+      (logoutEmitter)="logout()"
+      (openControlPanel)="onOpenControlPanel()"
+      data-testid="organizations-selector"
+    ></app-select-organization>
+  </ng-container>
+</ng-container>

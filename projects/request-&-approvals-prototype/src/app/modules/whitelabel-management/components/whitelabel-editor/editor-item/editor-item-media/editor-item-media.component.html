@@ -1,0 +1,119 @@
+@let display = displaySource();
+@let nameUrl = display?.url;
+@let previewSrc = previewImgSrc();
+@let displayName = displayFileName(nameUrl, display?.fileName);
+<div class="editor-item editor-item--media">
+  <div class="editor-item__content">
+    <div class="editor-item__label">{{ 'whitelabelEditor.items.' + item().key | translate }}</div>
+    @if (item().key | editorItemHint; as hint) {
+      <p class="editor-item__hint">{{ hint }}</p>
+    }
+  </div>
+
+  @if (localized()) {
+    <div class="editor-item__localized">
+      <div class="editor-item__locale-picker">
+        <span class="editor-item__hint">{{ 'whitelabelEditor.mediaItem.localeLabel' | translate }}</span>
+        <div class="editor-item__locale-options" role="group" data-testid="editor-item-media-locale-select">
+          @for (loc of supportedLocales(); track loc.slug) {
+            <ignt-button
+              size="small"
+              [label]="loc.slug"
+              [variant]="loc.slug === currentSlug() ? 'primary' : 'secondary'"
+              [disabled]="loc.slug !== defaultSlug() && !defaultReady()"
+              (click)="onLocaleChange(loc.slug)"
+            />
+          }
+        </div>
+      </div>
+
+      @if (!defaultReady()) {
+        <p class="editor-item__hint editor-item__hint--warning" data-testid="editor-item-media-locale-progress">
+          {{ 'whitelabelEditor.mediaItem.uploadDefaultFirst' | translate: { locale: defaultSlug() } }}
+        </p>
+      }
+    </div>
+  }
+
+  <div class="editor-item__media-body">
+    <div class="editor-item__media-figure">
+      @let downloadUrl = previewSrc && nameUrl && isRemoteUrl(nameUrl) ? nameUrl : null;
+      @if (downloadUrl) {
+        <a class="editor-item__media-preview" [href]="downloadUrl" [title]="displayName" target="_blank" rel="noopener">
+          <img
+            class="editor-item__media-preview-img"
+            [src]="previewSrc"
+            [alt]="'whitelabelEditor.items.' + item().key | translate"
+            loading="lazy"
+          />
+        </a>
+      } @else {
+        <div class="editor-item__media-preview" [attr.title]="nameUrl ? displayName : null">
+          @if (previewSrc) {
+            <img
+              class="editor-item__media-preview-img"
+              [src]="previewSrc"
+              [alt]="'whitelabelEditor.items.' + item().key | translate"
+              loading="lazy"
+            />
+          } @else {
+            <div class="editor-item__media-placeholder">
+              <ignt-icon aria-hidden="true" name="image" variant="regular" size="h4" />
+              <span>{{ 'whitelabelEditor.mediaItem.noAsset' | translate }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="editor-item__actions editor-item__actions--media">
+      <ignt-button
+        variant="secondary"
+        size="small"
+        fill
+        class="editor-item__media-action"
+        data-testid="editor-item-media-open-gallery"
+        [label]="'whitelabelEditor.pickFromLibrary' | translate"
+        [leadingIcon]="galleryIcon"
+        (click)="onOpenGallery()"
+      />
+      <app-editor-item-file-upload
+        [accept]="accept()"
+        [label]="'whitelabelEditor.uploadFile' | translate"
+        [block]="true"
+        (fileChosen)="onFileChosen($event)"
+      />
+    </div>
+  </div>
+
+  @if (canLocalize() || canUnset() || hasEdits()) {
+    <div class="editor-item__footer">
+      @if (hasEdits()) {
+        <span class="editor-item__status editor-item__status--pending">{{ 'whitelabelEditor.unsavedChanges' | translate }}</span>
+      }
+      @if (canLocalize()) {
+        <ignt-button
+          variant="tertiary"
+          sentiment="neutral"
+          size="small"
+          data-testid="editor-item-media-localized-toggle"
+          [label]="(localized() ? 'whitelabelEditor.mediaItem.useSingleImage' : 'whitelabelEditor.mediaItem.localize') | translate"
+          (click)="onLocalizedToggle(!localized())"
+        />
+      }
+      @if (canUnset()) {
+        <ignt-button
+          variant="tertiary"
+          sentiment="neutral"
+          size="small"
+          data-testid="editor-item-media-unset"
+          [label]="'whitelabelEditor.reset' | translate"
+          (click)="onUnset()"
+        />
+      }
+      @if (hasEdits()) {
+        <ignt-button variant="tertiary" sentiment="neutral" size="small" [label]="'common.undo' | translate" (click)="onUndoPending()" />
+      }
+    </div>
+  }
+</div>

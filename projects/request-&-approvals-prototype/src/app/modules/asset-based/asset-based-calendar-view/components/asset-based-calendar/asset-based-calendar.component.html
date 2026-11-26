@@ -1,0 +1,1222 @@
+<ng-template #dropPreviewOverlay let-preview let-partyUsage="partyUsage">
+  @let dropState = getDropPreviewState(preview);
+  <span class="event__drop-state">
+    <ignt-icon class="event__drop-state-icon" [name]="dropState.iconName" [variant]="dropState.iconVariant"></ignt-icon>
+    <span class="event__drop-state-label">{{ dropState.labelKey | translate }}</span>
+  </span>
+  @if (partyUsage !== null) {
+    <span class="event__drop-party-usage" data-testid="asset-calendar-dnd-drop-preview-party-usage">
+      {{ 'bookedSlots.dropPreviewPartyUsage' | translate: partyUsage }}
+    </span>
+  }
+  @if (getDragMoveTooltipText(preview); as moveTooltipText) {
+    <div class="event__move-tooltip" data-testid="asset-calendar-dnd-move-tooltip">{{ moveTooltipText }}</div>
+  }
+</ng-template>
+
+<ng-template #timeSlotSummaries let-summaries let-isSpine="isSpine" let-width="width">
+  @for (summary of summaries; track summary) {
+    <div
+      [attr.data-booked-slot-ids]="getSummaryBookedSlotIds(summary)"
+      [attr.data-scrollanchor]="'calendar-slot-' + summary.start.toISOString()"
+      data-testid="asset-calendar-timeslot-summary"
+      class="event event--timeslot-summary"
+      [class.event--timeslot-summary-spine]="isSpine"
+      [class.event--timeslot-summary--card-v3]="isCardV3Enabled()"
+      [style.height.px]="getHeight(summary.start, summary.end)"
+      [style.top.px]="getPositionY(summary.start)"
+      [style.width]="width"
+      [style.--card-v3-inset-block-start.px]="getTimeSlotSummaryInsetPx(summary)"
+      [style.--card-v3-inset-block-end.px]="getTimeSlotSummaryInsetPx(summary)"
+    >
+      <ng-container
+        *ngTemplateOutlet="
+          timeSlotSummaryTemplate;
+          context: {
+            $implicit: summary,
+          }
+        "
+      >
+      </ng-container>
+    </div>
+  }
+</ng-template>
+
+<!-- Shared: renders events for a given column using individual style bindings for mode-dependent positioning -->
+<ng-template #renderColumnEvents let-column>
+  @if (!isListMode) {
+    @if (doesAssetOfColumnHasCapacityWindows(column)) {
+      @for (
+        interval of columnUnavailableCapacitySegments.get(column.columnKey) || [];
+        track trackUnavailableCapacityIntervalKey(interval)
+      ) {
+        @if (!isUnavailableCapacityDateException(interval)) {
+          <div
+            class="event event--unavailable-capacity"
+            [style.height.px]="getHeight(interval.start, interval.end)"
+            [style.top.px]="getUnavailableCapacityOverlayTop(interval.start)"
+            [style.width]="'100%'"
+            aria-hidden="true"
+          ></div>
+        }
+      }
+    }
+  }
+
+  @if (usesPeopleCountStrategy(column)) {
+    <!--
+      A collapsed people-count column is as valid a drop target as an expanded one, so it gets the
+      preview too — over its heatmap, since it has no lane track to put it in. Without it the column
+      showed nothing at all while still accepting the drop (GAME-1439).
+    -->
+    @if (!isPeopleCountAssetExpanded(column.asset) && getDropPreviewForColumn(column); as dropPreview) {
+      <div
+        aria-hidden="true"
+        class="event event--dnd-drop-preview"
+        [class.event--dnd-drop-preview--available]="dropPreview.availability === 'available'"
+        [class.event--dnd-drop-preview--swap]="dropPreview.availability === 'with-swap'"
+        [class.event--dnd-drop-preview--unavailable]="dropPreview.availability === 'unavailable'"
+        [style.height.px]="dropPreview.heightPx"
+        [style.top.px]="dropPreview.topPx"
+        [style.width]="'100%'"
+        data-testid="asset-calendar-dnd-drop-preview"
+      >
+        <ng-container *ngTemplateOutlet="dropPreviewOverlay; context: { $implicit: dropPreview, partyUsage: null }"></ng-container>
+      </div>
+    }
+    @if (columnTimeSlotSummaries.get(column.columnKey); as summaries) {
+      <ng-container
+        [ngTemplateOutlet]="timeSlotSummaries"
+        [ngTemplateOutletContext]="{
+          $implicit: summaries,
+          isSpine: isPeopleCountAssetExpanded(column.asset),
+          width: getTimeSlotSummaryWidth(column),
+        }"
+      ></ng-container>
+    }
+    @if (isPeopleCountAssetExpanded(column.asset)) {
+      <div
+        class="people-count-lanes"
+        data-testid="asset-calendar-people-count-lanes"
+        [style.left.px]="getPeopleCountLanesLeftPx()"
+        [style.height.px]="getPeopleCountLanesHeightPx()"
+        [style.--people-count-lanes-hour]="peopleCountLanesHourPx() + 'px'"
+        [style.--people-count-lanes-first-hour]="peopleCountLanesFirstHourPx() + 'px'"
+      >
+        <div class="people-count-lanes__track" [style.width.px]="getPeopleCountLanesTotalWidthPx(column)">
+          <!--
+            Drawn as one lane card rather than across the track, so it reads as the booking being
+            moved. Which lane it settles in is still the backend's to decide, recomputed from the
+            persisted schedule (GAME-1439): this says where the booking lands, never whether.
+          -->
+          @if (getDropPreviewForColumn(column); as dropPreview) {
+            <div
+              aria-hidden="true"
+              class="event event--dnd-drop-preview event--dnd-drop-preview--people-count-lanes"
+              [class.event--dnd-drop-preview--available]="dropPreview.availability === 'available'"
+              [class.event--dnd-drop-preview--swap]="dropPreview.availability === 'with-swap'"
+              [class.event--dnd-drop-preview--unavailable]="dropPreview.availability === 'unavailable'"
+              [style.height.px]="dropPreview.heightPx"
+              [style.left.px]="getDropPreviewLaneRect(column).leftPx"
+              [style.top.px]="dropPreview.topPx"
+              [style.width.px]="getDropPreviewLaneRect(column).widthPx"
+              data-testid="asset-calendar-dnd-drop-preview"
+            >
+              <ng-container *ngTemplateOutlet="dropPreviewOverlay; context: { $implicit: dropPreview, partyUsage: null }"></ng-container>
+            </div>
+          }
+          @for (card of columnPeopleCountLanes.get(column.columnKey) || []; track card.bookedSlot.id) {
+            <!--
+              The lane card owns geometry only: which lane, how tall, how wide. What it paints is the
+              very booking card the by-party columns render, so the two never drift apart again
+              (GAME-1362). `partyIndexInSlot: null` asks for the whole order's pax, since a lane holds
+              the order and not one of its parties.
+
+              It carries the by-party card's drag handle and both resize handles too (GAME-1439), from
+              the same `canDragBookedSlot()` / `canResizeBookedSlot()` the by-party branch asks.
+            -->
+            @if (getPreTurnaroundHeight(card.columnEvent); as preTurnaroundHeightPx) {
+              <div
+                class="event event--turnaround event--turnaround-pre event--turnaround--lane"
+                [class.event--dragging-source]="isBookedSlotDragging(card.bookedSlot)"
+                [class.event--turnaround--inset]="hasMoveHandle(card.bookedSlot, column)"
+                [class.event--turnaround--card-v3]="isCardV3Enabled()"
+                [style.--card-v3-inset-block-start.px]="getTurnaroundInsetPx(card.columnEvent, preTurnaroundHeightPx)"
+                [style.height.px]="preTurnaroundHeightPx"
+                [style.left.px]="card.leftPx"
+                [style.top.px]="getOccupancyTop(card.columnEvent)"
+                [style.width.px]="card.widthPx"
+                data-testid="asset-calendar-pre-turnaround-block"
+                aria-hidden="true"
+              ></div>
+            }
+            @if (getPostTurnaroundHeight(card.columnEvent); as postTurnaroundHeightPx) {
+              <div
+                class="event event--turnaround event--turnaround-post event--turnaround--lane"
+                [class.event--dragging-source]="isBookedSlotDragging(card.bookedSlot)"
+                [class.event--turnaround--inset]="hasMoveHandle(card.bookedSlot, column)"
+                [class.event--turnaround--card-v3]="isCardV3Enabled()"
+                [style.--card-v3-inset-block-end.px]="getTurnaroundInsetPx(card.columnEvent, postTurnaroundHeightPx)"
+                [style.height.px]="postTurnaroundHeightPx"
+                [style.left.px]="card.leftPx"
+                [style.top.px]="getPostTurnaroundTop(card.columnEvent)"
+                [style.width.px]="card.widthPx"
+                data-testid="asset-calendar-post-turnaround-block"
+                aria-hidden="true"
+              ></div>
+            }
+            <div
+              class="event event--people-count-lane"
+              [class.event--card-v3]="isCardV3Enabled()"
+              data-testid="asset-calendar-people-count-lane-card"
+              [attr.data-booked-slot-id]="card.bookedSlot.id"
+              [attr.data-lane-index]="card.laneIndex"
+              [attr.role]="isCardV3Enabled() ? null : 'button'"
+              [attr.tabindex]="isCardV3Enabled() ? null : 0"
+              [attr.aria-label]="isCardV3Enabled() ? null : card.title"
+              [attr.title]="isCardV3Enabled() ? null : card.title"
+              [class.event--dragging-source]="isBookedSlotDragging(card.bookedSlot)"
+              [class.event--resizing]="isBookedSlotResizing(card.bookedSlot)"
+              [class.event--with-drag-handle]="hasMoveHandle(card.bookedSlot, column)"
+              [class.event--with-resize-handles]="canResizeBookedSlot(card.bookedSlot, column, card.columnEvent.partyIndexInSlot)"
+              [style.top.px]="getResizedEventTop(card.columnEvent)"
+              [style.left.px]="card.leftPx"
+              [style.height.px]="getResizedEventHeight(card.columnEvent)"
+              [style.width.px]="card.widthPx"
+              [style.--card-v3-inset-block-start.px]="getCardV3InsetStartPx(card.columnEvent)"
+              [style.--card-v3-inset-block-end.px]="getCardV3InsetEndPx(card.columnEvent)"
+              cdkDrag
+              cdkDragLockAxis="x"
+              [cdkDragData]="card.bookedSlot"
+              [cdkDragDisabled]="!canDragBookedSlot(card.bookedSlot, column)"
+              [cdkDragStartDelay]="bookedSlotDragStartDelayMs()"
+              [class.event--lifted]="isBookedSlotLifted(card.bookedSlot)"
+              (pointerdown)="onBookedSlotPointerDown($event, card.bookedSlot, column)"
+              (cdkDragEnded)="onBookedSlotDragEnded($event, card.bookedSlot)"
+              (cdkDragStarted)="onBookedSlotDragStarted(card.bookedSlot); liftBookedSlotDragCard($event, column)"
+              (click)="onPeopleCountLaneCardClick(card, $event)"
+              (keyup.enter)="onPeopleCountLaneCardKey(card, $event)"
+              (keydown.space)="onPeopleCountLaneCardKey(card, $event)"
+            >
+              @if (!isCardV3Enabled() && canResizeBookedSlot(card.bookedSlot, column, card.columnEvent.partyIndexInSlot)) {
+                <span
+                  role="button"
+                  class="event__resize-handle event__resize-handle--start"
+                  data-testid="asset-calendar-event-resize-handle-start"
+                  tabindex="0"
+                  [attr.aria-label]="'bookedSlots.resizeHandleStart' | translate"
+                  (keydown)="onBookedSlotResizeHandleKeyDown($event, 'start', card.bookedSlot, column, card.columnEvent)"
+                  (pointerdown)="onBookedSlotResizePointerDown($event, 'start', card.bookedSlot, column, card.columnEvent)"
+                  (focusout)="onBookedSlotResizeHandleBlur(card.bookedSlot)"
+                ></span>
+              }
+              @if (hasMoveHandle(card.bookedSlot, column)) {
+                <!-- Under a finger the whole card drags (touchscreen handoff §6), so the grip stops being the only handle. -->
+                @if (isBookedSlotTouchPressed(card.bookedSlot)) {
+                  <button
+                    type="button"
+                    ignt-icon-button
+                    class="event__drag-handle"
+                    size="small"
+                    sentiment="tertiary"
+                    [icon]="['fas', 'grip-vertical']"
+                    data-testid="asset-calendar-event-drag-handle"
+                    [attr.aria-label]="'bookedSlots.dragAssetHandle' | translate"
+                    (click)="$event.stopPropagation()"
+                  ></button>
+                } @else {
+                  <button
+                    type="button"
+                    ignt-icon-button
+                    class="event__drag-handle"
+                    size="small"
+                    sentiment="tertiary"
+                    [icon]="['fas', 'grip-vertical']"
+                    cdkDragHandle
+                    data-testid="asset-calendar-event-drag-handle"
+                    [attr.aria-label]="'bookedSlots.dragAssetHandle' | translate"
+                    (click)="$event.stopPropagation()"
+                  ></button>
+                }
+              }
+              <div class="event__slot-content">
+                <ng-container
+                  *ngTemplateOutlet="
+                    slotTemplate;
+                    context: {
+                      $implicit: card.bookedSlot,
+                      density: getPeopleCountLaneCardDensity(card),
+                      event: card.columnEvent.event,
+                      isBookedSlotDraggable: hasMoveHandle(card.bookedSlot, column),
+                      isClamped: false,
+                      partyIndexInSlot: null,
+                    }
+                  "
+                >
+                </ng-container>
+              </div>
+              @if (canResizeBookedSlot(card.bookedSlot, column, card.columnEvent.partyIndexInSlot)) {
+                <span
+                  role="button"
+                  class="event__resize-handle event__resize-handle--end"
+                  data-testid="asset-calendar-event-resize-handle-end"
+                  tabindex="0"
+                  [attr.aria-label]="'bookedSlots.resizeHandleEnd' | translate"
+                  (keydown)="onBookedSlotResizeHandleKeyDown($event, 'end', card.bookedSlot, column, card.columnEvent)"
+                  (pointerdown)="onBookedSlotResizePointerDown($event, 'end', card.bookedSlot, column, card.columnEvent)"
+                  (focusout)="onBookedSlotResizeHandleBlur(card.bookedSlot)"
+                ></span>
+              }
+              @if (getResizeTooltipText(card.bookedSlot); as resizeTooltipText) {
+                <div
+                  aria-live="polite"
+                  class="event__resize-tooltip"
+                  [class.event__resize-tooltip--end]="!isResizeTooltipStartEdge"
+                  [class.event__resize-tooltip--limit]="isResizeTooltipAtLimit"
+                  [class.event__resize-tooltip--start]="isResizeTooltipStartEdge"
+                  data-testid="asset-calendar-event-resize-tooltip"
+                >
+                  {{ resizeTooltipText }}
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+      @for (card of columnPeopleCountLanes.get(column.columnKey) || []; track card.bookedSlot.id) {
+        @if (isBookedSlotDragCardShown(card.bookedSlot, column)) {
+          <ng-container
+            *ngTemplateOutlet="
+              bookedSlotDragCardTemplate;
+              context: {
+                $implicit: dragCardFrame(),
+                insetEndPx: getCardV3InsetEndPx(card.columnEvent),
+                insetStartPx: getCardV3InsetStartPx(card.columnEvent),
+                isPeopleCountLane: true,
+                slotContext: {
+                  $implicit: card.bookedSlot,
+                  density: getPeopleCountLaneCardDensity(card),
+                  event: card.columnEvent.event,
+                  isBookedSlotDraggable: true,
+                  isClamped: false,
+                  partyIndexInSlot: null,
+                },
+              }
+            "
+          ></ng-container>
+        }
+      }
+    }
+  } @else {
+    @if (getDropPreviewForColumn(column); as dropPreview) {
+      <div
+        aria-hidden="true"
+        class="event event--dnd-drop-preview"
+        [class.event--dnd-drop-preview--available]="dropPreview.availability === 'available'"
+        [class.event--dnd-drop-preview--swap]="dropPreview.availability === 'with-swap'"
+        [class.event--dnd-drop-preview--unavailable]="dropPreview.availability === 'unavailable'"
+        [style.height.px]="dropPreview.heightPx"
+        [style.top.px]="dropPreview.topPx"
+        [style.width]="getDropPreviewWidth(dropPreview)"
+        data-testid="asset-calendar-dnd-drop-preview"
+      >
+        @if (isDropPreviewLeadColumn(column, dropPreview)) {
+          <ng-container
+            *ngTemplateOutlet="dropPreviewOverlay; context: { $implicit: dropPreview, partyUsage: getDropPreviewPartyUsage(column) }"
+          ></ng-container>
+        }
+      </div>
+    }
+    @for (eventExt of columnBookedSlots.get(column.columnKey) || []; track eventExt) {
+      @if (!eventExt.isCoveredByMergedCard) {
+        @if (getPreTurnaroundHeight(eventExt); as preTurnaroundHeightPx) {
+          <div
+            class="event event--turnaround event--turnaround-pre"
+            [class.event--dragging-source]="isBookedSlotDragging(eventExt.bookedSlot)"
+            [class.event--turnaround--inset]="hasMoveHandle(eventExt.bookedSlot, column)"
+            [class.event--turnaround--card-v3]="isCardV3Enabled()"
+            [style.--card-v3-inset-block-start.px]="getTurnaroundInsetPx(eventExt, preTurnaroundHeightPx)"
+            [style.height.px]="preTurnaroundHeightPx"
+            [style.top.px]="getOccupancyTop(eventExt)"
+            [style.width]="getEventWidth(eventExt)"
+            data-testid="asset-calendar-pre-turnaround-block"
+            aria-hidden="true"
+          ></div>
+        }
+        @if (getPostTurnaroundHeight(eventExt); as postTurnaroundHeightPx) {
+          <div
+            class="event event--turnaround event--turnaround-post"
+            [class.event--dragging-source]="isBookedSlotDragging(eventExt.bookedSlot)"
+            [class.event--turnaround--inset]="hasMoveHandle(eventExt.bookedSlot, column)"
+            [class.event--turnaround--card-v3]="isCardV3Enabled()"
+            [style.--card-v3-inset-block-end.px]="getTurnaroundInsetPx(eventExt, postTurnaroundHeightPx)"
+            [style.height.px]="postTurnaroundHeightPx"
+            [style.top.px]="getPostTurnaroundTop(eventExt)"
+            [style.width]="getEventWidth(eventExt)"
+            data-testid="asset-calendar-post-turnaround-block"
+            aria-hidden="true"
+          ></div>
+        }
+        <div
+          #calendarItem
+          [attr.data-booked-slot-id]="eventExt.bookedSlot.id"
+          [attr.data-scrollanchor]="'calendar-slot-' + eventExt.event.startsAt?.toISOString()"
+          data-testid="asset-calendar-asset-event"
+          class="event"
+          [class.event--card-v3]="isCardV3Enabled()"
+          [class.event--dragging-source]="isBookedSlotDragging(eventExt.bookedSlot)"
+          [class.event--resizing]="isBookedSlotResizing(eventExt.bookedSlot)"
+          [class.event--with-drag-handle]="hasMoveHandle(eventExt.bookedSlot, column)"
+          [class.event--with-resize-handles]="canResizeBookedSlot(eventExt.bookedSlot, column, eventExt.partyIndexInSlot)"
+          [class.event--clamped]="eventExt.isClamped"
+          [style.height.px]="getResizedEventHeight(eventExt)"
+          [style.top.px]="getResizedEventTop(eventExt)"
+          [style.width]="getEventWidth(eventExt)"
+          [style.--card-v3-inset-block-start.px]="getCardV3InsetStartPx(eventExt)"
+          [style.--card-v3-inset-block-end.px]="getCardV3InsetEndPx(eventExt)"
+          cdkDrag
+          cdkDragLockAxis="x"
+          [cdkDragData]="eventExt.bookedSlot"
+          [cdkDragDisabled]="!canDragBookedSlot(eventExt.bookedSlot, column)"
+          [cdkDragStartDelay]="bookedSlotDragStartDelayMs()"
+          [class.event--lifted]="isBookedSlotLifted(eventExt.bookedSlot)"
+          (pointerdown)="onBookedSlotPointerDown($event, eventExt.bookedSlot, column)"
+          (cdkDragEnded)="onBookedSlotDragEnded($event, eventExt.bookedSlot)"
+          (cdkDragStarted)="onBookedSlotDragStarted(eventExt.bookedSlot); liftBookedSlotDragCard($event, column)"
+        >
+          @if (!isCardV3Enabled() && canResizeBookedSlot(eventExt.bookedSlot, column, eventExt.partyIndexInSlot)) {
+            <span
+              role="button"
+              class="event__resize-handle event__resize-handle--start"
+              data-testid="asset-calendar-event-resize-handle-start"
+              tabindex="0"
+              [attr.aria-label]="'bookedSlots.resizeHandleStart' | translate"
+              (keydown)="onBookedSlotResizeHandleKeyDown($event, 'start', eventExt.bookedSlot, column, eventExt)"
+              (pointerdown)="onBookedSlotResizePointerDown($event, 'start', eventExt.bookedSlot, column, eventExt)"
+              (focusout)="onBookedSlotResizeHandleBlur(eventExt.bookedSlot)"
+            ></span>
+          }
+          @if (hasMoveHandle(eventExt.bookedSlot, column)) {
+            <!-- Under a finger the whole card drags (touchscreen handoff §6), so the grip stops being the only handle. -->
+            @if (isBookedSlotTouchPressed(eventExt.bookedSlot)) {
+              <button
+                type="button"
+                ignt-icon-button
+                class="event__drag-handle"
+                size="small"
+                sentiment="tertiary"
+                [icon]="['fas', 'grip-vertical']"
+                data-testid="asset-calendar-event-drag-handle"
+                [attr.aria-label]="'bookedSlots.dragAssetHandle' | translate"
+                (click)="$event.stopPropagation()"
+              ></button>
+            } @else {
+              <button
+                type="button"
+                ignt-icon-button
+                class="event__drag-handle"
+                size="small"
+                sentiment="tertiary"
+                [icon]="['fas', 'grip-vertical']"
+                cdkDragHandle
+                data-testid="asset-calendar-event-drag-handle"
+                [attr.aria-label]="'bookedSlots.dragAssetHandle' | translate"
+                (click)="$event.stopPropagation()"
+              ></button>
+            }
+          }
+          <div class="event__slot-content">
+            <ng-container
+              *ngTemplateOutlet="
+                slotTemplate;
+                context: {
+                  $implicit: eventExt.bookedSlot,
+                  isClamped: eventExt.isClamped,
+                  event: eventExt.event,
+                  isBookedSlotDraggable: hasMoveHandle(eventExt.bookedSlot, column),
+                  partyIndexInSlot: getEventCardPartyIndex(eventExt),
+                }
+              "
+            >
+            </ng-container>
+          </div>
+          @if (canResizeBookedSlot(eventExt.bookedSlot, column, eventExt.partyIndexInSlot)) {
+            <span
+              role="button"
+              class="event__resize-handle event__resize-handle--end"
+              data-testid="asset-calendar-event-resize-handle-end"
+              tabindex="0"
+              [attr.aria-label]="'bookedSlots.resizeHandleEnd' | translate"
+              (keydown)="onBookedSlotResizeHandleKeyDown($event, 'end', eventExt.bookedSlot, column, eventExt)"
+              (pointerdown)="onBookedSlotResizePointerDown($event, 'end', eventExt.bookedSlot, column, eventExt)"
+              (focusout)="onBookedSlotResizeHandleBlur(eventExt.bookedSlot)"
+            ></span>
+          }
+          @if (getResizeTooltipText(eventExt.bookedSlot); as resizeTooltipText) {
+            <div
+              aria-live="polite"
+              class="event__resize-tooltip"
+              [class.event__resize-tooltip--end]="!isResizeTooltipStartEdge"
+              [class.event__resize-tooltip--limit]="isResizeTooltipAtLimit"
+              [class.event__resize-tooltip--start]="isResizeTooltipStartEdge"
+              data-testid="asset-calendar-event-resize-tooltip"
+            >
+              {{ resizeTooltipText }}
+            </div>
+          }
+        </div>
+        @if (isBookedSlotDragCardShown(eventExt.bookedSlot, column)) {
+          <ng-container
+            *ngTemplateOutlet="
+              bookedSlotDragCardTemplate;
+              context: {
+                $implicit: dragCardFrame(),
+                insetEndPx: getCardV3InsetEndPx(eventExt),
+                insetStartPx: getCardV3InsetStartPx(eventExt),
+                isPeopleCountLane: false,
+                slotContext: {
+                  $implicit: eventExt.bookedSlot,
+                  event: eventExt.event,
+                  isBookedSlotDraggable: true,
+                  isClamped: eventExt.isClamped,
+                  partyIndexInSlot: getEventCardPartyIndex(eventExt),
+                },
+              }
+            "
+          ></ng-container>
+        }
+      }
+    }
+  }
+</ng-template>
+
+<ng-template
+  #bookedSlotDragCardTemplate
+  let-frame
+  let-insetEndPx="insetEndPx"
+  let-insetStartPx="insetStartPx"
+  let-isPeopleCountLane="isPeopleCountLane"
+  let-slotContext="slotContext"
+>
+  <div
+    #bookedSlotDragCard
+    aria-hidden="true"
+    class="event event--card-v3 event--with-drag-handle event--drag-card"
+    data-testid="asset-calendar-drag-card"
+    inert
+    popover="manual"
+    [class.event--drag-card-unavailable]="isDragCardUnavailable()"
+    [class.event--people-count-lane]="isPeopleCountLane"
+    [style.--card-v3-inset-block-end.px]="insetEndPx"
+    [style.--card-v3-inset-block-start.px]="insetStartPx"
+    [style.--drag-card-x.px]="frame.startX"
+    [style.--drag-card-y.px]="frame.startY"
+    [style.height.px]="frame.heightPx"
+    [style.width.px]="frame.widthPx"
+  >
+    <button
+      type="button"
+      ignt-icon-button
+      class="event__drag-handle"
+      size="small"
+      sentiment="tertiary"
+      [icon]="['fas', 'grip-vertical']"
+    ></button>
+    <div class="event__slot-content">
+      <ng-container *ngTemplateOutlet="slotTemplate; context: slotContext"></ng-container>
+    </div>
+  </div>
+</ng-template>
+
+<!-- Spanning overlays for date-exception rules; render only on the first column of each asset (see calendar body). -->
+<ng-template #dateExceptionOverlay let-column let-isSpine="isSpine">
+  @if (!isListMode) {
+    @if (shouldRenderFocusedCapacityRuleOverlay(column)) {
+      <div
+        class="event event--capacity-rule-focus"
+        [style.height.px]="getFocusedCapacityRuleOverlayHeight()"
+        [style.top.px]="getFocusedCapacityRuleOverlayTop()"
+        [style.left.px]="dateExceptionOverlayCellInsetPx"
+        [style.width]="isSpine ? spineOverlayWidth : getCapacityRuleFocusOverlayWidth(column)"
+        aria-hidden="true"
+      ></div>
+    }
+    @for (interval of columnUnavailableCapacitySegments.get(column.columnKey) || []; track trackUnavailableCapacityIntervalKey(interval)) {
+      @if (isUnavailableCapacityDateException(interval)) {
+        @let durationT = getUnavailableCapacityDurationTranslation(interval);
+        <div
+          class="event event--unavailable-capacity event--unavailable-capacity--date-exception"
+          [class.event--unavailable-capacity--rule-focused]="isUnavailableCapacityRuleFocused(column, interval)"
+          [style.height.px]="getDateExceptionUnavailableOverlayHeight(interval.start, interval.end)"
+          [style.top.px]="getDateExceptionUnavailableOverlayTop(interval.start)"
+          [style.left.px]="dateExceptionOverlayCellInsetPx"
+          [style.width]="isSpine ? spineOverlayWidth : getDateExceptionUnavailableOverlayWidth(column, interval)"
+          [attr.aria-label]="getUnavailableCapacityOverlayAriaLabel(interval)"
+          data-testid="asset-calendar-date-exception-overlay"
+          role="button"
+          tabindex="0"
+          (click)="onDateExceptionOverlayClick(column, interval, $event)"
+          (keydown.enter)="onDateExceptionOverlayClick(column, interval, $event)"
+          (keydown.space)="onDateExceptionOverlayClick(column, interval, $event)"
+        >
+          <div class="event--unavailable-capacity__content">
+            <ignt-icon aria-hidden="true" class="event--unavailable-capacity__icon" name="lock-alt" variant="light"></ignt-icon>
+            <div class="event--unavailable-capacity__text">
+              <div class="event--unavailable-capacity__title">
+                {{ getDateExceptionUnavailableDisplayTitle(interval) }}
+              </div>
+              <div class="event--unavailable-capacity__duration">
+                {{ durationT.key | translate: durationT.params }}
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    }
+  }
+</ng-template>
+
+<!-- Shared: party info (user icon + max capacity or party index) -->
+<ng-template #partyInfoContent let-column>
+  <ignt-icon name="user" variant="light" class="asset-header__max-icon"></ignt-icon>
+  @if (usesPeopleCountStrategy(column)) {
+    {{ 'bookedSlots.max' | translate }} {{ column.asset.maxPartySize }}
+  } @else {
+    {{ 'bookedSlots.party' | translate }} {{ column.partyIndex + 1 }}
+  }
+</ng-template>
+
+<ng-template #assetHeaderText let-text>
+  @if (text.isShortened) {
+    <span aria-hidden="true" data-testid="asset-calendar-asset-short-name">{{ text.text }}</span
+    ><span class="visually-hidden">{{ text.fullText }}</span>
+  } @else {
+    {{ text.text }}
+  }
+</ng-template>
+
+<ng-template #assetHeaderLaneLabel let-lane>
+  <span
+    class="asset-header-lane__label"
+    igntTooltip
+    tabindex="0"
+    tooltipPlacement="bottom"
+    tooltipTrigger="hover-focus-click"
+    data-testid="asset-calendar-asset-lane-label"
+    [tooltipLabel]="lane.asset.name"
+  >
+    <ng-container [ngTemplateOutlet]="assetHeaderText" [ngTemplateOutletContext]="{ $implicit: lane.label }" />
+  </span>
+</ng-template>
+
+<ng-template #capacityRulesDot let-asset>
+  @let isCapacityOverridden = showsCapacityRulesDot(asset);
+  @if (isCapacityOverridden || showsCapacityRulesEntryPoint(asset)) {
+    <span
+      #capacityRulesTooltip="igntTooltip"
+      igntTooltip
+      role="button"
+      tabindex="0"
+      class="asset-capacity-rules-dot"
+      tooltipOpenDelay="300"
+      tooltipPlacement="top"
+      [attr.aria-label]="'bookedSlots.capacityRulesPanelOpenLink' | translate"
+      [attr.data-testid]="isCapacityOverridden ? 'asset-capacity-rules-dot' : 'asset-capacity-rules-entry'"
+      [class.asset-capacity-rules-dot--neutral]="!isCapacityOverridden"
+      [tooltipLabel]="isCapacityOverridden ? getCapacityRulesDotTooltip(asset) : getCapacityRulesEntryTooltip(asset)"
+      (click)="onCapacityRulesDotClick(asset, $event); capacityRulesTooltip.close()"
+      (keydown.enter)="onCapacityRulesDotClick(asset, $event); capacityRulesTooltip.close()"
+      (keydown.space)="onCapacityRulesDotClick(asset, $event); capacityRulesTooltip.close()"
+    ></span>
+  }
+</ng-template>
+
+<!-- Shared: header template outlet for column -->
+<ng-template #columnHeaderContent let-column>
+  @if (headerTemplate && column.asset.id !== null) {
+    <ng-container [ngTemplateOutlet]="headerTemplate" [ngTemplateOutletContext]="{ $implicit: columnBookedSlots.get(column.columnKey) }">
+    </ng-container>
+  }
+</ng-template>
+
+<!-- Shared: current time line indicator -->
+<ng-template #currentTimeLineIndicator let-isList="isList">
+  <div
+    class="asset-based-calendar__current-time-line"
+    [class.asset-based-calendar__current-time-line--list]="isList"
+    [style.left.px]="isList ? currentTimeTopPx : null"
+    [style.top.px]="!isList ? currentTimeTopPx : null"
+    data-testid="asset-calendar-current-time-line"
+    aria-hidden="true"
+  ></div>
+</ng-template>
+
+<!-- Shared: current time pill with formatted time -->
+<ng-template #currentTimePill let-isList="isList">
+  <div
+    class="asset-based-calendar__current-time-pill-wrapper"
+    [class.asset-based-calendar__current-time-pill-wrapper--list]="isList"
+    [style.left.px]="isList ? currentTimeTopPx : null"
+    [style.top.px]="!isList ? currentTimeTopPx : null"
+    [attr.data-scrollanchor]="'asset-calendar-current-time'"
+    data-testid="asset-calendar-current-time-pill"
+    aria-hidden="true"
+  >
+    <span class="asset-based-calendar__current-time-pill">
+      @if (isPhoneLayout() && currentTimeForPill !== null) {
+        {{ currentTimeForPill | calendarPhoneClockLabel: timezone }}
+      } @else {
+        {{ currentTimeForPill | momentDate: 'shortTime' : timezone }}
+      }
+    </span>
+    @if (!isList) {
+      <span class="asset-based-calendar__current-time-line-segment"></span>
+    }
+  </div>
+</ng-template>
+
+@if (isListMode) {
+  <!-- LIST MODE: days on X axis, assets on Y axis -->
+  <table class="calendar calendar--list calendar--extended">
+    <thead>
+      <tr class="calendar__header">
+        <th class="list-row-header-cell">
+          <div class="time-header__content time-header__content--small">
+            {{ 'weeklyCalendar.startTime' | translate }}
+          </div>
+        </th>
+        @for (day of daySlots; track day.getTime()) {
+          <th data-testid="asset-calendar-list-day-header" class="list-day-header" [class.list-day-header--today]="isToday(day)">
+            <div class="list-day-header__content">
+              <span class="list-day-header__weekday">{{ day | momentDate: 'EEE' : timezone }}</span>
+              <span class="list-day-header__date">{{ day | momentDate: 'd MMM' : timezone }}</span>
+            </div>
+          </th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @for (column of columns; track column.columnKey; let columnIndex = $index) {
+        <tr
+          [class.list-row--asset-start]="isFirstColumnOfAsset(columnIndex)"
+          [class.list-row--over-capacity]="column.isOverCapacity"
+          [attr.data-testid]="isFirstColumnOfAsset(columnIndex) ? 'asset-calendar-event-container-row' : null"
+        >
+          <td class="list-row-header" [attr.title]="column.isOverCapacity ? ('bookedSlots.overCapacityColumn' | translate) : null">
+            <div class="list-row-header__content">
+              @if (isFirstColumnOfAsset(columnIndex)) {
+                <div class="list-row-header__asset-group">
+                  <span class="list-row-header__asset-name">{{ column.asset.name }}</span>
+                </div>
+              }
+              <div class="list-row-header__party-info">
+                <ng-container [ngTemplateOutlet]="partyInfoContent" [ngTemplateOutletContext]="{ $implicit: column }"></ng-container>
+              </div>
+            </div>
+            <ng-container [ngTemplateOutlet]="columnHeaderContent" [ngTemplateOutletContext]="{ $implicit: column }"></ng-container>
+          </td>
+          @for (day of daySlots; track day.getTime()) {
+            <td data-testid="asset-calendar-asset-body" class="list-day-cell" [class.list-day-cell--today]="isToday(day)">
+              @if (usesPeopleCountStrategy(column)) {
+                @for (summary of getColumnTimeSlotSummariesForDay(column.columnKey, day); track summary.key) {
+                  @if (summary.attendeeCount > 0) {
+                    <div class="list-day-event" [attr.data-booked-slot-ids]="getSummaryBookedSlotIds(summary)">
+                      <ng-container *ngTemplateOutlet="timeSlotSummaryTemplate; context: { $implicit: summary }"></ng-container>
+                    </div>
+                  }
+                }
+              } @else {
+                @for (eventExt of getColumnBookedSlotsForDay(column.columnKey, day); track eventExt.bookedSlot.id) {
+                  <div
+                    #calendarItem
+                    [attr.data-booked-slot-id]="eventExt.bookedSlot.id"
+                    [attr.data-scrollanchor]="'calendar-slot-' + eventExt.event.startsAt?.toISOString()"
+                    class="list-day-event"
+                  >
+                    <ng-container
+                      *ngTemplateOutlet="
+                        slotTemplate;
+                        context: {
+                          $implicit: eventExt.bookedSlot,
+                          isClamped: eventExt.isClamped,
+                          event: eventExt.event,
+                          partyIndexInSlot: eventExt.partyIndexInSlot,
+                        }
+                      "
+                    ></ng-container>
+                  </div>
+                }
+              }
+            </td>
+          }
+        </tr>
+      }
+    </tbody>
+  </table>
+} @else {
+  <!-- CALENDAR MODE: assets on X axis, hours on Y axis -->
+  <table
+    class="calendar"
+    data-testid="asset-calendar-grid"
+    [class.calendar--extended]="!isCompactMode"
+    [class.calendar--new-frame]="isNewFrameEnabled()"
+    [class.calendar--card-v3]="isCardV3Enabled()"
+    [class.calendar--phone]="isPhoneLayout()"
+    [class.calendar--fixed-lanes]="columnWidthPx() !== null"
+    [style.--calendar-time-column-width.px]="isNewFrameEnabled() ? timeColumnWidthPx() : null"
+    [appCalendarPinchZoom]="pinchZoomState()"
+    [appCalendarLongPress]="isMoveModeLongPressOffEnabled()"
+    (calendarLongPress)="onGridLongPress($event)"
+    (click)="onGridClick($event)"
+    [appCalendarPointerDown]="false"
+    (calendarPointerDown)="onGridPointerDown()"
+    (pinchZoomStarted)="onPinchZoomStarted()"
+    (pinchZoomStateChange)="pinchZoomStateChange.emit($event)"
+  >
+    <thead appCalendarHorizontalPan data-testid="asset-calendar-header">
+      <tr class="calendar__header calendar__assets-row">
+        <th class="time-header" data-testid="asset-calendar-time-header" [attr.rowspan]="isNewFrameEnabled() ? 1 : 2">
+          <div class="time-header__content time-header__content--small" [class.visually-hidden]="isPhoneLayout()">
+            {{ 'weeklyCalendar.startTime' | translate }}
+          </div>
+        </th>
+        @for (group of assetHeaderGroups; track group.asset.id) {
+          @let headerWidthPx = getAssetHeaderGroupWidthPx(group);
+          @let headerPartyCountView = partyCountAssetViews().get(group.asset);
+          @let headerView = assetHeaderGroupViews().get(group.asset);
+          @let titleGeometry = group.asset.id === null ? undefined : groupedTitleGeometries().get(group.asset.id);
+          @let headerOverCapacityView = overCapacityAssetViews().get(group.asset);
+          @if (headerView?.isTypeStart) {
+            <th class="asset-type-band" aria-hidden="true" data-testid="asset-calendar-asset-type-band"></th>
+          }
+          @if (headerView && headerView.mergedRunColspan !== null) {
+            <th
+              class="asset-header-group asset-header-run"
+              data-testid="asset-calendar-asset-type-group"
+              [class.asset-header-group--type-start]="headerView.isTypeStart"
+              [attr.colspan]="headerView.mergedRunColspan"
+              [attr.data-grouped-title-asset-id]="group.asset.id"
+              [style.--grouped-title-dot-end.px]="titleGeometry?.dotEndPx ?? null"
+              [style.--grouped-title-width.px]="titleGeometry?.widthPx ?? null"
+              [style.width.px]="headerView.mergedRunWidthPx"
+              [style.minWidth.px]="headerView.mergedRunWidthPx"
+            >
+              <div class="asset-header-group__lanes">
+                @for (lane of headerView.lanes; track lane.asset.id) {
+                  <div
+                    class="asset-header-lane"
+                    data-testid="asset-calendar-asset-lane"
+                    [class.asset-header-lane--dnd-restricted]="isAssetRestrictedDuringDrag(lane.asset)"
+                    [class.asset-header-lane--raised-capacity-dot]="lane.isCapacityDotRaised"
+                    [style.--lane-label-start.px]="lane.labelStartPx"
+                    [style.paddingInline.px]="lane.labelGapPx"
+                    [style.--lane-label-travel.px]="lane.labelTravelPx"
+                    [style.width.px]="lane.widthPx"
+                  >
+                    <span class="asset-header-lane__content">
+                      <ng-container [ngTemplateOutlet]="assetHeaderLaneLabel" [ngTemplateOutletContext]="{ $implicit: lane }" />
+                      @if (!lane.isCapacityDotRaised) {
+                        <ng-container [ngTemplateOutlet]="capacityRulesDot" [ngTemplateOutletContext]="{ $implicit: lane.asset }" />
+                      }
+                    </span>
+                    @if (lane.isCapacityDotRaised) {
+                      <ng-container [ngTemplateOutlet]="capacityRulesDot" [ngTemplateOutletContext]="{ $implicit: lane.asset }" />
+                    }
+                  </div>
+                }
+              </div>
+              <div class="asset-header-run__head">
+                <span
+                  class="asset-header-run__title"
+                  igntTooltip
+                  [class.asset-header-run__title--cramped]="headerView.isTitleCramped"
+                  tabindex="0"
+                  tooltipPlacement="bottom"
+                  tooltipTrigger="hover-focus-click"
+                  data-testid="asset-calendar-asset-type-title"
+                  [style.--grouped-title-max-width.px]="headerView.titleMaxWidthPx"
+                  [tooltipLabel]="headerView.title.fullText"
+                >
+                  <span class="asset-header-run__title-text">
+                    <ng-container [ngTemplateOutlet]="assetHeaderText" [ngTemplateOutletContext]="{ $implicit: headerView.title }" />
+                  </span>
+                </span>
+              </div>
+            </th>
+          } @else if (!headerView?.isCoveredByMergedRun) {
+            <th
+              class="asset-header-group"
+              data-testid="asset-calendar-asset-header-group"
+              [class.asset-header-group--dnd-restricted]="isAssetRestrictedDuringDrag(group.asset)"
+              [class.asset-header-group--narrow]="isNarrowAssetHeaderGroup(group, headerWidthPx)"
+              [class.asset-header-group--type-start]="headerView?.isTypeStart === true"
+              [class.asset-header-group--with-lanes]="
+                headerView !== undefined && headerView.lanes.length > 0 && !headerPartyCountView?.isCollapsed
+              "
+              [attr.colspan]="getAssetHeaderGroupColspan(group)"
+              [attr.data-grouped-title-asset-id]="
+                headerView !== undefined && headerView.lanes.length > 0 && !headerPartyCountView?.isCollapsed ? group.asset.id : null
+              "
+              [style.--grouped-title-dot-end.px]="titleGeometry?.dotEndPx ?? null"
+              [style.--grouped-title-width.px]="titleGeometry?.widthPx ?? null"
+              [style.width.px]="headerWidthPx"
+              [style.minWidth.px]="headerWidthPx"
+            >
+              <div class="asset-header-group__content">
+                <div class="asset-header-group__title-with-rules">
+                  @if (isNewFrameEnabled()) {
+                    <!-- A thin header shows a few letters; screen readers and the tooltip keep the whole name. -->
+                    <span
+                      class="asset-header-group__name"
+                      igntTooltip
+                      tabindex="0"
+                      tooltipPlacement="bottom"
+                      tooltipTrigger="hover-focus-click"
+                      data-testid="asset-calendar-asset-name"
+                      [class.asset-header-group__name--cramped]="headerView?.isTitleCramped === true"
+                      [style.--grouped-title-max-width.px]="headerView?.titleMaxWidthPx ?? null"
+                      [tooltipLabel]="group.asset.name"
+                    >
+                      <span class="asset-header-group__name-text">
+                        @if (headerView) {
+                          <ng-container [ngTemplateOutlet]="assetHeaderText" [ngTemplateOutletContext]="{ $implicit: headerView.title }" />
+                        } @else {
+                          {{ assetHeaderName(group.asset) }}
+                        }
+                      </span>
+                    </span>
+                  } @else {
+                    <span class="asset-header-group__name" [appTruncationTitle]="isCompactMode ? group.asset.name : null">
+                      {{ group.asset.name }}
+                    </span>
+                  }
+                  <ng-container [ngTemplateOutlet]="capacityRulesDot" [ngTemplateOutletContext]="{ $implicit: group.asset }" />
+                  @if (canExpandPeopleCountColumn(group.asset)) {
+                    <button
+                      type="button"
+                      ignt-icon-button
+                      size="small"
+                      class="people-count-lanes-toggle"
+                      sentiment="tertiary"
+                      data-testid="asset-calendar-people-count-lanes-toggle"
+                      [icon]="getPeopleCountToggleIcon(group.asset)"
+                      [attr.aria-expanded]="isPeopleCountAssetExpanded(group.asset)"
+                      [attr.aria-label]="getPeopleCountToggleLabelKey(group.asset) | translate"
+                      [attr.title]="getPeopleCountToggleLabelKey(group.asset) | translate"
+                      (click)="onPeopleCountToggleClick(group.asset, $event)"
+                    ></button>
+                  }
+                  @if (headerPartyCountView; as partyCountView) {
+                    <button
+                      type="button"
+                      ignt-icon-button
+                      size="small"
+                      class="people-count-lanes-toggle"
+                      sentiment="tertiary"
+                      data-testid="asset-calendar-party-count-summary-toggle"
+                      [icon]="partyCountView.toggleIcon"
+                      [attr.aria-expanded]="!partyCountView.isCollapsed"
+                      [attr.aria-label]="partyCountView.toggleLabelKey | translate"
+                      [attr.title]="partyCountView.toggleLabelKey | translate"
+                      (click)="onPartyCountToggleClick(group.asset, $event)"
+                    ></button>
+                  }
+                  @if (headerOverCapacityView && !headerPartyCountView?.isCollapsed) {
+                    @let overCapacityToggleLabel =
+                      headerOverCapacityView.toggleLabelKey | translate: { count: headerOverCapacityView.overCapacityColumnCount };
+                    @if (isNewFrameEnabled()) {
+                      <span
+                        aria-hidden="true"
+                        class="asset-header-group__over-capacity-count"
+                        data-testid="asset-calendar-over-capacity-count"
+                        ><ignt-icon class="over-capacity-mark__icon" name="exclamation-triangle" variant="solid"></ignt-icon
+                        >{{
+                          'bookedSlots.overCapacitySpine.headerBadge' | translate: { count: headerOverCapacityView.overCapacityColumnCount }
+                        }}</span
+                      >
+                    }
+                    <button
+                      type="button"
+                      ignt-icon-button
+                      size="small"
+                      class="people-count-lanes-toggle"
+                      sentiment="tertiary"
+                      data-testid="asset-calendar-over-capacity-toggle"
+                      [icon]="headerOverCapacityView.toggleIcon"
+                      [attr.aria-expanded]="headerOverCapacityView.isExpanded"
+                      [attr.aria-label]="overCapacityToggleLabel"
+                      [attr.title]="overCapacityToggleLabel"
+                      (click)="onOverCapacityToggleClick(group.asset, $event)"
+                    ></button>
+                  }
+                </div>
+              </div>
+              @if (headerView && headerView.lanes.length > 0 && !headerPartyCountView?.isCollapsed) {
+                <div
+                  class="asset-header-group__lanes"
+                  [style.paddingInlineStart.px]="headerPartyCountView?.summaryWidthPx ?? null"
+                  [style.paddingInlineEnd.px]="headerOverCapacityView?.isExpanded === false ? headerOverCapacityView.spineWidthPx : null"
+                >
+                  @for (lane of headerView.lanes; track $index) {
+                    <div
+                      class="asset-header-lane"
+                      data-testid="asset-calendar-asset-lane"
+                      [class.asset-header-lane--label-hidden]="lane.isLabelHidden"
+                      [style.--lane-label-start.px]="lane.labelStartPx"
+                      [style.paddingInlineStart.px]="lane.labelGapPx"
+                      [style.paddingInlineEnd.px]="lane.labelEndPaddingPx"
+                      [style.--lane-label-travel.px]="lane.labelTravelPx"
+                      [style.width.px]="lane.widthPx"
+                    >
+                      <span class="asset-header-lane__content">
+                        <span
+                          class="asset-header-lane__label"
+                          igntTooltip
+                          tooltipPlacement="bottom"
+                          tooltipTrigger="hover-focus-click"
+                          data-testid="asset-calendar-asset-lane-label"
+                          [tooltipLabel]="group.asset.name"
+                        >
+                          <ng-container [ngTemplateOutlet]="assetHeaderText" [ngTemplateOutletContext]="{ $implicit: lane.label }" />
+                        </span>
+                      </span>
+                    </div>
+                  }
+                </div>
+              }
+            </th>
+          }
+        }
+      </tr>
+      @if (!isNewFrameEnabled()) {
+        <tr class="calendar__header calendar__columns-row">
+          @for (column of columns; track column.columnKey; let columnIndex = $index) {
+            @let columnPartyCountView = partyCountAssetViews().get(column.asset);
+            @if (isFirstColumnOfAsset(columnIndex) && columnPartyCountView) {
+              @let summaryWidth = columnPartyCountView.summaryWidthPx;
+              <th
+                class="asset-header"
+                data-testid="asset-calendar-party-count-summary-header"
+                [style.width.px]="summaryWidth"
+                [style.minWidth.px]="summaryWidth"
+                [style.maxWidth.px]="summaryWidth"
+              ></th>
+            }
+            @let columnOverCapacityView = overCapacityAssetViews().get(column.asset);
+            @let isOverCapacityFolded = column.isOverCapacity && columnOverCapacityView?.isExpanded === false;
+            @if (!columnPartyCountView?.isCollapsed && isOverCapacityFolded && isFirstOverCapacityColumn(columnIndex)) {
+              <th
+                class="asset-header asset-header--over-capacity asset-header--same-asset"
+                data-testid="asset-calendar-over-capacity-spine-header"
+                [attr.title]="'bookedSlots.overCapacityColumn' | translate"
+                [style.width.px]="columnOverCapacityView?.spineWidthPx"
+                [style.minWidth.px]="columnOverCapacityView?.spineWidthPx"
+                [style.maxWidth.px]="columnOverCapacityView?.spineWidthPx"
+              >
+                <span class="asset-header__over-capacity-count">+{{ columnOverCapacityView?.overCapacityColumnCount }}</span>
+              </th>
+            }
+            @if (!columnPartyCountView?.isCollapsed && !isOverCapacityFolded) {
+              @let columnWidth = getColumnWidthPx(column);
+              <th
+                class="asset-header"
+                [class.asset-header--dnd-restricted]="isColumnRestrictedDuringDrag(column)"
+                [class.asset-header--same-asset]="!isFirstColumnOfAsset(columnIndex)"
+                [class.asset-header--over-capacity]="column.isOverCapacity"
+                [attr.title]="column.isOverCapacity ? ('bookedSlots.overCapacityColumn' | translate) : null"
+                [style.width.px]="columnWidth"
+                [style.minWidth.px]="columnWidth"
+                [style.maxWidth.px]="columnWidthPx() === null ? null : columnWidth"
+                data-testid="asset-calendar-asset-header"
+              >
+                <div class="asset-header__content">
+                  <div class="asset-header__max">
+                    <ng-container [ngTemplateOutlet]="partyInfoContent" [ngTemplateOutletContext]="{ $implicit: column }"></ng-container>
+                  </div>
+                </div>
+                <ng-container [ngTemplateOutlet]="columnHeaderContent" [ngTemplateOutletContext]="{ $implicit: column }"></ng-container>
+              </th>
+            }
+          }
+        </tr>
+      }
+    </thead>
+    <tbody>
+      @for (slot of allSlots; track trackGridRow($index, slot); let rowIndex = $index) {
+        <tr
+          [class.calendar-row--off-hour]="!isCardV3Enabled() && !isFullHourRow(slot)"
+          [class.calendar-row--no-line]="isCardV3Enabled() && !isFullHourRow(slot)"
+          [style.--calendar-half-hour-inside]="halfHourInsideRowPercent(slot) === null ? null : halfHourInsideRowPercent(slot) + '%'"
+          [class.calendar-row--outside-opening-hours]="isOutsideOpeningHours(slot)"
+          [attr.data-testid]="isEventContainerRow(rowIndex) ? 'asset-calendar-event-container-row' : null"
+        >
+          <td
+            class="hour-hint"
+            [class.hour-hint--has-current-time]="currentTimeTopPx !== null && isEventContainerRow(rowIndex)"
+            [style.height.px]="getRowHeightPx(rowIndex)"
+            [attr.data-scrollanchor]="'calendar-slot-' + slot.date.toISOString()"
+          >
+            <div class="hour-hint__content" data-testid="asset-calendar-axis-label">
+              @if (isLabelledAxisRow(slot)) {
+                @if (isPhoneLayout()) {
+                  {{ slot.clockDate | calendarPhoneAxisLabel: 'UTC' }}
+                } @else {
+                  {{ slot.clockDate | momentDate: 'shortTime' : 'UTC' }}
+                }
+              }
+            </div>
+            @if (halfHourInsideRowPercent(slot) !== null) {
+              <div class="hour-hint__content hour-hint__content--inside" data-testid="asset-calendar-axis-label">
+                @if (isPhoneLayout()) {
+                  {{ halfHourInsideRowClock(slot) | calendarPhoneAxisLabel: 'UTC' }}
+                } @else {
+                  {{ halfHourInsideRowClock(slot) | momentDate: 'shortTime' : 'UTC' }}
+                }
+              </div>
+            }
+            @if (currentTimeTopPx !== null && isEventContainerRow(rowIndex) && shouldShowCurrentTimePill) {
+              <ng-container [ngTemplateOutlet]="currentTimePill" [ngTemplateOutletContext]="{ isList: false }"></ng-container>
+            }
+          </td>
+          @for (column of columns; track trackGridCell(rowIndex, column); let columnIndex = $index) {
+            @let columnPartyCountView = partyCountAssetViews().get(column.asset);
+            @let isTypeStart = typeBandColumnKeys().has(column.columnKey);
+            @if (isTypeStart) {
+              <td
+                class="asset-type-band"
+                aria-hidden="true"
+                data-testid="asset-calendar-asset-type-band-cell"
+                [style.height.px]="getRowHeightPx(rowIndex)"
+              >
+                @if (currentTimeTopPx !== null && isEventContainerRow(rowIndex) && shouldShowCurrentTimeLine) {
+                  <ng-container [ngTemplateOutlet]="currentTimeLineIndicator" [ngTemplateOutletContext]="{ isList: false }"></ng-container>
+                }
+              </td>
+            }
+            @if (isFirstColumnOfAsset(columnIndex) && columnPartyCountView) {
+              @let summaryWidth = columnPartyCountView.summaryWidthPx;
+              <td
+                [attr.data-asset-id]="column.asset.id"
+                [style.height.px]="getRowHeightPx(rowIndex)"
+                [style.width.px]="summaryWidth"
+                [style.minWidth.px]="summaryWidth"
+                [style.maxWidth.px]="summaryWidth"
+                data-testid="asset-calendar-party-count-summary-cell"
+                class="asset-body-cell asset-body-cell--party-count-summary"
+                [class.asset-body-cell--type-start]="isTypeStart"
+              >
+                @if (currentTimeTopPx !== null && isEventContainerRow(rowIndex) && shouldShowCurrentTimeLine) {
+                  <ng-container [ngTemplateOutlet]="currentTimeLineIndicator" [ngTemplateOutletContext]="{ isList: false }"></ng-container>
+                }
+                @if (isEventContainerRow(rowIndex) && isCapacityRulesEnabled) {
+                  <ng-container
+                    [ngTemplateOutlet]="dateExceptionOverlay"
+                    [ngTemplateOutletContext]="{ $implicit: column, isSpine: true }"
+                  ></ng-container>
+                }
+                @if (isEventContainerRow(rowIndex) && partyCountSummariesByAssetId.get(column.asset.id); as summaries) {
+                  <ng-container
+                    [ngTemplateOutlet]="timeSlotSummaries"
+                    [ngTemplateOutletContext]="{ $implicit: summaries, isSpine: true, width: '100%' }"
+                  ></ng-container>
+                }
+              </td>
+            }
+            @let columnOverCapacityView = overCapacityAssetViews().get(column.asset);
+            @let isOverCapacityFolded = column.isOverCapacity && columnOverCapacityView?.isExpanded === false;
+            @if (!columnPartyCountView?.isCollapsed && isOverCapacityFolded && isFirstOverCapacityColumn(columnIndex)) {
+              <td
+                [attr.data-asset-id]="column.asset.id"
+                [style.height.px]="getRowHeightPx(rowIndex)"
+                [style.width.px]="columnOverCapacityView?.spineWidthPx"
+                [style.minWidth.px]="columnOverCapacityView?.spineWidthPx"
+                [style.maxWidth.px]="columnOverCapacityView?.spineWidthPx"
+                data-testid="asset-calendar-over-capacity-spine"
+                class="asset-body-cell asset-body-cell--over-capacity asset-body-cell--over-capacity-spine"
+              >
+                @if (currentTimeTopPx !== null && isEventContainerRow(rowIndex) && shouldShowCurrentTimeLine) {
+                  <ng-container [ngTemplateOutlet]="currentTimeLineIndicator" [ngTemplateOutletContext]="{ isList: false }"></ng-container>
+                }
+                @if (isEventContainerRow(rowIndex) && overCapacitySpineSegmentsByAssetId.get(column.asset.id); as segments) {
+                  @for (segment of segments; track segment.start.getTime()) {
+                    @let segmentLabel = 'bookedSlots.overCapacitySpine.segmentAriaLabel' | translate: { count: segment.partyCount };
+                    <span
+                      role="button"
+                      tabindex="0"
+                      class="over-capacity-spine-segment"
+                      data-testid="asset-calendar-over-capacity-spine-segment"
+                      [attr.aria-label]="segmentLabel"
+                      [attr.data-booked-slot-ids]="segment.bookedSlotIds.join(',')"
+                      [attr.title]="segmentLabel"
+                      [style.height.px]="getHeight(segment.start, segment.end)"
+                      [style.top.px]="getPositionY(segment.start)"
+                      (click)="onOverCapacityToggleClick(column.asset, $event)"
+                      (keydown.enter)="onOverCapacityToggleClick(column.asset, $event)"
+                      (keydown.space)="onOverCapacityToggleClick(column.asset, $event)"
+                    >
+                      <ignt-icon
+                        aria-hidden="true"
+                        class="over-capacity-mark__icon"
+                        name="exclamation-triangle"
+                        variant="solid"
+                      ></ignt-icon>
+                      {{ segment.partyCount }}
+                    </span>
+                  }
+                }
+              </td>
+            }
+            @if (!columnPartyCountView?.isCollapsed && !isOverCapacityFolded) {
+              @let columnWidth = getColumnWidthPx(column);
+              <td
+                [attr.data-asset-id]="column.asset.id"
+                [attr.data-column-key]="column.columnKey"
+                [style.height.px]="getRowHeightPx(rowIndex)"
+                [style.width.px]="columnWidth"
+                [style.minWidth.px]="columnWidth"
+                [style.maxWidth.px]="columnWidthPx() === null ? null : columnWidth"
+                data-testid="asset-calendar-asset-body"
+                class="asset-body-cell"
+                [class.asset-body-cell--dnd-restricted]="isColumnRestrictedDuringDrag(column)"
+                [class.asset-body-cell--quick-block-armed]="quickBlockArmed()"
+                [class.asset-body-cell--over-capacity]="column.isOverCapacity"
+                [class.asset-body-cell--type-start]="isTypeStart && !columnPartyCountView"
+                [appCalendarPointerDown]="quickBlockArmed()"
+                (calendarPointerDown)="onQuickBlockPointerDown($event, column)"
+              >
+                @if (currentTimeTopPx !== null && isEventContainerRow(rowIndex) && shouldShowCurrentTimeLine) {
+                  <ng-container [ngTemplateOutlet]="currentTimeLineIndicator" [ngTemplateOutletContext]="{ isList: false }"></ng-container>
+                }
+                @if (isEventContainerRow(rowIndex)) {
+                  @if (isCapacityRulesEnabled && isFirstColumnOfAsset(columnIndex)) {
+                    <ng-container [ngTemplateOutlet]="dateExceptionOverlay" [ngTemplateOutletContext]="{ $implicit: column }">
+                    </ng-container>
+                  }
+                  <ng-container [ngTemplateOutlet]="renderColumnEvents" [ngTemplateOutletContext]="{ $implicit: column }"> </ng-container>
+                  @if (getQuickBlockPreviewForColumn(column); as quickBlockPreview) {
+                    <div
+                      class="event event--quick-block-preview"
+                      data-testid="quick-block-draw-preview"
+                      [style.height.px]="quickBlockPreview.heightPx"
+                      [style.top.px]="quickBlockPreview.topPx"
+                    >
+                      @if (isLastQuickBlockPreviewColumn(column)) {
+                        <div
+                          aria-live="polite"
+                          class="event__resize-tooltip event__resize-tooltip--end"
+                          data-testid="quick-block-draw-tooltip"
+                        >
+                          {{ quickBlockPreview.endsAt | momentDate: 'shortTime' : timezone }}
+                        </div>
+                      }
+                    </div>
+                  }
+                }
+              </td>
+            }
+          }
+        </tr>
+      }
+    </tbody>
+  </table>
+}

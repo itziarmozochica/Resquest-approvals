@@ -1,0 +1,238 @@
+<section class="static-html-assets" data-testid="static-html-assets">
+  @if (isCheckingLibrary()) {
+    <p class="static-html-assets__note" role="status" data-testid="static-html-assets-checking">
+      {{ 'staticHtml.assets.checking' | translate }}
+    </p>
+  }
+
+  <!-- Both say the same thing: the index is not known to be complete, so nothing below reads as missing. -->
+  @if (hasLibraryError()) {
+    <p class="static-html-assets__note static-html-assets__note--warning" role="alert" data-testid="static-html-assets-library-error">
+      {{ 'staticHtml.assets.libraryError' | translate }}
+    </p>
+  } @else if (isLibraryTruncated()) {
+    <p class="static-html-assets__note static-html-assets__note--warning" role="alert" data-testid="static-html-assets-library-truncated">
+      {{ 'staticHtml.assets.libraryTruncated' | translate }}
+    </p>
+  }
+
+  @if (rows().length === 0) {
+    <p class="static-html-assets__empty" data-testid="static-html-assets-empty">{{ 'staticHtml.assets.empty' | translate }}</p>
+  } @else {
+    <!--
+      Folder mode leads, because it is the entry point to the whole list rather than a footnote under
+      it. What a pick concludes lands in the rows below, one row per reference, never a second list.
+    -->
+    <app-static-html-asset-folder [references]="unresolvedReferences()" />
+
+    <!-- Where the files go is a property of the panel, not of one action, so it is said once here. -->
+    <p class="static-html-assets__note" data-testid="static-html-assets-scope-note">{{ 'staticHtml.assets.scopeNote' | translate }}</p>
+
+    <!-- The save is what performs the selections, so its progress belongs to the whole list. -->
+    @if (isCommitting()) {
+      <p class="static-html-assets__note" role="status" aria-live="polite" data-testid="static-html-assets-progress">
+        {{ 'staticHtml.assets.progress' | translate: progress() }}
+      </p>
+    }
+
+    @for (group of groups(); track group.id) {
+      <div
+        class="static-html-assets__group static-html-assets__group--{{ group.id }}"
+        [attr.data-testid]="'static-html-assets-group-' + group.id"
+      >
+        <h4 class="static-html-assets__group-title">{{ group.titleKey | translate }}</h4>
+        <span class="static-html-assets__group-count">{{ group.countKey | translate: group.countParams }}</span>
+
+        <ul class="static-html-assets__list">
+          @for (row of group.rows; track row.value) {
+            <li class="static-html-assets__row" data-testid="static-html-assets-row">
+              <div class="static-html-assets__thumbnail" aria-hidden="true">
+                @if (row.thumbnailUrl) {
+                  <!--
+                    `referrerpolicy`: a thumbnail can be an absolute URL the author wrote, on an
+                    origin that is none of ours, and a third party has no business being told which
+                    Fever Zone page was open when it was fetched. `loading` keeps the rows below the
+                    fold from fetching at all until they are looked at.
+                  -->
+                  <img
+                    class="static-html-assets__thumbnail-image"
+                    alt=""
+                    loading="lazy"
+                    referrerpolicy="no-referrer"
+                    [src]="row.thumbnailUrl"
+                  />
+                } @else {
+                  <span class="static-html-assets__thumbnail-kind">{{ 'staticHtml.assets.kinds.' + row.assetKind | translate }}</span>
+                }
+              </div>
+
+              <div class="static-html-assets__details">
+                <p class="static-html-assets__value" [title]="row.value">{{ row.label }}</p>
+
+                <p class="static-html-assets__origins">
+                  @for (origin of row.origins; track origin) {
+                    <span class="static-html-assets__origin">{{ 'staticHtml.assets.origins.' + origin | translate }}</span>
+                  }
+                  @if (row.occurrenceCount > 1) {
+                    <span class="static-html-assets__origin">
+                      {{ 'staticHtml.assets.occurrences' | translate: { count: row.occurrenceCount } }}
+                    </span>
+                  }
+                </p>
+
+                @if (selectionFor(row.value); as selected) {
+                  <p class="static-html-assets__picked" data-testid="static-html-assets-selection">
+                    <!-- The label is clipped when it is long, so the whole of it stays on the element. -->
+                    <span class="static-html-assets__picked-path" [title]="selected.label">{{
+                      selected.labelKey | translate: { label: selected.label }
+                    }}</span>
+
+                    <!-- Words, never colour alone: a name-only pairing is the one the author has to look at. -->
+                    @if (selected.confidence; as confidence) {
+                      <span
+                        class="static-html-assets__confidence static-html-assets__confidence--{{ confidence }}"
+                        data-testid="static-html-assets-confidence"
+                        [attr.data-confidence]="confidence"
+                        >{{ 'staticHtml.assets.folder.confidence.' + confidence | translate }}</span
+                      >
+                    }
+                  </p>
+
+                  @if (selected.error; as error) {
+                    <p class="static-html-assets__error" role="alert" data-testid="static-html-assets-selection-error">
+                      {{ error.key | translate: error.params }}
+                    </p>
+                  }
+                } @else if (candidatesFor(row.value).length > 0) {
+                  <!-- A tie is the author's to break, so every tied file is offered and none is chosen. -->
+                  <p class="static-html-assets__reason" data-testid="static-html-assets-ambiguous">
+                    {{ 'staticHtml.assets.folder.ambiguous' | translate }}
+                  </p>
+
+                  <div class="static-html-assets__candidates">
+                    @for (candidate of candidatesFor(row.value); track candidate.id) {
+                      <!-- Two files of one name are one label unless the pick position tells them apart. -->
+                      @let chooseLabel = candidateLabel(row.value, candidate);
+
+                      <ignt-button
+                        data-testid="static-html-assets-candidate"
+                        size="small"
+                        variant="tertiary"
+                        [ariaLabel]="'staticHtml.assets.folder.aria.chooseCandidate' | translate: { name: row.label, path: chooseLabel }"
+                        [disabled]="isCommitting()"
+                        [label]="chooseLabel"
+                        (click)="chooseCandidate(row.value, candidate)"
+                      />
+                    }
+                  </div>
+                }
+              </div>
+
+              <!-- The status is words, never colour alone, so it survives a monochrome or high-contrast render. -->
+              @if (selectionFor(row.value); as selected) {
+                <p
+                  class="static-html-assets__status static-html-assets__status--{{ selected.statusValue }}"
+                  data-testid="static-html-assets-status"
+                  [attr.data-status]="selected.statusValue"
+                >
+                  {{ selected.statusKey | translate }}
+                </p>
+              } @else {
+                <p
+                  class="static-html-assets__status static-html-assets__status--{{ row.status }}"
+                  data-testid="static-html-assets-status"
+                  [attr.data-status]="row.status"
+                >
+                  {{ 'staticHtml.assets.status.' + row.status | translate }}
+                </p>
+              }
+
+              <div class="static-html-assets__actions">
+                @if (selectionFor(row.value)) {
+                  <!--
+                  A row holding a selection offers one thing: letting go of it. There is no Upload
+                  beside it, because there is one commit point on this screen and it is Save.
+
+                  Neutral, not danger: letting go destroys nothing — not the reference in the
+                  document, not the asset in the media library — it only drops a pick that was never
+                  committed. The tone used to claim otherwise, which was survivable while the design
+                  system coloured only the label, and stopped being so once danger secondaries in
+                  this section grew a red border: this button then looked exactly like the delete in
+                  the branch below, which really does reach the media library. The accessible name
+                  still spells out what it leaves alone, because "Clear" beside an asset invites the
+                  assumption on its own.
+                -->
+                  <ignt-button
+                    data-testid="static-html-assets-selection-clear"
+                    sentiment="neutral"
+                    size="small"
+                    variant="secondary"
+                    [ariaLabel]="'staticHtml.assets.selection.aria.clear' | translate: { name: row.label }"
+                    [disabled]="isCommitting()"
+                    [label]="'staticHtml.assets.selection.clear' | translate"
+                    (click)="clearSelection(row.value)"
+                  />
+                } @else {
+                  <!--
+                  The one action here that reaches the media library on its own. It is offered only on a
+                  row whose asset is stored, because that is the only row with anything to remove, and
+                  it never touches the document: the reference stays written where the author wrote it,
+                  and the row goes back to reporting itself missing.
+                -->
+                  @if (row.canDelete) {
+                    <ignt-button
+                      data-testid="static-html-assets-delete"
+                      sentiment="danger"
+                      size="small"
+                      variant="secondary"
+                      [ariaLabel]="'staticHtml.assets.aria.delete' | translate: { name: row.label }"
+                      [disabled]="isCommitting() || isDeleting(row.value)"
+                      [label]="'staticHtml.assets.delete' | translate"
+                      [loading]="isDeleting(row.value)"
+                      (click)="deleteFromLibrary(row)"
+                    />
+                  }
+
+                  @if (row.canMove) {
+                    <ignt-button
+                      data-testid="static-html-assets-move"
+                      sentiment="brand"
+                      size="small"
+                      variant="secondary"
+                      [ariaLabel]="'staticHtml.assets.aria.move' | translate: { name: row.label }"
+                      [disabled]="isCommitting()"
+                      [label]="'staticHtml.assets.move' | translate"
+                      (click)="moveToLibrary(row)"
+                    />
+                  }
+
+                  @if (row.canReplace) {
+                    <ignt-button
+                      data-testid="static-html-assets-choose-file"
+                      size="small"
+                      variant="tertiary"
+                      [ariaLabel]="'staticHtml.assets.aria.chooseFile' | translate: { name: row.label }"
+                      [disabled]="isCommitting()"
+                      [label]="'staticHtml.assets.chooseFile' | translate"
+                      (click)="chooseFile(row)"
+                    />
+
+                    <ignt-button
+                      data-testid="static-html-assets-pick"
+                      size="small"
+                      variant="tertiary"
+                      [ariaLabel]="'staticHtml.assets.aria.pick' | translate: { name: row.label }"
+                      [disabled]="isCommitting()"
+                      [label]="'staticHtml.assets.pick' | translate"
+                      (click)="chooseFromLibrary(row)"
+                    />
+                  }
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+  }
+</section>

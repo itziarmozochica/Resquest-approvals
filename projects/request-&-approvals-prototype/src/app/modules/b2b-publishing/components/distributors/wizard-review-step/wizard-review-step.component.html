@@ -1,0 +1,145 @@
+<div class="wizard-review-step">
+  @if (isLoading()) {
+    <div class="wizard-review-step__loading" aria-busy="true" aria-live="polite" data-testid="group-wizard-review-loading">
+      <span class="wizard-review-step__message">{{ 'distributors.groups.wizard.review.loading' | translate }}</span>
+      <ignt-skeleton type="list" [animation]="true" [numElements]="3" />
+    </div>
+  } @else if (hasError()) {
+    <div class="wizard-review-step__failure" role="alert" data-testid="group-wizard-review-error">
+      <p class="wizard-review-step__message">{{ 'distributors.groups.wizard.review.error' | translate }}</p>
+      <ignt-button
+        data-testid="group-wizard-review-retry"
+        variant="secondary"
+        [label]="'distributors.groups.wizard.review.retry' | translate"
+        (click)="retried.emit()"
+      />
+    </div>
+  } @else {
+    @if (isTruncated()) {
+      <ignt-alert
+        data-testid="group-wizard-review-truncated"
+        sentiment="warning"
+        [description]="'distributors.groups.wizard.review.truncatedPublication' | translate: { max: maxEvents() }"
+      />
+    }
+
+    @if (events().length) {
+      @if (hasBlockedEvents()) {
+        <ignt-alert
+          data-testid="group-wizard-review-held-back"
+          sentiment="warning"
+          [description]="'distributors.groups.wizard.review.heldBack' | translate: { count: notGoingLive().length }"
+        />
+      }
+
+      @if (unchecked().length) {
+        <ignt-alert
+          data-testid="group-wizard-review-unchecked"
+          sentiment="info"
+          [description]="'distributors.groups.wizard.review.unchecked' | translate: { count: unchecked().length }"
+        />
+      }
+
+      @if (hasBlockedEvents()) {
+        <div
+          class="wizard-review-step__filters"
+          role="group"
+          [attr.aria-label]="'distributors.groups.wizard.review.filterLabel' | translate"
+        >
+          <ignt-pill-button
+            data-testid="group-wizard-review-filter-all"
+            [checked]="filter() === filters.ALL"
+            [label]="'distributors.groups.wizard.review.filters.all' | translate: { count: events().length }"
+            [value]="filters.ALL"
+            (checkedChange)="show(filters.ALL)"
+          />
+          <ignt-pill-button
+            data-testid="group-wizard-review-filter-live"
+            [checked]="filter() === filters.LIVE"
+            [disabled]="goingLive().length === 0"
+            [label]="'distributors.groups.wizard.review.filters.live' | translate: { count: goingLive().length }"
+            [value]="filters.LIVE"
+            (checkedChange)="show(filters.LIVE)"
+          />
+          <ignt-pill-button
+            data-testid="group-wizard-review-filter-held"
+            [checked]="filter() === filters.HELD"
+            [label]="'distributors.groups.wizard.review.filters.held' | translate: { count: notGoingLive().length }"
+            [value]="filters.HELD"
+            (checkedChange)="show(filters.HELD)"
+          />
+        </div>
+      }
+
+      <ignt-table
+        data-testid="group-wizard-review-list"
+        layout="table"
+        [data]="visibleEvents()"
+        [hasFullWidthSearch]="true"
+        [hasPagination]="true"
+        [pageSize]="pageSize"
+        [searchConfig]="searchConfig()"
+        (searchChanged)="search($event)"
+      >
+        <ignt-table-column key="name" columnType="primary" [header]="'distributors.groups.wizard.review.columns.event' | translate">
+          <ng-template [igntTableColumnTemplateType]="eventSample" let-item="item">
+            <span class="wizard-review-step__text" [attr.data-testid]="'group-wizard-review-event-' + item.id">
+              <span class="wizard-review-step__name">{{ item.name }}</span>
+              <span class="wizard-review-step__place">{{ eventSummaries().get(item.id) }}</span>
+            </span>
+          </ng-template>
+        </ignt-table-column>
+
+        @if (hasBlockedEvents()) {
+          <ignt-table-column key="status" columnType="secondary" [header]="'distributors.groups.wizard.review.columns.status' | translate">
+            <ng-template [igntTableColumnTemplateType]="eventSample" let-item="item">
+              <span class="wizard-review-step__status">
+                @if (!isUnchecked(item)) {
+                  <ignt-tag
+                    [attr.data-testid]="'group-wizard-review-status-' + item.id"
+                    [sentiment]="isBlocked(item) ? 'warning' : 'positive'"
+                  >
+                    {{
+                      (isBlocked(item) ? 'distributors.groups.wizard.review.notGoingLive' : 'distributors.groups.wizard.review.goingLive')
+                        | translate
+                    }}
+                  </ignt-tag>
+                }
+                @if (reasonFor(item); as reason) {
+                  <span class="wizard-review-step__reason" [attr.data-testid]="'group-wizard-review-reason-' + item.id">{{
+                    reason | translate
+                  }}</span>
+                }
+              </span>
+            </ng-template>
+          </ignt-table-column>
+        }
+
+        @if (groupName(); as group) {
+          <ignt-table-column align="right" columnType="action" [header]="''" [width]="160">
+            <ng-template [igntTableColumnTemplateType]="eventSample" let-item="item">
+              <ignt-button
+                size="small"
+                variant="secondary"
+                [ariaLabel]="'marketplaceEvents.actions.seeDetailsOf' | translate: { event: item.name, group }"
+                [attr.data-testid]="'group-wizard-review-details-' + item.id"
+                [label]="'marketplaceEvents.actions.seeDetails' | translate"
+                (click)="detailsOpened.emit(item)"
+              />
+            </ng-template>
+          </ignt-table-column>
+        }
+      </ignt-table>
+
+      @if (goingOnSaleKey(); as goingOnSaleKey) {
+        <p class="wizard-review-step__message" data-testid="group-wizard-review-going-on-sale">
+          {{ goingOnSaleKey | translate: { count: toPublish().length } }}
+        </p>
+      }
+    } @else {
+      <p class="wizard-review-step__message" data-testid="group-wizard-review-empty">
+        {{ 'distributors.groups.wizard.review.nothingToPublish' | translate }}
+      </p>
+    }
+  }
+</div>

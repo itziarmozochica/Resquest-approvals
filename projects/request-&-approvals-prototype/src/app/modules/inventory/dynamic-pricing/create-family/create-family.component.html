@@ -1,0 +1,90 @@
+<div class="create-family">
+  <header class="create-family__header">
+    <ignt-breadcrumb [items]="breadcrumbs" />
+    <p class="create-family__intro">{{ 'inventory.dynamicPricing.families.wizard.subtitle' | translate }}</p>
+  </header>
+
+  <div class="create-family__panel">
+    @for (step of store.stepViews(); track step.id; let i = $index) {
+      <section class="create-family__section" [class]="'create-family__section--' + step.state">
+        <header
+          class="create-family__section-head"
+          [class.create-family__section-head--clickable]="step.state === 'done'"
+          [attr.role]="step.state === 'done' ? 'button' : null"
+          [attr.tabindex]="step.state === 'done' ? 0 : null"
+          [attr.data-testid]="'wizard-step-' + step.id"
+          (click)="step.state === 'done' && onGoToStep(i)"
+          (keydown.enter)="step.state === 'done' && onGoToStep(i)"
+          (keydown.space)="$event.preventDefault(); step.state === 'done' && onGoToStep(i)"
+        >
+          <span class="create-family__section-num" [class]="'create-family__section-num--' + step.state">
+            @if (step.state === 'done') {
+              <ignt-icon name="check" variant="solid" size="sm" aria-hidden="true"></ignt-icon>
+            } @else {
+              {{ i + 1 }}
+            }
+          </span>
+          <div class="create-family__section-text">
+            <h2 class="create-family__section-title">{{ step.label | translate }}</h2>
+            <span class="create-family__section-hint">
+              {{ 'inventory.dynamicPricing.families.wizard.sections.' + step.id | translate }}
+            </span>
+          </div>
+        </header>
+
+        <div class="create-family__section-body" [hidden]="i !== store.currentStep()">
+          @if (i === 0) {
+            <app-create-family-root-scope-step />
+          } @else if (i === 1) {
+            <app-create-family-price-levels-step />
+          } @else if (i === 2) {
+            <app-create-family-jump-rules-step />
+          } @else if (i === 3) {
+            <app-create-family-validate-activate-step />
+          }
+        </div>
+      </section>
+    }
+  </div>
+
+  <footer class="create-family__footer">
+    <ignt-button
+      variant="secondary"
+      sentiment="neutral"
+      data-testid="create-family-save-draft"
+      [disabled]="true"
+      [label]="'inventory.dynamicPricing.families.wizard.actions.saveDraft' | translate"
+    ></ignt-button>
+
+    <div class="create-family__footer-actions">
+      @if (store.isLastStep()) {
+        <ignt-button
+          variant="secondary"
+          sentiment="neutral"
+          data-testid="create-family-validate"
+          [loading]="store.isValidating()"
+          [disabled]="planTarget() === null || store.isSubmitting() || store.isValidating()"
+          [label]="'inventory.dynamicPricing.families.wizard.actions.validate' | translate"
+          (click)="onValidate()"
+        ></ignt-button>
+        <ignt-button
+          variant="primary"
+          data-testid="create-family-primary"
+          [loading]="store.isSubmitting()"
+          [disabled]="store.isSubmitting() || planTarget() === null || !store.isValid()"
+          [label]="'inventory.dynamicPricing.families.wizard.actions.create' | translate"
+          (click)="onPrimary()"
+        ></ignt-button>
+      } @else {
+        <ignt-button
+          variant="primary"
+          data-testid="create-family-primary"
+          [loading]="store.isSubmitting()"
+          [disabled]="store.isSubmitting() || !store.canGoNext()"
+          [label]="'inventory.dynamicPricing.families.wizard.actions.continue' | translate"
+          (click)="onPrimary()"
+        ></ignt-button>
+      }
+    </div>
+  </footer>
+</div>

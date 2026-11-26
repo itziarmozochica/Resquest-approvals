@@ -1,0 +1,59 @@
+<div class="computed-tags-list">
+  <div class="computed-tags-list__header">
+    <div class="computed-tags-list__title-row">
+      <h3 class="computed-tags-list__title">
+        {{ 'fundraising.settings.computedTags.title' | translate }}
+      </h3>
+      <span class="computed-tags-list__count-badge">{{ tags().length }}</span>
+    </div>
+    <button igntButton [sentiment]="'secondary'" [size]="'small'" (click)="onAddTag()" data-testid="add-computed-tag-button">
+      {{ 'fundraising.settings.computedTags.addButton' | translate }}
+    </button>
+  </div>
+
+  <p class="computed-tags-list__description">
+    {{ 'fundraising.settings.computedTags.description' | translateTerminology }}
+  </p>
+
+  @if (isLoading()) {
+    <div class="computed-tags-list__loading">
+      <ignt-icon name="spinner" variant="solid" size="h1" [spin]="true" aria-hidden="true"></ignt-icon>
+    </div>
+  } @else if (tags().length > 0) {
+    <div class="computed-tags-list__draggable-container">
+      <app-vertical-draggable-list
+        [boundarySelector]="'.computed-tags-list__draggable-container'"
+        [itemTemplate]="tagItemTemplate"
+        [items]="tags()"
+        placeholderHeight="68px"
+        [dragHandleIcon]="['far', 'angles-up-down']"
+        [showItemOrder]="true"
+        (itemsReordered)="onItemsReordered($event)"
+      ></app-vertical-draggable-list>
+    </div>
+  }
+</div>
+
+<ng-template #tagItemTemplate let-tag let-index="index">
+  <div class="computed-tags-list__item-space"></div>
+  <div class="computed-tags-list__item" data-testid="computed-tag-item">
+    <div class="computed-tags-list__item-info">
+      <span class="computed-tags-list__item-name">{{ tag.name }}</span>
+      <span class="computed-tags-list__item-patrons">
+        {{ tag.patronCount }} {{ 'fundraising.settings.computedTags.patrons' | translateTerminology }}
+      </span>
+    </div>
+    <span class="computed-tags-list__item-rules">{{ getConditionsSummary(tag) }}</span>
+    <button
+      class="computed-tags-list__item-edit"
+      type="button"
+      [attr.aria-label]="'common.edit' | translate"
+      (click)="onEditTag(tag)"
+      data-testid="edit-computed-tag-button"
+    >
+      <ignt-icon name="edit" variant="solid" size="h4" aria-hidden="true" />
+    </button>
+  </div>
+</ng-template>
+
+<app-confirmation-dialog />

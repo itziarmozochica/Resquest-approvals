@@ -1,0 +1,282 @@
+<div [hidden]="cancellationStep() !== CancellationStep.ORDER_DETAIL" data-testid="ticket-list-step">
+  <div class="order-cancellation-ticket-card-list">
+    <div class="order-cancellation-ticket-card-list__header" data-testid="global-select-all-wrapper">
+      <span class="order-cancellation-ticket-card-list__title">{{ 'cancellation.ticketsTitle' | translate }}</span>
+      @if (hasAnyCancellableItems() && !totalCancellationDisabled()) {
+        <div class="order-cancellation-ticket-card-list__select-all">
+          <input
+            type="checkbox"
+            id="global-select-all"
+            [checked]="isGlobalAllSelected()"
+            [indeterminate]="isGlobalIndeterminate()"
+            (change)="onGlobalSelectAllChange($event.target.checked)"
+            class="order-cancellation-ticket-card-list__checkbox"
+            data-testid="global-select-all-checkbox"
+          />
+          <label for="global-select-all" class="order-cancellation-ticket-card-list__label">{{
+            'cancellation.selectAllTickets' | translate
+          }}</label>
+        </div>
+      }
+    </div>
+    @for (summary of ticketsSummaries(); track summary.ticketId) {
+      <app-order-entrance-ticket-card
+        [ticketSummary]="summary"
+        [allSelected]="false"
+        [isSelectionDisabled]="totalCancellationDisabled() || lockedCancellationInsuranceTicketIds().has(summary.ticketId)"
+        [lockedSelection]="lockedCancellationInsuranceTicketIds().has(summary.ticketId) ? isWholeOrderSelected() : null"
+        [selectionDescribedBy]="
+          lockedCancellationInsuranceTicketIds().has(summary.ticketId) ? 'cancellation-insurance-note-' + summary.ticketId : null
+        "
+        [validationMethod]="order().validationMethod"
+        (selectedItemsChange)="updateEntranceTicketItemsSelection($event)"
+        (splitPackConfirm)="confirmSplitPack($event)"
+      />
+      @if (lockedCancellationInsuranceTicketIds().has(summary.ticketId)) {
+        <p
+          class="order-cancellation-ticket-card-list__note"
+          id="cancellation-insurance-note-{{ summary.ticketId }}"
+          data-testid="cancellation-insurance-note"
+        >
+          {{ 'cancellation.ticketCard.cancellationInsuranceNote' | translate }}
+        </p>
+      }
+    }
+  </div>
+</div>
+
+<div [hidden]="cancellationStep() !== CancellationStep.REIMBURSEMENT_SUMMARY" class="confirmation-form" data-testid="confirmation-step">
+  <h4 class="title">{{ 'cancellation.reimbursementTypes.title' | translate }}</h4>
+  <div class="allowed-reimbursement-types">
+    @if (order().allowedReimbursementTypes?.includes(ReimbursementType.OriginalMethod)) {
+      <div
+        data-testid="reimbursement-type-refund"
+        class="reimbursement-type"
+        [class]="{ active: selectedReimbursementType() === ReimbursementType.OriginalMethod }"
+        (click)="handleReimbursementTypeChange(ReimbursementType.OriginalMethod)"
+      >
+        <ignt-icon name="undo" variant="light" />
+        <span>{{ 'cancellation.reimbursementTypes.buttons.refund' | translate }}</span>
+      </div>
+    }
+    @if (order().allowedReimbursementTypes?.includes(ReimbursementType.Voucher)) {
+      <div
+        data-testid="reimbursement-type-promotion-code"
+        class="reimbursement-type"
+        [class]="{ active: selectedReimbursementType() === ReimbursementType.Voucher }"
+        (click)="handleReimbursementTypeChange(ReimbursementType.Voucher)"
+      >
+        <ignt-icon name="badge-percent" variant="light" />
+        <span>{{ 'cancellation.reimbursementTypes.buttons.promotionCode' | translate }}</span>
+      </div>
+    }
+    @if (order().allowedReimbursementTypes?.includes(ReimbursementType.OnsitePosRefund)) {
+      <div
+        data-testid="reimbursement-type-onsite-pos-refund"
+        class="reimbursement-type"
+        [class]="{ active: selectedReimbursementType() === ReimbursementType.OnsitePosRefund }"
+        (click)="handleReimbursementTypeChange(ReimbursementType.OnsitePosRefund)"
+      >
+        <ignt-icon name="store" variant="light" />
+        <span>{{ 'cancellation.reimbursementTypes.buttons.onsitePOSRefund' | translate }}</span>
+      </div>
+    }
+    @if (order().allowedReimbursementTypes?.includes(ReimbursementType.NoRefund)) {
+      <div
+        data-testid="reimbursement-type-no-refund"
+        class="reimbursement-type"
+        [class]="{ active: selectedReimbursementType() === ReimbursementType.NoRefund }"
+        (click)="handleReimbursementTypeChange(ReimbursementType.NoRefund)"
+      >
+        <ignt-icon name="minus" variant="light" />
+        <span>{{ 'cancellation.reimbursementTypes.buttons.noRefund' | translate }}</span>
+      </div>
+    }
+    @if (order().allowedReimbursementTypes?.includes(ReimbursementType.ManualRefund)) {
+      <div
+        data-testid="reimbursement-type-manual-refund"
+        class="reimbursement-type"
+        [class]="{ active: selectedReimbursementType() === ReimbursementType.ManualRefund }"
+        (click)="handleReimbursementTypeChange(ReimbursementType.ManualRefund)"
+      >
+        <ignt-icon name="cash-register" variant="light" />
+        <span>{{ 'cancellation.reimbursementTypes.buttons.manualRefund' | translate }}</span>
+      </div>
+    }
+  </div>
+  @if (order().channelId === 'invitation') {
+    @if (selectedReimbursementType() === ReimbursementType.NoRefund) {
+      <p>
+        {{ 'cancellation.reimbursementTypes.helpTexts.invitationNotEligibleForRefund' | translate }}
+      </p>
+    }
+  } @else if (order().paymentGateway === 'delegated' && orderHasVoucher()) {
+    @if (selectedReimbursementType() === ReimbursementType.ManualRefund) {
+      <p>
+        {{ 'cancellation.reimbursementTypes.helpTexts.manualRefundAndCouponWillNotBeIssued' | translate }}
+      </p>
+    }
+  } @else if (order().paymentGateway === 'delegated' && !orderHasVoucher()) {
+    @if (selectedReimbursementType() === ReimbursementType.ManualRefund) {
+      <p>
+        {{ 'cancellation.reimbursementTypes.helpTexts.orderRequiresManualRefund' | translate }}
+      </p>
+    }
+  } @else if (orderHasVoucher()) {
+    @if (selectedReimbursementType() === ReimbursementType.OriginalMethod) {
+      <p data-testid="coupon-refund-hint">
+        {{ 'cancellation.reimbursementTypes.helpTexts.couponWillBeIssuedAndRemainingBalanceRefunded' | translate }}
+      </p>
+    }
+    @if (selectedReimbursementType() === ReimbursementType.Voucher) {
+      <p>
+        {{ 'cancellation.reimbursementTypes.helpTexts.couponWillBeIssued' | translate }}
+      </p>
+    }
+    @if (selectedReimbursementType() === ReimbursementType.OnsitePosRefund) {
+      <div class="onsite-refund-container">
+        <label class="field">
+          <select class="field__select" [(ngModel)]="selectedPaymentDeviceId">
+            @for (id of paymentTerminalIds(); track id) {
+              <option [value]="id" [selected]="selectedPaymentDeviceId() === id">
+                {{ id }}
+              </option>
+            }
+          </select>
+          <span class="field__label">{{ 'cancellation.reimbursementTypes.helpTexts.linkedPaymentDevice' | translate }}</span>
+          <ignt-icon name="chevron-down" variant="light" class="field__icon field__icon--trail" [fixedWidth]="true" />
+        </label>
+        <button
+          class="button button--large button--primary"
+          data-testid="request-refund-button"
+          (click)="handleRequestRefund()"
+          [disabled]="!selectedPaymentDeviceId() || isProcessingRefund()"
+        >
+          {{
+            isProcessingRefund()
+              ? ('cancellation.buttons.processingOnsitePOSRefund' | translate)
+              : ('cancellation.buttons.requestOnsitePOSRefund' | translate)
+          }}
+        </button>
+      </div>
+    }
+  } @else {
+    @if (selectedReimbursementType() === ReimbursementType.OriginalMethod) {
+      <p>
+        {{ 'cancellation.reimbursementTypes.helpTexts.refundWillGoOriginalPaymentMethod' | translate }}
+      </p>
+    }
+    @if (selectedReimbursementType() === ReimbursementType.Voucher) {
+      <p>
+        {{ 'cancellation.reimbursementTypes.helpTexts.couponWillBeIssued' | translate }}
+      </p>
+    }
+    @if (selectedReimbursementType() === ReimbursementType.OnsitePosRefund) {
+      <div class="onsite-refund-container">
+        <label class="field">
+          <select class="field__select" [(ngModel)]="selectedPaymentDeviceId">
+            @for (id of paymentTerminalIds(); track id) {
+              <option [value]="id" [selected]="selectedPaymentDeviceId() === id">
+                {{ id }}
+              </option>
+            }
+          </select>
+          <span class="field__label">{{ 'cancellation.reimbursementTypes.helpTexts.linkedPaymentDevice' | translate }}</span>
+          <ignt-icon name="chevron-down" variant="light" class="field__icon field__icon--trail" [fixedWidth]="true" />
+        </label>
+        <button
+          class="button button--large button--primary"
+          data-testid="request-refund-button"
+          (click)="handleRequestRefund()"
+          [disabled]="!selectedPaymentDeviceId() || isProcessingRefund()"
+        >
+          {{
+            isProcessingRefund()
+              ? ('cancellation.buttons.processingOnsitePOSRefund' | translate)
+              : ('cancellation.buttons.requestOnsitePOSRefund' | translate)
+          }}
+        </button>
+      </div>
+    }
+  }
+
+  @if (isPolishFiscalBoxOffice()) {
+    <h4 class="title">{{ 'cancellation.plCancellationCause.title' | translate }}</h4>
+    <div class="allowed-reimbursement-types">
+      <div
+        data-testid="cancellation-cause-customer-request"
+        class="reimbursement-type"
+        [class]="{ active: selectedCancellationCause() === 'customer_request' }"
+        (click)="handleCancellationCauseChange('customer_request')"
+      >
+        <ignt-icon name="user" variant="light" />
+        <span>{{ 'cancellation.plCancellationCause.buttons.customerRequest' | translate }}</span>
+      </div>
+      <div
+        data-testid="cancellation-cause-error-correction"
+        class="reimbursement-type"
+        [class]="{ active: selectedCancellationCause() === 'error_correction' }"
+        (click)="handleCancellationCauseChange('error_correction')"
+      >
+        <ignt-icon name="pen" variant="light" />
+        <span>{{ 'cancellation.plCancellationCause.buttons.errorCorrection' | translate }}</span>
+      </div>
+    </div>
+  }
+
+  @if (isCancellationReasonShown()) {
+    <div class="confirmation-form__cancellation-reason">
+      @if (haveCancellationReasonsFailed()) {
+        <ignt-alert sentiment="danger" data-testid="cancellation-reason-error" [description]="'cancellation.reason.loadError' | translate">
+          <ng-template #igntAlertActions>
+            <ignt-button
+              size="small"
+              variant="secondary"
+              data-testid="cancellation-reason-retry"
+              [label]="'cancellation.reason.retry' | translate"
+              (click)="handleCancellationReasonsRetry()"
+            />
+          </ng-template>
+        </ignt-alert>
+      } @else {
+        <ignt-typeahead
+          data-testid="cancellation-reason-select"
+          [editable]="false"
+          [emptyLabel]="'cancellation.reason.placeholder' | translate"
+          [fieldLabel]="'cancellation.reason.label' | translate"
+          [options]="cancellationReasonOptions()"
+          [selectedOption]="selectedCancellationReason()"
+          (selected)="handleCancellationReasonChange($event)"
+        ></ignt-typeahead>
+      }
+    </div>
+  }
+
+  @if (showForceCancelProviderOrder()) {
+    <ignt-checkbox
+      class="confirmation-form__force-cancel-provider-order"
+      dataTestId="force-cancel-provider-order-checkbox"
+      [checked]="forceCancelProviderOrder()"
+      [description]="'cancellation.forceCancelProviderOrder.warning' | translate"
+      [label]="'cancellation.forceCancelProviderOrder.label' | translate"
+      [disabled]="isForceCancelProviderOrderDisabled()"
+      (change)="handleForceCancelProviderOrderChange($event)"
+    />
+  }
+
+  <textarea
+    class="confirmation-form__comment"
+    cols="30"
+    rows="10"
+    required
+    data-testid="comment-input"
+    [attr.maxlength]="isErrorCorrectionSelected() ? maxErrorCorrectionReasonLength : null"
+    [placeholder]="
+      isPolishFiscalBoxOffice()
+        ? ('cancellation.ticketSelector.fiscalCommentPlaceholder' | translate)
+        : ('cancellation.ticketSelector.commentsPlaceholder' | translate)
+    "
+    (change)="handleCommentChange($event.target.value)"
+    [disabled]="isProcessingRefund()"
+  ></textarea>
+</div>

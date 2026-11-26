@@ -1,0 +1,59 @@
+<div class="paginated-table">
+  <ng-container *ngIf="currentState !== stateEnum.noFiltersSelected; else noFiltersTemplate ?? noFilterSelected">
+    <ng-container [ngSwitch]="currentState">
+      <ng-container *ngSwitchCase="stateEnum.noResults" [ngTemplateOutlet]="noResultsTemplate ?? noResults"></ng-container>
+      <ng-container *ngSwitchCase="stateEnum.withResults" [ngTemplateOutlet]="withResults"></ng-container>
+      <ng-container *ngSwitchCase="stateEnum.error" [ngTemplateOutlet]="errorTemplate ?? error"></ng-container>
+    </ng-container>
+  </ng-container>
+</div>
+
+<ng-template #withResults>
+  <div
+    appInfiniteScrollLoader
+    [pageRequestCallback]="pageRequestCallback"
+    [active]="activatePagination"
+    data-testid="paginated-table-table"
+    class="paginated-table__table"
+  >
+    <ng-content></ng-content>
+  </div>
+  <ng-container *ngIf="isLoading" [ngTemplateOutlet]="loading"></ng-container>
+  <ng-container *ngIf="!hasMorePages" [ngTemplateOutlet]="endResults"></ng-container>
+</ng-template>
+
+<ng-template #noResults>
+  <div data-testid="paginated-table-no-results" class="paginated-table__no-results">
+    <fa-icon *ngIf="noResultIcon[0].length > 0" class="state-icon" [icon]="noResultIcon"></fa-icon>
+    <div>{{ noResultMessage }}</div>
+  </div>
+</ng-template>
+
+<ng-template #endResults>
+  <div class="end-result">
+    <span class="end-result-line" data-testid="paginated-table-no-more-results"></span>
+    <fa-icon [icon]="['fas', 'circle']" class="end-result-icon"></fa-icon>
+    <span class="end-result-text">{{ 'reviews.endResults' | translate }}</span>
+    <fa-icon [icon]="['fas', 'circle']" class="end-result-icon"></fa-icon>
+    <span class="end-result-line"></span>
+  </div>
+</ng-template>
+
+<ng-template #loading>
+  <div data-testid="paginated-table-loading" class="spinner">
+    <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'3x'"></fa-icon>
+  </div>
+</ng-template>
+
+<ng-template #noFilterSelected>
+  <div data-testid="paginated-table-no-filters-selected" class="paginated-table__no-filters-selected">
+    <fa-icon *ngIf="noFiltersIcon[0].length > 0" class="state-icon" [icon]="noFiltersIcon"></fa-icon>
+    <div>{{ noFiltersMessage }}</div>
+  </div>
+</ng-template>
+
+<ng-template #error>
+  <div data-testid="paginated-table-error" class="paginated-table__error">
+    <ignt-alert sentiment="danger" [description]="errorMessage" />
+  </div>
+</ng-template>

@@ -1,0 +1,127 @@
+<div class="reseller-form-network">
+  <ng-container *ngIf="!showNewSubResellerForm; else newSubResellerForm">
+    <app-concession-network
+      [resellerId]="resellerId"
+      [subResellers]="subResellers?.[0]?.organizationUsers || []"
+      [isLoadingNetwork]="isLoadingNetwork"
+      (createNewMemberEmitter)="createNewMember()"
+    ></app-concession-network>
+  </ng-container>
+</div>
+
+<ng-template #newSubResellerForm>
+  <p class="font-h3">{{ 'resellers.createNewMember' | translate }}</p>
+  <form class="reseller-form-network__form wrapper-card" [formGroup]="subResellerForm">
+    <div class="reseller-form-network__section">
+      <p class="font-base-bold">{{ 'resellers.basicInfo' | translate }}</p>
+      <div class="reseller-form-network__stack">
+        <ignt-input-field
+          class="cell cell--fill-md"
+          type="text"
+          formControlName="name"
+          id="name"
+          [label]="('resellers.resellerForm.name' | translate) + '*'"
+          [customFormErrors]="[
+            {
+              type: 'required',
+              message: 'form.error.mandatoryField' | translate,
+            },
+          ]"
+        />
+        <ignt-input-field
+          class="cell cell--fill-md"
+          type="text"
+          formControlName="email"
+          id="email"
+          [label]="('resellers.resellerForm.contactEmail' | translate) + '*'"
+          [customFormErrors]="[
+            {
+              type: 'required',
+              message: 'form.error.mandatoryField' | translate,
+            },
+          ]"
+        />
+        <app-language-code-selector
+          [required]="true"
+          [hasErrors]="subResellerForm.controls.language.invalid && subResellerForm.controls.language.touched"
+          (selected)="selectLanguage(subResellerForm.controls.language, $event)"
+          [selectedOption]="subResellerForm.controls.language.value"
+          class="cell cell--fill-md"
+        >
+        </app-language-code-selector>
+      </div>
+
+      <p class="font-base-bold">{{ 'resellers.siteInfo' | translate }}</p>
+      <div class="reseller-form-network__stack">
+        <ignt-input-field
+          class="cell cell--fill-md"
+          type="text"
+          formControlName="b2cSiteName"
+          id="b2cSiteName"
+          [label]="('resellers.resellerForm.b2cSiteName' | translate) + '*'"
+          [helperText]="'resellers.resellerForm.b2cSiteNameHelper' | translate"
+          [customFormErrors]="[
+            {
+              type: 'required',
+              message: 'form.error.mandatoryField' | translate,
+            },
+            {
+              type: 'minlength',
+              message: 'form.error.minLength' | translate: { value: '3' },
+            },
+          ]"
+        />
+        <ignt-input-field
+          class="cell cell--fill-md"
+          type="text"
+          formControlName="trackingCode"
+          id="trackingCode"
+          [label]="('resellers.resellerForm.trackingCode' | translate) + '*'"
+          [helperText]="'resellers.resellerForm.trackingCodeHelper' | translate"
+          [customFormErrors]="[
+            {
+              type: 'required',
+              message: 'form.error.mandatoryField' | translate,
+            },
+            {
+              type: 'noSpecialCharacter',
+              message: 'form.error.noSpecialCharacter' | translate,
+            },
+          ]"
+        />
+        <ignt-input-field
+          class="cell cell--fill-md"
+          type="text"
+          formControlName="host"
+          [readonly]="true"
+          [id]="'host_' + ConcessionTypeEnum.AFFILIATE"
+          [label]="('resellers.resellerForm.domain' | translate) + '*'"
+          [helperText]="'resellers.resellerForm.domainHelper' | translate"
+          [customFormErrors]="[
+            {
+              type: 'required',
+              message: 'form.error.mandatoryField' | translate,
+            },
+          ]"
+        />
+      </div>
+    </div>
+    <div class="reseller-form-network__buttons">
+      <div class="only-in-desktop">
+        <ng-container *ngTemplateOutlet="buttonsTemplate"></ng-container>
+      </div>
+    </div>
+  </form>
+  <div class="reseller-form-network__buttons--mobile only-in-mobile">
+    <bottom-slider [buttonsTemplate]="buttonsTemplate"></bottom-slider>
+  </div>
+</ng-template>
+
+<ng-template #buttonsTemplate>
+  <button igntButton [sentiment]="'tertiary'" (click)="showNewSubResellerForm = false" [fill]="true">
+    {{ 'common.cancel' | translate }}
+  </button>
+  <button igntButton (click)="addSubReseller()" [fill]="true" [disabled]="!subResellerForm.valid" [loading]="creatingSubReseller">
+    {{ 'common.create' | translate }}
+  </button>
+</ng-template>

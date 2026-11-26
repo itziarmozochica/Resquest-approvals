@@ -1,0 +1,81 @@
+<app-search-bar [showVenue]="true" [screen]="screen" (searchEmitter)="loadNewSearch($event)"> </app-search-bar>
+
+<div class="filters">
+  <div class="filters__content">
+    <div class="filters__date-time">
+      <app-date-range-time
+        class="bottom-placement"
+        [queryDate]="dateSelected"
+        [dateTimeList]="dateTimeList"
+        [timezone]="timezone"
+        [initialDateShown]="true"
+        [disabled]="!filtersSelected"
+        (selectDateEmitter)="selectDate($event)"
+        (selectDateTimeEmitter)="selectDateTime($event)"
+      >
+      </app-date-range-time>
+    </div>
+    <div class="filters__actions" *ngIf="isGenerateSeatingReportButtonShown()">
+      <button
+        (click)="onClickGenerateSeatingReport()"
+        class="button button--small button--secondary cell cell--hug-md"
+        data-testid="generate-seating-report-button"
+        translate
+      >
+        sessions.sessionsPerTimeslot.generateSeatingReport.title
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="capacity">
+  <div class="capacity__content">
+    <div class="capacity__row">
+      <ng-container *ngIf="!loading; else spinner">
+        <div class="capacity__result">
+          <div class="capacity__result--error">
+            <ignt-alert
+              *ngIf="error"
+              sentiment="danger"
+              [description]="'errors.generic' | translate"
+              showCloseButton
+              [closeButtonAriaLabel]="'common.close' | translate"
+              (closeAlert)="error = false"
+              data-testid="capacity-error"
+            />
+          </div>
+          <div
+            class="capacity__result--empty"
+            *ngIf="!error && !loading && (!filtersSelected || !capacitySummary?.capacitySummaryByDate?.length)"
+          >
+            <fa-icon class="icon-empty" [icon]="icon"></fa-icon>
+            <p class="text-empty" data-testid="capacity-filters-no-selected" *ngIf="!filtersSelected" translate>
+              common.searchResult.noDataSelected
+            </p>
+            <p
+              class="text-empty"
+              data-testid="capacity-no-results"
+              *ngIf="filtersSelected && !capacitySummary?.capacitySummaryByDate?.length"
+              translate
+            >
+              common.searchResult.withoutResults
+            </p>
+          </div>
+          <div
+            class="capacity__result--list"
+            data-testid="capacity-results"
+            *ngIf="!loading && filtersSelected && capacitySummary?.capacitySummaryByDate?.length"
+          >
+            <ng-container *ngTemplateOutlet="resultTemplate"></ng-container>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+</div>
+
+<ng-template #spinner>
+  <div class="capacity__spinner">
+    <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'4x'"></fa-icon>
+  </div>
+</ng-template>

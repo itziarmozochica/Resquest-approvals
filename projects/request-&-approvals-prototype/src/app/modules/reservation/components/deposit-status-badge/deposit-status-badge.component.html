@@ -1,0 +1,69 @@
+@if (isRefunded()) {
+  <app-deposit-refunded-card [deposit]="deposit()" [currency]="depositCurrency() ?? null" />
+}
+
+<!-- Non-refunded states -->
+@if (!isRefunded() && depositStatusConfig(); as statusConfig) {
+  <div
+    class="deposit-info-section"
+    [ngClass]="[statusConfig.backgroundClass, isInReservationDetails() ? 'deposit-info-section--reservation-details' : '']"
+  >
+    <div class="deposit-info-content">
+      <div class="deposit-info-header">
+        <span class="deposit-info-title">{{ statusConfig.titleKey | translate }}</span>
+        @if (deposit().status === 'paid') {
+          <div class="deposit-info-icon" [ngClass]="statusConfig.cssClass">
+            <ignt-icon [name]="getDepositIcon()" variant="solid" class="deposit-info-check-icon" />
+          </div>
+        }
+      </div>
+      @if (deposit().status === 'paid' && depositAmount() && depositCurrency()) {
+        <div class="deposit-info-footer">
+          <div class="deposit-info-amount-container">
+            <div class="deposit-info-amount">
+              {{ depositAmount() | currency: depositCurrency() : 'symbol-narrow' }}
+            </div>
+            @if (hasPaymentDetails()) {
+              <div class="deposit-info-payment-details">
+                @if (isMarkAsPaidDeposit() && ('reservation.checkout.depositMarkedAsPaidDetails' | translationKeyExists)) {
+                  {{
+                    'reservation.checkout.depositMarkedAsPaidDetails'
+                      | translate: { date: (getPaymentDate() | date: 'd MMM yyyy'), method: getPaymentMethodDisplayName() }
+                  }}
+                } @else {
+                  {{
+                    'reservation.checkout.depositPaidDetails'
+                      | translate: { date: (getPaymentDate() | date: 'd MMM yyyy'), method: getPaymentMethodDisplayName() }
+                  }}
+                }
+              </div>
+            }
+            @if (shouldShowNonCardRefundMessage() && ('reservation.checkout.depositCannotRefundNonCard' | translationKeyExists)) {
+              <div class="deposit-info-non-card-refund-message">
+                {{ 'reservation.checkout.depositCannotRefundNonCard' | translate }}
+              </div>
+            }
+          </div>
+          @if (canShowRefundButton()) {
+            <button
+              igntButton
+              variant="danger"
+              sentiment="tertiary"
+              size="small"
+              class="deposit-info-refund-button"
+              data-testid="deposit-refund-button"
+              (click)="openRefundModal()"
+            >
+              {{ 'reservation.deposit.refund.button' | translate }}
+            </button>
+          }
+        </div>
+      }
+      @if (deposit().status !== 'paid' && depositAmount() && depositCurrency()) {
+        <div class="deposit-info-amount">
+          {{ depositAmount() | currency: depositCurrency() : 'symbol-narrow' }}
+        </div>
+      }
+    </div>
+  </div>
+}

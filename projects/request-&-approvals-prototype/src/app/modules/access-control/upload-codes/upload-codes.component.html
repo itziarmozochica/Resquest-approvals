@@ -1,0 +1,312 @@
+<app-page-title [title]="'accessControl.codes.pageTitle' | translate" class="new-design"></app-page-title>
+<app-search-bar
+  (searchEmitter)="loadNewSearch($event)"
+  [mandatoryFilters]="mandatoryFilters"
+  [screen]="screen.accessControl"
+  [showVenue]="true"
+>
+</app-search-bar>
+<div class="main-wrapper">
+  <div class="wrapper-card wrapper-card--elevation-100" *ngIf="!isLoading(); else loadingSpinner">
+    <div class="upload-codes-wizard" *ngIf="!wizardState">
+      <button type="button" class="back-button" (click)="navigateBackToCodes()" data-testid="back-to-codes-button">
+        <ignt-icon name="chevron-left" variant="solid" />
+        {{ 'accessControl.uploadCodes.backToCodes' | translate }}
+      </button>
+
+      <div class="wizard-header">
+        <h1 class="wizard-header__title">{{ 'accessControl.uploadCodes.wizard.title' | translate }}</h1>
+        <p class="wizard-header__subtitle">{{ 'accessControl.uploadCodes.wizard.subtitle' | translate }}</p>
+      </div>
+
+      <div class="template-download-center">
+        <a class="template-link" (click)="downloadTemplate()">{{
+          'accessControl.uploadCodes.requirements.example.downloadTemplate' | translate
+        }}</a>
+      </div>
+
+      <div class="requirements-section">
+        <h2 class="requirements-section__title">{{ 'accessControl.uploadCodes.requirements.title' | translate }}</h2>
+
+        <div class="requirements-grid">
+          <div class="requirement-card">
+            <div class="requirement-card__icon">
+              <ignt-icon name="th-large" variant="light" />
+            </div>
+            <div class="requirement-card__content">
+              <h3 class="requirement-card__title">{{ 'accessControl.uploadCodes.requirements.columns.title' | translate }}</h3>
+              <p class="requirement-card__description">{{ 'accessControl.uploadCodes.requirements.columns.description' | translate }}</p>
+            </div>
+          </div>
+
+          <div class="requirement-card">
+            <div class="requirement-card__icon">
+              <ignt-icon name="list-alt" variant="solid" />
+            </div>
+            <div class="requirement-card__content">
+              <h3 class="requirement-card__title">{{ 'accessControl.uploadCodes.requirements.headers.title' | translate }}</h3>
+              <p class="requirement-card__description">{{ 'accessControl.uploadCodes.requirements.headers.description' | translate }}</p>
+            </div>
+          </div>
+
+          <div class="requirement-card">
+            <div class="requirement-card__icon">
+              <ignt-icon name="file-alt" variant="solid" />
+            </div>
+            <div class="requirement-card__content">
+              <h3 class="requirement-card__title">{{ 'accessControl.uploadCodes.requirements.format.title' | translate }}</h3>
+              <p class="requirement-card__description">{{ 'accessControl.uploadCodes.requirements.format.description' | translate }}</p>
+            </div>
+          </div>
+
+          <div class="requirement-card">
+            <div class="requirement-card__icon">
+              <ignt-icon name="chart-bar" variant="solid" />
+            </div>
+            <div class="requirement-card__content">
+              <h3 class="requirement-card__title">{{ 'accessControl.uploadCodes.requirements.codeLimit.title' | translate }}</h3>
+              <p class="requirement-card__description">
+                {{ 'accessControl.uploadCodes.requirements.codeLimit.description' | translate }}
+              </p>
+            </div>
+          </div>
+
+          <div class="requirement-card">
+            <div class="requirement-card__icon">
+              <ignt-icon name="cog" variant="solid" />
+            </div>
+            <div class="requirement-card__content">
+              <h3 class="requirement-card__title">{{ 'accessControl.uploadCodes.requirements.automapping.title' | translate }}</h3>
+              <p class="requirement-card__description">
+                {{ 'accessControl.uploadCodes.requirements.automapping.description' | translate }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="upload-section">
+        <div class="upload-container" *ngIf="!plan">
+          <div class="upload-message upload-message--warning">
+            <div class="upload-message__icon">
+              <ignt-icon name="info-circle" variant="solid" />
+            </div>
+            <div class="upload-message__content">
+              <h3 class="upload-message__title">{{ 'accessControl.uploadCodes.noEventSelected.title' | translate }}</h3>
+              <p class="upload-message__description">{{ 'accessControl.uploadCodes.noEventSelected.description' | translate }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="upload-container" *ngIf="plan">
+          <div class="upload-button-wrapper">
+            <button type="button" class="upload-button" (click)="wizardFileInput.click()">
+              <ignt-icon name="upload" variant="solid" />
+              <span>{{ 'accessControl.uploadCodes.upload.selectFile' | translate }}</span>
+            </button>
+          </div>
+
+          <input type="file" #wizardFileInput (change)="onWizardUploadFile($event)" accept=".csv" class="upload-input" />
+        </div>
+      </div>
+    </div>
+
+    <div class="upload-codes-wizard" *ngIf="wizardState">
+      <div class="wizard-header">
+        <h4 class="wizard-title">
+          <i class="fas fa-magic"></i>
+          {{ 'accessControl.uploadCodes.wizard.title' | translate }}
+        </h4>
+      </div>
+
+      <div class="wizard-body" *ngIf="isProcessing">
+        <div class="loading-container">
+          <div class="spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+          </div>
+          <p>{{ 'accessControl.uploadCodes.wizard.processing' | translate }}</p>
+        </div>
+      </div>
+
+      <div class="wizard-body" *ngIf="!isProcessing && wizardState">
+        <div class="step-progress">
+          <div class="steps" [attr.data-current-step]="wizardState.currentStep">
+            <div
+              *ngFor="let step of [1, 2, 3, 4, 5, 6]"
+              class="step"
+              [class.current]="step === wizardState.currentStep"
+              [class.completed]="isStepCompleted(step)"
+              [class.accessible]="isStepAccessible(step)"
+              (click)="isStepAccessible(step) ? goToStep(step) : null"
+            >
+              <div class="step-icon" [attr.data-step]="step">
+                <i [class]="getStepIcon(step)"></i>
+              </div>
+              <div class="step-label">
+                {{ getStepTitle(step) | translate }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-content">
+          <app-column-mapping
+            *ngIf="wizardState.currentStep === 1"
+            [csvHeaders]="wizardState.csvHeaders"
+            [csvRows]="wizardState.csvRows"
+            [delimiter]="wizardState.delimiter"
+            [mapping]="wizardState.columnMapping"
+            (mappingChange)="onColumnMappingChange($event)"
+            (delimiterChange)="onDelimiterChange($event)"
+          ></app-column-mapping>
+
+          <app-session-type-mapping
+            *ngIf="wizardState.currentStep === 2"
+            [uniqueSessionTypes]="wizardState.uniqueSessionTypes"
+            [availableSessionTypes]="availableSessionTypes"
+            [mapping]="wizardState.sessionTypeMapping"
+            [csvRows]="wizardState.csvRows"
+            [sessionTypeColumnIndex]="wizardState.columnMapping.sessionType"
+            (mappingChange)="onSessionTypeMappingChange($event)"
+          ></app-session-type-mapping>
+
+          <app-timeslot-mapping
+            *ngIf="wizardState.currentStep === 3"
+            [uniqueTimeslots]="wizardState.uniqueTimeslots"
+            [mapping]="wizardState.timeslotMapping"
+            [csvRows]="wizardState.csvRows"
+            [timeslotColumnIndex]="wizardState.columnMapping.timeslot"
+            [planId]="plan?.id"
+            [placeId]="filters?.selectedPlace?.id"
+            [timezone]="timezone"
+            [availableTimeslots]="availableTimeslots"
+            [selectedDateRange]="selectedDateRange"
+            (mappingChange)="onTimeslotMappingChange($event)"
+            (dateRangeChange)="onDateRangeChange($event)"
+          ></app-timeslot-mapping>
+
+          <app-mapping-summary
+            *ngIf="wizardState.currentStep === 4"
+            [csvHeaders]="wizardState.csvHeaders"
+            [csvRows]="wizardState.csvRows"
+            [columnMapping]="wizardState.columnMapping"
+            [sessionTypeMapping]="wizardState.sessionTypeMapping"
+            [timeslotMapping]="wizardState.timeslotMapping"
+            [uniqueSessionTypes]="wizardState.uniqueSessionTypes"
+            [uniqueTimeslots]="wizardState.uniqueTimeslots"
+            [availableSessionTypes]="availableSessionTypes"
+            [availableTimeslots]="availableTimeslots"
+            [fileName]="wizardState.file?.name || ''"
+            [timezone]="timezone"
+          ></app-mapping-summary>
+
+          <div *ngIf="wizardState.currentStep === 5">
+            <div *ngIf="isLoadingPreview" class="loading-preview">
+              <i class="fas fa-spinner fa-spin"></i>
+              <span>{{ 'accessControl.uploadCodes.wizard.preview.loading' | translate }}</span>
+            </div>
+
+            <div *ngIf="previewError" class="preview-error">
+              <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>{{ previewError }}</span>
+              </div>
+            </div>
+
+            <app-preview-step
+              *ngIf="previewData && !isLoadingPreview"
+              [previewData]="previewData"
+              [fileName]="wizardState.file?.name || ''"
+            ></app-preview-step>
+          </div>
+
+          <div *ngIf="wizardState.currentStep === 6">
+            <div *ngIf="isProcessingUpload" class="loading-upload">
+              <i class="fas fa-spinner fa-spin"></i>
+              <span>{{ 'accessControl.uploadCodes.wizard.uploadSummary.processing' | translate }}</span>
+            </div>
+
+            <div *ngIf="uploadError" class="upload-error">
+              <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>{{ uploadError }}</span>
+              </div>
+            </div>
+
+            <app-upload-success-step *ngIf="successData && !isProcessingUpload" [successData]="successData"></app-upload-success-step>
+          </div>
+        </div>
+      </div>
+
+      <div class="wizard-footer" *ngIf="!isProcessing && wizardState">
+        <div class="footer-buttons-left">
+          <button type="button" class="btn btn-secondary" (click)="cancelWizard()" *ngIf="wizardState.currentStep < 6">
+            <i class="fas fa-times"></i>
+            {{ 'common.cancel' | translate }}
+          </button>
+        </div>
+
+        <div class="footer-buttons-right">
+          <button
+            type="button"
+            class="btn btn-outline-primary"
+            [disabled]="wizardState.currentStep === 1"
+            (click)="previousStep()"
+            *ngIf="wizardState.currentStep > 1 && wizardState.currentStep < 6"
+          >
+            <i class="fas fa-chevron-left"></i>
+            {{ 'accessControl.uploadCodes.wizard.previous' | translate }}
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-outline-primary"
+            *ngIf="wizardState.currentStep === 5"
+            [disabled]="!canProceedToNextStep()"
+            (click)="proceedWithStrategy('merge')"
+          >
+            <i class="fas fa-plus"></i>
+            {{ 'accessControl.uploadCodes.preview.confirmMerge' | translate }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            *ngIf="wizardState.currentStep === 5"
+            [disabled]="!canProceedToNextStep()"
+            (click)="proceedWithStrategy('replace')"
+          >
+            <i class="fas fa-trash"></i>
+            {{ 'accessControl.uploadCodes.preview.confirmReplace' | translate }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            [disabled]="!canProceedToNextStep()"
+            (click)="nextStep()"
+            *ngIf="wizardState.currentStep < 5"
+          >
+            {{ 'accessControl.uploadCodes.wizard.next' | translate }}
+            <i class="fas fa-chevron-right"></i>
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-success"
+            [disabled]="!canProceedToNextStep()"
+            (click)="completeWizard()"
+            *ngIf="wizardState.currentStep === 6"
+          >
+            <i class="fas fa-check"></i>
+            {{ 'accessControl.uploadCodes.wizard.complete' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #loadingSpinner>
+  <div class="sessions__spinner" data-testid="sessions-filters-spinner">
+    <ignt-icon name="spinner" variant="solid" size="display" class="loader" />
+  </div>
+</ng-template>

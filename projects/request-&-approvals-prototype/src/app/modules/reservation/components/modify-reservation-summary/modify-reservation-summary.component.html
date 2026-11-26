@@ -1,0 +1,447 @@
+<div class="modify-reservation-summary" data-testid="modify-reservation-summary">
+  @if (loading() && summary() === null) {
+    <ignt-icon class="loader" name="spinner" variant="solid" size="display" [spin]="true" aria-hidden="true"></ignt-icon>
+  } @else if (error() !== null) {
+    <p
+      class="modify-reservation-summary__error"
+      data-testid="modify-reservation-summary__error"
+      [innerHTML]="error()!.message | translate"
+    ></p>
+  } @else {
+    <div class="modify-reservation-summary__rows">
+      @if (summary(); as s) {
+        <p class="modify-reservation-summary__subtitle">
+          {{ 'reservations.modify.paymentSummary' | translate }}
+        </p>
+        @if (originalReservation(); as original) {
+          @let originalCurrency = original.total.currency;
+          <ignt-expansion-panel [isCollapsed]="true" variant="borderless" class="modify-reservation-summary__panel">
+            <div expansion-panel-title class="modify-reservation-summary__panel-title">
+              <span class="modify-reservation-summary__label">{{ 'reservations.modify.originalReservation' | translate }}</span>
+              <span class="modify-reservation-summary__value">
+                {{ original.total.amount | currency: originalCurrency : 'symbol' : '1.2-2' : locale }}
+              </span>
+            </div>
+            <div class="modify-reservation-summary__panel-body">
+              @if (original.tickets; as originalTickets) {
+                <div class="modify-reservation-summary__detail-line">
+                  <div class="modify-reservation-summary__detail-container">
+                    <span class="modify-reservation-summary__detail-label">{{ 'reservations.modify.summaryTickets' | translate }}</span>
+                  </div>
+                  <span class="modify-reservation-summary__detail-value">
+                    {{ originalTickets.amount | currency: originalCurrency : 'symbol' : '1.2-2' : locale }}
+                  </span>
+                </div>
+              }
+              <div class="modify-reservation-summary__detail-line">
+                <span class="modify-reservation-summary__detail-label">{{ 'reservations.modify.summaryBookingFees' | translate }}</span>
+                <span class="modify-reservation-summary__detail-value">
+                  {{ original.fees.amount | currency: originalCurrency : 'symbol' : '1.2-2' : locale }}
+                </span>
+              </div>
+              @if (original.override; as originalOverride) {
+                <div class="modify-reservation-summary__detail-row" data-testid="modify-reservation-summary__original-override-price">
+                  <div class="modify-reservation-summary__detail-line">
+                    <div class="modify-reservation-summary__detail-container">
+                      <span class="modify-reservation-summary__detail-label">{{
+                        'reservations.modify.summaryOverridePrice' | translate
+                      }}</span>
+                      <span
+                        class="modify-reservation-summary__detail-tooltip"
+                        [appTemplatedTooltip]="overridePriceTooltip"
+                        panelClass="app-tooltip-panel"
+                      >
+                        <ignt-icon name="info-circle" variant="light" size="caption" />
+                      </span>
+                    </div>
+                    <span class="modify-reservation-summary__detail-value">
+                      {{ originalOverride.amount.amount | currency: originalCurrency : 'symbol' : '1.2-2' : locale }}
+                    </span>
+                  </div>
+                  @if (originalOverride.concept) {
+                    <span
+                      class="modify-reservation-summary__detail-subtitle modify-reservation-summary__detail-subtitle--clamped"
+                      [class.modify-reservation-summary__detail-subtitle--expanded]="originalOverrideConceptExpanded()"
+                      #originalOverrideConceptElement
+                      >{{ originalOverride.concept }}</span
+                    >
+                    @if (originalOverrideConceptOverflows()) {
+                      <a igntLink size="caption" (click)="toggleOriginalOverrideConcept()">
+                        {{ (originalOverrideConceptExpanded() ? 'common.seeLess' : 'common.seeMore') | translate }}
+                      </a>
+                    }
+                  }
+                </div>
+              }
+              @if (original.rounding; as originalRounding) {
+                <div class="modify-reservation-summary__detail-line" data-testid="modify-reservation-summary__original-rounding">
+                  <div class="modify-reservation-summary__detail-container">
+                    <span class="modify-reservation-summary__detail-label">{{ 'cart.adjustment.rounding' | translate }}</span>
+                    <a
+                      igntLink
+                      size="caption"
+                      class="modify-reservation-summary__detail-link"
+                      data-testid="modify-reservation-summary__original-rounding-help"
+                      (click)="openRoundingModal()"
+                    >
+                      {{ 'cart.adjustment.modalRounding.openCta' | translate }}
+                    </a>
+                  </div>
+                  <span class="modify-reservation-summary__detail-value">
+                    {{ originalRounding.amount | currency: originalCurrency : 'symbol' : '1.2-2' : locale }}
+                  </span>
+                </div>
+              }
+              @if (original.coupon; as originalCoupon) {
+                <div class="modify-reservation-summary__detail-row" data-testid="modify-reservation-summary__original-coupon">
+                  <div class="modify-reservation-summary__detail-line">
+                    <span class="modify-reservation-summary__detail-label">{{ 'reservations.modify.summaryPromoCode' | translate }}</span>
+                    <span class="modify-reservation-summary__detail-value">
+                      - {{ originalCoupon.discount.amount | currency: originalCurrency : 'symbol' : '1.2-2' : locale }}
+                    </span>
+                  </div>
+                  <span class="modify-reservation-summary__detail-subtitle">{{ originalCoupon.code }}</span>
+                </div>
+              }
+            </div>
+          </ignt-expansion-panel>
+        }
+        @let currency = s.currency;
+        @if (hasChanges()) {
+          <ignt-expansion-panel [isCollapsed]="false" variant="borderless" class="modify-reservation-summary__panel">
+            <div expansion-panel-title class="modify-reservation-summary__panel-title">
+              <span class="modify-reservation-summary__label">{{ 'reservations.modify.modifiedReservation' | translate }}</span>
+              <span class="modify-reservation-summary__value">
+                {{ s.modified.total.amount | currency: currency : 'symbol' : '1.2-2' : locale }}
+              </span>
+            </div>
+            <div class="modify-reservation-summary__panel-body">
+              <div class="modify-reservation-summary__detail-line">
+                <span class="modify-reservation-summary__detail-label">{{ 'reservations.modify.summaryTickets' | translate }}</span>
+                <span class="modify-reservation-summary__detail-value">
+                  {{ s.modified.tickets?.amount | currency: currency : 'symbol' : '1.2-2' : locale }}
+                </span>
+              </div>
+              <div class="modify-reservation-summary__detail-line">
+                <span class="modify-reservation-summary__detail-label">{{ 'reservations.modify.summaryBookingFees' | translate }}</span>
+                <span class="modify-reservation-summary__detail-value">
+                  {{ s.modified.fees.amount | currency: currency : 'symbol' : '1.2-2' : locale }}
+                </span>
+              </div>
+              @if (s.modified.override; as modifiedOverride) {
+                <div class="modify-reservation-summary__detail-row" data-testid="modify-reservation-summary__modified-override-price">
+                  @if (canEditOverride()) {
+                    <button
+                      type="button"
+                      class="modify-reservation-summary__detail-line modify-reservation-summary__detail-line--editable"
+                      data-testid="modify-reservation-summary__modified-override-price-edit"
+                      (click)="editOverride.emit()"
+                    >
+                      <div class="modify-reservation-summary__detail-container">
+                        <span class="modify-reservation-summary__detail-label modify-reservation-summary__detail-label--editable">{{
+                          'reservations.modify.summaryOverridePrice' | translate
+                        }}</span>
+                        <ignt-icon
+                          class="modify-reservation-summary__edit-icon"
+                          name="edit"
+                          variant="regular"
+                          size="caption"
+                          aria-hidden="true"
+                        />
+                        <span
+                          class="modify-reservation-summary__detail-tooltip"
+                          [appTemplatedTooltip]="overridePriceTooltip"
+                          panelClass="app-tooltip-panel"
+                          (click)="$event.stopPropagation()"
+                        >
+                          <ignt-icon name="info-circle" variant="light" size="caption" />
+                        </span>
+                      </div>
+                      <span class="modify-reservation-summary__detail-value">
+                        {{ modifiedOverride.amount.amount | currency: currency : 'symbol' : '1.2-2' : locale }}
+                      </span>
+                    </button>
+                  } @else {
+                    <div
+                      class="modify-reservation-summary__detail-line"
+                      data-testid="modify-reservation-summary__modified-override-price-readonly"
+                    >
+                      <div class="modify-reservation-summary__detail-container">
+                        <span class="modify-reservation-summary__detail-label">{{
+                          'reservations.modify.summaryOverridePrice' | translate
+                        }}</span>
+                        <span
+                          class="modify-reservation-summary__detail-tooltip"
+                          [appTemplatedTooltip]="overridePriceTooltip"
+                          panelClass="app-tooltip-panel"
+                        >
+                          <ignt-icon name="info-circle" variant="light" size="caption" />
+                        </span>
+                      </div>
+                      <span class="modify-reservation-summary__detail-value">
+                        {{ modifiedOverride.amount.amount | currency: currency : 'symbol' : '1.2-2' : locale }}
+                      </span>
+                    </div>
+                  }
+                  @if (modifiedOverride.concept) {
+                    <span
+                      class="modify-reservation-summary__detail-subtitle modify-reservation-summary__detail-subtitle--clamped"
+                      [class.modify-reservation-summary__detail-subtitle--expanded]="modifiedOverrideConceptExpanded()"
+                      #modifiedOverrideConceptElement
+                      >{{ modifiedOverride.concept }}</span
+                    >
+                    @if (modifiedOverrideConceptOverflows()) {
+                      <a igntLink size="caption" (click)="toggleModifiedOverrideConcept()">
+                        {{ (modifiedOverrideConceptExpanded() ? 'common.seeLess' : 'common.seeMore') | translate }}
+                      </a>
+                    }
+                  }
+                  @if (isOverrideInvalid()) {
+                    <span
+                      class="modify-reservation-summary__detail-error"
+                      data-testid="modify-reservation-summary__modified-override-invalid-message"
+                    >
+                      <ignt-icon name="exclamation-circle" variant="solid" size="caption" aria-hidden="true" />
+                      {{ 'reservations.modify.summaryOverrideInvalidMessage' | translate }}
+                    </span>
+                  }
+                </div>
+              }
+              @if (s.modified.rounding; as modifiedRounding) {
+                <div class="modify-reservation-summary__detail-line" data-testid="modify-reservation-summary__modified-rounding">
+                  <div class="modify-reservation-summary__detail-container">
+                    <span class="modify-reservation-summary__detail-label">{{ 'cart.adjustment.rounding' | translate }}</span>
+                    <a
+                      igntLink
+                      size="caption"
+                      class="modify-reservation-summary__detail-link"
+                      data-testid="modify-reservation-summary__modified-rounding-help"
+                      (click)="openRoundingModal()"
+                    >
+                      {{ 'cart.adjustment.modalRounding.openCta' | translate }}
+                    </a>
+                  </div>
+                  <span class="modify-reservation-summary__detail-value">
+                    {{ modifiedRounding.amount | currency: currency : 'symbol' : '1.2-2' : locale }}
+                  </span>
+                </div>
+              }
+              @if (s.modified.coupon; as modifiedCoupon) {
+                <div
+                  class="modify-reservation-summary__detail-row"
+                  [class.modify-reservation-summary__detail-row--inactive]="!modifiedCoupon.stillApplicable"
+                  data-testid="modify-reservation-summary__modified-coupon"
+                >
+                  <div class="modify-reservation-summary__detail-line">
+                    <div class="modify-reservation-summary__detail-container">
+                      <span class="modify-reservation-summary__detail-label">{{ 'reservations.modify.summaryPromoCode' | translate }}</span>
+                      @if (!modifiedCoupon.stillApplicable) {
+                        <span
+                          class="modify-reservation-summary__detail-tooltip"
+                          [appTemplatedTooltip]="couponNotApplicableTooltip"
+                          panelClass="app-tooltip-panel"
+                          data-testid="modify-reservation-summary__modified-coupon-tooltip"
+                        >
+                          <ignt-icon name="info-circle" variant="light" size="caption" />
+                        </span>
+                      }
+                    </div>
+                    <span class="modify-reservation-summary__detail-value">
+                      @if (modifiedCoupon.discount.amount > 0) {
+                        - {{ modifiedCoupon.discount.amount | currency: currency : 'symbol' : '1.2-2' : locale }}
+                      } @else {
+                        {{ 0 | currency: currency : 'symbol' : '1.2-2' : locale }}
+                      }
+                    </span>
+                  </div>
+                  <span class="modify-reservation-summary__detail-subtitle">{{ modifiedCoupon.code }}</span>
+                </div>
+              }
+            </div>
+          </ignt-expansion-panel>
+        }
+        @if (showOverrideEntry()) {
+          <button
+            type="button"
+            igntButton
+            sentiment="tertiary"
+            size="small"
+            data-testid="modify-reservation-summary__override-entry"
+            (click)="editOverride.emit()"
+          >
+            {{
+              (hasDraftOverride() ? 'reservations.modify.summaryOverrideEntryEdit' : 'reservations.modify.summaryOverrideEntryAdd')
+                | translate
+            }}
+            <ignt-icon name="edit" variant="regular" size="caption" aria-hidden="true" />
+          </button>
+        }
+      }
+    </div>
+
+    @if (summary(); as s) {
+      @let currency = s.currency;
+      <div class="modify-reservation-summary__totals">
+        @if (hasDepositBreakdown()) {
+          <p class="modify-reservation-summary__subtitle" data-testid="modify-reservation-summary__payment-breakdown-title">
+            {{ 'reservations.modify.deposit.paymentBreakdown' | translate }}
+          </p>
+          @if (depositDue(); as depositDueAmount) {
+            <div class="modify-reservation-summary__detail-line">
+              <span class="modify-reservation-summary__detail-label">{{ 'reservations.modify.deposit.depositDue' | translate }}</span>
+              <span class="modify-reservation-summary__detail-value" data-testid="modify-reservation-summary__deposit-due">
+                {{ depositDueAmount.amount | currency: currency : 'symbol' : '1.2-2' : locale }}
+              </span>
+            </div>
+          }
+          @if (s.paidAmount.amount > 0) {
+            <div class="modify-reservation-summary__detail-line">
+              <span class="modify-reservation-summary__detail-label">{{ 'reservations.modify.alreadyPaid' | translate }}</span>
+              <span
+                class="modify-reservation-summary__detail-value modify-reservation-summary__value--paid-credit"
+                data-testid="modify-reservation-summary__already-paid"
+              >
+                {{ negateMoney(s.paidAmount).amount | currency: currency : 'symbol' : '1.2-2' : locale }}
+              </span>
+            </div>
+          }
+          <div class="modify-reservation-summary__detail-line">
+            <span class="modify-reservation-summary__detail-label">{{ 'reservations.modify.remainingAmount' | translate }}</span>
+            <span
+              class="modify-reservation-summary__detail-value modify-reservation-summary__value--remaining-primary"
+              data-testid="modify-reservation-summary__breakdown-remaining"
+            >
+              {{ s.remainingAmount.amount | currency: currency : 'symbol' : '1.2-2' : locale }}
+            </span>
+          </div>
+        } @else {
+          <div class="modify-reservation-summary__row modify-reservation-summary__row--plain">
+            <span class="modify-reservation-summary__label">{{ 'reservations.modify.remainingAmount' | translate }}</span>
+            <span class="modify-reservation-summary__value" data-testid="modify-reservation-summary__plain-remaining">
+              {{ s.remainingAmount.amount | currency: currency : 'symbol' : '1.2-2' : locale }}
+            </span>
+          </div>
+        }
+      </div>
+
+      @if (isReservationEmpty() && s.paidAmount.amount > 0) {
+        <ignt-alert
+          class="modify-reservation-summary__empty-alert"
+          sentiment="warning"
+          [title]="'reservations.modify.emptyReservationWarningTitle' | translate"
+          [description]="'reservations.modify.emptyReservationWarningDescription' | translate"
+          data-testid="modify-reservation-summary__empty-alert"
+        ></ignt-alert>
+      } @else if (isDepositCoveringNewTotal()) {
+        <ignt-alert
+          class="modify-reservation-summary__deposit-covers-alert"
+          sentiment="warning"
+          [title]="'reservations.modify.depositCoversTotalWarningTitle' | translate"
+          [description]="'reservations.modify.depositCoversTotalWarningDescription' | translate"
+          data-testid="modify-reservation-summary__deposit-covers-alert"
+        ></ignt-alert>
+      } @else if (isRemainingBelowModifiedFees()) {
+        <div role="status" aria-live="polite">
+          <ignt-alert
+            class="modify-reservation-summary__fees-floor-alert"
+            sentiment="warning"
+            [title]="'reservations.modify.remainingBelowFeesWarningTitle' | translate"
+            [description]="'reservations.modify.remainingBelowFeesWarningDescription' | translate"
+            data-testid="modify-reservation-summary__fees-floor-alert"
+          ></ignt-alert>
+        </div>
+      }
+
+      @if (showSummaryFooterActions()) {
+        @if (hasChanges()) {
+          <div class="modify-reservation-summary__footer">
+            <button
+              type="button"
+              igntButton
+              sentiment="tertiary"
+              size="small"
+              leadingIcon="search"
+              data-testid="modify-reservation-summary__compare"
+              (click)="onViewCompare()"
+            >
+              {{ 'reservations.modify.viewBeforeAndAfter' | translate }}
+            </button>
+          </div>
+        }
+        <div class="modify-reservation-summary__footer__actions">
+          <button
+            type="button"
+            igntButton
+            sentiment="secondary"
+            variant="default"
+            size="large"
+            data-testid="modify-reservation-summary__clear-changes"
+            [disabled]="!hasChanges()"
+            (click)="clearChanges.emit()"
+          >
+            {{ 'reservations.modify.clearChanges' | translate }}
+          </button>
+          @if (isReservationEmpty()) {
+            <button
+              type="button"
+              igntButton
+              sentiment="primary"
+              variant="danger"
+              size="large"
+              data-testid="modify-reservation-summary__cancel-reservation"
+              (click)="cancelReservation.emit()"
+            >
+              {{ 'reservations.modify.cancelReservation' | translate }}
+            </button>
+          } @else if (primaryAction() === 'selectSeats') {
+            <button
+              type="button"
+              igntButton
+              sentiment="primary"
+              variant="default"
+              size="large"
+              data-testid="modify-reservation-summary__select-seats"
+              (click)="selectSeats.emit()"
+            >
+              {{ 'reservations.modify.selectSeats' | translate }}
+            </button>
+          } @else {
+            <button
+              type="button"
+              igntButton
+              sentiment="primary"
+              variant="default"
+              size="large"
+              data-testid="modify-reservation-summary__review-changes"
+              [disabled]="!canReviewChanges()"
+              (click)="reviewChanges.emit()"
+            >
+              {{ 'reservations.modify.reviewChanges' | translate }}
+            </button>
+          }
+        </div>
+        @if (reviewChangesErrorMessage(); as reviewChangesErrorMessage) {
+          <span class="modify-reservation-summary__footer-error" data-testid="modify-reservation-summary__party-size-error">
+            {{ reviewChangesErrorMessage }}
+          </span>
+        } @else if (reviewChangesErrorKey()) {
+          <span class="modify-reservation-summary__footer-error" data-testid="modify-reservation-summary__review-changes-error">
+            {{ reviewChangesErrorKey() | translate }}
+          </span>
+        }
+      }
+    }
+  }
+</div>
+
+<ng-template #overridePriceTooltip>
+  <div class="modify-reservation-summary__tooltip-content">
+    {{ overridePriceTooltipKey() | translate }}
+  </div>
+</ng-template>
+
+<ng-template #couponNotApplicableTooltip>
+  <div class="modify-reservation-summary__tooltip-content">
+    {{ 'reservations.modify.summaryCouponNotApplicableTooltip' | translate }}
+  </div>
+</ng-template>

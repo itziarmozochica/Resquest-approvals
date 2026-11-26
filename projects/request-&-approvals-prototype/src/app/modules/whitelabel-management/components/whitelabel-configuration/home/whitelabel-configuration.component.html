@@ -1,0 +1,113 @@
+<app-go-back [goBackTitle]="'menu.whitelabel' | translate" [urlGoBack]="'/whitelabels'"></app-go-back>
+<app-page-title
+  [title]="(whitelabel ? (whitelabel.name | uppercase) + ' ' : '') + ('menu.whitelabelConfig' | translate)"
+  class="new-design"
+></app-page-title>
+
+<div class="whitelabel-configuration">
+  <div class="whitelabel-configuration__container">
+    <div class="whitelabel-configuration__info whitelabel-configuration__info-items">
+      <div class="whitelabel-configuration__info-item">
+        <div class="whitelabel-configuration__label">Channel</div>
+        <div class="whitelabel-configuration__value">{{ whitelabel?.channelId }}</div>
+      </div>
+      <div class="whitelabel-configuration__info-item">
+        <div class="whitelabel-configuration__label">Schema</div>
+        <div class="whitelabel-configuration__value">{{ whitelabel?.schema }}</div>
+      </div>
+
+      <div class="whitelabel-configuration__info-item">
+        <div class="whitelabel-configuration__label">Host</div>
+        <div class="whitelabel-configuration__value">
+          <div>{{ whitelabel?.host }}</div>
+        </div>
+      </div>
+
+      <div class="whitelabel-configuration__info-item">
+        <div class="whitelabel-configuration__label">Languages</div>
+        <div class="whitelabel-configuration__value">
+          <ng-container *ngFor="let language of whitelabel?.languages">
+            <span>{{ language }}</span>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+
+    <div class="whitelabel-configuration__info" *ngIf="configs && configs.length > 0; else noConfigs">
+      <table class="whitelabel-configuration__table">
+        <thead class="whitelabel-configuration__table-header">
+          <tr>
+            <th class="whitelabel-configuration__table-cell">Order</th>
+            <th class="whitelabel-configuration__table-cell">Config Name</th>
+            <th class="whitelabel-configuration__table-cell">Relation (path)</th>
+            <th class="whitelabel-configuration__table-cell whitelabel-configuration__table-cell--actions"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let config of configs">
+            <td class="whitelabel-configuration__table-cell">{{ config.order }}</td>
+            <td class="whitelabel-configuration__table-cell">{{ config.config_name }}</td>
+            <td class="whitelabel-configuration__table-cell">{{ config.path_regex_name }}</td>
+            <td class="whitelabel-configuration__table-cell whitelabel-configuration__table-cell--actions">
+              <div class="whitelabel-configuration__actions">
+                <ignt-button
+                  data-testid="wl-config-static-html"
+                  [label]="'whitelabelManagement.sections.staticHtml' | translate"
+                  (click)="editStaticHtml(config.config_id)"
+                />
+                <ignt-button
+                  data-testid="wl-config-edit-config"
+                  [label]="
+                    (isReadOnly ? 'whitelabelManagement.viewWhitelabelConfig' : 'whitelabelManagement.editWhitelabelConfig') | translate
+                  "
+                  (click)="editConfig(config.config_id)"
+                />
+                @if (!isReadOnly) {
+                  <ignt-button
+                    data-testid="wl-config-edit-relation"
+                    [label]="'whitelabelManagement.editWhitelabelRelation' | translate"
+                    (click)="editRelationConfig(config.id)"
+                  />
+                  <ignt-button
+                    data-testid="wl-config-delete-relation"
+                    [label]="'whitelabelManagement.deleteWhitelabelRelation' | translate"
+                    (click)="deleteRelationConfig(config.id)"
+                  />
+                }
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <ng-template #noConfigs>
+      <div class="whitelabel-configuration__info">No configs added yet</div>
+    </ng-template>
+    @if (!isReadOnly) {
+      <div class="whitelabel-configuration__info">
+        <div class="whitelabel-configuration__create-buttons">
+          <ignt-button
+            data-testid="wl-config-create-config-and-relation"
+            [label]="'whitelabelManagement.createNewWhitelabelConfigAndRelation' | translate"
+            (click)="addConfig()"
+          />
+          <ignt-button
+            data-testid="wl-config-create-relation"
+            [label]="'whitelabelManagement.createNewWhitelabelRelation' | translate"
+            (click)="addNewRelationConfig()"
+          />
+        </div>
+      </div>
+    }
+    @if (whitelabel && !isArchived) {
+      <div *permissionBased="'can_manage_whitelabels'" class="whitelabel-configuration__cache-flush">
+        <ignt-button
+          data-testid="wl-config-flush-cache"
+          [label]="'whitelabelManagement.cacheFlush.flushWhitelabel' | translate"
+          [loading]="isFlushing()"
+          (click)="flushCache(whitelabel)"
+        />
+      </div>
+    }
+  </div>
+</div>

@@ -1,0 +1,127 @@
+<div class="customer-questions-catalog-table">
+  <div class="customer-questions-catalog-table__header">
+    <div class="customer-questions-catalog-table__title-row">
+      <h1 class="customer-questions-catalog-table__title" data-testid="page-title">{{ 'customerQuestionsCatalog.title' | translate }}</h1>
+      @if (canCreate) {
+        <ignt-button
+          variant="primary"
+          [size]="isMobile() ? 'small' : 'large'"
+          class="customer-questions-catalog-table__new-button"
+          [label]="'customerQuestionsCatalog.newQuestion' | translate"
+          [leadingIcon]="{ name: 'plus', variant: 'solid' }"
+          data-testid="new-customer-question"
+          (click)="onCreate()"
+        ></ignt-button>
+      }
+    </div>
+    <p class="customer-questions-catalog-table__subtitle">{{ 'customerQuestionsCatalog.subtitle' | translate }}</p>
+  </div>
+
+  <ignt-table
+    [data]="questions()"
+    [isLoading]="loading()"
+    [hasServerSidePagination]="true"
+    [pageSize]="pageSize"
+    [pageIndex]="pageIndex()"
+    [totalRowCount]="totalCount()"
+    [searchConfig]="searchConfig()"
+    [filterConfig]="filterConfig()"
+    [interactiveRows]="true"
+    (searchChanged)="onSearchChanged($event)"
+    (paginationChange)="onPage($event)"
+    (filterClosed)="onFilterClosed($event)"
+    (filterPillRemoved)="onFilterPillRemoved($event)"
+    (filterClearAll)="onFilterClearAll()"
+    (rowInteraction)="openQuestion($event.item)"
+  >
+    <ignt-table-column key="title" header="{{ 'customerQuestionsCatalog.columns.question' | translate }}" columnType="primary">
+      <ng-template [igntTableColumnTemplateType]="questions()[0]" let-item="item">
+        <span class="customer-questions-catalog-table__cell-title">{{ item.title }}</span>
+      </ng-template>
+    </ignt-table-column>
+    <ignt-table-column key="description" header="{{ 'customerQuestionsCatalog.columns.description' | translate }}" columnType="secondary">
+      <ng-template [igntTableColumnTemplateType]="questions()[0]" let-item="item">
+        <span class="customer-questions-catalog-table__cell-description">{{ item.description }}</span>
+      </ng-template>
+    </ignt-table-column>
+    <ignt-table-column key="type" header="{{ 'customerQuestionsCatalog.columns.type' | translate }}" columnType="secondary">
+      <ng-template [igntTableColumnTemplateType]="questions()[0]" let-item="item">
+        <app-question-type-tags [type]="item.type" />
+      </ng-template>
+    </ignt-table-column>
+    <ignt-table-column key="catalogCategory" header="{{ 'customerQuestionsCatalog.columns.catalog' | translate }}" columnType="secondary">
+      <ng-template [igntTableColumnTemplateType]="questions()[0]" let-item="item">
+        <ignt-tag sentiment="sharp" variant="outline">
+          @if (item.catalogCategory === catalogCategory.PARTNER_OWNED) {
+            {{ partnerName }}
+          } @else {
+            {{ 'customerQuestionsCatalog.catalog.fever' | translate }}
+          }
+        </ignt-tag>
+      </ng-template>
+    </ignt-table-column>
+    <ignt-table-column header="{{ 'common.actions' | translate }}" columnType="action">
+      <ng-template [igntTableColumnTemplateType]="questions()[0]" let-item="item">
+        @if (hasRowActions(item)) {
+          <button
+            ignt-icon-button
+            sentiment="tertiary"
+            size="small"
+            [icon]="['fas', 'ellipsis-v']"
+            [attr.aria-label]="'common.actions' | translate"
+            [igntMenuTriggerFor]="rowActionsMenu"
+            (click)="$event.stopPropagation()"
+            (keydown)="$event.stopPropagation()"
+          ></button>
+
+          <ng-template #rowActionsMenu>
+            <ignt-menu>
+              @if (canEditQuestion(item)) {
+                <ignt-menu-item label="{{ 'customerQuestionsCatalog.actions.edit' | translate }}" value="edit" (triggered)="onEdit(item)">
+                  <ignt-icon name="edit" variant="light" />
+                </ignt-menu-item>
+              }
+              @if (canCreate) {
+                <ignt-menu-item
+                  label="{{ 'customerQuestionsCatalog.actions.duplicate' | translate }}"
+                  value="duplicate"
+                  (triggered)="onDuplicate(item)"
+                >
+                  <ignt-icon name="clone" variant="light" />
+                </ignt-menu-item>
+              }
+              @if (canViewResponses(item)) {
+                <ignt-menu-item
+                  label="{{ 'customerQuestionsCatalog.actions.viewResponses' | translate }}"
+                  value="view-responses"
+                  (triggered)="onViewResponses(item)"
+                >
+                  <ignt-icon name="comments-alt" variant="light" />
+                </ignt-menu-item>
+              }
+              @if (canTranslateQuestion(item)) {
+                <ignt-menu-item
+                  label="{{ 'customerQuestionsCatalog.actions.translate' | translate }}"
+                  value="translate"
+                  (triggered)="onTranslate(item)"
+                >
+                  <ignt-icon name="language" variant="light" />
+                </ignt-menu-item>
+              }
+              @if (canDeleteQuestion(item)) {
+                <ignt-menu-item
+                  label="{{ 'customerQuestionsCatalog.actions.delete' | translate }}"
+                  value="delete"
+                  sentiment="danger"
+                  (triggered)="onDelete(item)"
+                >
+                  <ignt-icon name="trash-alt" variant="light" />
+                </ignt-menu-item>
+              }
+            </ignt-menu>
+          </ng-template>
+        }
+      </ng-template>
+    </ignt-table-column>
+  </ignt-table>
+</div>

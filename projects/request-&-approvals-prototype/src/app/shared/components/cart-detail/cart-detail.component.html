@@ -1,0 +1,975 @@
+<div *ngIf="isLoading" class="loading">
+  <span class="loading__icon">
+    <fa-icon [icon]="['fas', 'spinner']" [size]="'4x'" class="loader"></fa-icon>
+  </span>
+</div>
+
+<div
+  *ngIf="!isLoading"
+  #cartPanel
+  [class.cart--collapsed]="isCollapsed"
+  [class.cart--sticky-panel]="stickyPanel()"
+  class="cart"
+  [ngClass]="{ 'cart--full-height': fullHeight, 'cart--no-shadow': !showShadow }"
+  data-testid="cart"
+>
+  <div class="header">
+    <div class="header__title" translate>
+      {{ title }}
+      @if (cart && hasServiceTimeAction()) {
+        <ignt-button
+          size="small"
+          variant="tertiary"
+          class="header__title--service-time"
+          data-testid="cart-service-time-action"
+          [disabled]="servingTimeActionDisabled()"
+          [leadingIcon]="{ name: 'clock', variant: 'solid' }"
+          [label]="'cart.serviceTime.action' | translate"
+          (click)="requestServiceTime()"
+        />
+      }
+      <fa-icon (click)="isCollapsed = !isCollapsed" *ngIf="collapsable" [icon]="['fas', 'chevron-down']" class="header__title--collapse">
+      </fa-icon>
+      <span (click)="clickOnClearAll()" *ngIf="showClearAll" class="header__title--link" data-testid="cart-clear-all" translate>
+        {{ 'boxOffice.cart.clearAll' }}
+      </span>
+    </div>
+    <p *ngIf="subtitle" class="header__subtitle" [innerHTML]="subtitle | translate"></p>
+    <div *ngIf="checkCustomerInfo" class="form-error">
+      <fa-icon [icon]="['fas', 'exclamation-circle']" class="form-error--icon"></fa-icon>
+      <span class="form-error--message" translate>
+        {{ 'boxOffice.cart.reviewProvidedData' }}
+      </span>
+    </div>
+  </div>
+  <div class="body">
+    <div *ngIf="!cart" class="empty-placeholder" data-testid="empty-cart-placeholder">
+      <fa-icon [icon]="['fal', 'exclamation-circle']" class="empty-placeholder__icon"></fa-icon>
+      <p class="empty-placeholder__text" translate>boxOffice.cart.empty</p>
+    </div>
+    <ng-container *ngIf="cart">
+      <ng-container *ngIf="hasAdjustmentPrice()">
+        <label class="cart__show-old-price">
+          <input
+            [checked]="showOldPrice"
+            data-testid="cart-show-old-price"
+            (change)="showOldPrice = $any($event.target).checked"
+            type="checkbox"
+          />
+          {{ 'cart.showOldPrice' | translate }}
+        </label>
+      </ng-container>
+      @if (showServingTime()) {
+        @for (section of chronologicalLines().sections; track $index) {
+          @if (section.kind === 'sessionGroup') {
+            <ng-container
+              *ngTemplateOutlet="
+                sessionGroup;
+                context: { datetime: section.datetime, sessions: section.sessions, products: section.products }
+              "
+            ></ng-container>
+          } @else {
+            <ng-container *ngTemplateOutlet="productsHeader; context: { servingTime: servingTimeFor(section.products[0]) }"></ng-container>
+            <ng-container
+              *ngTemplateOutlet="listItems; context: { items: section.products, showPlanName: false, lineGroupKey: productsGroupKey }"
+            ></ng-container>
+          }
+        }
+      } @else {
+        @for (group of sessionGroups(); track group[0]) {
+          <ng-container *ngTemplateOutlet="sessionGroup; context: { datetime: group[0], sessions: group[1] }"></ng-container>
+        }
+      }
+
+      @if (unscheduledProducts().length > 0) {
+        <ng-container *ngTemplateOutlet="productsHeader; context: { servingTime: '' }"></ng-container>
+        <ng-container
+          *ngTemplateOutlet="listItems; context: { items: unscheduledProducts(), showPlanName: false, lineGroupKey: productsGroupKey }"
+        ></ng-container>
+      }
+
+      <div *ngIf="showPrice" class="price-summary">
+        @if (shouldShowDepositDeductionBreakdown()) {
+          <div class="deposit-price" data-testid="cart-detail-deposit-reservation-value">
+            <div class="deposit-price__label">
+              {{ 'boxOffice.cart.deposit.reservationValueTitle' | translate }}
+            </div>
+            <span class="deposit-price__amount">
+              <ng-container
+                *ngTemplateOutlet="
+                  cartMoney;
+                  context: {
+                    money: getReservationValueMoney(),
+                    locale: locale,
+                  }
+                "
+              >
+              </ng-container>
+            </span>
+            <div class="deposit-price__description">
+              {{ 'boxOffice.cart.deposit.reservationValueDescription' | translate }}
+            </div>
+          </div>
+          @if (showOverridePriceModule) {
+            <app-cart-adjustment-price
+              [currency]="cartTotal.currency"
+              [canToggleAdjustmentPrice]="canToggleAdjustmentPrice"
+              [initialAdjustment]="cartAdjustmentInitial()"
+              [errorKey]="cartAdjustmentErrorKey()"
+              (adjustmentChange)="onCartAdjustmentChange($event)"
+              (click)="$event.stopPropagation()"
+            ></app-cart-adjustment-price>
+          }
+          @if (!!hasAdjustmentPrice()) {
+            <ng-container *ngTemplateOutlet="cartDetailLegacyAdjustmentRows"></ng-container>
+          }
+          <div class="deposit-price" data-testid="cart-detail-deposit-paid">
+            <div class="deposit-price__label">
+              {{ 'boxOffice.cart.deposit.depositPaidTitle' | translate }}
+            </div>
+            <span class="deposit-price__amount">
+              <ng-container
+                *ngTemplateOutlet="
+                  cartMoney;
+                  context: {
+                    money: getDepositPaidDeductionMoney(),
+                    locale: locale,
+                  }
+                "
+              >
+              </ng-container>
+            </span>
+            <div class="deposit-price__description" *ngIf="cart.deposit?.paidAt">
+              {{ 'boxOffice.cart.deposit.depositPaidDate' | translate: { date: (cart.deposit?.paidAt | date: 'd MMM yyyy') } }}
+            </div>
+          </div>
+          <ng-container *ngIf="cart.appliedCoupon?.discount?.amount">
+            <div class="deposit-price" data-testid="cart-detail-deposit-applied-coupon">
+              <div class="coupon-price__label">
+                <span [title]="cart.appliedCoupon?.code">{{
+                  isInvitationChannel ? ('invitations.cart.coupon' | translate) : cart.appliedCoupon?.code
+                }}</span>
+              </div>
+              <span class="deposit-price__amount">
+                <ng-container
+                  *ngTemplateOutlet="
+                    cartMoney;
+                    context: {
+                      money: {
+                        currency: cart.appliedCoupon?.discount?.currency,
+                        amount: -(cart.appliedCoupon?.discount?.amount ?? 0),
+                      },
+                      locale: locale,
+                    }
+                  "
+                >
+                </ng-container>
+              </span>
+            </div>
+          </ng-container>
+        }
+        <app-cart-adjustment-price
+          *ngIf="showOverridePriceModule && !shouldShowDepositDeductionBreakdown()"
+          [currency]="cartTotal.currency"
+          [canToggleAdjustmentPrice]="canToggleAdjustmentPrice"
+          [initialAdjustment]="cartAdjustmentInitial()"
+          [errorKey]="cartAdjustmentErrorKey()"
+          (adjustmentChange)="onCartAdjustmentChange($event)"
+          (click)="$event.stopPropagation()"
+        ></app-cart-adjustment-price>
+
+        @if (linePriceChangeTotal(); as lineChange) {
+          <div class="overriden-price" data-testid="cart-line-price-changes">
+            <div class="overriden-price__label">{{ 'boxOffice.cart.linePrice.linePriceChanges' | translate }}</div>
+            <span class="overriden-price__amount" data-testid="cart-line-price-changes-amount">
+              <ng-container *ngTemplateOutlet="cartMoney; context: { money: lineChange, locale: locale }"></ng-container>
+            </span>
+          </div>
+        }
+        <ng-container *ngIf="!!hasAdjustmentPrice() && !shouldShowDepositDeductionBreakdown()">
+          <div class="old-price">
+            <span class="old-price__label">
+              {{ 'cart.realValue' | translate }}
+            </span>
+            <span class="old-price__amount" data-testid="cart-total-price">
+              <ng-container
+                *ngTemplateOutlet="
+                  cartMoney;
+                  context: {
+                    money: cart.totalWithoutOverride,
+                    locale: locale,
+                  }
+                "
+              ></ng-container>
+            </span>
+          </div>
+          <ng-container *ngTemplateOutlet="cartDetailLegacyAdjustmentRows"></ng-container>
+        </ng-container>
+        <div
+          *ngIf="
+            !hasDiscountsCoupons() && showDiscount && hasCoupon() && !shouldShowDepositDeductionBreakdown() && cart.appliedCoupon as coupon
+          "
+          class="coupon-price"
+          [ngClass]="{ 'coupon-price__rescheduled_order': isRescheduleFlow }"
+          data-testid="cart-detail-coupon"
+        >
+          <span *ngIf="isRescheduleFlow" class="coupon-price__label-rescheduled">
+            {{ 'reschedule.amountAlreadyPaid' | translate }}
+          </span>
+          <div *ngIf="!isRescheduleFlow" class="coupon-price__label">
+            <span [title]="coupon.code">{{ isInvitationChannel ? ('invitations.cart.coupon' | translate) : coupon.code }}</span>
+            <button class="coupon-price__remove" (click)="removeCoupon()">
+              <fa-icon [icon]="['fas', 'times']"></fa-icon>
+            </button>
+          </div>
+          <span class="coupon-price__amount" data-testid="cart-coupon-price">
+            <ng-container
+              *ngTemplateOutlet="
+                cartMoney;
+                context: {
+                  money: {
+                    currency: coupon.discount.currency,
+                    amount: -coupon.discount.amount,
+                  },
+                  locale: locale,
+                }
+              "
+            >
+            </ng-container>
+          </span>
+        </div>
+        <div *ngIf="isPromotionShown() && cart.appliedPromotion as promotion" class="promotion-price" data-testid="cart-detail-promotion">
+          <div class="promotion-price__label" data-testid="cart-promotion-name">
+            <span [title]="promotion.name">{{ promotion.name }}</span>
+          </div>
+          <span class="promotion-price__amount" data-testid="cart-promotion-price">
+            <ng-container
+              *ngTemplateOutlet="
+                cartMoney;
+                context: {
+                  money: {
+                    currency: promotion.discount.currency,
+                    amount: -promotion.discount.amount,
+                  },
+                  locale: locale,
+                }
+              "
+            >
+            </ng-container>
+          </span>
+        </div>
+        <div class="total-price">
+          <span class="total-price__label" data-testid="cart-total-label">
+            {{
+              (hasAdjustmentPrice()
+                ? 'cart.adjustedInternalValue'
+                : shouldShowDepositDeductionBreakdown()
+                  ? 'boxOffice.cart.deposit.totalWithDeposit'
+                  : 'cart.total'
+              ) | translate
+            }}
+          </span>
+          <div *ngIf="isCartUpdating()" width="100px" class="total-price__amount">
+            <ignt-skeleton type="item" [animation]="true" [numElements]="1" [height]="20"></ignt-skeleton>
+          </div>
+          <span *ngIf="!isCartUpdating()" class="total-price__amount" data-testid="cart-total-price">
+            @if (shouldShowLoyaltyPoints()) {
+              {{ 'orders.loyaltyPoints' | translate: { points: loyaltyPoints() | number } }}
+            } @else {
+              <ng-container
+                *ngTemplateOutlet="
+                  cartMoney;
+                  context: {
+                    money: cartTotal,
+                    locale: locale,
+                  }
+                "
+              ></ng-container>
+            }
+          </span>
+        </div>
+      </div>
+      @if (showOrderDepositPaymentSummary()) {
+        <div class="order-deposit-payment" data-testid="cart-detail-order-deposit-payment">
+          @if (orderDepositPaymentBreakdownVisible()) {
+            @if (hasOrderDepositPaidAmount()) {
+              <div class="order-deposit-payment__row" data-testid="cart-detail-order-deposit-paid">
+                <span class="order-deposit-payment__label">
+                  {{ 'boxOffice.cart.deposit.depositPaidTitle' | translate }}
+                </span>
+                <span class="order-deposit-payment__amount">
+                  <ng-container
+                    *ngTemplateOutlet="
+                      cartMoney;
+                      context: {
+                        money: cart.deposit?.calculatedAmount,
+                        locale: locale,
+                      }
+                    "
+                  ></ng-container>
+                </span>
+                @if (cart.deposit?.paidAt; as depositPaidAt) {
+                  <div class="order-deposit-payment__description" data-testid="cart-detail-order-deposit-paid-date">
+                    @if (cart.deposit?.paymentMethod; as depositPaymentMethod) {
+                      {{
+                        'boxOffice.cart.deposit.depositPaidDateWithMethod'
+                          | translate
+                            : {
+                                date: (depositPaidAt | momentDate: 'd MMM yyyy' : cart.timezone : locale),
+                                method: (depositPaymentMethod | orderPaymentMethodLabel: cart.channel?.id ?? ''),
+                              }
+                      }}
+                    } @else {
+                      {{
+                        'boxOffice.cart.deposit.depositPaidDate'
+                          | translate: { date: (depositPaidAt | momentDate: 'd MMM yyyy' : cart.timezone : locale) }
+                      }}
+                    }
+                  </div>
+                }
+              </div>
+            }
+            @if (hasOrderSettlementPaymentAmount()) {
+              <div class="order-deposit-payment__row" data-testid="cart-detail-order-settlement-payment">
+                <span class="order-deposit-payment__label">
+                  {{ 'boxOffice.cart.deposit.settlementPaymentTitle' | translate }}
+                </span>
+                <span class="order-deposit-payment__amount">
+                  <ng-container
+                    *ngTemplateOutlet="
+                      cartMoney;
+                      context: {
+                        money: getOrderSettlementPaymentAmount(),
+                        locale: locale,
+                      }
+                    "
+                  ></ng-container>
+                </span>
+                @if (createdAt) {
+                  <div class="order-deposit-payment__description" data-testid="cart-detail-order-settlement-payment-date">
+                    @if (cart.paymentMethod; as settlementPaymentMethod) {
+                      {{
+                        'boxOffice.cart.deposit.settlementPaymentDateWithMethod'
+                          | translate
+                            : {
+                                date: (createdAt | momentDate: 'd MMM yyyy' : cart.timezone : locale),
+                                method: (settlementPaymentMethod | orderPaymentMethodLabel: cart.channel?.id ?? ''),
+                              }
+                      }}
+                    } @else {
+                      {{
+                        'boxOffice.cart.deposit.settlementPaymentDate'
+                          | translate: { date: (createdAt | momentDate: 'd MMM yyyy' : cart.timezone : locale) }
+                      }}
+                    }
+                  </div>
+                }
+              </div>
+            }
+            @if (hasOrderRefundedAmount()) {
+              <div class="order-deposit-payment__row" data-testid="cart-detail-order-refunds">
+                <span class="order-deposit-payment__label">
+                  {{ 'validateTicketsNew.orderHistory.fields.refundedAmount' | translate }}
+                </span>
+                <span class="order-deposit-payment__amount">
+                  <ng-container
+                    *ngTemplateOutlet="
+                      cartMoney;
+                      context: {
+                        money: getOrderRefundedAmount(),
+                        locale: locale,
+                      }
+                    "
+                  ></ng-container>
+                </span>
+                @if (getOrderRefundedDate(); as orderRefundedDate) {
+                  <div class="order-deposit-payment__description" data-testid="cart-detail-order-refunds-date">
+                    {{ orderRefundedDate | momentDate: 'MMM d, yyyy' : cart.timezone : locale }}
+                  </div>
+                }
+              </div>
+            }
+            @if (hasOrderDepositRefundedAmount()) {
+              <div class="order-deposit-payment__row" data-testid="cart-detail-order-deposit-refunded">
+                <span class="order-deposit-payment__label">
+                  {{ 'reservation.checkout.depositRefunded' | translate }}
+                </span>
+                <span class="order-deposit-payment__amount">
+                  <ng-container
+                    *ngTemplateOutlet="
+                      cartMoney;
+                      context: {
+                        money: getOrderDepositRefundedAmount(),
+                        locale: locale,
+                      }
+                    "
+                  ></ng-container>
+                </span>
+                @if (getOrderDepositRefundedDate(); as orderDepositRefundedDate) {
+                  <div class="order-deposit-payment__description" data-testid="cart-detail-order-deposit-refunded-date">
+                    {{ orderDepositRefundedDate | momentDate: 'MMM d, yyyy' : cart.timezone : locale }}
+                  </div>
+                }
+              </div>
+            }
+          }
+          <button
+            type="button"
+            igntButton
+            sentiment="tertiary"
+            size="small"
+            class="order-deposit-payment__toggle"
+            data-testid="cart-detail-order-deposit-payment-toggle"
+            (click)="toggleOrderDepositPaymentBreakdown()"
+          >
+            {{
+              (orderDepositPaymentBreakdownVisible() ? 'boxOffice.cart.deposit.hideBreakdown' : 'boxOffice.cart.deposit.showBreakdown')
+                | translate
+            }}
+          </button>
+        </div>
+      }
+      <div *ngIf="showPaymentDetails" class="payment-details">
+        <div>
+          {{ 'boxOffice.cart.purchaseDate' | translate }}:
+          <span class="payment-details__date" data-testid="payment-details-date">
+            <ng-container *ngTemplateOutlet="cartDate; context: { date: createdAt, timezone: cart.timezone }"></ng-container>
+          </span>
+        </div>
+        @if (!showPaymentLegs()) {
+          <div>
+            {{ 'boxOffice.cart.paymentMethod' | translate }}:
+            <span class="payment-details__payment-method" data-testid="payment-details-payment-method">
+              {{ cart.paymentMethod ? (cart.paymentMethod | orderPaymentMethodLabel: cart.channel?.id ?? '') : '-' }}
+              @if (paymentCardNumberLast4Digits()) {
+                <span data-testid="payment-details-card-digits">
+                  {{ 'boxOffice.cart.cardEnding' | translate: { lastFour: paymentCardNumberLast4Digits() } }}
+                </span>
+              }
+            </span>
+          </div>
+        }
+        <div>
+          {{ 'boxOffice.cart.channel' | translate }}:
+          <span class="payment-details__channel" data-testid="payment-details-channel">
+            {{ channelTranslatePipe.transform(cart.channel?.id ?? '', cart.channel?.name ?? '') || '-' }}
+          </span>
+        </div>
+        <div *ngIf="paymentNotes">
+          {{ 'boxOffice.cart.description' | translate }}:
+          <span class="payment-details__channel" data-testid="payment-details-description">
+            {{ paymentNotes }}
+          </span>
+        </div>
+        @if (showPaymentLegs()) {
+          <div class="payment-legs" data-testid="payment-details-legs">
+            <ul class="payment-legs__list">
+              @for (row of paymentLegRows(); track row.id) {
+                <li class="payment-legs__row" data-testid="order-payment-leg">
+                  <span class="payment-legs__tile">
+                    <ignt-icon [name]="row.icon" variant="light" aria-hidden="true" />
+                  </span>
+                  <span class="payment-legs__text">
+                    <span class="payment-legs__name" data-testid="order-payment-leg-name">{{ row.name }}</span>
+                    @if (row.cardLast4 || row.terminalId || row.refundedAmount || row.time) {
+                      <span class="payment-legs__detail">
+                        @if (row.cardLast4; as last4) {
+                          <span class="payment-legs__detail-part" data-testid="order-payment-leg-card">****{{ last4 }}</span>
+                        }
+                        @if (row.terminalId; as terminalId) {
+                          <span class="payment-legs__detail-part" data-testid="order-payment-leg-terminal">
+                            {{ 'validateTicketsNew.orderDetail.paymentLegs.terminal' | translate: { terminal: terminalId } }}
+                          </span>
+                        }
+                        @if (row.refundedAmount; as refundedAmount) {
+                          <span class="payment-legs__detail-part" data-testid="order-payment-leg-refunded">
+                            {{ 'validateTicketsNew.orderDetail.paymentLegs.refunded' | translate: { amount: refundedAmount } }}
+                          </span>
+                        }
+                        @if (row.time; as time) {
+                          <span class="payment-legs__detail-part" data-testid="order-payment-leg-time">{{ time }}</span>
+                        }
+                      </span>
+                    }
+                  </span>
+                  <span class="payment-legs__amount" data-testid="order-payment-leg-amount">{{ row.amount }}</span>
+                </li>
+              }
+            </ul>
+            <div class="payment-legs__total">
+              <span>{{ 'boxOffice.cart.total' | translate }}</span>
+              <span data-testid="order-payment-legs-total">{{ paymentLegsTotal() }}</span>
+            </div>
+          </div>
+        }
+      </div>
+      <div *ngIf="showSeatingMap && hasSeating" class="seating-map">
+        <button (click)="showSeatingMapModal()" class="button button--small button--secondary" data-testid="cart-seating-map-button">
+          <fa-icon *ngIf="!isLoadingSeating; else spinner" class="left-icon" [icon]="['fas', 'loveseat']"></fa-icon
+          >{{ 'boxOffice.cart.openSeatingMap' | translate }}
+        </button>
+      </div>
+    </ng-container>
+    <a
+      *ngIf="showInvoice"
+      igntButton
+      size="small"
+      sentiment="secondary"
+      variant="sharp"
+      data-testid="order-header-options-go-to-invoicing"
+      [routerLink]="['/invoicing/order/', this.orderId]"
+      [target]="window.matchMedia('(display-mode: standalone)').matches ? '_self' : '_blank'"
+    >
+      {{ 'validateTicketsNew.orderHeader.invoicing' | translate }}
+    </a>
+  </div>
+</div>
+
+<ng-template #cartDetailLegacyAdjustmentRows>
+  <div class="overriden-price">
+    <div class="overriden-price__label">
+      <span
+        class="overriden-price__label-text"
+        [class.overriden-price__label-text--expanded]="adjustmentConceptExpanded()"
+        #adjustmentConceptElement
+      >
+        {{ cart?.adjustment?.concept || ('cart.appliedAdjustment' | translate) }}
+      </span>
+      <a igntLink size="small" (click)="showAdjustmentConcept()" *ngIf="showSeeMoreAdjustmentConceptButton()">
+        {{ (adjustmentConceptExpanded() ? 'common.seeLess' : 'common.seeMore') | translate }}
+      </a>
+    </div>
+    <span class="overriden-price__amount" data-testid="cart-total-price">
+      <ng-container
+        *ngTemplateOutlet="
+          cartMoney;
+          context: {
+            money: adjustmentOverTotalCart(),
+            locale: locale,
+          }
+        "
+      ></ng-container>
+    </span>
+  </div>
+  <div class="overriden-price" *ngIf="hasRounding()">
+    <div>
+      <span class="overriden-price__label" translate>cart.adjustment.rounding</span
+      ><span
+        ><a igntLink (click)="openRoundingModal()" size="caption">{{ 'cart.adjustment.modalRounding.openCta' | translate }}</a></span
+      >
+    </div>
+    <div>
+      <span class="overriden-price__amount" data-testid="cart-adjustment-rounding">
+        <ng-container
+          *ngTemplateOutlet="
+            cartMoney;
+            context: {
+              money: roundingTotal(),
+              locale: locale,
+            }
+          "
+        ></ng-container>
+      </span>
+    </div>
+  </div>
+</ng-template>
+<ng-template #cartMoney let-locale="locale" let-money="money">
+  {{ money ? (money.amount | currency: money.currency : 'symbol-narrow' : null : locale ?? 'en-US') : '-' }}
+</ng-template>
+
+<ng-template #cartDate let-date="date" let-timezone="timezone">
+  {{ date ? (date | momentDate: 'd MMM yyyy - HH:mm' : timezone : locale) : '-' }}
+</ng-template>
+
+<ng-template #spinner>
+  <div data-testid="attendees-seating-map-loading" class="loader">
+    <fa-icon [icon]="['fas', 'spinner']"></fa-icon>
+  </div>
+</ng-template>
+
+<ng-template #productsHeader let-servingTime="servingTime">
+  <div
+    class="header__shop-products-title"
+    data-testid="cart-header-shop-products-title"
+    [class.header__shop-products-title--scheduled]="!!servingTime"
+    [class.header__shop-products-title--unscheduled]="!servingTime && showServingTime()"
+  >
+    @if (showServingTime()) {
+      <ignt-icon name="utensils" variant="solid" aria-hidden="true" />
+      <span class="visually-hidden">{{ 'boxOffice.order.tickets.shopProductsTitle' | translate }}</span>
+      @if (servingTime) {
+        <span data-testid="cart-header-shop-products-serving-time">{{ servingTime }}</span>
+      } @else {
+        <span data-testid="cart-header-shop-products-unscheduled">{{ 'cart.serviceTime.modal.noTimeSet' | translate }}</span>
+      }
+    } @else {
+      {{ 'boxOffice.order.tickets.shopProductsTitle' | translate }}
+    }
+  </div>
+</ng-template>
+
+<ng-template #sessionGroup let-datetime="datetime" let-sessions="sessions" let-products="products">
+  @if (showSessionDate) {
+    <div
+      class="header__session-date"
+      [class.header__session-date--strike]="rescheduledSessionDate !== null && shouldShowDateForSessionGroup(sessions)"
+      [class.header__session-date--timeless]="!shouldShowDateForSessionGroup(sessions)"
+      [attr.data-testid]="shouldShowDateForSessionGroup(sessions) ? 'cart-header-session-date' : 'cart-header-session-date-timeless'"
+    >
+      @if (shouldShowDateForSessionGroup(sessions)) {
+        <ng-container *ngTemplateOutlet="cartDate; context: { date: datetime, timezone: cart.timezone }"></ng-container>
+      }
+    </div>
+  }
+  @if (rescheduledSessionDate !== null) {
+    <div class="header__session-date" data-testid="cart-header-rescheduled-session-date">
+      <ng-container *ngTemplateOutlet="cartDate; context: { date: rescheduledSessionDate, timezone: cart.timezone }"></ng-container>
+    </div>
+  }
+  <ng-container
+    *ngTemplateOutlet="
+      listItems;
+      context: {
+        items: sessions,
+        showPlanName: true,
+        slotStartAt: datetime,
+        lineGroupKey: datetime,
+      }
+    "
+  >
+  </ng-container>
+  @if (products?.length) {
+    <ng-container
+      *ngTemplateOutlet="listItems; context: { items: products, showPlanName: false, lineGroupKey: productsGroupKey, markProducts: true }"
+    ></ng-container>
+  }
+</ng-template>
+
+<ng-template
+  #listItems
+  let-items="items"
+  let-showPlanName="showPlanName"
+  let-slotStartAt="slotStartAt"
+  let-lineGroupKey="lineGroupKey"
+  let-markProducts="markProducts"
+>
+  <ng-container *ngIf="items.length > 0">
+    <div class="ticket-list">
+      <!--
+        The summary acts as a disclosure button (role="button" + aria-expanded) instead of a native <button>
+        because the panel it reveals holds interactive controls, which cannot be nested inside a button.
+      -->
+      <div
+        *ngFor="let item of items"
+        class="ticket"
+        [attr.data-cart-line-key]="stickyPanel() ? cartLineKey(item, lineGroupKey) : null"
+        [class.ticket--expandable]="expandableLines()"
+        [class.ticket--expanded]="isLineExpanded(item, lineGroupKey)"
+        [class.ticket--price-panel]="linePriceEditable() && !lineUnitActions()"
+        [class.ticket--highlighted]="isLineHighlighted(item, lineGroupKey)"
+      >
+        <div
+          class="ticket__summary"
+          [attr.role]="expandableLines() ? 'button' : null"
+          [attr.tabindex]="expandableLines() ? 0 : null"
+          [attr.aria-expanded]="expandableLines() ? isLineExpanded(item, lineGroupKey) : null"
+          [attr.aria-label]="expandableLines() ? ('boxOffice.cart.toggleLineActions' | translate: { name: item.sessionName }) : null"
+          [attr.data-testid]="expandableLines() ? 'cart-ticket-toggle' : null"
+          (click)="toggleLine(item, lineGroupKey)"
+          (keydown.enter)="toggleLine(item, lineGroupKey, $event)"
+          (keydown.space)="toggleLine(item, lineGroupKey, $event)"
+        >
+          <div class="ticket__main" [ngClass]="{ 'ticket__main--strikethrough': !item.units }">
+            <div class="count" data-testid="cart-ticket-count">{{ item.units }}x</div>
+            <div class="session">
+              <span class="session__name" data-testid="cart-ticket-session-name">
+                @if (markProducts) {
+                  <ignt-icon
+                    class="session__product-icon"
+                    name="utensils"
+                    variant="solid"
+                    data-testid="cart-ticket-product-icon"
+                    aria-hidden="true"
+                  />
+                }
+                {{ item.sessionName }}
+              </span>
+              @if (showPlanName && planNameForSession(item); as planName) {
+                <span class="session__plan" data-testid="cart-ticket-plan-name">{{ planName }}</span>
+              }
+            </div>
+            <div
+              *ngIf="showPrice"
+              class="price"
+              data-testid="cart-total-ticket-session-price"
+              [attr.title]="canEditPrice(item) ? ('boxOffice.cart.linePrice.overrideHint' | translate) : null"
+            >
+              @if (catalogLineTotal(item); as catalogTotal) {
+                <s class="old-price" data-testid="cart-ticket-catalogue-price">
+                  <span class="visually-hidden">{{ 'boxOffice.cart.linePrice.cataloguePrice' | translate }}</span>
+                  <ng-container *ngTemplateOutlet="cartMoney; context: { money: catalogTotal, locale: locale }"></ng-container>
+                </s>
+              }
+              <s class="old-price" *ngIf="hasAdjustmentPrice() && item.overridePrices && showOldPrice">
+                <ng-container
+                  *ngTemplateOutlet="
+                    cartMoney;
+                    context: {
+                      money: item.overridePrices?.totalPriceWithoutOverride,
+                      locale: locale,
+                    }
+                  "
+                ></ng-container>
+              </s>
+              @if (shouldShowSessionLoyaltyPrice(item)) {
+                {{ 'orders.loyaltyPoints' | translate: { points: item.loyaltyTotalPrice | number } }}
+              } @else {
+                @if (shouldShowSessionReferencePrice(item)) {
+                  <s class="old-price" data-testid="cart-ticket-reference-price">
+                    <span class="visually-hidden">{{ 'orders.referencePrice' | translate }}</span>
+                    <ng-container
+                      *ngTemplateOutlet="
+                        cartMoney;
+                        context: {
+                          money: item.referencePrice?.price,
+                          locale: locale,
+                        }
+                      "
+                    ></ng-container>
+                  </s>
+                }
+                <ng-container
+                  *ngTemplateOutlet="
+                    cartMoney;
+                    context: {
+                      money: getSessionLinePrice(item),
+                      locale: locale,
+                    }
+                  "
+                ></ng-container>
+              }
+            </div>
+          </div>
+          <div class="ticket__sub-main">
+            <ng-container *ngIf="!showSeatingInModal">
+              <ng-container *ngFor="let seat of getSeatLabels(item)">
+                <div class="count"></div>
+                <div class="session">
+                  <div class="session__seats">
+                    <span class="session__seat" data-testid="cart-seat">
+                      {{ seat }}
+                    </span>
+                  </div>
+                </div>
+                <div class="fee-price"></div>
+              </ng-container>
+            </ng-container>
+
+            <div class="count"></div>
+            <ng-container *ngIf="showPrice && !shouldShowSessionLoyaltyPrice(item) && shouldShowSessionBookingFee(item)">
+              <div [ngClass]="{ 'with-session-break': !!item.seats }" class="session">
+                <span class="session__price" data-testid="cart-ticket-session-booking-fee">
+                  {{ 'boxOffice.cart.bookingFeePerTicket' | translate }}:
+                  <ng-container *ngTemplateOutlet="cartMoney; context: { money: item.surchargePerTicket, locale: locale }"></ng-container>
+                </span>
+              </div>
+              <div [ngClass]="{ 'with-session-break': !!item.seats }" class="fee-price" data-testid="cart-total-ticket-session-booking-fee">
+                <s class="old-price" *ngIf="(hasAdjustmentPrice() || item.manualPrice) && item.overridePrices && showOldPrice">
+                  <ng-container
+                    *ngTemplateOutlet="
+                      cartMoney;
+                      context: {
+                        money: item.overridePrices?.totalSurchargeWithoutOverride,
+                        locale: locale,
+                      }
+                    "
+                  ></ng-container>
+                </s>
+                <ng-container
+                  *ngTemplateOutlet="
+                    cartMoney;
+                    context: {
+                      money: hasAdjustmentPrice() ? item.overridePrices?.totalSurchargeWithOverride : item.totalSurchargePerTicket,
+                      locale: locale,
+                    }
+                  "
+                ></ng-container>
+              </div>
+            </ng-container>
+          </div>
+        </div>
+        @if (showEstimatedEndTime && slotStartAt) {
+          <app-cart-estimated-end-time
+            [cartSession]="item"
+            [slotCartSessions]="items"
+            [slotStartAt]="slotStartAt"
+            [timezone]="cart?.timezone"
+          />
+        }
+        @if (item.manualPrice; as manualPrice) {
+          <div class="ticket__serving-time" data-testid="cart-ticket-manual-price-reason">
+            <div class="count"></div>
+            <div class="session">
+              <span class="session__price">{{ 'boxOffice.cart.linePrice.reasonLabel' | translate }}: {{ manualPrice.concept }}</span>
+            </div>
+          </div>
+          @if (manualPrice.setBy?.name; as author) {
+            <div class="ticket__serving-time" data-testid="cart-ticket-manual-price-author">
+              <div class="count"></div>
+              <div class="session">
+                <span class="session__price">{{ 'boxOffice.cart.linePrice.setBy' | translate: { name: author } }}</span>
+              </div>
+            </div>
+          }
+        }
+        @let servingTime = servingTimeFor(item);
+        @if (servingTime || canEditServingTimeFor(item)) {
+          <div class="ticket__serving-time" data-testid="cart-ticket-serving-time">
+            <div class="count"></div>
+            <div class="session session--serving-time">
+              <span class="session__price">
+                {{ 'cart.serviceTime.lineLabel' | translate }}:
+                <span class="session__serving-time" data-testid="cart-ticket-serving-time-value">{{
+                  servingTime || ('cart.serviceTime.modal.noTimeSet' | translate)
+                }}</span>
+              </span>
+            </div>
+          </div>
+        }
+        <div *ngIf="showPrice && hasDiscountCartSession(item)" class="ticket__discounts" data-testid="cart-total-ticket-session-discounts">
+          <div class="count"></div>
+          <div class="session">
+            <span class="session__price"> {{ 'boxOffice.memberships.discounts.label' | translate }}: {{ getDiscountInfoText(item) }}</span>
+          </div>
+          <div class="fee-price" data-testid="cart-total-ticket-session-discounts">
+            <span class="session__price session__price--discount" data-testid="cart-ticket-session-discounts">
+              -<ng-container
+                *ngTemplateOutlet="cartMoney; context: { money: getTotalDiscountByCartSession(item), locale: locale }"
+              ></ng-container>
+            </span>
+          </div>
+        </div>
+        @if (isLineExpanded(item, lineGroupKey)) {
+          <div class="ticket__actions" data-testid="cart-ticket-actions">
+            @if (lineUnitActions() && canEditUnits(item)) {
+              <div class="ticket__stepper" role="group" [attr.aria-label]="item.sessionName">
+                <button
+                  type="button"
+                  ignt-icon-button
+                  sentiment="tertiary"
+                  size="small"
+                  data-testid="cart-ticket-decrease"
+                  [icon]="['fal', 'minus']"
+                  [disabled]="!canDecrease(item)"
+                  [attr.aria-label]="'boxOffice.cart.decreaseQuantity' | translate"
+                  (click)="decreaseUnits(item, lineGroupKey, $event)"
+                  (keydown.enter)="$event.stopPropagation()"
+                  (keydown.space)="$event.stopPropagation()"
+                ></button>
+                <span class="ticket__stepper-value" data-testid="cart-ticket-stepper-value">{{ item.units }}</span>
+                <button
+                  type="button"
+                  ignt-icon-button
+                  sentiment="tertiary"
+                  size="small"
+                  data-testid="cart-ticket-increase"
+                  [icon]="['fal', 'plus']"
+                  [disabled]="!canIncrease(item)"
+                  [attr.aria-label]="'boxOffice.cart.increaseQuantity' | translate"
+                  (click)="increaseUnits(item, lineGroupKey, $event)"
+                  (keydown.enter)="$event.stopPropagation()"
+                  (keydown.space)="$event.stopPropagation()"
+                ></button>
+              </div>
+            }
+            @if (canEditPrice(item)) {
+              <div class="ticket__price-actions">
+                <ignt-button
+                  variant="tertiary"
+                  size="small"
+                  data-testid="cart-ticket-edit-price"
+                  [label]="'boxOffice.cart.linePrice.editPrice' | translate"
+                  [leadingIcon]="{ name: 'pen', variant: 'solid' }"
+                  [disabled]="linePriceDisabledHint() !== null || isLinePriceBusy()"
+                  (click)="openPriceEditor(item, lineGroupKey, $event)"
+                  (keydown.enter)="$event.stopPropagation()"
+                  (keydown.space)="$event.stopPropagation()"
+                />
+                @if (item.manualPrice && linePriceDisabledHint() === null) {
+                  <ignt-button
+                    variant="tertiary"
+                    sentiment="danger"
+                    size="small"
+                    data-testid="cart-ticket-clear-price"
+                    [label]="'boxOffice.cart.linePrice.clearPrice' | translate"
+                    [disabled]="isLinePriceBusy()"
+                    (click)="onClearLinePrice(item, lineGroupKey, $event)"
+                    (keydown.enter)="$event.stopPropagation()"
+                    (keydown.space)="$event.stopPropagation()"
+                  />
+                }
+              </div>
+            }
+            @if (lineUnitActions()) {
+              <ignt-button
+                variant="tertiary"
+                sentiment="danger"
+                size="small"
+                data-testid="cart-ticket-remove"
+                [label]="'boxOffice.cart.removeLine' | translate"
+                [ariaLabel]="'boxOffice.cart.removeTicketLine' | translate: { name: item.sessionName }"
+                [leadingIcon]="{ name: 'trash-alt', variant: 'light' }"
+                (click)="onRemoveCartSession(item, lineGroupKey, $event)"
+                (keydown.enter)="$event.stopPropagation()"
+                (keydown.space)="$event.stopPropagation()"
+              />
+            }
+          </div>
+          @if (canEditPrice(item) && linePriceDisabledHint(); as disabledHint) {
+            <span class="ticket__price-hint" data-testid="cart-ticket-edit-price-hint">{{ disabledHint | translate }}</span>
+          }
+          @if (isLinePriceRefused(item, lineGroupKey) && pendingLinePriceRefusal(); as refusalKey) {
+            <span class="ticket__price-hint ticket__price-hint--refusal" role="alert" data-testid="cart-ticket-price-refusal">{{
+              refusalKey | translate
+            }}</span>
+          }
+          @if (isEditingPrice(item, lineGroupKey) && catalogUnitPrice(item); as catalogue) {
+            <app-cart-line-price-editor
+              [catalogUnitPrice]="catalogue"
+              [locale]="locale ?? 'en-US'"
+              [busy]="isLinePriceBusy()"
+              [manualPrice]="item.manualPrice ?? null"
+              [refusal]="pendingLinePriceRefusal()"
+              [surchargePerTicket]="item.surchargePerTicket ?? null"
+              [unconfirmedChange]="pendingLinePriceChange()"
+              [units]="linePriceUnits(item)"
+              (applied)="onApplyLinePrice(item, lineGroupKey, $event)"
+              (cancelled)="closePriceEditor()"
+            />
+          }
+        }
+      </div>
+    </div>
+
+    <div *ngIf="showSeatingInModal && cart?.hasSeating" class="invitations-seats">
+      <div class="view-seats">
+        <div class="view-seats__title">
+          <div class="only-in-mobile">
+            {{ 'invitations.seatSelection' | translate }}
+          </div>
+        </div>
+        <div class="view-seats__button">
+          <button
+            (click)="openSeatingModal()"
+            [disabled]="!this.hasSeating"
+            class="box-office-content__button box-office-content__button--outline box-office-content__button--purple cart-seats-button--blue"
+            data-testid="cart-seats-button"
+          >
+            <fa-icon class="icon" [icon]="['fal', 'loveseat']"></fa-icon>
+            {{ 'invitations.viewSeats' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</ng-template>

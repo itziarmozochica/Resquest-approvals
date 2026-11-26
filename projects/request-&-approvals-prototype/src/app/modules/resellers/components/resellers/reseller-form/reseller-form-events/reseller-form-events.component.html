@@ -1,0 +1,43 @@
+<p class="font-base-bold">{{ 'resellers.salesOverview' | translate }}</p>
+<ignt-alert
+  *ngIf="outage"
+  class="my-4 d-block"
+  sentiment="warning"
+  [description]="'outage.message' | translate"
+  data-testid="outage-banner"
+></ignt-alert>
+<app-organization-dashboard [groupName]="GraphGroup.affiliatesOverview" [channelId]="channelId"></app-organization-dashboard>
+<p class="font-base-bold">{{ 'resellers.eventsAndTrackingLinks' | translate }}</p>
+<div class="reseller-plan-table">
+  <app-table
+    [type]="TableType.FZ_TABLE"
+    [headers]="headers"
+    [orderBy]="orderBy"
+    (updateOrderByEmit)="updateOrderBy($event)"
+    (updateFilterByEmit)="filterBy($event)"
+  >
+    <ng-container *ngFor="let plan of plans">
+      <tr class="fz-table__row" [routerLink]="['/plans/dashboard', plan.id]" (click)="goToDetail(plan, 'card')">
+        <td class="fz-table__cell plan-info-cell">
+          <app-plan-info-cell [plan]="plan"></app-plan-info-cell>
+        </td>
+        <td class="fz-table__cell state-cell">
+          <app-plan-state-cell [plan]="plan"></app-plan-state-cell>
+        </td>
+        <td *ngIf="!isMobile()" class="fz-table__cell tracking-link-cell">
+          <app-plan-tracking-link-cell [plan]="plan" [channelId]="channelId" [b2cSiteHost]="b2cSiteHost"></app-plan-tracking-link-cell>
+        </td>
+      </tr>
+    </ng-container>
+    <ng-container *ngIf="plans.length === 0 && !loadingPlans">
+      <div class="reseller-plan-table__no-data">
+        <p>{{ 'resellers.noPlans' | translate }}</p>
+      </div>
+    </ng-container>
+    <ng-container *ngIf="loadingPlans">
+      <div class="reseller-plan-table__no-data">
+        <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'4x'"></fa-icon>
+      </div>
+    </ng-container>
+  </app-table>
+</div>

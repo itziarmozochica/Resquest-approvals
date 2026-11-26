@@ -1,0 +1,112 @@
+<div class="payment-collectors-page">
+  <header class="payment-collectors-page__header">
+    <span class="payment-collectors-page__breadcrumb">{{ 'menu.finance' | translate }} /</span>
+    <h1 class="payment-collectors-page__title">{{ 'finance.paymentCollectors.title' | translate }}</h1>
+    <p class="payment-collectors-page__description">{{ 'finance.paymentCollectors.description' | translate }}</p>
+  </header>
+
+  <div class="payment-collectors-page__toolbar">
+    <label class="payment-collectors-page__search field">
+      <fa-icon class="payment-collectors-page__search-icon" [icon]="['far', 'search']"></fa-icon>
+      <input
+        data-testid="payment-collectors-search"
+        type="search"
+        class="field__input payment-collectors-page__search-input"
+        [formControl]="searchControl"
+        [placeholder]="'finance.paymentCollectors.searchPlaceholder' | translate"
+      />
+      <fa-icon class="payment-collectors-page__search-icon-clear" [icon]="['fal', 'times']"></fa-icon>
+      <span class="field__label">{{ 'finance.paymentCollectors.searchPlaceholder' | translate }}</span>
+    </label>
+    <div class="payment-collectors-page__actions">
+      <button
+        igntButton
+        sentiment="tertiary"
+        size="large"
+        [leadingIcon]="['fas', 'sliders-h']"
+        (click)="onFiltersClick()"
+        data-testid="payment-collectors-filters-btn"
+      >
+        {{ 'finance.paymentCollectors.filtersButton' | translate }}
+        <ng-container *ngIf="activeFiltersCount() > 0">
+          | {{ activeFiltersCount() }} {{ 'finance.paymentCollectors.filtersActive' | translate }}</ng-container
+        >
+      </button>
+      <button igntButton sentiment="primary" size="large" (click)="onCreateClick()" data-testid="payment-collectors-create-btn">
+        {{ 'finance.paymentCollectors.createButton' | translate }}
+      </button>
+    </div>
+  </div>
+
+  <ng-container *ngIf="!isLoading(); else loadingTemplate">
+    <div class="payment-collectors-page__table-container">
+      <app-payment-collectors-table
+        [orderBy]="orderBy()"
+        [restrictions]="paginatedRestrictions()"
+        (rowClick)="onRowClick($event)"
+        (deleteClick)="onDeleteClick($event)"
+        (orderByChange)="onOrderByChange($event)"
+      ></app-payment-collectors-table>
+    </div>
+
+    <div class="payment-collectors-page__pagination">
+      <app-pagination-with-numbers
+        [selectedPage]="currentPage()"
+        [totalCountResults]="totalCount()"
+        [pageSize]="pageSize"
+        [previousPage]="currentPage() > 1 ? currentPage() - 1 : null"
+        [nextPage]="currentPage() * pageSize < totalCount() ? currentPage() + 1 : null"
+        (numPageSelected)="onPageChange($event)"
+      ></app-pagination-with-numbers>
+    </div>
+  </ng-container>
+
+  <ng-template #loadingTemplate>
+    <div class="payment-collectors-page__loading">
+      <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'2x'"></fa-icon>
+      {{ 'common.loading' | translate }}
+    </div>
+  </ng-template>
+</div>
+
+<app-lateral-slider
+  [showDetails]="showFilterSlider()"
+  [title]="'finance.paymentCollectors.filters.title' | translate"
+  [contentTemplate]="filterPanelTemplate"
+  (closeSlider)="closeFilterSlider()"
+  data-testid="payment-collectors-filter-slider"
+>
+</app-lateral-slider>
+
+<ng-template #filterPanelTemplate>
+  <app-payment-collectors-filter
+    *ngIf="showFilterSlider()"
+    [channels]="channels()"
+    [restrictions]="allRestrictions()"
+    [currentFilters]="activeFilters()"
+    [searchTerm]="searchTerm()"
+    (filtersApplied)="onFiltersApplied($event)"
+  ></app-payment-collectors-filter>
+</ng-template>
+
+<app-lateral-slider
+  [showDetails]="showCreateSlider()"
+  [title]="sliderTitle()"
+  [contentTemplate]="createPanelTemplate"
+  (closeSlider)="closeCreateSlider()"
+  data-testid="payment-collectors-create-slider"
+>
+</app-lateral-slider>
+
+<ng-template #createPanelTemplate>
+  <app-payment-collector-create
+    *ngIf="showCreateSlider()"
+    [plans]="plans()"
+    [channels]="channels()"
+    [partnerId]="partnerId()"
+    [restriction]="restrictionToEdit()"
+    (created)="onRestrictionCreated()"
+    (updated)="onRestrictionUpdated()"
+    (cancelled)="closeCreateSlider()"
+  ></app-payment-collector-create>
+</ng-template>

@@ -1,0 +1,137 @@
+<div *ngIf="subResellers.length > 0; else emptyNetwork">
+  <div class="concession-network__header">
+    <div class="concession-network__search">
+      <ignt-input-field [ngModel]="searchFilter" [label]="'resellers.searchNetwork' | translate" (input)="searchSubject.next($event)">
+        <fa-icon [icon]="['fas', 'search']"></fa-icon>
+      </ignt-input-field>
+    </div>
+    <div class="only-in-desktop">
+      <ng-container *ngTemplateOutlet="createNetworkButtonTemplate"></ng-container>
+    </div>
+  </div>
+  <ng-container *ngTemplateOutlet="networkList; context: { subResellers: filteredSubResellers }"> </ng-container>
+</div>
+
+<div class="concession-network__footer only-in-mobile" *permissionBased="'can_manage_affiliate_network'">
+  <bottom-slider [buttonsTemplate]="createNetworkButtonTemplate"></bottom-slider>
+</div>
+
+<ng-template #networkList let-subResellers="subResellers">
+  <div class="fz-table fz-table--striped">
+    <header class="fz-table__header" data-testid="reseller-table-header">
+      <div class="fz-table__row">
+        <div class="fz-table__cell table__header--bold sub-resellers-list__table__big-column">
+          {{ 'resellers.memberName' | translate }}
+        </div>
+        <div class="fz-table__cell table__header--bold">
+          {{ 'common.actions' | translate }}
+        </div>
+      </div>
+    </header>
+    <div class="fz-table__body">
+      <ng-container *ngIf="subResellers.length > 0; else noResults">
+        <ng-container *ngFor="let subReseller of subResellers">
+          <ng-container *ngTemplateOutlet="recursion; context: { subReseller: subReseller, padding: 0 }"></ng-container>
+        </ng-container>
+      </ng-container>
+
+      <ng-template #recursion let-subReseller="subReseller" let-padding="padding">
+        <div class="fz-table__row" data-testid="sub-reseller-table-row" (click)="onClickShowSubResellerDetails(subReseller)">
+          <div
+            class="fz-table__cell"
+            [ngClass]="{ 'fz-table__cell--highlight': subReseller.highlighted }"
+            data-testid="sub-reseller-table-name"
+            [ngStyle]="{ 'padding-left': padding * 16 + 8 + 'px' }"
+          >
+            <div class="sub-resellers-list__table__cell" [ngClass]="{ 'sub-resellers-list__table__row--padding': padding }">
+              <strong class="sub-resellers-list__table__cell--ellipsis" title="{{ subReseller.name }}">
+                {{ subReseller.name }}
+              </strong>
+            </div>
+            <div class="sub-resellers-list__table__cell" [ngClass]="{ 'sub-resellers-list__table__row--padding': padding }">
+              <span class="sub-resellers-list__table__cell--ellipsis" title="{{ subReseller.email }}">{{ subReseller.email }}</span>
+            </div>
+          </div>
+          <div
+            class="fz-table__cell"
+            [ngClass]="{ 'fz-table__cell--highlight': subReseller.highlighted }"
+            data-testid="reseller-table-actions"
+          >
+            <ng-container *ngTemplateOutlet="actions; context: { subReseller: subReseller }"></ng-container>
+          </div>
+        </div>
+        <ng-container *ngFor="let subReseller of subReseller.organizationUsers">
+          <ng-container *ngTemplateOutlet="recursion; context: { subReseller: subReseller, padding: padding + 1 }"></ng-container>
+        </ng-container>
+      </ng-template>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #emptyNetwork>
+  <div class="concession-network__empty">
+    <fa-icon *ngIf="isLoadingNetwork" [icon]="['fas', 'spinner']" [size]="'4x'" class="loader"></fa-icon>
+    <ng-container *ngIf="!isLoadingNetwork">
+      <p class="font-base">{{ 'resellers.emptyNetwork' | translate }}</p>
+      <ng-container *permissionBased="permissions.CAN_MODIFY_AFFILIATE_NETWORK">
+        <ignt-button
+          data-testid="reseller-list-add-reseller-button"
+          [label]="'resellers.createNewMember' | translate"
+          (click)="createNewMember()"
+        />
+      </ng-container>
+      <img class="concession__empty-img" src="assets/images/shared/big-shoes-torso.svg" alt="{{ 'resellers.emptyNetwork' | translate }}" />
+    </ng-container>
+  </div>
+</ng-template>
+
+<ng-template #noResults>
+  <div class="concession-network__no-results">
+    <p class="font-base">{{ 'resellers.noResultsNetwork' | translate }}</p>
+  </div>
+</ng-template>
+
+<ng-template #createNetworkButtonTemplate>
+  <ignt-button
+    *permissionBased="'can_manage_affiliate_network'"
+    data-testid="reseller-list-add-reseller-button"
+    fill
+    [label]="'resellers.createNewMember' | translate"
+    (click)="createNewMember()"
+  />
+</ng-template>
+
+<ng-template #actions let-subReseller="subReseller">
+  <div class="table__row-actions item__actions-column fz-table__actions">
+    <div class="table__row-actions-dropdown" data-testid="table__row-actions-dropdown">
+      <button
+        class="table__row-actions-button"
+        data-testid="scrollable-table-actions-dropdown-button"
+        [igntMenuTriggerFor]="subResellerActionsMenu"
+        (click)="$event.stopPropagation()"
+      >
+        <fa-icon [fixedWidth]="true" [icon]="['far', 'ellipsis-h']"></fa-icon>
+      </button>
+      <ng-template #subResellerActionsMenu>
+        <ignt-menu>
+          <ignt-menu-item
+            value="details"
+            data-testid="table__row-show-details"
+            [label]="'common.details' | translate"
+            (triggered)="onClickShowSubResellerDetails(subReseller)"
+          >
+            <ignt-icon name="eye" variant="solid" />
+          </ignt-menu-item>
+          <ignt-menu-item
+            value="reports"
+            data-testid="table__row-show-reseller-report"
+            [label]="'menu.reports' | translate"
+            (triggered)="showSubResellerReports(subReseller)"
+          >
+            <ignt-icon name="chart-line" variant="light" />
+          </ignt-menu-item>
+        </ignt-menu>
+      </ng-template>
+    </div>
+  </div>
+</ng-template>

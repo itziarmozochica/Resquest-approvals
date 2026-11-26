@@ -1,0 +1,33 @@
+<div class="reminder-step" data-testid="split-refund-reminder-step">
+  @if (store.cashRefund(); as cashRefund) {
+    <p class="reminder-step__message" data-testid="split-refund-reminder-cash-message">
+      {{
+        'cancellation.splitRefund.reminder.cashMessage'
+          | translate: { amount: cashRefund.amount | currency: cashRefund.currency : 'symbol-narrow' : undefined : store.context().locale }
+      }}
+    </p>
+    <img class="reminder-step__image" src="assets/images/cancellations/cash-refund.png" alt="" />
+    <p class="reminder-step__note">{{ 'cancellation.splitRefund.reminder.promoCodeNote' | translate }}</p>
+  } @else if (failedRefunds().length === 0) {
+    <p class="reminder-step__message" data-testid="split-refund-reminder-outcome-message">{{ outcomeMessageKey() | translate }}</p>
+    @if (showRefundImage()) {
+      <img class="reminder-step__image" src="assets/images/cancellations/card-refund.png" alt="" />
+    }
+  }
+
+  @if (failedRefunds().length) {
+    <p class="reminder-step__message" data-testid="split-refund-reminder-partial-message">
+      {{ 'cancellation.splitRefund.reminder.partialFailureMessage' | translate }}
+    </p>
+    <ul class="reminder-step__failures" data-testid="split-refund-reminder-failures">
+      @for (failure of failedRefunds(); track failure.paymentId) {
+        <li>
+          <strong>{{ failure.methodLabel }}</strong>
+          <span>
+            {{ failure.amount.amount | currency: failure.amount.currency : 'symbol-narrow' : undefined : store.context().locale }}
+          </span>
+        </li>
+      }
+    </ul>
+  }
+</div>

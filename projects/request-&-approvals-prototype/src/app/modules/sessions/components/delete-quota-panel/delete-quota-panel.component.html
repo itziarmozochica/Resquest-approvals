@@ -1,0 +1,71 @@
+<div class="delete-quota-panel">
+  <ignt-alert
+    class="delete-quota-panel__alert"
+    sentiment="warning"
+    [title]="'sessions.deleteQuotaPanel.deletionCannotBeUndone' | translate"
+  />
+
+  <ignt-alert class="delete-quota-panel__alert" sentiment="info" [title]="'sessions.deleteQuotaPanel.bulkHint' | translate" />
+
+  <label class="delete-quota-panel__bulk-checkbox">
+    <input
+      class="delete-quota-panel__bulk-checkbox-input"
+      data-testid="delete-quota-bulk-checkbox"
+      type="checkbox"
+      [checked]="bulkOtherTimeslots()"
+      [disabled]="isDeleting()"
+      (change)="onBulkOtherTimeslotsChange($any($event.target).checked)"
+    />
+    <span>{{ 'sessions.deleteQuotaPanel.addOtherTimeslots' | translate }}</span>
+  </label>
+
+  @if (bulkOtherTimeslots()) {
+    @if (replicationFormGroup(); as replicationGroup) {
+      <form class="delete-quota-panel__bulk-form" [formGroup]="replicationGroup">
+        <app-quota-replication-fields
+          class="delete-quota-panel__replication"
+          data-testid="delete-quota-replication-fields"
+          [replicationFormGroup]="replicationGroup"
+        />
+
+        <div class="delete-quota-panel__actions">
+          <ng-container [ngTemplateOutlet]="deleteQuotaPanelCancelButton" />
+          <button
+            data-testid="delete-quota-confirm"
+            igntButton
+            sentiment="primary"
+            type="button"
+            variant="danger"
+            [disabled]="isDeleting() || (replicationGroup.controls.timeSlotSelectionType.value === 'specific' && replicationGroup.invalid)"
+            [loading]="isDeleting()"
+            (click)="onDelete()"
+          >
+            {{ 'sessions.deleteQuotaPanel.deleteSelectedQuotas' | translate }}
+          </button>
+        </div>
+      </form>
+    }
+  } @else {
+    <div class="delete-quota-panel__actions">
+      <ng-container [ngTemplateOutlet]="deleteQuotaPanelCancelButton" />
+      <button
+        data-testid="delete-quota-confirm"
+        igntButton
+        sentiment="primary"
+        type="button"
+        variant="danger"
+        [disabled]="isDeleting()"
+        [loading]="isDeleting()"
+        (click)="onDelete()"
+      >
+        {{ 'sessions.deleteQuotaPanel.delete' | translate }}
+      </button>
+    </div>
+  }
+
+  <ng-template #deleteQuotaPanelCancelButton>
+    <button data-testid="delete-quota-cancel" igntButton sentiment="tertiary" type="button" [disabled]="isDeleting()" (click)="onCancel()">
+      {{ 'sessions.deleteQuotaPanel.cancel' | translate }}
+    </button>
+  </ng-template>
+</div>

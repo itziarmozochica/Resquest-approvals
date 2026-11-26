@@ -1,0 +1,128 @@
+<div class="plan-setup" data-testid="plan-setup">
+  <div class="header">
+    <app-plan-header-summary
+      [name]="planDetail()?.name ?? ''"
+      [venue]="headerVenue()"
+      [imageUrl]="planDetail()?.gallery?.[0] ?? null"
+      [planId]="planDetail()?.id ?? null"
+      [partnerId]="planDetail()?.partnerId ?? null"
+    ></app-plan-header-summary>
+  </div>
+  @if (!reviewStatusLoaded()) {
+    <div class="plan-setup__review-request-status-loading" data-testid="plan-review-request-status-loading">
+      <div class="spinner-border spinner-border-sm" role="status" aria-label="Loading"></div>
+    </div>
+  } @else {
+    <div class="plan-setup__content">
+      @if (!showSubmittedSuccess() && !showReadySuccess()) {
+        <div class="plan-setup__cards" [class.plan-setup__cards--no-inventory]="!inventoryCard()">
+          <!-- Content Card -->
+          <app-setup-card
+            class="plan-setup__card"
+            [card]="contentCard()"
+            [canEdit]="canManageSelectedPlan()"
+            testIdPrefix="content-card"
+            (buttonClick)="onContentEdit()"
+          ></app-setup-card>
+
+          <!-- Settings Card -->
+          <app-setup-card
+            class="plan-setup__card"
+            [card]="settingsCard()"
+            [canEdit]="canManageSelectedPlan()"
+            testIdPrefix="settings-card"
+            (buttonClick)="onSettingsEdit()"
+          ></app-setup-card>
+
+          <!-- Inventory Card -->
+          <app-setup-card
+            *ngIf="inventoryCard() as card"
+            class="plan-setup__card"
+            [card]="card"
+            [canEdit]="canManageSelectedPlan()"
+            [isProvisioning]="isInventoryProvisioning()"
+            testIdPrefix="inventory-card"
+            (buttonClick)="onInventoryEdit()"
+          ></app-setup-card>
+        </div>
+      }
+
+      @if (showSubmittedSuccess()) {
+        <app-plan-review-success-panel
+          variant="submitted"
+          [loading]="reviewLoading()"
+          [showCancelSubmission]="canWithdrawSubmission()"
+          (backToList)="onBackToEventList('submitted')"
+          (cancelSubmission)="onWithdrawReview()"
+        ></app-plan-review-success-panel>
+      }
+
+      @if (showReadySuccess()) {
+        <app-plan-review-success-panel
+          variant="ready"
+          [loading]="reviewLoading()"
+          (backToList)="onBackToEventList('ready')"
+          (takeMeToChannels)="onTakeMeToChannels()"
+        ></app-plan-review-success-panel>
+      }
+
+      @if (!showReadySuccess() && reviewStatus()?.status === 'rejected') {
+        <app-plan-review-rejected-banner [comments]="reviewStatus()!.comments"></app-plan-review-rejected-banner>
+      }
+
+      @if (!showReadySuccess() && !showSubmittedSuccess() && reviewStatus()?.status === 'withdrawn') {
+        <div class="plan-setup__withdrawn-banner alert alert-info" role="status" data-testid="plan-review-withdrawn-banner">
+          <strong>{{ 'planReview.banner.withdrawn.title' | translate }}</strong>
+          <div>{{ 'planReview.banner.withdrawn.message' | translate }}</div>
+        </div>
+      }
+
+      @if (!showReadySuccess() && previousRejectedReviews().length > 0) {
+        <app-plan-review-history [reviews]="previousRejectedReviews()"></app-plan-review-history>
+      }
+
+      @if (planDetail() && !showSubmittedSuccess() && !showReadySuccess()) {
+        <div class="plan-setup__review-actions" data-testid="plan-review-actions">
+          @if (hasReviewerPermissions() && reviewStatus()?.status === 'submitted') {
+            <div class="plan-setup__review-banner alert alert-info" role="status" data-testid="plan-review-submitted-banner">
+              <strong>{{ 'planReview.banner.submitted.reviewerTitle' | translate }}</strong>
+              <div>{{ 'planReview.banner.submitted.reviewerMessage' | translate }}</div>
+            </div>
+          }
+
+          <app-plan-review-reviewer-actions
+            [canWithdrawSubmission]="canWithdrawSubmission()"
+            [currentUserId]="currentUserId()"
+            [reviewStatus]="reviewStatus()"
+            [loading]="reviewLoading()"
+            [hasReviewerPermissions]="hasReviewerPermissions()"
+            (claim)="onClaimReview()"
+            (approve)="onApproveReview()"
+            (reject)="onRejectReview()"
+            (release)="onReleaseReview()"
+            (withdraw)="onWithdrawReview()"
+          ></app-plan-review-reviewer-actions>
+
+          @if (showReviewSubmitPanel() && allCardsCompleted() && (reviewStatus() === null || reviewStatus()?.canBeSubmitted)) {
+            <app-plan-review-submit-panel
+              [variant]="reviewSubmitVariant()"
+              [loading]="reviewLoading()"
+              (setReadyClicked)="onSetPlanAsReady()"
+              (submitted)="onSubmitReview()"
+            ></app-plan-review-submit-panel>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  @if (reviewStatusLoaded() && isSetupProgressReady() && !showSubmittedSuccess() && !showReadySuccess() && !allCardsCompleted()) {
+    <!-- Info Banner -->
+    <div class="plan-setup__info-banner" data-testid="plan-setup-info-banner">
+      <ignt-icon class="plan-setup__info-icon" name="info-circle" variant="solid" aria-hidden="true"></ignt-icon>
+      <p class="plan-setup__info-text">
+        {{ 'planSetup.infoBanner.message' | translate }}
+      </p>
+    </div>
+  }
+</div>

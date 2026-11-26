@@ -1,0 +1,122 @@
+<app-page-title [title]="'menu.makeReservation' | translate" class="new-design"></app-page-title>
+
+<div>
+  <app-search-bar
+    [searchButtonLabel]="'common.search'"
+    [showVenue]="true"
+    [showChannels]="true"
+    [disabled]="true"
+    [screen]="screen.makeReservation"
+  >
+  </app-search-bar>
+</div>
+<div class="box-office-content">
+  <div class="box-office-content__container">
+    <div class="box-office-content__row box-office-content__row">
+      <ng-container>
+        <ng-container>
+          <div class="box-office-content__sidebar">
+            <app-plan-detail-card [plan]="plan"></app-plan-detail-card>
+            <cart-detail
+              [orderId]="orders.length === 1 ? order?.id : undefined"
+              [cart]="cart"
+              [orderCancellationRecords]="order?.userCancellationRecords ?? null"
+              [planNamesByPlanId]="planNamesByPlanId"
+              [showPlanNames]="showPlanNames"
+              [showSeatingInModal]="true"
+              [showClearAll]="false"
+              scope="purchase-confirmation"
+            ></cart-detail>
+          </div>
+          <div class="box-office-content__content">
+            <div class="only-in-mobile">
+              <app-plan-detail-card [plan]="plan"></app-plan-detail-card>
+            </div>
+            <div class="box-office-content__content-card">
+              <div class="confirmation">
+                <div class="confirmation__content">
+                  <h2 class="confirmation__title">
+                    <ignt-icon name="check-circle" variant="solid" class="confirmation__title-icon" aria-hidden="true"></ignt-icon>
+                    {{ 'purchase.confirmation.title' | translate }}
+                  </h2>
+                  <p class="confirmation__id" data-testid="reservation-id-message">
+                    @if (orders.length > 1) {
+                      {{ 'purchase.confirmation.ids' | translate: { ids: orderExternalIds } }}
+                    } @else {
+                      {{ 'purchase.confirmation.id' | translate: { id: orderExternalIds } }}
+                    }
+                  </p>
+                </div>
+                <div class="confirmation__buttons">
+                  <ng-container *ngIf="reservation.status == ReservationStatus.PAID || reservation.status == ReservationStatus.TO_BE_PAID">
+                    <button igntButton [disabled]="loadingDeliveryNote" data-testid="pay-reservation-button" (click)="getDeliveryNote()">
+                      {{ 'reservations.getDeliveryNote' | translate }}
+                    </button>
+                  </ng-container>
+                  <button igntButton sentiment="tertiary" data-testid="order-details-button" (click)="goToOrderDetails()">
+                    {{ 'purchase.confirmation.order' | translate }}
+                  </button>
+                </div>
+              </div>
+              <div class="only-in-mobile">
+                <div class="cart-detail--mobile" data-testid="mobile-order-cart">
+                  <cart-detail
+                    [cart]="cart"
+                    [planNamesByPlanId]="planNamesByPlanId"
+                    [showPlanNames]="showPlanNames"
+                    [showClearAll]="false"
+                  ></cart-detail>
+                </div>
+              </div>
+            </div>
+            <div class="only-in-desktop box-office-content__buttons">
+              <div class="box-office-content__buttons-content">
+                <button
+                  igntButton
+                  [leadingIcon]="['fal', 'eye']"
+                  [sentiment]="'secondary'"
+                  data-testid="my-reservations-button"
+                  (click)="goToMyReservations()"
+                >
+                  {{ 'reservation.confirmation.myReservations' | translate }}
+                </button>
+                <ng-container *permissionBased="'can_reserve_cart'">
+                  <button igntButton sentiment="secondary" data-testid="new-reservation-button" (click)="goToNewReservation()">
+                    {{ 'reservation.newReservation' | translate }}
+                  </button>
+                </ng-container>
+                <ng-container *permissionBased="'can_reserve_cart_on_behalf_of_business'">
+                  <button igntButton sentiment="secondary" data-testid="new-reservation-button" (click)="goToNewReservation()">
+                    {{ 'reservation.newReservation' | translate }}
+                  </button>
+                </ng-container>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+      </ng-container>
+    </div>
+  </div>
+</div>
+
+<div class="only-in-mobile">
+  <bottom-slider [buttonsTemplate]="buttonsOrderTemplate"></bottom-slider>
+</div>
+
+<ng-template #buttonsOrderTemplate>
+  <div class="checkout-footer-container__buttons">
+    <button igntButton [fill]="true" [sentiment]="'secondary'" data-testid="my-reservations-button" (click)="goToMyReservations()">
+      {{ 'reservation.confirmation.myReservations' | translate }}
+    </button>
+    <ng-container *permissionBased="'can_reserve_cart'">
+      <button igntButton sentiment="secondary" data-testid="new-reservation-button" [fill]="true" (click)="goToNewReservation()">
+        {{ 'reservation.newReservation' | translate }}
+      </button>
+    </ng-container>
+    <ng-container *permissionBased="'can_reserve_cart_on_behalf_of_business'">
+      <button igntButton sentiment="secondary" data-testid="new-reservation-button" [fill]="true" (click)="goToNewReservation()">
+        {{ 'reservation.newReservation' | translate }}
+      </button>
+    </ng-container>
+  </div>
+</ng-template>

@@ -1,0 +1,74 @@
+<app-search-result-view
+  data-testid="price-list-overview-matrix-results"
+  [noResultMessage]="'sessions.pricing.priceListsOverview.noResults' | translate"
+  [noResultIcon]="['far', 'receipt']"
+  [noFiltersMessage]="'sessions.pricing.priceListsOverview.noFilterSelected' | translate"
+  [noFiltersIcon]="['far', 'sort-alt']"
+  [errorMessage]="'sessions.pricing.priceListsOverview.errorMessage' | translate"
+  [currentState]="searchResultStatus()"
+>
+  <app-price-lists-overview-matrix-table
+    [sessionTypes]="filteredSessionTypes()"
+    [matrixItems]="filteredResults()"
+    [currencyMode]="currencyMode()"
+    [pointsPriceBySessionTypeId]="pointsPriceBySessionTypeId()"
+    (priceListItemSelected)="onPriceListItemSelected($event)"
+  >
+  </app-price-lists-overview-matrix-table>
+  <ng-container *ngTemplateOutlet="legend"></ng-container>
+</app-search-result-view>
+
+<ng-template #legend>
+  <div class="price-list-matrix-legend" data-testid="price-list-matrix-legend">
+    @if (legendIncludedItems().length > 0) {
+      <div data-testid="legend-included" [attr.data-legend-items]="legendIncludedItems().join(',')">
+        {{ 'sessions.pricing.priceListsOverview.matrix.legendIncluded' | translate: { items: legendIncludedItemsLabel() } }}
+      </div>
+    }
+    @if (legendExcludedItems().length > 0) {
+      <div data-testid="legend-excluded" [attr.data-legend-items]="legendExcludedItems().join(',')">
+        {{ 'sessions.pricing.priceListsOverview.matrix.legendExcluded' | translate: { items: legendExcludedItemsLabel() } }}
+      </div>
+    }
+  </div>
+</ng-template>
+
+<ng-template #sliderTitleTemplate>
+  <span class="price-list-item-slider-title">
+    {{ sliderTitle() }} <span *ngIf="sliderSubtitle()" class="price-list-item-slider-title__group">({{ sliderSubtitle() }})</span>
+  </span>
+</ng-template>
+
+<ng-template #editPriceListItemForm>
+  <div *ngIf="!selectedItemFromPriceList()" class="loading-container">
+    <p>{{ 'common.loading' | translate }}</p>
+  </div>
+  <app-price-list-item-form
+    *ngIf="selectedItemFromPriceList() && selectedPriceListId() && planId() && selectedSessionTypeId()"
+    [currency]="selectedCurrency()"
+    [currencyMode]="currencyMode()"
+    [initialPointsPrice]="initialPointsPriceForSelected()"
+    [isBasePriceList]="basePriceListId() === selectedPriceListId()"
+    [isDynamicPricingFamilyMember]="isSelectedPriceListInFamily()"
+    [restrictShopProductPriceEditing]="basePriceListId() === selectedPriceListId()"
+    [parentPriceListId]="selectedParentPriceListId()"
+    [planId]="planId()!"
+    [planSessionTypes]="planSessionTypes()"
+    [priceListId]="selectedPriceListId()!"
+    [priceListItems]="priceListItems()"
+    [sessionTypeId]="selectedSessionTypeId()!"
+    (cancelClicked)="onCloseSlider()"
+    (setPriceClicked)="onItemSaved($event)"
+  >
+  </app-price-list-item-form>
+</ng-template>
+
+<ng-container *ngIf="canModifyPriceLists()">
+  <app-lateral-slider
+    (closeSlider)="onCloseSlider()"
+    [showDetails]="isEditSliderOpen()"
+    [titleTemplate]="sliderTitleTemplate"
+    [contentTemplate]="editPriceListItemForm"
+  >
+  </app-lateral-slider>
+</ng-container>

@@ -1,0 +1,318 @@
+<ignt-dialog-header>{{ modalTitleKey | translate }}</ignt-dialog-header>
+<div class="capacity-rule-form-modal" [formGroup]="form">
+  @if (overlapBannerVisible()) {
+    <ignt-alert
+      class="capacity-rule-form-modal__overlap-banner"
+      sentiment="danger"
+      [title]="
+        (mode === 'weekly'
+          ? 'assetsManagement.capacityRules.modalOverlapWeeklyBannerTitle'
+          : 'assetsManagement.capacityRules.modalOverlapSpecialBannerTitle'
+        ) | translate
+      "
+      [description]="
+        (mode === 'weekly'
+          ? 'assetsManagement.capacityRules.modalOverlapWeeklyBannerMessage'
+          : 'assetsManagement.capacityRules.modalOverlapSpecialBannerMessage'
+        ) | translate
+      "
+    />
+  }
+  @if (crossMidnightWarningVisible()) {
+    <ignt-alert
+      class="capacity-rule-form-modal__cross-midnight-banner"
+      sentiment="warning"
+      [title]="'assetsManagement.capacityRules.modalCrossMidnightWarningTitle' | translate"
+      [description]="'assetsManagement.capacityRules.modalCrossMidnightWarningMessage' | translate"
+    />
+  }
+  @if (endsAtMidnightInfoVisible()) {
+    <ignt-alert
+      class="capacity-rule-form-modal__cross-midnight-banner"
+      sentiment="info"
+      [title]="'assetsManagement.capacityRules.modalEndsAtMidnightInfoTitle' | translate"
+      [description]="'assetsManagement.capacityRules.modalEndsAtMidnightInfoMessage' | translate"
+    />
+  }
+  @if (mode === 'weekly') {
+    <section class="capacity-rule-form-modal__section" formGroupName="days">
+      <p
+        id="capacity-rule-weekly-days-label"
+        class="capacity-rule-form-modal__section-label capacity-rule-form-modal__section-label--top-spaced"
+      >
+        {{ 'assetsManagement.capacityRules.modalSelectDaysOfWeek' | translate }}
+      </p>
+      <ng-container
+        *ngTemplateOutlet="weekdayToggles; context: { $implicit: 'capacity-rule-day-', labelledBy: 'capacity-rule-weekly-days-label' }"
+      ></ng-container>
+      @if (showDaysError()) {
+        <p class="capacity-rule-form-modal__error" data-testid="capacity-rule-days-error">
+          {{ 'assetsManagement.capacityRules.modalValidationDays' | translate }}
+        </p>
+      }
+    </section>
+    <section class="capacity-rule-form-modal__section">
+      <p class="capacity-rule-form-modal__section-label">
+        {{ 'assetsManagement.capacityRules.modalTimeRangeQuestion' | translate }}
+      </p>
+      <div class="capacity-rule-form-modal__two-col">
+        <ignt-input-field
+          data-testid="capacity-rule-start-time"
+          formControlName="startTime"
+          type="time"
+          appNativePicker
+          [trailIcon]="['fal', 'clock']"
+          [trailIconAriaLabel]="'common.openTimePicker' | translate"
+          [customFormErrors]="timeAndOverlapFormErrors()"
+          [label]="'assetsManagement.capacityRules.modalStartTime' | translate"
+        />
+        <ignt-input-field
+          data-testid="capacity-rule-end-time"
+          formControlName="endTime"
+          type="time"
+          appNativePicker
+          [trailIcon]="['fal', 'clock']"
+          [trailIconAriaLabel]="'common.openTimePicker' | translate"
+          [customFormErrors]="timeAndOverlapFormErrors()"
+          [label]="'assetsManagement.capacityRules.modalEndTime' | translate"
+        />
+      </div>
+    </section>
+    <section class="capacity-rule-form-modal__section">
+      <h2 class="capacity-rule-form-modal__section-label capacity-rule-form-modal__override-title">
+        {{ 'assetsManagement.capacityRules.modalOverrideCapacity' | translate }}
+      </h2>
+      <p class="capacity-rule-form-modal__override-hint">
+        {{ 'assetsManagement.capacityRules.modalOverrideCapacityHint' | translate }}
+      </p>
+      <ng-container *ngTemplateOutlet="overrideCapacityFields"></ng-container>
+    </section>
+  } @else {
+    <section class="capacity-rule-form-modal__section">
+      <p class="capacity-rule-form-modal__section-label">
+        {{ 'assetsManagement.capacityRules.modalSpecialDateRangeLabel' | translate }}
+      </p>
+      <div class="capacity-rule-form-modal__two-col capacity-rule-form-modal__two-col--dates">
+        <div
+          class="capacity-rule-form-modal__date-field"
+          [class.capacity-rule-form-modal__date-field--error]="effectiveFromDateFieldHasOverlapError()"
+        >
+          <label class="capacity-rule-form-modal__input-label" for="capacity-rule-effective-from">{{
+            'assetsManagement.capacityRules.modalEffectiveFrom' | translate
+          }}</label>
+          <ignt-native-date-input
+            id="capacity-rule-effective-from"
+            inputId="capacity-rule-effective-from"
+            testId="capacity-rule-effective-from"
+            type="date"
+            [value]="form.controls.effectiveFrom.value"
+            (valueChange)="form.controls.effectiveFrom.setValue($event)"
+          />
+          @if (effectiveFromDateFieldHasOverlapError()) {
+            <p class="capacity-rule-form-modal__field-error" data-testid="capacity-rule-date-overlap-error">
+              {{ 'assetsManagement.capacityRules.modalOverlapSpecialDay' | translate }}
+            </p>
+          }
+        </div>
+        <div class="capacity-rule-form-modal__date-field">
+          <label class="capacity-rule-form-modal__input-label" for="capacity-rule-effective-until">{{
+            'assetsManagement.capacityRules.modalEffectiveUntil' | translate
+          }}</label>
+          <ignt-native-date-input
+            id="capacity-rule-effective-until"
+            inputId="capacity-rule-effective-until"
+            testId="capacity-rule-effective-until"
+            type="date"
+            [value]="form.controls.effectiveUntil.value"
+            (valueChange)="form.controls.effectiveUntil.setValue($event)"
+          />
+        </div>
+      </div>
+      @if (showDatesError()) {
+        <p class="capacity-rule-form-modal__error" data-testid="capacity-rule-dates-error">
+          {{ 'assetsManagement.capacityRules.modalValidationDates' | translate }}
+        </p>
+      }
+    </section>
+    @if (showSpecialDayWeekdays()) {
+      <section class="capacity-rule-form-modal__section" data-testid="capacity-rule-special-day-weekdays">
+        <p id="capacity-rule-special-days-label" class="capacity-rule-form-modal__section-label">
+          {{ 'assetsManagement.capacityRules.modalSpecialDaysOfWeek' | translate }}
+        </p>
+        <p class="capacity-rule-form-modal__override-hint">
+          {{ 'assetsManagement.capacityRules.modalSpecialDaysOfWeekHint' | translate }}
+        </p>
+        <ng-container
+          *ngTemplateOutlet="
+            weekdayToggles;
+            context: { $implicit: 'capacity-rule-special-day-', labelledBy: 'capacity-rule-special-days-label' }
+          "
+        ></ng-container>
+      </section>
+    }
+    <section class="capacity-rule-form-modal__section">
+      <p class="capacity-rule-form-modal__section-label">
+        {{ 'assetsManagement.capacityRules.modalTimeRangeQuestion' | translate }}
+      </p>
+      <div class="capacity-rule-form-modal__two-col">
+        <ignt-input-field
+          data-testid="capacity-rule-start-time"
+          formControlName="startTime"
+          type="time"
+          appNativePicker
+          [trailIcon]="['fal', 'clock']"
+          [trailIconAriaLabel]="'common.openTimePicker' | translate"
+          [customFormErrors]="timeAndOverlapFormErrors()"
+          [label]="'assetsManagement.capacityRules.modalStartTime' | translate"
+        />
+        <ignt-input-field
+          data-testid="capacity-rule-end-time"
+          formControlName="endTime"
+          type="time"
+          appNativePicker
+          [trailIcon]="['fal', 'clock']"
+          [trailIconAriaLabel]="'common.openTimePicker' | translate"
+          [customFormErrors]="timeAndOverlapFormErrors()"
+          [label]="'assetsManagement.capacityRules.modalEndTime' | translate"
+        />
+      </div>
+    </section>
+    <section class="capacity-rule-form-modal__section">
+      <h2 class="capacity-rule-form-modal__section-label capacity-rule-form-modal__override-title">
+        {{ 'assetsManagement.capacityRules.modalOverrideCapacity' | translate }}
+      </h2>
+      <p class="capacity-rule-form-modal__override-hint">
+        {{ 'assetsManagement.capacityRules.modalOverrideCapacityHint' | translate }}
+      </p>
+      <ignt-radio-group formControlName="specialDayAvailability" class="capacity-rule-form-modal__radio-group">
+        <ignt-radio
+          [label]="'assetsManagement.capacityRules.modalSpecialAvailabilityOptionAvailable' | translate"
+          [value]="'available'"
+          dataTestId="capacity-rule-special-available"
+        />
+        <ignt-radio
+          [label]="'assetsManagement.capacityRules.modalSpecialAvailabilityOptionUnavailable' | translate"
+          [value]="'unavailable'"
+          dataTestId="capacity-rule-special-unavailable"
+        />
+      </ignt-radio-group>
+      @if (form.controls.specialDayAvailability.value === 'available') {
+        <ng-container *ngTemplateOutlet="overrideCapacityFields"></ng-container>
+      } @else {
+        <p class="capacity-rule-form-modal__section-label capacity-rule-form-modal__section-label--sub">
+          {{ 'assetsManagement.capacityRules.modalSpecialClosureReasonSectionLabel' | translate }}
+        </p>
+        <div class="capacity-rule-form-modal__select-field">
+          <label class="field">
+            <select
+              id="capacity-rule-closure-reason"
+              class="field__select"
+              formControlName="unavailabilityReason"
+              data-testid="capacity-rule-closure-reason"
+            >
+              <option value="">{{ 'assetsManagement.capacityRules.modalSpecialClosureReasonPlaceholder' | translate }}</option>
+              @for (key of closureReasonKeys; track key) {
+                <option [value]="key">{{ closureReasonLabelKey(key) | translate }}</option>
+              }
+            </select>
+            <span class="field__label">{{ 'assetsManagement.capacityRules.modalSpecialClosureReason' | translate }}</span>
+            <ignt-icon class="field__icon field__icon--trail" name="chevron-down" variant="light" [fixedWidth]="true" aria-hidden="true" />
+          </label>
+        </div>
+        @if (showClosureReasonError()) {
+          <p class="capacity-rule-form-modal__error" data-testid="capacity-rule-closure-reason-error">
+            {{ 'assetsManagement.capacityRules.modalValidationClosureReason' | translate }}
+          </p>
+        }
+      }
+    </section>
+  }
+
+  <ng-template #weekdayToggles let-testIdPrefix let-labelledBy="labelledBy">
+    <div class="capacity-rule-form-modal__day-toggles" role="group" [attr.aria-labelledby]="labelledBy">
+      @for (day of orderedWeekdays; track day) {
+        <button
+          type="button"
+          class="capacity-rule-form-modal__day-toggle"
+          [class.capacity-rule-form-modal__day-toggle--selected]="isWeekdaySelected(day)"
+          [attr.data-testid]="testIdPrefix + day"
+          [attr.aria-pressed]="isWeekdaySelected(day)"
+          [disabled]="!isWeekdayInSpecialDayRange(day)"
+          (click)="toggleWeekday(day)"
+        >
+          {{ weekdayLabelKey(day) | translate }}
+        </button>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template #overrideCapacityFields>
+    @if (isPeopleCount) {
+      <ignt-input-field
+        class="capacity-rule-form-modal__field capacity-rule-form-modal__field--capacity"
+        data-testid="capacity-rule-max-people-capacity"
+        formControlName="maxPartySize"
+        type="number"
+        [label]="'assetsManagement.capacityRules.modalMaxCapacity' | translate"
+      />
+    } @else {
+      <ignt-input-field
+        class="capacity-rule-form-modal__field capacity-rule-form-modal__field--capacity"
+        data-testid="capacity-rule-max-capacity"
+        formControlName="maxNumParties"
+        type="number"
+        [label]="'assetsManagement.capacityRules.modalMaxNumberOfGroups' | translate"
+      />
+      <p class="capacity-rule-form-modal__section-label capacity-rule-form-modal__section-label--sub">
+        {{ 'assetsManagement.capacityRules.modalPeoplePerGroup' | translate }}
+      </p>
+      <div class="capacity-rule-form-modal__two-col">
+        <ignt-input-field
+          data-testid="capacity-rule-min-party"
+          formControlName="minPartySize"
+          type="number"
+          [customFormErrors]="partySizeRangeFormErrors()"
+          [label]="'assetsManagement.capacityRules.modalMinPeople' | translate"
+        />
+        <ignt-input-field
+          data-testid="capacity-rule-max-party"
+          formControlName="maxPartySize"
+          type="number"
+          [customFormErrors]="partySizeRangeFormErrors()"
+          [label]="'assetsManagement.capacityRules.modalMaxPeople' | translate"
+        />
+      </div>
+    }
+  </ng-template>
+
+  <div class="capacity-rule-form-modal__actions-stack">
+    <div class="capacity-rule-form-modal__footer">
+      @if (editingRuleId !== null) {
+        <button
+          type="button"
+          class="capacity-rule-form-modal__delete-rule"
+          data-testid="capacity-rule-modal-delete"
+          (click)="onDeleteRule()"
+        >
+          <ignt-icon class="capacity-rule-form-modal__delete-rule-icon" name="trash" variant="light" aria-hidden="true" />
+          {{ 'assetsManagement.capacityRules.modalDeleteRule' | translate }}
+        </button>
+      } @else {
+        <button
+          type="button"
+          class="capacity-rule-form-modal__footer-discard"
+          data-testid="capacity-rule-modal-cancel"
+          (click)="onCancel()"
+        >
+          {{ 'common.cancel' | translate }}
+        </button>
+      }
+      <ignt-button
+        class="capacity-rule-form-modal__footer-save"
+        data-testid="capacity-rule-modal-save"
+        [label]="saveLabelKey | translate"
+        (click)="onSave()"
+      />
+    </div>
+  </div>
+</div>

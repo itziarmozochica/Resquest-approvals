@@ -1,0 +1,192 @@
+<div class="recipient-delivery-table">
+  @if (showFilter) {
+    <div class="recipient-delivery-table__search">
+      <label class="visually-hidden" [for]="idPrefix + '-filter'">{{ 'alertConfigForm.directory.filterPlaceholder' | translate }}</label>
+      <ignt-input-field
+        label=""
+        type="search"
+        [id]="idPrefix + '-filter'"
+        [ngModel]="filterQuery()"
+        (ngModelChange)="onFilterInput($event)"
+        [placeholder]="'alertConfigForm.directory.filterPlaceholder' | translate"
+        [attr.data-testid]="idPrefix + '-filter'"
+      />
+    </div>
+  }
+  <div class="recipient-delivery-table__scroll" [class.recipient-delivery-table__scroll--capped]="showFilter">
+    <div
+      class="recipient-delivery-table__grid"
+      [class.recipient-delivery-table__grid--with-permission]="isPermissionVisible()"
+      role="table"
+    >
+      <div class="recipient-delivery-table__row recipient-delivery-table__row--head" role="row">
+        <div role="columnheader">{{ 'alertConfigForm.directory.colEmail' | translate }}</div>
+        @if (isPermissionVisible()) {
+          <div class="recipient-delivery-table__center" role="columnheader">
+            {{ 'alertConfigForm.directory.colPermission' | translate }}
+          </div>
+        }
+        <div class="recipient-delivery-table__center" role="columnheader">{{ 'alertConfigForm.directory.colEmailAlerts' | translate }}</div>
+        <div class="recipient-delivery-table__center" role="columnheader">{{ 'alertConfigForm.directory.colSlackAlerts' | translate }}</div>
+        <div role="columnheader">{{ 'alertConfigForm.directory.colSlackHow' | translate }}</div>
+        <div role="columnheader">{{ 'alertConfigForm.directory.colLanguage' | translate }}</div>
+      </div>
+      @for (row of visibleRows(); track trackByEmailNorm($index, row)) {
+        <div class="recipient-delivery-table__row" role="row" [attr.data-testid]="idPrefix + '-row-' + row.emailNorm">
+          <div class="recipient-delivery-table__email" role="cell">
+            <span class="recipient-delivery-table__line">{{ row.emailDisplay }}</span>
+          </div>
+
+          @if (isPermissionVisible()) {
+            <div class="recipient-delivery-table__center" role="cell">
+              @if (isPermissionEligibleByEmail()[row.emailNorm]) {
+                <ignt-checkbox
+                  class="recipient-delivery-table__line"
+                  size="small"
+                  [checked]="isPermissionOnByEmail()[row.emailNorm]"
+                  [disabled]="disabled"
+                  (change)="onPermissionToggle(row, $event)"
+                  [ariaLabel]="'alertConfigForm.directory.colPermission' | translate"
+                  [dataTestId]="idPrefix + '-permission-' + row.emailNorm"
+                />
+              } @else {
+                <span class="visually-hidden" [attr.data-testid]="idPrefix + '-permission-na-' + row.emailNorm">
+                  {{ 'alertConfigForm.directory.permissionNotApplicable' | translate }}
+                </span>
+              }
+            </div>
+          }
+
+          <div class="recipient-delivery-table__center" role="cell">
+            <ignt-checkbox
+              class="recipient-delivery-table__line"
+              size="small"
+              [checked]="emailOn(row)"
+              [disabled]="disabled"
+              (change)="onEmailToggle(row, $event)"
+              [ariaLabel]="'alertConfigForm.directory.colEmailAlerts' | translate"
+              [dataTestId]="idPrefix + '-email-' + row.emailNorm"
+            />
+          </div>
+
+          <div class="recipient-delivery-table__center" role="cell">
+            <ignt-checkbox
+              class="recipient-delivery-table__line"
+              size="small"
+              [checked]="slackOn(row)"
+              [disabled]="disabled"
+              (change)="onSlackToggle(row, $event)"
+              [ariaLabel]="'alertConfigForm.directory.colSlackAlerts' | translate"
+              [dataTestId]="idPrefix + '-slack-' + row.emailNorm"
+            />
+          </div>
+
+          <div class="recipient-delivery-table__how" role="cell">
+            @if (slackOn(row)) {
+              <div class="recipient-delivery-table__modes">
+                <ignt-radio
+                  class="recipient-delivery-table__line"
+                  size="small"
+                  value="individual"
+                  [name]="idPrefix + '-mode-' + row.emailNorm"
+                  [checked]="slackMode(row) === 'individual'"
+                  [disabled]="disabled"
+                  [label]="'alertConfigForm.directory.slackIndividual' | translate"
+                  [dataTestId]="idPrefix + '-mode-individual-' + row.emailNorm"
+                  (change)="onModeIndividual(row)"
+                />
+                <ignt-radio
+                  size="small"
+                  value="channel"
+                  [name]="idPrefix + '-mode-' + row.emailNorm"
+                  [checked]="slackMode(row) === 'channel'"
+                  [disabled]="disabled"
+                  [label]="'alertConfigForm.directory.slackChannel' | translate"
+                  [dataTestId]="idPrefix + '-mode-channel-' + row.emailNorm"
+                  (change)="onModeChannel(row)"
+                />
+              </div>
+
+              @if (slackMode(row) === 'channel') {
+                <div class="recipient-delivery-table__channel">
+                  <label [for]="idPrefix + '-channel-' + row.emailNorm">
+                    {{ 'alertConfigForm.directory.channelIdLabel' | translate }}
+                  </label>
+                  <ng-select
+                    appendTo="body"
+                    bindLabel="name"
+                    bindValue="id"
+                    [labelForId]="idPrefix + '-channel-' + row.emailNorm"
+                    [items]="channelOptionsFor(row)"
+                    [addTag]="addTypedChannel"
+                    [searchFn]="matchesChannel"
+                    [ngModel]="channelIdFor(row) || null"
+                    (ngModelChange)="onChannelSelected(row, $event)"
+                    [disabled]="disabled"
+                    [placeholder]="'alertConfigForm.directory.channelPlaceholder' | translate"
+                    [attr.data-testid]="idPrefix + '-channel-input-' + row.emailNorm"
+                  >
+                    <ng-template ng-label-tmp let-item="item">{{ channelOptionLabel(item) }}</ng-template>
+                    <ng-template ng-option-tmp let-item="item">{{ channelOptionLabel(item) }}</ng-template>
+                  </ng-select>
+                </div>
+              }
+
+              @if (needsMemberIdOverride(row)) {
+                <div class="recipient-delivery-table__override">
+                  <p class="recipient-delivery-table__hint">{{ 'alertConfigForm.directory.slackMentionIdHelp' | translate }}</p>
+                  <ignt-input-field
+                    placeholder="U01ABCDEF"
+                    [id]="idPrefix + '-override-' + row.emailNorm"
+                    [label]="'alertConfigForm.directory.slackMentionIdLabel' | translate"
+                    [ngModel]="overrideFor(row)"
+                    (ngModelChange)="onOverrideInput(row, $event)"
+                    (blurred)="onOverrideBlur(row)"
+                    [disabled]="disabled"
+                    [attr.data-testid]="idPrefix + '-override-input-' + row.emailNorm"
+                  />
+                </div>
+              }
+            }
+          </div>
+
+          <div role="cell">
+            <div class="recipient-delivery-table__lang-cell">
+              <ng-select
+                class="recipient-delivery-table__locale"
+                appendTo="body"
+                [clearable]="false"
+                [searchable]="false"
+                [ngModel]="localeFor(row)"
+                (ngModelChange)="onLocaleChange(row, $event)"
+                [disabled]="languageDisabled(row)"
+                [ariaLabel]="'alertConfigForm.directory.colLanguage' | translate"
+                [attr.data-testid]="idPrefix + '-locale-' + row.emailNorm"
+              >
+                @for (loc of localeOptions; track loc) {
+                  <ng-option [value]="loc">{{ loc | uppercase }}</ng-option>
+                }
+              </ng-select>
+              <ignt-button
+                variant="secondary"
+                size="small"
+                [label]="'alertConfigForm.directory.applyToAll' | translate"
+                [disabled]="languageDisabled(row)"
+                (click)="applyToAll(row)"
+                [attr.title]="'alertConfigForm.directory.applyLanguageToAll' | translate"
+                [attr.data-testid]="idPrefix + '-apply-all-' + row.emailNorm"
+              />
+            </div>
+          </div>
+        </div>
+      }
+      @if (showFilter && visibleRows().length === 0) {
+        <div class="recipient-delivery-table__row" role="row">
+          <div class="recipient-delivery-table__no-matches" role="cell" [attr.data-testid]="idPrefix + '-no-matches'">
+            {{ 'alertConfigForm.directory.noMatches' | translate }}
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>

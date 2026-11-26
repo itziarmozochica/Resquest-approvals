@@ -1,0 +1,71 @@
+@let s = section();
+<ignt-accordion [variant]="variant()">
+  <ignt-accordion-item data-testid="description-translation-section" [expanded]="expanded()" (expandedChange)="toggled.emit()">
+    <span class="ms material-symbols-outlined description-translation-section__type-icon" igntAccordionLeading aria-hidden="true">
+      {{ COMPONENT_TYPES[s.blockType].icon }}
+    </span>
+    <span igntAccordionTitle>{{ s.titleLabelKey | translate }}</span>
+    <ng-container igntAccordionTrailing>
+      @if (s.totalCount > 0) {
+        @if (showStatus()) {
+          <app-translation-field-count-badge
+            [totalCount]="s.totalCount"
+            [translatedCount]="s.translatedCount"
+            [showScopeStatusIcon]="true"
+          ></app-translation-field-count-badge>
+        } @else {
+          <span class="description-translation-section__field-count">
+            {{
+              (s.totalCount === 1
+                ? 'planEdition.translationsEdition.fieldCountBadgeSingular'
+                : 'planEdition.translationsEdition.fieldCountBadge'
+              ) | translate: { totalFieldsCount: s.totalCount }
+            }}
+          </span>
+        }
+      }
+    </ng-container>
+
+    <ng-template igntAccordionBody>
+      <div class="description-translation-section__body">
+        @for (group of rootGroups(); track group.groupId) {
+          <div class="description-translation-section__group">
+            @for (field of group.fields; track field.key) {
+              <app-description-translation-field
+                [field]="field"
+                [readOnly]="readOnly()"
+                [hideOriginal]="hideOriginal()"
+                [showStatus]="showStatus()"
+                [uploadFileCallback]="uploadFileCallback()"
+                (valueChange)="onFieldChange(field, $event)"
+                (validate)="validate.emit($event)"
+              ></app-description-translation-field>
+            }
+          </div>
+        }
+
+        @if (itemGroups().length > 0) {
+          <ignt-tabs [selectedIndex]="effectiveSelectedItemIndex()" (selectedIndexChange)="selectItem($event)">
+            @for (group of itemGroups(); track group.groupId) {
+              <ignt-tabs-item [label]="group.labelKey ?? '' | translate: group.labelParams">
+                <div class="description-translation-section__group">
+                  @for (field of group.fields; track field.key) {
+                    <app-description-translation-field
+                      [field]="field"
+                      [readOnly]="readOnly()"
+                      [hideOriginal]="hideOriginal()"
+                      [showStatus]="showStatus()"
+                      [uploadFileCallback]="uploadFileCallback()"
+                      (valueChange)="onFieldChange(field, $event)"
+                      (validate)="validate.emit($event)"
+                    ></app-description-translation-field>
+                  }
+                </div>
+              </ignt-tabs-item>
+            }
+          </ignt-tabs>
+        }
+      </div>
+    </ng-template>
+  </ignt-accordion-item>
+</ignt-accordion>

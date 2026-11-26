@@ -1,0 +1,87 @@
+<div [class]="type + '__layout ' + (scrollable === true ? type + '--scrollable' : '')">
+  <table [class]="type + '__container ' + type + ' ' + type + '--striped'">
+    <thead [class]="type + '__header'">
+      <tr [class]="type + '__row'" [ngStyle]="{ padding: paddingHeader ? paddingHeader : '0' }">
+        <ng-container *ngFor="let header of headers; let index">
+          <th
+            [class]="type + '__header-title ' + type + '__cell'"
+            [ngStyle]="{
+              'flex-basis': header.columnSize,
+              width: header.columnSize,
+              'justify-content': 'flex-' + header.alignment,
+            }"
+            [class.table__header-title--border-start]="header.hasBorderLeft"
+          >
+            <div [class]="type + '__header-title-container'" [ngStyle]="{ 'justify-content': 'flex-' + header.alignment }">
+              <div [class]="type + '__header-title-item'">
+                <span>{{ header.label | translate }}</span>
+              </div>
+              <div [class]="type + '__header-title-item'">
+                <ng-container *ngIf="header.tooltip">
+                  <fa-icon
+                    [icon]="['fas', 'info-circle']"
+                    [class]="type + '__header-tooltip'"
+                    igntTooltip
+                    tooltipPlacement="top"
+                    [tooltipLabel]="header.tooltip | translate"
+                  ></fa-icon>
+                </ng-container>
+                <ng-container *ngIf="header.orderBy">
+                  <button
+                    [class]="type + '__header-sort'"
+                    [attr.data-testid]="'header-' + header.orderBy + '-sort'"
+                    (click)="updateOrderBy(header.orderBy)"
+                  >
+                    <fa-icon
+                      [class]="type + '__header-sort-icon'"
+                      [class.table__header-sort-icon--active]="header.orderBy | tableOrderBySelected: orderBy"
+                      [fixedWidth]="true"
+                      [icon]="header.orderBy | tableOrderByIcon: orderBy"
+                    ></fa-icon>
+                  </button>
+                </ng-container>
+                <ng-container *ngIf="header.filterBy">
+                  <div [class]="type + '__header-filter'">
+                    <button
+                      [igntMenuTriggerFor]="headerFilterMenu"
+                      [class]="type + '__header-filter-button'"
+                      [attr.data-testid]="'header-' + header.filterBy + '-filter'"
+                      [class.table__header-filter-button--active]="header.filterBySelected && header.filterBySelected?.id !== 'all'"
+                    >
+                      <fa-icon
+                        [class]="type + '__header-filter-icon'"
+                        [class.table__header-filter-icon--active]="header.filterBySelected && header.filterBySelected?.id !== 'all'"
+                        [icon]="['far', 'filter']"
+                      ></fa-icon>
+                    </button>
+                    <ng-template #headerFilterMenu>
+                      <ignt-menu>
+                        <ignt-menu-radio-group [ariaLabel]="header.label | translate">
+                          @for (option of header.filterByOptions; track option.id) {
+                            <ignt-menu-item-radio
+                              [value]="'filter-' + option.id"
+                              [attr.data-testid]="'header-' + header.filterBy + '-filter-option'"
+                              [label]="option.title | translate"
+                              [checked]="header.filterBySelected && header.filterBySelected?.id === option.id"
+                              (triggered)="filterBy(header.filterBy, option)"
+                            />
+                          }
+                        </ignt-menu-radio-group>
+                      </ignt-menu>
+                    </ng-template>
+                  </div>
+                </ng-container>
+              </div>
+            </div>
+          </th>
+        </ng-container>
+        <th *ngIf="hasActions" [class]="type + '__header-title ' + type + '__header-actions ' + type + '__cell'">
+          <div [class]="type + '__header-title'"></div>
+        </th>
+      </tr>
+    </thead>
+    <tbody [class]="type + '__body'">
+      <ng-content></ng-content>
+    </tbody>
+  </table>
+</div>

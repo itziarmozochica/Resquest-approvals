@@ -1,0 +1,104 @@
+@use 'foundations';
+@import 'abstracts/all';
+
+:host {
+  display: contents;
+}
+
+.notifications-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: foundations.$space-3;
+  min-height: 0;
+  padding: foundations.$space-3 var(--notifications-panel-px, #{foundations.$space-4}) foundations.$space-4;
+  overflow-y: auto;
+}
+
+.notifications-list--flat {
+  gap: 0;
+}
+
+$scroll-fade-top: 22px;
+$scroll-fade-bottom: 24px;
+$scrollbar-width: 6px;
+$scrollbar-thumb-color: rgba(foundations.$palette-neutral-700, 0.14);
+
+@function scroll-edge-content-fade($top, $bottom) {
+  @if $top and $bottom {
+    @return linear-gradient(to bottom, transparent, $black $top, $black calc(100% - #{$bottom}), transparent);
+  } @else if $top {
+    @return linear-gradient(to bottom, transparent, $black $top);
+  } @else {
+    @return linear-gradient(to bottom, $black calc(100% - #{$bottom}), transparent);
+  }
+}
+
+@mixin scroll-edge-fade($top: null, $bottom: null) {
+  $content-fade: scroll-edge-content-fade($top, $bottom);
+  $scrollbar-gutter: linear-gradient($black, $black);
+
+  mask-image: $content-fade, $scrollbar-gutter;
+  mask-position:
+    left top,
+    right top;
+  mask-repeat: no-repeat, no-repeat;
+  mask-size:
+    calc(100% - #{$scrollbar-width}) 100%,
+    #{$scrollbar-width} 100%;
+}
+
+.notifications-list--edge-hints {
+  overscroll-behavior: contain;
+  scrollbar-color: $scrollbar-thumb-color transparent;
+  scrollbar-width: thin;
+}
+
+.notifications-list--edge-hints::-webkit-scrollbar {
+  width: $scrollbar-width;
+}
+
+.notifications-list--edge-hints::-webkit-scrollbar-thumb {
+  background-color: $scrollbar-thumb-color;
+  border-radius: 3px;
+}
+
+.notifications-list--edge-hints::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.notifications-list--edge-hints.scroll-edges--scrolled {
+  @include scroll-edge-fade($top: $scroll-fade-top);
+}
+
+.notifications-list--edge-hints.scroll-edges--more-below {
+  @include scroll-edge-fade($bottom: $scroll-fade-bottom);
+}
+
+.notifications-list--edge-hints.scroll-edges--scrolled.scroll-edges--more-below {
+  @include scroll-edge-fade($top: $scroll-fade-top, $bottom: $scroll-fade-bottom);
+}
+
+.notifications-list__loading,
+.notifications-list__empty {
+  padding: foundations.$space-6 var(--notifications-panel-px, #{foundations.$space-4});
+  font-size: $font-size-sm;
+  color: $gray-600;
+  text-align: center;
+  margin: 0;
+}
+
+.notifications-list__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: foundations.$space-3;
+  padding: foundations.$space-6 var(--notifications-panel-px, #{foundations.$space-4});
+  text-align: center;
+}
+
+.notifications-list__error-message {
+  font-size: $font-size-sm;
+  color: $gray-600;
+  margin: 0;
+}

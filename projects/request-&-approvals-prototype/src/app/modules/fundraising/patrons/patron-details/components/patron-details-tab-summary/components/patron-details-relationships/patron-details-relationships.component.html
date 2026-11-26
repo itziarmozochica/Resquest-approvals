@@ -1,0 +1,117 @@
+<ng-template #memberList let-members="members">
+  @for (member of members; track member.id; let isLastMember = $last) {
+    <div
+      class="patron-details-relationships__member"
+      [class.patron-details-relationships__member--navigable]="isNavigableMember(member)"
+      [class.patron-details-relationships__member--not-navigable]="!isNavigableMember(member)"
+      [class.patron-details-relationships__member--with-divider]="!isLastMember"
+      [attr.data-testid]="'relationships-member-' + member.id"
+      [attr.role]="isNavigableMember(member) ? 'button' : null"
+      [attr.tabindex]="isNavigableMember(member) ? 0 : null"
+      (click)="onMemberClick($event, member)"
+      (keydown)="onMemberKeydown($event, member)"
+    >
+      <div class="patron-details-relationships__member-content">
+        <div class="patron-details-relationships__avatar patron-details-relationships__avatar--rounded">
+          @if (member.imageUrl) {
+            <img [src]="member.imageUrl" [alt]="member.name" />
+          } @else {
+            <ignt-icon name="user" variant="light" aria-hidden="true" />
+          }
+        </div>
+        <div class="patron-details-relationships__member-info">
+          <span class="patron-details-relationships__member-name" [attr.data-testid]="'relationships-member-name-' + member.id">
+            {{ member.name }}
+          </span>
+          @if (member.role.length > 0) {
+            <ignt-tag variant="outline" [sentiment]="member.roleSentiment" [attr.data-testid]="'relationships-member-role-' + member.id">
+              {{ translateRole(member.role) }}
+            </ignt-tag>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</ng-template>
+
+<div class="patron-details-relationships wrapper-card wrapper-card--elevation-75">
+  <div class="patron-details-relationships__header">
+    <h3 class="patron-details-relationships__title">{{ 'fundraising.patronDetails.relationships.title' | translate }}</h3>
+    <a igntLink size="small" sentiment="primary" (click)="onGoToRelationships($event)" data-testid="relationships-view-more-btn">
+      {{ 'fundraising.patronDetails.relationships.viewMore' | translate }}
+    </a>
+  </div>
+
+  @if (hasRelationships()) {
+    <div class="patron-details-relationships__groups" data-testid="relationships-groups">
+      @for (group of householdGroups(); track group.id) {
+        <div class="patron-details-relationships__group" [attr.data-testid]="'relationships-group-' + group.id">
+          <div class="patron-details-relationships__group-header">
+            <ignt-icon name="house" variant="light" class="patron-details-relationships__group-icon" aria-hidden="true" />
+            <a
+              igntLink
+              href="#"
+              size="small"
+              sentiment="primary"
+              [trailingIcon]="['fal', 'external-link']"
+              (click)="onGoToRelationships($event)"
+              [attr.data-testid]="'relationships-group-link-' + group.id"
+            >
+              {{ group.name }}
+            </a>
+          </div>
+          <div class="patron-details-relationships__members">
+            <ng-container [ngTemplateOutlet]="memberList" [ngTemplateOutletContext]="{ members: group.members }" />
+          </div>
+        </div>
+      }
+      @if (professionalMembers().length > 0) {
+        <div class="patron-details-relationships__group" data-testid="relationships-professional-group">
+          <div class="patron-details-relationships__group-header">
+            <ignt-icon name="city" variant="light" class="patron-details-relationships__group-icon" aria-hidden="true" />
+            <a
+              igntLink
+              href="#"
+              size="small"
+              sentiment="primary"
+              [trailingIcon]="['fal', 'external-link']"
+              (click)="onGoToRelationships($event)"
+              data-testid="relationships-professional-link"
+            >
+              {{ 'fundraising.patronDetails.relationships.groupTypes.professional' | translate }}
+            </a>
+          </div>
+          <div class="patron-details-relationships__members" data-testid="relationships-professional-members">
+            <ng-container [ngTemplateOutlet]="memberList" [ngTemplateOutletContext]="{ members: professionalMembers() }" />
+          </div>
+        </div>
+      }
+      @if (personalMembers().length > 0) {
+        <div class="patron-details-relationships__group" data-testid="relationships-personal-group">
+          <div class="patron-details-relationships__group-header">
+            <ignt-icon name="user" variant="light" class="patron-details-relationships__group-icon" aria-hidden="true" />
+            <a
+              igntLink
+              href="#"
+              size="small"
+              sentiment="primary"
+              [trailingIcon]="['fal', 'external-link']"
+              (click)="onGoToRelationships($event)"
+              data-testid="relationships-personal-link"
+            >
+              {{ 'fundraising.patronDetails.relationships.groupTypes.personal' | translate }}
+            </a>
+          </div>
+          <div class="patron-details-relationships__members" data-testid="relationships-personal-members">
+            <ng-container [ngTemplateOutlet]="memberList" [ngTemplateOutletContext]="{ members: personalMembers() }" />
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="patron-details-relationships__empty" data-testid="relationships-empty">
+      <ignt-icon name="users" variant="light" class="patron-details-relationships__empty-icon" aria-hidden="true" />
+      <span>{{ 'fundraising.patronDetails.relationships.empty' | translate }}</span>
+    </div>
+  }
+</div>

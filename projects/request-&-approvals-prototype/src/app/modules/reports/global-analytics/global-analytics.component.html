@@ -1,0 +1,137 @@
+<div class="global-analytics-page">
+  <div class="global-analytics-page__body">
+    <div class="reports-header">
+      <div class="global-analytics-page__title">
+        <span class="global-analytics-page__section">{{ 'analyticsHome.pageTitle' | translate }}</span>
+        <h1 class="global-analytics-page__heading" data-testid="global-analytics-title">
+          {{ 'analytics.globalAnalytics.title' | translate }}
+        </h1>
+      </div>
+      <div class="reports-header__currency">
+        <ng-container *ngIf="currencyDropdownTemplateRef() as currencyTpl" [ngTemplateOutlet]="currencyTpl"></ng-container>
+      </div>
+    </div>
+    <div class="reports-filters">
+      <form (submit)="$event.preventDefault()">
+        <fieldset class="fieldset">
+          <div class="wrapper">
+            <app-multi-select
+              [disabled]="loadingOrganizations || organizationOptions.length === 0"
+              [options]="organizationOptions"
+              [placeholder]="'analytics.globalAnalytics.selectOrganizations' | translate"
+              [selectedOptions]="selectedOrganizationOptions"
+              [displayInPlaceMaximum]="2"
+              [isSelectAllVisible]="true"
+              (selected)="onOrganizationsSelected($event)"
+              class="cell cell--hug-md cell-organizations"
+              data-testid="global-analytics-select-organizations"
+            >
+            </app-multi-select>
+          </div>
+        </fieldset>
+      </form>
+    </div>
+
+    <ng-template #currencyDropdownTpl>
+      <span data-testid="global-analytics-currency-help-text">{{ 'analytics.analytics360.currency.helpText' | translate }}</span>
+      <div class="reports-header__currency__dropdown" data-testid="global-analytics-currency-dropdown">
+        <button
+          class="button button--small button--secondary"
+          data-testid="global-analytics-select-currency"
+          id="global-analytics-select-currency"
+          type="button"
+          (click)="toggleCurrencySelector()"
+        >
+          {{ selectedCurrencyOption?.title }}
+          <ignt-icon
+            [name]="showCurrencyOptionSelector ? 'chevron-up' : 'chevron-down'"
+            variant="solid"
+            size="base"
+            aria-hidden="true"
+          ></ignt-icon>
+        </button>
+        <div
+          *ngIf="showCurrencyOptionSelector"
+          class="reports-header__currency__dropdown__options"
+          data-testid="global-analytics-currency-options"
+        >
+          <span *ngFor="let currency of currencyOptions" data-testid="global-analytics-currency-option" (click)="selectCurrency(currency)">
+            {{ currency.title }}
+          </span>
+        </div>
+      </div>
+    </ng-template>
+
+    <ignt-alert
+      *ngIf="outage && !loadingGraphs"
+      class="my-4 d-block"
+      sentiment="warning"
+      [description]="'outage.message' | translate"
+      data-testid="outage-banner"
+    ></ignt-alert>
+    <ignt-alert
+      *ngIf="organizationsError"
+      class="my-4 d-block"
+      sentiment="danger"
+      [description]="'analytics.globalAnalytics.errors.organizations' | translate"
+      data-testid="organizations-error-banner"
+    ></ignt-alert>
+    <ignt-alert
+      *ngIf="graphsError && !loadingGraphs"
+      class="my-4 d-block"
+      sentiment="danger"
+      [description]="'analytics.globalAnalytics.errors.graphs' | translate"
+      data-testid="graphs-error-banner"
+    ></ignt-alert>
+    <div class="dashboard-data">
+      <div data-testid="global-analytics-loading" class="loader" *ngIf="loadingGraphs">
+        <ignt-icon class="loader" name="spinner" variant="solid" [spin]="true" size="display" aria-hidden="true"></ignt-icon>
+      </div>
+      <ng-container *ngIf="graphs && !loadingGraphs">
+        <app-graphs-tab
+          [graphs]="graphs"
+          [selectedGraph]="selectedGraph"
+          (tabSelected)="onTabSelected($event)"
+          dataTestId="global-analytics-tab"
+        ></app-graphs-tab>
+        <div class="dashboard-row-result">
+          <ng-container *ngFor="let graph of graphs">
+            <iframe
+              *ngIf="selectedGraph?.id === graph.id && graph.url"
+              data-testid="global-analytics-iframe"
+              class="dashboard-row-result__graph"
+              border="0"
+              frameborder="0"
+              width="100%"
+              allowtransparency
+              [src]="graph.url | safeUrl"
+              appIframeResizer
+              title="Thread Content"
+            >
+            </iframe>
+          </ng-container>
+        </div>
+      </ng-container>
+      <div *ngIf="!graphs && !loadingGraphs" class="nothing-selected" data-testid="global-analytics-nothing-selected">
+        <h4 class="font-h3" data-testid="global-analytics-nothing-selected-title">
+          {{ 'analytics.globalAnalytics.nothingSelected.title' | translate }}
+        </h4>
+        <p data-testid="global-analytics-nothing-selected-detail">
+          {{ 'analytics.globalAnalytics.nothingSelected.detail' | translate }}
+        </p>
+        <p data-testid="global-analytics-nothing-selected-same-currency">
+          {{ 'analytics.analytics360.nothingSelected.sameCurrency' | translate }}
+        </p>
+        <img src="assets/images/reports/360-inspiration.svg" alt="Inspiration image" data-testid="global-analytics-inspiration-image" />
+      </div>
+    </div>
+  </div>
+
+  <div class="help-topic" data-testid="global-analytics-finance-terms-info" appHideWrapperOnHelpTopicClose>
+    <app-help-topic-banner
+      [message]="'helpTopics.analytics.message' | translate"
+      [ctaLabel]="'helpTopics.generic.cta.label' | translate"
+      [ctaLink]="'helpTopics.analytics.cta.href' | translate"
+    ></app-help-topic-banner>
+  </div>
+</div>

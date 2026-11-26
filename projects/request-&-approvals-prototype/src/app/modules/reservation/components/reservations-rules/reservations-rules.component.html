@@ -1,0 +1,509 @@
+<div class="reservation-rules-form main-wrapper rules-management">
+  <div class="reservation-rules-form__header">
+    <div class="reservation-rules-form__header__breadcrumb">
+      <a routerLink="/reservations/list" class="breadcrumb-link" role="link" tabindex="0">{{ 'menu.reservations' | translate }}</a>
+      <span> / </span>
+      <a routerLink="/reservations/rules/list" class="breadcrumb-link" role="link" tabindex="0">{{
+        'reservations.reservationRulesList.title' | translate
+      }}</a>
+    </div>
+    <div class="reservation-rules-form__header__title-row">
+      <div class="reservation-rules-form__header__title-container">
+        <h3 class="reservation-rules-form__header__title">{{ pageTitle }}</h3>
+        <p class="reservation-rules-form__header__description">{{ 'reservations.reservationRulesForm.formSubtitle' | translate }}</p>
+      </div>
+      @if (isEditMode && !isEditForAllRule) {
+        <button
+          igntButton
+          type="button"
+          variant="danger"
+          sentiment="secondary"
+          leadingIcon="trash-alt"
+          (click)="deleteRule()"
+          [loading]="sending"
+          [disabled]="sending || businessesLoading"
+        >
+          {{ 'reservations.reservationRulesForm.deleteRuleButton' | translate }}
+        </button>
+      }
+    </div>
+  </div>
+  <div>
+    <div class="alert-inline">
+      <ignt-alert sentiment="warning" [description]="'reservations.reservationRulesForm.headerWarning' | translate"></ignt-alert>
+    </div>
+    @if (isEditMode) {
+      <div class="reservation-rules-form__tabs">
+        <div class="tabs">
+          <span
+            class="tabs__option"
+            [class.tabs__option--selected]="selectedTab() === 'settings'"
+            (click)="onTabSelect('settings')"
+            data-testid="tabs-option-settings"
+            >{{ 'reservations.reservationRulesForm.tabs.settings' | translate }}</span
+          >
+          <span
+            class="tabs__option"
+            [class.tabs__option--selected]="selectedTab() === 'affectedBusinesses'"
+            (click)="onTabSelect('affectedBusinesses')"
+            data-testid="tabs-option-affected-businesses"
+            >{{ 'reservations.reservationRulesForm.tabs.affectedBusinesses' | translate }} ({{ businessesTotal }})
+          </span>
+        </div>
+      </div>
+    }
+    @if (reservationsRulesForm; as form) {
+      <form
+        class="reservation-rules cell cell--fill"
+        [hidden]="isEditMode && selectedTab() !== 'settings'"
+        [formGroup]="form"
+        (ngSubmit)="onSubmit()"
+      >
+        <div class="reservation-rules__row">
+          <div class="business-type-selector-column">
+            <div class="reservation-rules-select-business-type-container">
+              @if (!isEditMode) {
+                <p class="form-label">{{ 'reservations.reservationRulesForm.ruleAppliesTo' | translate }}</p>
+                @if (channelOptions.length > 0) {
+                  <div class="reservation-rules__radio-group">
+                    <label class="reservation-rules__radio-label">
+                      <input
+                        type="radio"
+                        name="ruleTarget"
+                        [checked]="ruleTarget() === 'businessType'"
+                        [disabled]="isEditMode"
+                        (change)="onRuleTargetChange('businessType')"
+                      />
+                      {{ 'reservations.reservationRulesForm.ruleTargetBusinessType' | translate }}
+                    </label>
+                    <label class="reservation-rules__radio-label">
+                      <input
+                        type="radio"
+                        name="ruleTarget"
+                        [checked]="ruleTarget() === 'channel'"
+                        [disabled]="isEditMode"
+                        (change)="onRuleTargetChange('channel')"
+                      />
+                      {{ 'reservations.reservationRulesForm.ruleTargetChannel' | translate }}
+                    </label>
+                  </div>
+                }
+              } @else {
+                <p class="form-label">{{ 'reservations.reservationRulesForm.editRuleAppliesTo' | translate }}</p>
+              }
+              @if (ruleTarget() === 'businessType') {
+                <ignt-typeahead
+                  [attr.data-testid]="componentId + '-business-type'"
+                  [options]="businessTypeOptions"
+                  [customPopupClass]="'dropdown-menu--on-sidebar'"
+                  [selectedOption]="selectedBusinessTypeOptionForTypeahead"
+                  [fieldLabel]="'reservations.reservationRulesForm.selectBusinessType.fieldLabel' | translate"
+                  [emptyLabel]="'common.selectsPlaceholder' | translate"
+                  (selected)="handleSelectBusinessType('', $event)"
+                  (editOptionClicked)="handleEditDisabledOption($event)"
+                  [editable]="false"
+                  [disabled]="isEditMode || allBusinessTypesAreUsed"
+                  [error]="isBusinessTypeSelectorRequiredError"
+                ></ignt-typeahead>
+                @if (allBusinessTypesAreUsed) {
+                  <div class="reservation-rules__selector-alert">
+                    <ignt-alert sentiment="info" [title]="'reservations.reservationRulesForm.noOptionsAvailable.title' | translate">
+                      <ng-template #igntAlertContent>
+                        <div>
+                          {{
+                            'reservations.reservationRulesForm.noOptionsAvailable.description'
+                              | translate
+                                : { ruleTarget: ('reservations.reservationRulesForm.noOptionsAvailable.ruleTargetTypes' | translate) }
+                          }}
+                        </div>
+                        <div class="reservation-rules__selector-alert-action">
+                          <button igntButton type="button" sentiment="secondary" size="small" (click)="navigateBack()">
+                            {{ 'reservations.reservationRulesForm.returnToListButton' | translate }}
+                          </button>
+                        </div>
+                      </ng-template>
+                    </ignt-alert>
+                  </div>
+                }
+              }
+              @if (ruleTarget() === 'channel' && (isEditMode || channelOptions.length > 0)) {
+                <ignt-typeahead
+                  [attr.data-testid]="componentId + '-channel'"
+                  [options]="channelOptions"
+                  [customPopupClass]="'dropdown-menu--on-sidebar'"
+                  [selectedOption]="selectedChannelOptionForTypeahead"
+                  [fieldLabel]="'reservations.reservationRulesForm.selectChannel.fieldLabel' | translate"
+                  [emptyLabel]="'common.selectsPlaceholder' | translate"
+                  (selected)="handleSelectChannel('', $event)"
+                  (editOptionClicked)="handleEditDisabledOption($event)"
+                  [editable]="false"
+                  [disabled]="isEditMode || allChannelsAreUsed"
+                  [error]="isChannelSelectorRequiredError"
+                ></ignt-typeahead>
+                @if (allChannelsAreUsed) {
+                  <div class="reservation-rules__selector-alert">
+                    <ignt-alert sentiment="info" [title]="'reservations.reservationRulesForm.noOptionsAvailable.title' | translate">
+                      <ng-template #igntAlertContent>
+                        <div>
+                          {{
+                            'reservations.reservationRulesForm.noOptionsAvailable.description'
+                              | translate
+                                : {
+                                    ruleTarget: ('reservations.reservationRulesForm.noOptionsAvailable.ruleTargetChannels' | translate),
+                                  }
+                          }}
+                        </div>
+                        <div class="reservation-rules__selector-alert-action">
+                          <button igntButton type="button" sentiment="secondary" size="small" (click)="navigateBack()">
+                            {{ 'reservations.reservationRulesForm.returnToListButton' | translate }}
+                          </button>
+                        </div>
+                      </ng-template>
+                    </ignt-alert>
+                  </div>
+                }
+              }
+              @if (!isEditMode && channelOptions.length === 0) {
+                <div class="reservation-rules__selector-alert">
+                  <ignt-alert sentiment="info" [title]="'reservations.reservationRulesForm.noChannelsAvailableAlert' | translate">
+                    <ng-template #igntAlertContent>
+                      <p>{{ 'reservations.reservationRulesForm.noChannelsAvailableDescription' | translate }}</p>
+                      <div class="reservation-rules__selector-alert-button">
+                        <a igntButton routerLink="/reservations/businesses" sentiment="secondary" size="small">
+                          {{ 'reservations.reservationRulesForm.goToBusiness' | translate }}
+                        </a>
+                      </div>
+                    </ng-template>
+                  </ignt-alert>
+                </div>
+              }
+            </div>
+          </div>
+          @if (rules) {
+            <div class="reservation-rules-container">
+              <div>
+                <p class="form-label">{{ 'reservations.reservationRulesForm.capacityLimitsTitle' | translate }}</p>
+                <div class="two-column-row">
+                  <div>
+                    <ignt-input-field
+                      formControlName="minTickets"
+                      [label]="'reservations.reservationRulesForm.capacityLimits.minTicketsPerReservation.label' | translate"
+                      [placeholder]="'reservations.reservationRulesForm.capacityLimits.minTicketsPerReservation.placeholder' | translate"
+                      [placeholderAsEmptyValue]="true"
+                      [helperText]="'reservations.reservationRulesForm.capacityLimits.minTicketsPerReservation.description' | translate"
+                      [customFormErrors]="[
+                        {
+                          type: 'invalidNumber',
+                          message: 'reservations.reservationRulesForm.capacityLimits.minTicketsPerReservation.error' | translate,
+                        },
+                        {
+                          type: 'max',
+                          message: 'form.error.maxValue' | translate: { value: 3000 },
+                        },
+                      ]"
+                    ></ignt-input-field>
+                  </div>
+                  <div>
+                    <ignt-input-field
+                      formControlName="maxReservations"
+                      [label]="'reservations.reservationRulesForm.capacityLimits.maxReservationsPerDay.label' | translate"
+                      [placeholder]="'reservations.reservationRulesForm.capacityLimits.maxReservationsPerDay.placeholder' | translate"
+                      [placeholderAsEmptyValue]="true"
+                      [helperText]="'reservations.reservationRulesForm.capacityLimits.maxReservationsPerDay.description' | translate"
+                      [customFormErrors]="[
+                        {
+                          type: 'invalidNumber',
+                          message: 'reservations.reservationRulesForm.capacityLimits.maxReservationsPerDay.error' | translate,
+                        },
+                        {
+                          type: 'max',
+                          message: 'form.error.maxValue' | translate: { value: 3000 },
+                        },
+                      ]"
+                    ></ignt-input-field>
+                  </div>
+                </div>
+                @if (showMultiTimeSlotDisclaimer) {
+                  <div class="reservation-rules__multi-time-slot-disclaimer alert-inline">
+                    <ignt-alert
+                      data-testid="multi-time-slot-disclaimer"
+                      sentiment="warning"
+                      [description]="multiTimeSlotDisclaimerDescriptionKey | translate"
+                    />
+                  </div>
+                }
+              </div>
+
+              <div>
+                <div class="form-label">{{ 'reservations.reservationRulesForm.timeframe.title' | translate }}</div>
+                <p class="font-small-regular helper-paragraph reservation-timeframe__description">
+                  {{ 'reservations.reservationRulesForm.timeframe.description' | translate }}
+                </p>
+                <div class="reservation-timeframe-container">
+                  <div class="reservation-timeframe__row">
+                    <p class="section-subtitle">{{ 'reservations.reservationRulesForm.timeframe.open.title' | translate }}</p>
+                    @if ('reservations.reservationRulesForm.timeframe.open.subtitle' | translationKeyExists) {
+                      <p class="font-small-regular helper-paragraph reservation-timeframe__description reservation-timeframe__subtitle">
+                        {{ 'reservations.reservationRulesForm.timeframe.open.subtitle' | translate }}
+                      </p>
+                    }
+                    <div class="three-column-row">
+                      <div>
+                        <ignt-input-field
+                          formControlName="maxBookingWindow"
+                          [label]="'reservations.reservationRulesForm.timeframe.labels.hoursInAdvance' | translate"
+                          [placeholder]="'reservations.reservationRulesForm.timeframe.open.placeholder' | translate"
+                          [placeholderAsEmptyValue]="true"
+                          [customFormErrors]="[
+                            {
+                              type: 'invalidNumber',
+                              message: ('reservations.reservationRulesForm.timeframe.open.error' | translate),
+                            },
+                            {
+                              type: 'strictlyIncreasingInvalid',
+                              message: ('reservations.reservationRulesForm.timeframe.strictlyIncreasingInvalidError' | translate),
+                            },
+                            {
+                              type: 'max',
+                              message: ('form.error.maxValue' | translate: { value: 43800 }),
+                            },
+                          ]"
+                        ></ignt-input-field>
+                      </div>
+                      <div class="reservation-timeframe__reference">
+                        <ignt-input-field
+                          formControlName="maxBookingWindowReference"
+                          [label]="'reservations.reservationRulesForm.timeframe.open.anchorLabel' | translate"
+                          [readonly]="true"
+                        ></ignt-input-field>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="reservation-timeframe__row">
+                    <p class="section-subtitle">{{ 'reservations.reservationRulesForm.timeframe.close.title' | translate }}</p>
+                    @if ('reservations.reservationRulesForm.timeframe.close.subtitle' | translationKeyExists) {
+                      <p class="font-small-regular helper-paragraph reservation-timeframe__description reservation-timeframe__subtitle">
+                        {{ 'reservations.reservationRulesForm.timeframe.close.subtitle' | translate }}
+                      </p>
+                    }
+                    <div class="three-column-row">
+                      <div>
+                        <ignt-input-field
+                          formControlName="unpaidReservations"
+                          [label]="'reservations.reservationRulesForm.timeframe.labels.hoursInAdvance' | translate"
+                          [placeholder]="'reservations.reservationRulesForm.timeframe.close.placeholder' | translate"
+                          [placeholderAsEmptyValue]="true"
+                          [customFormErrors]="[
+                            {
+                              type: 'invalidNumber',
+                              message: ('reservations.reservationRulesForm.timeframe.close.error' | translate),
+                            },
+                            {
+                              type: 'strictlyIncreasingInvalid',
+                              message: ('reservations.reservationRulesForm.timeframe.strictlyIncreasingInvalidError' | translate),
+                            },
+                            {
+                              type: 'max',
+                              message: ('form.error.maxValue' | translate: { value: 43800 }),
+                            },
+                          ]"
+                        ></ignt-input-field>
+                      </div>
+                      <div class="reservation-timeframe__reference">
+                        <ignt-input-field
+                          formControlName="unpaidReservationsReference"
+                          [label]="'reservations.reservationRulesForm.timeframe.open.anchorLabel' | translate"
+                          [readonly]="true"
+                        ></ignt-input-field>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="reservation-timeframe__row">
+                    <p class="section-subtitle">
+                      {{ 'reservations.reservationRulesForm.timeframe.purchases.ticketSalesTitle' | translate }}
+                    </p>
+                    @if ('reservations.reservationRulesForm.timeframe.purchases.ticketSalesSubtitle' | translationKeyExists) {
+                      <p class="font-small-regular helper-paragraph reservation-timeframe__description reservation-timeframe__subtitle">
+                        {{ 'reservations.reservationRulesForm.timeframe.purchases.ticketSalesSubtitle' | translate }}
+                      </p>
+                    }
+                    <div class="three-column-row">
+                      <div>
+                        <ignt-input-field
+                          formControlName="bookingBuffer"
+                          [label]="'reservations.reservationRulesForm.timeframe.labels.hoursInAdvance' | translate"
+                          [placeholder]="'reservations.reservationRulesForm.timeframe.purchases.placeholder' | translate"
+                          [placeholderAsEmptyValue]="true"
+                          [customFormErrors]="[
+                            {
+                              type: 'invalidNumber',
+                              message: ('reservations.reservationRulesForm.timeframe.purchases.error' | translate),
+                            },
+                            {
+                              type: 'strictlyIncreasingInvalid',
+                              message: ('reservations.reservationRulesForm.timeframe.strictlyIncreasingInvalidError' | translate),
+                            },
+                            {
+                              type: 'max',
+                              message: ('form.error.maxValue' | translate: { value: 3000 }),
+                            },
+                          ]"
+                        ></ignt-input-field>
+                      </div>
+                      <div class="reservation-timeframe__reference">
+                        <ignt-input-field
+                          formControlName="bookingBufferReference"
+                          [label]="'reservations.reservationRulesForm.timeframe.open.anchorLabel' | translate"
+                          [readonly]="true"
+                        ></ignt-input-field>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div class="form-label">{{ 'reservations.reservationRulesForm.unpaidReservations.expiration.title' | translate }}</div>
+                <p class="font-small-regular helper-paragraph reservation-timeframe__description">
+                  {{ 'reservations.reservationRulesForm.unpaidReservations.expiration.description' | translate }}
+                </p>
+                <div class="reservation-expiration__strategy">
+                  <ignt-radio-group formControlName="expirationStrategy">
+                    <ignt-radio
+                      *ngFor="let option of expirationStrategyOptions"
+                      [value]="option.id"
+                      [label]="option.title"
+                      [disabled]="isExpirationStrategyDisabled"
+                      name="expirationStrategy"
+                    ></ignt-radio>
+                  </ignt-radio-group>
+                  @if (isShowingCustomExpirationHoursField) {
+                    <div>
+                      <div class="reservation-expiration__hours">
+                        <div class="alert-inline">
+                          <ignt-alert
+                            sentiment="warning"
+                            [description]="'reservations.reservationRulesForm.expiration.hours.description' | translate"
+                          ></ignt-alert>
+                        </div>
+                        <div class="reservation-expiration__hours-input">
+                          <ignt-input-field
+                            formControlName="expiresAfterInHours"
+                            [label]="'reservations.reservationRulesForm.expiration.hours.label' | translate"
+                            [placeholder]="'reservations.reservationRulesForm.expiration.hours.placeholder' | translate"
+                            [placeholderAsEmptyValue]="true"
+                            [customFormErrors]="[
+                              {
+                                type: 'required',
+                                message: 'reservations.reservationRulesForm.expiration.hours.requiredError' | translate,
+                              },
+                              {
+                                type: 'invalidNumber',
+                                message: 'reservations.reservationRulesForm.expiration.hours.invalidNumberError' | translate,
+                              },
+                              {
+                                type: 'min',
+                                message: 'form.error.minValue' | translate: { value: 1 },
+                              },
+                              {
+                                type: 'max',
+                                message: 'form.error.maxValue' | translate: { value: 43800 },
+                              },
+                            ]"
+                          ></ignt-input-field>
+                        </div>
+                      </div>
+                    </div>
+                  }
+
+                  <div>• {{ 'reservations.ticketing.timelessOngoingDisclaimer' | translate }}</div>
+                </div>
+              </div>
+
+              @if (!allOptionsAreUsedForRuleTarget) {
+                <div class="summary-container">
+                  <div class="form-label">
+                    {{ 'reservations.reservationRulesForm.timeframe.messages.summaryDynamic.title' | translate }}
+                  </div>
+                  <div class="alert-inline">
+                    <ignt-alert sentiment="info">
+                      <ng-template #igntAlertContent>
+                        <div class="summary-lines">
+                          <div>• {{ openSummary.key | translate: openSummary.params }}</div>
+                          <div>• {{ closeSummary.key | translate: closeSummary.params }}</div>
+                          <div>• {{ purchasesSummary.key | translate: purchasesSummary.params }}</div>
+                          @if (expirationSummary.key && (!isShowingCustomExpirationHoursField || expirationSummary.params?.hours)) {
+                            <div>• {{ expirationSummary.key | translate: expirationSummary.params }}</div>
+                          }
+                        </div>
+                      </ng-template>
+                    </ignt-alert>
+                  </div>
+                  <div class="reservation-rules__help-topic" appHideWrapperOnHelpTopicClose>
+                    <app-help-topic-banner
+                      [message]="'helpTopics.reservationsRules.message' | translate"
+                      [ctaLabel]="'helpTopics.generic.cta.label' | translate"
+                      [ctaLink]="'helpTopics.reservationsRules.cta.href' | translate"
+                    ></app-help-topic-banner>
+                  </div>
+                </div>
+              } @else {
+                <ignt-alert
+                  [title]="
+                    'reservations.reservationRulesForm.timeframe.messages.noOptionsAvailable.title'
+                      | translate
+                        : {
+                            ruleTarget: (ruleTargetLabelTranslationKey | translate),
+                          }
+                  "
+                  [description]="
+                    'reservations.reservationRulesForm.timeframe.messages.noOptionsAvailable.description'
+                      | translate
+                        : {
+                            ruleTarget: (ruleTargetLabelTranslationKey | translate),
+                          }
+                  "
+                  sentiment="warning"
+                >
+                </ignt-alert>
+              }
+              <div class="reservations-rules__submit">
+                @if (!allOptionsAreUsedForRuleTarget) {
+                  <button igntButton type="button" sentiment="secondary" (click)="navigateBack()" [disabled]="sending">
+                    {{ 'reservations.reservationRulesForm.cancelButton' | translate }}
+                  </button>
+                }
+                @if (allOptionsAreUsedForRuleTarget) {
+                  <button igntButton type="button" sentiment="primary" (click)="navigateBack()" [disabled]="sending">
+                    {{ 'reservations.reservationRulesForm.returnToListButton' | translate }}
+                  </button>
+                } @else {
+                  <button igntButton type="submit" sentiment="primary" [loading]="sending" [disabled]="sending">
+                    {{
+                      isEditMode
+                        ? ('reservations.reservationRulesForm.saveRuleButton' | translate)
+                        : ('reservations.reservationRulesForm.createRuleButton' | translate)
+                    }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </form>
+    }
+    @if (isEditMode) {
+      <app-affected-businesses
+        [hidden]="selectedTab() !== 'affectedBusinesses'"
+        [businesses]="businessesList"
+        [hasError]="businessesLoadError"
+        [totalCount]="businessesTotal"
+        [isLoading]="businessesLoading"
+        (pageChanged)="onBusinessesPageChange($event)"
+        (searchChanged)="onBusinessesSearchChange($event)"
+      />
+    }
+  </div>
+</div>

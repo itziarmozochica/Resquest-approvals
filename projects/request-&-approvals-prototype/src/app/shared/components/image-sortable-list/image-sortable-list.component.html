@@ -1,0 +1,66 @@
+<app-draggable-list-sorting
+  class="photo-list"
+  [class.photo-list--disabled]="isUploading()"
+  [template]="mediaListItemTemplate"
+  [addElementControlTemplate]="addTemplate"
+  [(elements)]="elements"
+>
+</app-draggable-list-sorting>
+
+<ng-template #mediaListItemTemplate let-element="element" let-index="index">
+  <div class="photo-card" [class.photo-card--cover]="coverMediaIndexes.includes(index)">
+    <div
+      data-testid="image-sortable-card-content"
+      class="photo-card__content"
+      [style.background-image]="
+        element.media_type === 'photo' ? 'url(' + element.url + ')' : element.poster ? 'url(' + element.poster + ')' : 'none'
+      "
+    >
+      <div class="photo-card__cover">
+        {{
+          element.media_type === 'video'
+            ? ('planEdition.galleryEdition.coverVideo' | translate)
+            : ('planEdition.galleryEdition.coverImage' | translate)
+        }}
+      </div>
+      <div
+        (click)="removeMediaItem(index)"
+        (touchstart)="removeMediaItem(index)"
+        data-testid="image-sortable-card-remove"
+        class="photo-card__remove"
+      >
+        <fa-icon [icon]="['fas', 'times']"></fa-icon>
+      </div>
+      <div class="photo-card__draggable">
+        <fa-icon [icon]="['fas', 'ellipsis-v']"></fa-icon>
+      </div>
+      <div *ngIf="element.media_type === 'video'" class="photo-card__video-icon">
+        <fa-icon [icon]="['fas', 'play']"></fa-icon>
+      </div>
+    </div>
+    <div data-testid="image-sortable-card-name" class="photo-card__name">{{ element.name || '&nbsp;' }}</div>
+  </div>
+</ng-template>
+
+<ng-template #addTemplate>
+  <div class="add-control-card">
+    <div
+      data-testid="image-sortable-card-add"
+      class="add-control-card__content"
+      [class.add-control-card__content--error]="hasError"
+      (click)="requestUploadFile(false)"
+    >
+      <fa-icon class="add-control-card__icon" [icon]="['fas', 'file-upload']"></fa-icon>
+      <div class="add-control-card__title">
+        {{ 'planEdition.galleryEdition.clickToUpload' | translate }}
+      </div>
+      <div class="add-control-card__text">
+        {{ uploadFileTextKey | translate }}
+      </div>
+    </div>
+    <span *ngIf="hasError" class="add-control-card__error-text">
+      <fa-icon [icon]="['fas', 'exclamation-circle']"></fa-icon>
+      {{ 'planEdition.galleryEdition.mandatoryImageUpload' | translate }}
+    </span>
+  </div>
+</ng-template>

@@ -1,0 +1,92 @@
+<div class="common-session-edit lateral-slider-body__wrapper">
+  <form [formGroup]="formGroup" class="common-session-edit__form icp-form">
+    <fieldset class="icp-form__wrapper">
+      <ng-container
+        *ngTemplateOutlet="
+          inputDropdownTemplate;
+          context: {
+            fieldName: 'pack',
+            fieldOptions: packOptions,
+            selected: pack,
+            disabled: packOptions.length === 0,
+            showNoOptionsMessage: packOptions.length === 0,
+          }
+        "
+      ></ng-container>
+    </fieldset>
+
+    <fieldset class="icp-form__sessions">
+      @if (pack) {
+        @for (group of eligibleSessionsBySessionType(); track group.sessionTypeId) {
+          <ng-container *ngTemplateOutlet="sessionTypeaheadRow; context: { index: $index }"></ng-container>
+        }
+      }
+    </fieldset>
+
+    <ng-template
+      #inputDropdownTemplate
+      let-fieldName="fieldName"
+      let-fieldOptions="fieldOptions"
+      let-selected="selected"
+      let-disabled="disabled"
+      let-showNoOptionsMessage="showNoOptionsMessage"
+    >
+      <div class="icp-form__cell">
+        <ignt-typeahead
+          (selected)="formGroup.get(fieldName)?.setValue($event)"
+          [editable]="false"
+          [disabled]="disabled"
+          [fieldLabel]="'inventory.customPacks.form.fields.packTicket.title' | translate"
+          [emptyLabel]="'inventory.customPacks.form.fields.packTicket.placeholder' | translate"
+          [options]="fieldOptions"
+          [selectedOption]="selected"
+          [customPopupClass]="'dropdown-menu--on-sidebar'"
+        ></ignt-typeahead>
+        <ng-container>
+          <div class="icp-form__note">{{ 'inventory.customPacks.form.messages.description' | translate }}</div>
+          @if (showNoOptionsMessage) {
+            <div class="form-error">
+              <fa-icon [icon]="['fas', 'exclamation-circle']" class="form-error--icon"></fa-icon>
+              <span class="form-error--message">
+                {{ 'inventory.customPacks.form.messages.noPackOptions' | translate }}
+              </span>
+            </div>
+          }
+        </ng-container>
+      </div>
+    </ng-template>
+
+    <ng-template #sessionTypeaheadRow let-index="index">
+      <div class="icp-form__cell">
+        <ignt-typeahead
+          (selected)="sessions.at(index).get('session')?.setValue($event)"
+          [editable]="false"
+          [fieldLabel]="'inventory.customPacks.form.fields.packComponent.title' | translate"
+          [emptyLabel]="'inventory.customPacks.form.fields.packComponent.placeholder' | translate"
+          [options]="getSessionOptionsForIndex(index)"
+          [selectedOption]="sessions.at(index).get('session')?.value"
+          [customPopupClass]="'dropdown-menu--on-sidebar'"
+        ></ignt-typeahead>
+      </div>
+    </ng-template>
+  </form>
+</div>
+
+<div class="lateral-slider-body__footer">
+  <ignt-button
+    class="icp-form__footer-button"
+    data-testid="icp-form-save-button"
+    fill
+    [disabled]="isSaveButtonDisabled() || saveInProgress()"
+    [label]="'common.save' | translate"
+    (click)="save()"
+  />
+  <ignt-button
+    class="icp-form__footer-button"
+    data-testid="icp-form-cancel-button"
+    fill
+    variant="tertiary"
+    [label]="'common.cancel' | translate"
+    (click)="cancel()"
+  />
+</div>

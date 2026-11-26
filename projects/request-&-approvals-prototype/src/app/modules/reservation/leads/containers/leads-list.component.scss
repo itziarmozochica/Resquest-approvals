@@ -1,0 +1,176 @@
+@use 'foundations' as foundations;
+@use 'foundations/font/font-properties' as font-properties;
+@use 'foundations/font/font-sizes' as font-sizes;
+@use 'foundations/font/font-leadings' as font-leadings;
+@use 'components/navigation/headerbar/tokens' as headerbar;
+@use 'components/navigation/aside-menu/tokens' as aside-menu;
+@import 'abstracts/all';
+
+.main-wrapper {
+  background-color: foundations.$color-background-main;
+  display: flex;
+  flex-direction: column;
+  gap: foundations.$space-6;
+  min-height: calc(100dvh - #{headerbar.$dimensions-height});
+  padding: foundations.$space-6;
+
+  @include media-breakpoint-up(aside-menu.$breakpoint-menu) {
+    min-height: calc(100dvh - #{headerbar.$dimensions-height-large});
+  }
+
+  @include media-breakpoint-down(md) {
+    gap: foundations.$space-4;
+    padding: foundations.$space-4;
+  }
+}
+
+.leads-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: foundations.$space-4;
+
+  &__title {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__section {
+    color: foundations.$color-text-main;
+    font-size: font-sizes.$size-small;
+    font-weight: font-properties.$weight-regular;
+    line-height: font-leadings.$leading-small;
+  }
+
+  &__heading {
+    margin: 0;
+    color: foundations.$color-text-main;
+    font-size: font-sizes.$size-h3;
+    font-weight: font-properties.$weight-bold;
+    line-height: font-leadings.$leading-h3;
+  }
+}
+
+.leads-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  &__table {
+    // The Ignite table is not mobile-adapted yet; horizontal scroll is the interim solution
+    // (same as the unified order list, see B2BO-7288).
+    display: block;
+    overflow-x: auto;
+
+    // Ignite's own `.ignt-table__scroll` is sized to the table's full width here (1620px against a
+    // 953px host), so it can never scroll — this host is the scroller. Being a scroll container it
+    // still captures the sticky cells below and pins them to something that never moves, which is
+    // why neither Ignite's primary column nor the action column stayed put. Neutralising it hands
+    // the sticky cells the host's scrollport instead.
+    ::ng-deep .ignt-table__scroll {
+      overflow: visible;
+    }
+
+    // The data columns claim ~1510px — more than the viewport gives the table — so the trailing
+    // action column would sit past the right edge, reachable only by scrolling the table to its end.
+    // The design pins it instead. Ignite pins only the primary (first) column, hence the reach-in:
+    // the cells expose `--actions`, the header only `--align-right`, which no other column here uses
+    // (`:last-child` keeps it that way if one ever does). Backgrounds, hover included, already come
+    // from the base cell rules, so only the positioning is set.
+    ::ng-deep .ignt-table__header-cell--align-right:last-child,
+    ::ng-deep .ignt-table__cell--actions {
+      inset-inline-end: 0;
+      position: sticky;
+    }
+
+    // Above the body cells scrolling underneath, below the sticky header row (z-index 2).
+    ::ng-deep .ignt-table__cell--actions {
+      z-index: 1;
+    }
+
+    // With the selection column in front, Ignite's primary column (pinned at 0) would slide over the
+    // checkboxes on horizontal scroll: pin the first column too and push the primary one past it.
+    &--selectable {
+      ::ng-deep .ignt-table__header-cell:first-child,
+      ::ng-deep .ignt-table__cell:first-child {
+        inset-inline-start: 0;
+        position: sticky;
+        z-index: 1;
+      }
+
+      ::ng-deep .ignt-table__header-cell--primary,
+      ::ng-deep .ignt-table__cell--primary {
+        inset-inline-start: 48px;
+      }
+    }
+  }
+
+  // Fills the selection cell so a click near the checkbox ticks the row instead of opening the lead.
+  &__select-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    min-height: foundations.$size-8;
+  }
+
+  // Same default form-field top margin as in the bulk strip: inside a table cell it would push the
+  // checkbox below the row's text.
+  &__table ignt-checkbox {
+    --ignt-checkbox-margin-top: 0;
+  }
+
+  // Floating selection bar (design: pill at the bottom of the screen). Sticky rather than fixed so it
+  // centres on the content column, not the viewport, and stays clear of the sidebar. Above the table's
+  // sticky header row (z-index 2) and below overlays.
+  &__selection-bar {
+    position: sticky;
+    bottom: foundations.$space-6;
+    z-index: 3;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+
+    > * {
+      pointer-events: auto;
+    }
+  }
+
+  &__two-line-cell {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__sentinel {
+    height: 1px;
+  }
+
+  &__loading-more {
+    padding: 1rem;
+    text-align: center;
+    font: foundations.$font-small-regular;
+    color: foundations.$color-text-subtle;
+  }
+
+  &__cell-secondary {
+    font: foundations.$font-small-regular;
+    color: foundations.$color-text-subtle;
+  }
+
+  &__placeholder,
+  &__error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 3rem 1rem;
+    text-align: center;
+  }
+
+  &__error-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}

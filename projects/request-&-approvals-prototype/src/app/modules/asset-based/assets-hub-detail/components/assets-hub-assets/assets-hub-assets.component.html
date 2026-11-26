@@ -1,0 +1,258 @@
+@if (!isLoading() && assets().length === 0) {
+  <ng-container *ngTemplateOutlet="emptyPage"></ng-container>
+} @else {
+  <div class="assets-tab__header">
+    <p class="hub-tab__description" translate>assetsHubs.detail.assets.description</p>
+    @if (canManageHub()) {
+      <div class="assets-tab__header-actions">
+        <ignt-button
+          class="assets-tab__add-asset-type-button"
+          variant="secondary"
+          sentiment="brand"
+          size="large"
+          data-testid="add-asset-type-button"
+          [label]="'assetsHubs.detail.actions.addAssetType' | translate"
+          (click)="onAddAssetType()"
+        ></ignt-button>
+        <ignt-button
+          variant="primary"
+          size="large"
+          data-testid="add-asset-button"
+          [label]="'assetsHubs.detail.actions.addAsset' | translate"
+          (click)="onAddAsset()"
+        ></ignt-button>
+      </div>
+    }
+  </div>
+
+  <ignt-table
+    data-testid="assets-table"
+    [data]="assetTypeGroups()"
+    [hasServerSideSorting]="true"
+    [interactiveRows]="true"
+    [isLoading]="isLoading()"
+    [sorting]="sorting()"
+    [subRows]="'assignedAssets'"
+    (rowInteraction)="onAssetRowInteraction($event)"
+    (sortingChange)="onSortingChange($event)"
+  >
+    <ignt-table-parent-row>
+      <ng-template
+        [igntTableParentRowTemplateType]="assetTypeGroups()[0]"
+        let-item="item"
+        let-isExpanded="isExpanded"
+        let-label="label"
+        let-subRowCount="subRowCount"
+        let-toggle="toggle"
+      >
+        <span
+          class="assets-tab__group-label"
+          [appAssetTypeGroupCollapse]="getAssetTypeGroupKey(item)"
+          [isCollapsedInStorage]="isGroupCollapsed(item)"
+          [restoreToken]="restoreToken()"
+          [subRowCount]="subRowCount"
+          [toggle]="toggle"
+          (collapsedChange)="onGroupCollapsedChange($event)"
+        >
+          <ignt-table-parent-row-label
+            [isExpanded]="isExpanded"
+            [label]="label || ('assetsHubs.detail.assets.uncategorized' | translate)"
+            [subRowCount]="subRowCount"
+          />
+        </span>
+      </ng-template>
+
+      <ignt-table-parent-cell key="availabilityStrategy">
+        <ng-template [igntTableParentRowTemplateType]="assetTypeGroups()[0]" let-item="item">
+          @if (getAssetTypeGroupSummary(item); as summary) {
+            <span class="assets-tab__group-aggregate">{{ summary.bookingTypeLabel | translate }}</span>
+          }
+        </ng-template>
+      </ignt-table-parent-cell>
+
+      <ignt-table-parent-cell key="capacity">
+        <ng-template [igntTableParentRowTemplateType]="assetTypeGroups()[0]" let-item="item">
+          @if (getAssetTypeGroupSummary(item); as summary) {
+            <span class="assets-tab__group-aggregate">{{ summary.capacityLabelKey | translate: summary.capacityLabelParams }}</span>
+          }
+        </ng-template>
+      </ignt-table-parent-cell>
+
+      @if (canManageHub()) {
+        <ignt-table-parent-cell columnType="action">
+          <ng-template [igntTableParentRowTemplateType]="assetTypeGroups()[0]" let-item="item" let-subRowCount="subRowCount">
+            @if (item.id) {
+              <button
+                ignt-icon-button
+                type="button"
+                sentiment="tertiary"
+                size="small"
+                [icon]="['fas', 'ellipsis-v']"
+                [attr.aria-label]="'assetsHubs.detail.assets.actions' | translate"
+                [igntMenuTriggerFor]="assetTypeGroupActionsMenu"
+                (click)="$event.stopPropagation()"
+                (keydown)="$event.stopPropagation()"
+                data-testid="asset-type-group-actions-dropdown"
+              ></button>
+
+              <ng-template #assetTypeGroupActionsMenu>
+                <ignt-menu>
+                  <ignt-menu-item
+                    value="edit"
+                    [label]="'assetsHubs.detail.actionsEdit' | translate"
+                    (triggered)="onAssetTypeGroupActionClick(item, 'edit')"
+                  >
+                    <ignt-icon name="edit" variant="light"></ignt-icon>
+                  </ignt-menu-item>
+                  <ignt-menu-item
+                    value="delete"
+                    sentiment="danger"
+                    [disabled]="subRowCount > 0"
+                    [label]="'assetsHubs.detail.actionsDelete' | translate"
+                    (triggered)="onAssetTypeGroupActionClick(item, 'delete')"
+                  >
+                    <ignt-icon name="trash-alt" variant="light"></ignt-icon>
+                  </ignt-menu-item>
+                </ignt-menu>
+              </ng-template>
+            }
+          </ng-template>
+        </ignt-table-parent-cell>
+      }
+    </ignt-table-parent-row>
+
+    <ignt-table-column key="name" columnType="primary" [header]="'assetsHubs.detail.assets.assetName' | translate" [sortable]="true">
+      <ng-template [igntTableColumnTemplateType]="assets()[0]" let-item="item">
+        <div class="assets-tab__cell-name">
+          <span class="assets-tab__asset-name">{{ item.name }}</span>
+          @if (item.description) {
+            <span class="assets-tab__cell-subtitle">{{ item.description }}</span>
+          }
+        </div>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column key="availabilityStrategy" columnType="secondary" [header]="'assetsHubs.detail.assets.bookingType' | translate">
+      <ng-template [igntTableColumnTemplateType]="assets()[0]" let-item="item">
+        <span class="assets-tab__booking-type">{{ getBookingTypeLabel(item) | translate }}</span>
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column key="capacity" columnType="secondary" [header]="'assetsHubs.detail.assets.capacity' | translate" [sortable]="true">
+      <ng-template [igntTableColumnTemplateType]="assets()[0]" let-item="item">
+        @if (showsCapacityOverrideIndicator(item)) {
+          <div
+            class="assets-tab__capacity-override-cell"
+            igntTooltip
+            tabindex="0"
+            data-testid="asset-capacity-override-indicator"
+            [tooltipLabel]="'assetsHubs.detail.assets.capacityOverrideTooltip' | translate"
+            [tooltipPlacement]="'top'"
+          >
+            <span class="assets-tab__capacity-override">
+              <span class="assets-tab__capacity-value assets-tab__capacity-value--overridden">
+                <ng-container *ngTemplateOutlet="capacityPrimaryValue; context: { asset: item }"></ng-container>
+              </span>
+              <span class="assets-tab__capacity-override-dot" aria-hidden="true"></span>
+            </span>
+            @if (item.availabilityStrategy === AvailabilityStrategy.byPartyCount) {
+              <ng-container *ngTemplateOutlet="capacityPaxRange; context: { asset: item }"></ng-container>
+            }
+          </div>
+        } @else if (item.availabilityStrategy === AvailabilityStrategy.byPartyCount) {
+          <div class="assets-tab__capacity-cell">
+            <ng-container *ngTemplateOutlet="capacityPrimaryValue; context: { asset: item }"></ng-container>
+            <ng-container *ngTemplateOutlet="capacityPaxRange; context: { asset: item }"></ng-container>
+          </div>
+        } @else {
+          <ng-container *ngTemplateOutlet="capacityPrimaryValue; context: { asset: item }"></ng-container>
+        }
+      </ng-template>
+    </ignt-table-column>
+
+    <ignt-table-column
+      key="activitiesAttachedCount"
+      columnType="secondary"
+      [header]="'assetsHubs.detail.assets.activitiesUsingIt' | translate"
+      [sortable]="true"
+    ></ignt-table-column>
+
+    <ignt-table-column
+      key="tracksPlayStart"
+      columnType="secondary"
+      [header]="'assetsHubs.detail.assets.form.tracksPlayStartTitle' | translate"
+    >
+      <ng-template [igntTableColumnTemplateType]="assets()[0]" let-item="item">
+        <span data-testid="asset-tracks-play-start">{{ (item.tracksPlayStart ? 'common.yes' : 'common.no') | translate }}</span>
+      </ng-template>
+    </ignt-table-column>
+
+    @if (canManageHub()) {
+      <ignt-table-column columnType="action" [header]="'assetsHubs.detail.assets.actions' | translate">
+        <ng-template [igntTableColumnTemplateType]="assets()[0]" let-item="item">
+          <button
+            ignt-icon-button
+            type="button"
+            sentiment="tertiary"
+            size="small"
+            [icon]="['fas', 'ellipsis-v']"
+            [attr.aria-label]="'assetsHubs.detail.assets.actions' | translate"
+            [igntMenuTriggerFor]="assetActionsMenu"
+            (click)="$event.stopPropagation()"
+            (keydown)="$event.stopPropagation()"
+            data-testid="asset-actions-dropdown"
+          ></button>
+
+          <ng-template #assetActionsMenu>
+            <ignt-menu>
+              <ignt-menu-item
+                value="duplicate"
+                [label]="'assetsHubs.detail.actionsDuplicate' | translate"
+                (triggered)="onAssetActionClick(item, 'duplicate')"
+              >
+                <ignt-icon name="clone" variant="light"></ignt-icon>
+              </ignt-menu-item>
+              <ignt-menu-item
+                value="delete"
+                sentiment="danger"
+                [label]="'assetsHubs.detail.actionsDelete' | translate"
+                (triggered)="onAssetActionClick(item, 'delete')"
+              >
+                <ignt-icon name="trash-alt" variant="light"></ignt-icon>
+              </ignt-menu-item>
+            </ignt-menu>
+          </ng-template>
+        </ng-template>
+      </ignt-table-column>
+    }
+  </ignt-table>
+}
+
+<ng-template #emptyPage>
+  <div class="assets-tab__empty-page">
+    <div class="assets-tab__empty-page__content">
+      <h1 class="assets-tab__empty-page__title">{{ 'assetsHubs.detail.assets.emptyPage.title' | translate }}</h1>
+      <p class="assets-tab__empty-page__definition">{{ 'assetsHubs.detail.assets.description' | translate }}</p>
+    </div>
+    @if (canManageHub()) {
+      <ignt-button
+        variant="primary"
+        size="large"
+        data-testid="add-asset-button"
+        [label]="'assetsHubs.detail.assets.emptyPage.addAsset' | translate"
+        (click)="onAddAsset()"
+      ></ignt-button>
+    }
+  </div>
+</ng-template>
+
+<ng-template #capacityPrimaryValue let-asset="asset">
+  {{ getCapacityPrimaryLabelKey(asset) | translate: getCapacityPrimaryLabelParams(asset) }}
+</ng-template>
+
+<ng-template #capacityPaxRange let-asset="asset">
+  <span class="assets-tab__capacity-pax-range">
+    <ignt-icon name="users" variant="light"></ignt-icon>
+    {{ 'assetsHubs.detail.assets.capacityPaxRange' | translate: { min: asset.capacity.minPartySize, max: asset.capacity.maxPartySize } }}
+  </span>
+</ng-template>

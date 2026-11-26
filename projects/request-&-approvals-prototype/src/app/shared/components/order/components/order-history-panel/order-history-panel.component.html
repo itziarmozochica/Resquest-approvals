@@ -1,0 +1,261 @@
+<div class="order-history-panel">
+  <app-shared-timeline [items]="timelineItems()" defaultExpandedItem="last" (itemExpanded)="onItemExpanded($event)">
+    <ng-template timelineItemContent="order_history_record" let-item>
+      @if (asOrderCancellationHistoryItem(item); as orderCancellationHistoryItem) {
+        <div class="order-history-panel__content">
+          <div class="order-history-panel__fields">
+            @if (orderCancellationHistoryItem.requesterEmail) {
+              <p>
+                <strong>{{ 'validateTicketsNew.orderHistory.fields.performedBy' | translate }}</strong>
+                {{ orderCancellationHistoryItem.requesterEmail }}
+              </p>
+            }
+            @if (!orderCancellationHistoryItem.showsNeutralReason && !orderCancellationHistoryItem.isCoveredByCancellationInsurance) {
+              @if (orderCancellationHistoryItem.isPostCancellationRefund) {
+                <p>
+                  <strong>{{ 'validateTicketsNew.orderHistory.fields.reimbursementType' | translate }}</strong>
+                  {{ 'validateTicketsNew.orderHistory.reimbursementTypes.refund_of_cancellation' | translate }}
+                </p>
+              } @else if (
+                orderCancellationHistoryItem.reimbursementType && orderCancellationHistoryItem.cancellationReason !== 'self_exchange'
+              ) {
+                <p>
+                  <strong>{{ 'validateTicketsNew.orderHistory.fields.reimbursementType' | translate }}</strong>
+                  {{ 'validateTicketsNew.orderHistory.reimbursementTypes.' + orderCancellationHistoryItem.reimbursementType | translate }}
+                  @if (
+                    orderCancellationHistoryItem.reimbursementType === ReimbursementType.Voucher &&
+                    orderCancellationHistoryItem.cancellationCouponType
+                  ) {
+                    {{
+                      ' ' +
+                        ('validateTicketsNew.orderHistory.cancellationCouponTypes.' + orderCancellationHistoryItem.cancellationCouponType
+                          | translate)
+                    }}
+                  }
+                </p>
+              }
+            }
+            @if (orderCancellationHistoryItem.showsNeutralReason) {
+              <p data-testid="order-history-cancellation-reason">
+                <strong>{{ 'validateTicketsNew.orderHistory.fields.reason' | translate }}</strong>
+                {{ 'validateTicketsNew.orderCoveredByFeverRefund.historyReason' | translate }}
+              </p>
+            } @else if (orderCancellationHistoryItem.partnerCancellationReason || orderCancellationHistoryItem.cancellationReason) {
+              <p data-testid="order-history-cancellation-reason">
+                <strong>{{ 'validateTicketsNew.orderHistory.fields.reason' | translate }}</strong>
+                @if (orderCancellationHistoryItem.partnerCancellationReason; as partnerCancellationReason) {
+                  {{ partnerCancellationReason.label }}
+                } @else {
+                  {{
+                    'validateTicketsNew.orderHistory.extendedCancellationReasons.' + orderCancellationHistoryItem.cancellationReason
+                      | translate
+                  }}
+                }
+              </p>
+            }
+            @if (!orderCancellationHistoryItem.showsNeutralReason && orderCancellationHistoryItem.hasCancellationInsuranceComment) {
+              <p data-testid="order-history-comment">
+                <strong>{{ 'validateTicketsNew.orderHistory.fields.comment' | translate }}</strong>
+                {{ 'validateTicketsNew.orderHistory.cancellationInsurance.comment' | translate }}
+              </p>
+            } @else if (!orderCancellationHistoryItem.showsNeutralReason && orderCancellationHistoryItem.comments) {
+              <p data-testid="order-history-comment">
+                <strong>{{ 'validateTicketsNew.orderHistory.fields.comment' | translate }}</strong>
+                {{ orderCancellationHistoryItem.comments }}
+              </p>
+            }
+            @if (orderCancellationHistoryItem.isCoveredByFever) {
+              <ignt-alert
+                data-testid="order-history-covered-by-fever-payout-note"
+                sentiment="info"
+                [description]="'validateTicketsNew.orderCoveredByFeverRefund.historyPayoutNote' | translate"
+              />
+            }
+          </div>
+
+          @if (orderCancellationHistoryItem.refundDetailsSummary) {
+            <div class="order-history-panel__section">
+              <button
+                class="order-history-panel__section-header"
+                type="button"
+                [attr.aria-expanded]="isSectionExpanded(orderCancellationHistoryItem.id, 'refundDetails')"
+                (click)="toggleItemSection(orderCancellationHistoryItem.id, 'refundDetails')"
+              >
+                <div class="order-history-panel__section-title">
+                  <fa-icon [icon]="['fal', 'hand-holding-dollar']"></fa-icon>
+                  <span>{{ 'validateTicketsNew.orderHistory.fields.refundDetails' | translate }}</span>
+                </div>
+                <fa-icon
+                  class="order-history-panel__section-chevron"
+                  [icon]="chevronIcon(isSectionExpanded(orderCancellationHistoryItem.id, 'refundDetails'))"
+                ></fa-icon>
+              </button>
+              @if (isSectionExpanded(orderCancellationHistoryItem.id, 'refundDetails')) {
+                <div class="order-history-panel__section-content">
+                  @if (
+                    !orderCancellationHistoryItem.showsNeutralReason &&
+                    orderCancellationHistoryItem.cancellationReason &&
+                    orderCancellationHistoryItem.refundReason &&
+                    orderCancellationHistoryItem.cancellationReason !== orderCancellationHistoryItem.refundReason
+                  ) {
+                    <p data-testid="order-history-refund-type">
+                      <strong>{{ 'validateTicketsNew.orderHistory.fields.refundType' | translate }}</strong>
+                      {{ 'validateTicketsNew.orderHistory.extendedRefundReasons.' + orderCancellationHistoryItem.refundReason | translate }}
+                    </p>
+                  }
+                  @if (
+                    orderCancellationHistoryItem.refundDetailsSummary.refundAmount &&
+                    orderCancellationHistoryItem.refundDetailsSummary.refundedAt
+                  ) {
+                    <p>
+                      <strong>{{ 'validateTicketsNew.orderHistory.fields.refundedAmount' | translate }}</strong>
+                      {{ orderCancellationHistoryItem.refundDetailsSummary.refundAmount.toString(currentLocale) }} ({{
+                        orderCancellationHistoryItem.refundDetailsSummary.refundedAt | momentDate: 'MM/dd/yyyy - h:mm a' : localTimezone
+                      }})
+                    </p>
+                  }
+                  @if (orderCancellationHistoryItem.refundDetailsSummary.depositRefundAmount) {
+                    <p>
+                      <strong>{{ 'validateTicketsNew.orderHistory.fields.depositRefundedAmount' | translate }}</strong>
+                      {{ orderCancellationHistoryItem.refundDetailsSummary.depositRefundAmount.toString(currentLocale) }}
+                      @if (orderCancellationHistoryItem.refundDetailsSummary.depositRefundedAt) {
+                        ({{
+                          orderCancellationHistoryItem.refundDetailsSummary.depositRefundedAt
+                            | momentDate: 'MM/dd/yyyy - h:mm a' : localTimezone
+                        }})
+                      }
+                    </p>
+                  }
+                  @for (coupon of orderCancellationHistoryItem.refundDetailsSummary.cancellationCoupons; track coupon.code) {
+                    <p>
+                      <strong>{{ 'validateTicketsNew.orderHistory.fields.cancellationCouponCode' | translate }}</strong>
+                      {{ coupon.code }}
+                      @if (coupon.isAvailable) {
+                        <fa-icon class="order-history-panel__coupon-icon--available" [icon]="['fas', 'check-circle']"></fa-icon>
+                        <span class="order-history-panel__section-content-coupon-available">
+                          ({{ 'validateTicketsNew.orderHistory.fields.couponAvailable' | translate }})</span
+                        >
+                      } @else {
+                        <fa-icon class="order-history-panel__coupon-icon--not-available" [icon]="['fas', 'times-circle']"></fa-icon>
+                        <span class="order-history-panel__section-content-coupon-not-available">
+                          ({{ 'validateTicketsNew.orderHistory.fields.couponNotAvailable' | translate }})</span
+                        >
+                      }
+                      @if (!orderCancellationHistoryItem.allTicketsHaveSameOwner && coupon.ownerEmail) {
+                        {{ coupon.ownerEmail }}
+                      }
+                    </p>
+                    @if (coupon.amount) {
+                      <p>
+                        <strong>{{ 'validateTicketsNew.orderHistory.fields.cancellationCouponAmount' | translate }}</strong>
+                        {{ coupon.amount.toString(currentLocale) }}
+                      </p>
+                    }
+                  }
+                  @for (coupon of orderCancellationHistoryItem.refundDetailsSummary.compensationCoupons; track coupon.code) {
+                    <p>
+                      <strong>{{ 'validateTicketsNew.orderHistory.fields.compensationCouponCode' | translate }}</strong>
+                      {{ coupon.code }}
+                      @if (coupon.isAvailable) {
+                        <fa-icon class="order-history-panel__coupon-icon--available" [icon]="['fas', 'check-circle']"></fa-icon>
+                        <span class="order-history-panel__section-content-coupon-available">
+                          ({{ 'validateTicketsNew.orderHistory.fields.couponAvailable' | translate }})</span
+                        >
+                      } @else {
+                        <fa-icon class="order-history-panel__coupon-icon--not-available" [icon]="['fas', 'times-circle']"></fa-icon>
+                        <span class="order-history-panel__section-content-coupon-not-available">
+                          ({{ 'validateTicketsNew.orderHistory.fields.couponNotAvailable' | translate }})</span
+                        >
+                      }
+                      @if (!orderCancellationHistoryItem.allTicketsHaveSameOwner && coupon.ownerEmail) {
+                        {{ coupon.ownerEmail }}
+                      }
+                    </p>
+                    @if (coupon.amount) {
+                      <p>
+                        <strong>{{ 'validateTicketsNew.orderHistory.fields.compensationCouponAmount' | translate }}</strong>
+                        {{ coupon.amount.toString(currentLocale) }}
+                      </p>
+                    }
+                  }
+                </div>
+              }
+            </div>
+          }
+          @if (orderCancellationHistoryItem.ticketsSummary.length > 0) {
+            <div class="order-history-panel__section">
+              <button
+                class="order-history-panel__section-header"
+                type="button"
+                [attr.aria-expanded]="isSectionExpanded(orderCancellationHistoryItem.id, 'tickets')"
+                (click)="toggleItemSection(orderCancellationHistoryItem.id, 'tickets')"
+              >
+                <div class="order-history-panel__section-title">
+                  <fa-icon [icon]="['fal', 'ticket']"></fa-icon>
+                  <span>{{ 'validateTicketsNew.orderHistory.fields.tickets' | translate }}</span>
+                </div>
+                <fa-icon
+                  class="order-history-panel__section-chevron"
+                  [icon]="chevronIcon(isSectionExpanded(orderCancellationHistoryItem.id, 'tickets'))"
+                ></fa-icon>
+              </button>
+              @if (isSectionExpanded(orderCancellationHistoryItem.id, 'tickets')) {
+                <div class="order-history-panel__section-content">
+                  <ul class="order-history-panel__ticket-list">
+                    @for (ticket of orderCancellationHistoryItem.ticketsSummary; track ticket.ticketId) {
+                      <li>
+                        {{ ticket.count }}x {{ ticket.label }} - ID {{ ticket.ticketId }}
+                        @if (!orderCancellationHistoryItem.allTicketsHaveSameOwner) {
+                          | {{ ticket.email }}
+                        }
+                      </li>
+                    }
+                  </ul>
+                </div>
+              }
+            </div>
+          }
+          @if (orderCancellationHistoryItem.userNotificationsSummary && orderCancellationHistoryItem.userNotificationsSummary.length > 0) {
+            <div class="order-history-panel__section">
+              <button
+                class="order-history-panel__section-header"
+                type="button"
+                [attr.aria-expanded]="isSectionExpanded(orderCancellationHistoryItem.id, 'userNotification')"
+                (click)="toggleItemSection(orderCancellationHistoryItem.id, 'userNotification')"
+              >
+                <div class="order-history-panel__section-title">
+                  <fa-icon [icon]="['fal', 'user']"></fa-icon>
+                  <span>{{ 'validateTicketsNew.orderHistory.fields.userNotification' | translate }}</span>
+                </div>
+                <fa-icon
+                  class="order-history-panel__section-chevron"
+                  [icon]="chevronIcon(isSectionExpanded(orderCancellationHistoryItem.id, 'userNotification'))"
+                ></fa-icon>
+              </button>
+              @if (isSectionExpanded(orderCancellationHistoryItem.id, 'userNotification')) {
+                <div class="order-history-panel__section-content">
+                  @for (userNotification of orderCancellationHistoryItem.userNotificationsSummary; track userNotification.email) {
+                    <p>
+                      <strong>{{ 'validateTicketsNew.orderHistory.fields.owner' | translate }}</strong>
+                      {{ userNotification.firstName }} {{ userNotification.lastName }} ({{ userNotification.email }})
+                    </p>
+                    @if (userNotification.notifiedAt) {
+                      <p>
+                        <strong>{{ 'validateTicketsNew.orderHistory.fields.notifiedAt' | translate }}</strong>
+                        {{ userNotification.notifiedAt | momentDate: 'MM/dd/yyyy - h:mm a' : localTimezone }}
+                      </p>
+                    } @else {
+                      <p>
+                        <strong>{{ 'validateTicketsNew.orderHistory.fields.pendingToBeProcessed' | translate }}</strong>
+                      </p>
+                    }
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </ng-template>
+  </app-shared-timeline>
+</div>

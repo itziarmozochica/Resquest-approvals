@@ -1,0 +1,256 @@
+<section class="main-wrapper" [attr.aria-label]="'leads.pageTitle' | translate">
+  <header class="leads-page-header">
+    <div class="leads-page-header__title">
+      <span class="leads-page-header__section">{{ 'menu.reservations' | translate }}</span>
+      <h1 class="leads-page-header__heading" data-testid="page-title">{{ 'leads.pageTitle' | translate }}</h1>
+    </div>
+
+    @if (canCreateLead()) {
+      <ignt-button
+        data-testid="leads-create-button"
+        [label]="'leads.create.addButton' | translate"
+        [leadingIcon]="createLeadIcon"
+        [size]="isMobile() ? 'small' : 'large'"
+        (click)="onCreateLead()"
+      />
+    }
+  </header>
+
+  <div class="leads-list">
+    <app-leads-filters
+      [searchTerm]="store.search()"
+      [selectedVenueIds]="store.placeIds()"
+      [selectedOwnerId]="store.ownerId()"
+      [unassignedOnly]="store.unassignedOnly()"
+      (searchChange)="onSearchChange($event)"
+      (venuesChange)="onVenuesChange($event)"
+      (ownerChange)="onOwnerChange($event)"
+      (unassignedOnlyChange)="onUnassignedOnlyChange($event)"
+    />
+
+    <app-leads-status-tabs
+      [counts]="store.categoryCounts()"
+      [selectedCategory]="store.statusCategory()"
+      [selectedStatuses]="store.statuses()"
+      (categoryChange)="onStatusCategoryChange($event)"
+      (statusesChange)="onStatusesChange($event)"
+    />
+
+    @if (!store.error()) {
+      <ignt-table
+        class="leads-list__table"
+        data-testid="leads-list-table"
+        [class.leads-list__table--selectable]="canAssignLead()"
+        [data]="store.leads()"
+        [isLoading]="store.isLoading()"
+        [interactiveRows]="true"
+        [hasServerSideSorting]="true"
+        [sorting]="store.sorting()"
+        (rowInteraction)="onRowInteraction($event)"
+        (sortingChange)="onSortingChange($event)"
+      >
+        <!-- Row selection for the bulk strip above; only for users who can assign, since that is the only
+             bulk action. 48px holds the small checkbox plus the 32px cell padding. -->
+        @if (canAssignLead()) {
+          <ignt-table-column key="select" data-testid="leads-list-select-column" [width]="48" [header]="''">
+            <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+              <!-- Rows are interactive (they open the lead detail page) and `ignt-table` listens on the
+                   whole `<tr>`: ticking a row must not navigate away, and the table's own Space/Enter
+                   handling would swallow the checkbox's activation, hence the same stops as the actions cell.
+                   The stops live on a wrapper filling the cell, not on the checkbox: a click a few pixels
+                   off the box would otherwise open the lead and lose the selection. -->
+              <div
+                class="leads-list__select-cell"
+                (click)="$event.stopPropagation()"
+                (keydown.enter)="$event.stopPropagation()"
+                (keydown.space)="$event.stopPropagation()"
+              >
+                <ignt-checkbox
+                  dataTestId="leads-list-row-select"
+                  size="small"
+                  [ariaLabel]="'leads.bulkAssign.selectRow' | translate: { guest: item.guestFullName || item.guestEmail }"
+                  [checked]="isLeadSelected(item)"
+                  (change)="onToggleLeadSelection(item)"
+                />
+              </div>
+            </ng-template>
+          </ignt-table-column>
+        }
+
+        <ignt-table-column key="guest" columnType="primary" [width]="190" [header]="'leads.tableColumns.guest' | translate">
+          <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+            <div class="leads-list__two-line-cell">
+              <span class="leads-list__cell-primary" data-testid="leads-list-guest-name">{{ item.guestFullName || item.guestEmail }}</span>
+              @if (item.guestFullName) {
+                <span class="leads-list__cell-secondary" data-testid="leads-list-guest-email">{{ item.guestEmail }}</span>
+              }
+              @if (item.guestPhone) {
+                <span class="leads-list__cell-secondary" data-testid="leads-list-guest-phone">{{ item.guestPhone }}</span>
+              }
+            </div>
+          </ng-template>
+        </ignt-table-column>
+
+        <ignt-table-column key="status" [width]="160" [header]="'leads.tableColumns.status' | translate">
+          <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+            <app-lead-status-tag [category]="item.statusCategory" [status]="item.status" />
+          </ng-template>
+        </ignt-table-column>
+
+        <ignt-table-column key="created" [width]="120" [header]="'leads.tableColumns.created' | translate" [sortable]="true">
+          <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+            <div class="leads-list__two-line-cell">
+              <span class="leads-list__cell-primary">{{ item.createdAt | date: 'mediumDate' }}</span>
+              <span class="leads-list__cell-secondary">{{ item.createdAt | leadRelativeAge }}</span>
+            </div>
+          </ng-template>
+        </ignt-table-column>
+
+        <ignt-table-column key="guests" [width]="110" [header]="'leads.tableColumns.guests' | translate">
+          <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+            <span>{{ item.requestedTicketCount ?? '—' }}</span>
+          </ng-template>
+        </ignt-table-column>
+
+        <ignt-table-column key="eventDate" [width]="140" [header]="'leads.tableColumns.eventDate' | translate">
+          <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+            @if (item.preferredDate) {
+              <span igntTooltip [tooltipLabel]="item.preferredTimeWindow" [tooltipDisabled]="!item.preferredTimeWindow">
+                {{ item.preferredDate | date: 'MMM d' }}
+              </span>
+            } @else {
+              <span>—</span>
+            }
+          </ng-template>
+        </ignt-table-column>
+
+        <ignt-table-column key="eventType" [width]="280" [header]="'leads.tableColumns.eventType' | translate">
+          <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+            <div class="leads-list__two-line-cell">
+              <span class="leads-list__cell-primary">{{ item.eventType || '—' }}</span>
+              @if (item.plan) {
+                <span class="leads-list__cell-secondary">{{ item.plan.name }}</span>
+              }
+            </div>
+          </ng-template>
+        </ignt-table-column>
+
+        <ignt-table-column key="venue" [width]="150" [header]="'leads.tableColumns.venue' | translate">
+          <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+            <app-lead-venue-cell [venue]="item.venue" />
+          </ng-template>
+        </ignt-table-column>
+
+        <ignt-table-column key="owner" [width]="130" [header]="'leads.tableColumns.owner' | translate">
+          <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+            <span>{{ item.owner ? item.owner.name || '—' : ('leads.unassigned' | translate) }}</span>
+          </ng-template>
+        </ignt-table-column>
+
+        <ignt-table-column key="source" [width]="120" [header]="'leads.tableColumns.source' | translate">
+          <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+            <span>{{ 'leads.sources.' + item.source | translate }}</span>
+          </ng-template>
+        </ignt-table-column>
+
+        <!-- 110px holds the header without ellipsis in every locale: the longest `common.actions` is
+             Indonesian "Tindakan" at 67px (Montserrat 600 14px), German and Spanish just under it, plus the
+             32px cell padding. The width is mandatory: the table is `table-layout: fixed` and the columns
+             before this one already claim more than the viewport, so a width-less column collapses to
+             nothing and `.ignt-table__cell-inner` clips both header and button invisible. -->
+        <ignt-table-column
+          data-testid="leads-list-actions-column"
+          columnType="action"
+          [width]="110"
+          [header]="'common.actions' | translate"
+        >
+          <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+            <!-- Rows are interactive (they open the lead detail page), and `ignt-table` listens on the
+                 whole `<tr>`: without stopping here, opening the menu would navigate away underneath it.
+                 Only Enter and Space are stopped, the two keys `emitRowInteractionIfAllowed` acts on, so
+                 Tab, Shift+Tab and the arrow keys still reach the table. -->
+            <button
+              ignt-icon-button
+              data-testid="leads-list-row-actions"
+              sentiment="tertiary"
+              size="small"
+              [icon]="['fas', 'ellipsis-v']"
+              [attr.aria-label]="'common.actions' | translate"
+              [igntMenuTriggerFor]="rowActionsMenu"
+              (click)="$event.stopPropagation()"
+              (keydown.enter)="$event.stopPropagation()"
+              (keydown.space)="$event.stopPropagation()"
+            ></button>
+
+            <ng-template #rowActionsMenu>
+              <ignt-menu>
+                @if (canAssignLead()) {
+                  <ignt-menu-item
+                    class="leads-list__row-action"
+                    data-testid="leads-list-assign-action"
+                    value="assign"
+                    [label]="(item.owner ? 'leads.reassign.action' : 'leads.assign.action') | translate"
+                    (triggered)="onAssignLead(item)"
+                  >
+                    <ignt-icon name="user-plus" variant="light" />
+                  </ignt-menu-item>
+                }
+                <ignt-menu-item
+                  class="leads-list__row-action"
+                  data-testid="leads-list-copy-id-action"
+                  value="copyId"
+                  [label]="'leads.copyId' | translate"
+                  (triggered)="onCopyLeadId(item)"
+                >
+                  <ignt-icon name="copy" variant="light" />
+                </ignt-menu-item>
+              </ignt-menu>
+            </ng-template>
+          </ng-template>
+        </ignt-table-column>
+      </ignt-table>
+
+      @if (store.isLoadingMore()) {
+        <div class="leads-list__loading-more" data-testid="leads-list-loading-more">{{ 'common.loading' | translate }}</div>
+      }
+    }
+
+    <div #sentinel class="leads-list__sentinel" aria-hidden="true"></div>
+
+    @if (store.hasLoaded() && store.leads().length === 0) {
+      <div class="leads-list__placeholder" data-testid="leads-list-no-results">
+        <ignt-icon class="icon-empty" name="receipt" variant="regular" aria-hidden="true" />
+        @if (store.hasActiveFilters()) {
+          <div data-testid="leads-list-no-matches">{{ 'leads.noMatchingLeads' | translate }}</div>
+        } @else {
+          <div data-testid="leads-list-no-leads">{{ 'leads.noResults' | translate }}</div>
+        }
+      </div>
+    }
+
+    @if (store.error()) {
+      <div class="leads-list__error" data-testid="leads-list-error">
+        <span class="leads-list__error-text">
+          <ignt-icon class="leads-list__error-icon" name="exclamation-triangle" variant="light" aria-hidden="true" />
+          {{ 'errors.generic' | translate }}
+        </span>
+        <ignt-button data-testid="leads-list-retry" sentiment="secondary" [label]="'common.retry' | translate" (click)="onRetry()" />
+      </div>
+    }
+
+    <!-- Last child on purpose: sticky to the viewport bottom while the list scrolls, resting below the
+         table once its end is reached, so it never covers the last rows. -->
+    @if (showBulkToolbar()) {
+      <div class="leads-list__selection-bar">
+        <app-leads-bulk-toolbar
+          data-testid="leads-bulk-toolbar"
+          [selectedCount]="store.selectedCount()"
+          [totalLoaded]="store.leads().length"
+          (assign)="onBulkAssign()"
+          (clearSelection)="onClearSelection()"
+          (selectAll)="onSelectAll()"
+        />
+      </div>
+    }
+  </div>
+</section>

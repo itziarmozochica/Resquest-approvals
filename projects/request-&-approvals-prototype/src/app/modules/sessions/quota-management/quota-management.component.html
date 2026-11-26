@@ -1,0 +1,100 @@
+<a class="quota-management-back-link" data-testid="back-link" [routerLink]="backLink" queryParamsHandling="preserve">
+  <ignt-icon class="quota-management-back-link__icon" name="angle-left" variant="light" [fixedWidth]="true"></ignt-icon>
+  {{ 'sessions.quotaManagement.backToSessionsPerTimeslotLink' | translate }}
+</a>
+<header class="quota-management-header">
+  <h3 class="quota-management-header__title" data-testid="header-title">{{ 'sessions.quotaManagement.headerTitle' | translate }}</h3>
+  <div class="quota-management-header__filters">
+    <app-time-slot-selector
+      data-testid="time-slot-selector"
+      [filters]="filters()"
+      (timeSlotSelected)="onTimeSlotSelected($event)"
+    ></app-time-slot-selector>
+    <app-quota-name-search-filter
+      data-testid="quota-name-search-filter"
+      [value]="quotaNameFilter()"
+      (valueChange)="onQuotaNameFilterChange($event)"
+    ></app-quota-name-search-filter>
+  </div>
+</header>
+<app-quota-management-list
+  data-testid="quota-management-list"
+  [query]="quotaListQuery()"
+  [quotaNameFilter]="quotaNameFilter()"
+  [timeSlot]="selectedTimeSlot()"
+  (addQuota)="onOpenQuotaForm($event)"
+  (addTimeslotQuota)="onOpenQuotaForm($event)"
+  (clearFilter)="onClearQuotaNameFilter()"
+  (quotaAction)="onQuotaAction($event)"
+  (liveEditorSaveQuotasAdjustments)="onLiveEditorSaveQuotasAdjustments($event)"
+>
+</app-quota-management-list>
+
+<app-lateral-slider
+  data-testid="lateral-slider"
+  (closeSlider)="onCloseSlider()"
+  [contentTemplate]="lateralSlider()?.contentTemplate ?? emptyTemplate"
+  [showDetails]="lateralSlider() !== null"
+  [titleTemplate]="lateralSlider()?.titleTemplate"
+></app-lateral-slider>
+
+<ng-template #emptyTemplate></ng-template>
+<ng-template #deleteQuotaPanelTitleTemplate>
+  <div class="quota-form-title" data-testid="delete-quota-panel-title">
+    <div class="quota-form-title__main quota-form-title__main--centered" data-testid="delete-quota-panel-title-main">
+      {{ 'sessions.deleteQuotaPanel.title' | translate }}
+    </div>
+  </div>
+</ng-template>
+<ng-template #deleteQuotaPanelTemplate>
+  <app-delete-quota-panel
+    data-testid="delete-quota-panel"
+    [isDeleting]="isDeleting()"
+    [timeZone]="timeZone()"
+    (cancelled)="onCloseSlider()"
+    (deleteConfirmed)="onDeletePanelConfirmed($event)"
+  />
+</ng-template>
+<ng-template #quotaFormTitleTemplate>
+  <div class="quota-form-title" data-testid="quota-form-title">
+    <div class="quota-form-title__main" data-testid="quota-form-title-main">
+      {{ quotaFormModalTitleKey() | translate }}
+    </div>
+  </div>
+</ng-template>
+<ng-template #quotaFormTemplate>
+  <app-quota-form
+    data-testid="quota-form"
+    *ngIf="channels() && businesses()"
+    [businesses]="businesses()"
+    [capacityPoolTitle]="quotaFormTitle()"
+    [capacitySummary]="selectedCapacityPool()"
+    [channels]="channels()"
+    [formattedDate]="formattedTimeSlotDateShort()"
+    [isSaving]="isSaving()"
+    [quotaInput]="selectedQuota()"
+    [replicationOnlyMode]="quotaFormReplicationOnly()"
+    [takenQuotaNamesInPool]="quotaTakenNamesInPoolForForm()"
+    (save)="onQuotaFormSave($event)"
+  ></app-quota-form>
+</ng-template>
+<ng-template #transferCapacityFormTitleTemplate>
+  <div class="quota-form-title" data-testid="transfer-capacity-form-title">
+    <div class="quota-form-title__main quota-form-title__main--centered" data-testid="transfer-capacity-form-title-main">
+      {{ 'sessions.transferCapacityForm.title' | translate }}
+    </div>
+  </div>
+</ng-template>
+<ng-template #transferCapacityFormTemplate>
+  <app-transfer-capacity-form
+    *ngIf="(selectedCapacityPool()?.quotas ?? []).length > 0"
+    data-testid="transfer-capacity-form"
+    [quotas]="selectedCapacityPool()?.quotas ?? []"
+    [sourceQuota]="selectedQuotaForTransfer()?.quota ?? null"
+    [isSaving]="isSaving()"
+    [formattedDate]="formattedTimeSlotDateShort()"
+    [capacityGroupTitle]="transferCapacityGroupTitle()"
+    [capacityPoolTitle]="transferCapacityPoolTitle()"
+    (save)="onTransferCapacitySave($event)"
+  ></app-transfer-capacity-form>
+</ng-template>

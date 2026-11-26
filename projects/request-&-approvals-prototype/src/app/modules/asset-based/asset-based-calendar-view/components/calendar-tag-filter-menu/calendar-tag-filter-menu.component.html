@@ -1,0 +1,61 @@
+<div class="calendar-tag-filter-menu" role="group" [attr.aria-label]="'bookedSlots.calendarToolbar.tags' | translate">
+  <ignt-button
+    class="calendar-tag-filter-menu__clear"
+    size="small"
+    variant="tertiary"
+    sentiment="neutral"
+    data-testid="calendar-tag-filter-menu-clear"
+    [disabled]="!hasSelection()"
+    [label]="'bookedSlots.calendarToolbar.showAllTags' | translate"
+    [leadingIcon]="clearIcon"
+    (click)="onClear()"
+  ></ignt-button>
+  @if (options().length === 0) {
+    <p class="calendar-tag-filter-menu__empty" data-testid="calendar-tag-filter-menu-empty">
+      {{ 'bookedSlots.calendarToolbar.noTags' | translate }}
+    </p>
+  } @else {
+    <ul class="calendar-tag-filter-menu__list">
+      @for (row of options(); track row.id) {
+        <li class="calendar-tag-filter-menu__row" data-testid="calendar-tag-filter-menu-option">
+          <!-- The chip, name and count sit inside the checkbox's label, so a tap anywhere on the row toggles the tag. -->
+          <ignt-checkbox
+            class="calendar-tag-filter-menu__option"
+            size="small"
+            [ariaLabel]="
+              (matchCountOf(row) === 1 ? 'bookedSlots.calendarToolbar.tagOptionOne' : 'bookedSlots.calendarToolbar.tagOptionMany')
+                | translate: { count: matchCountOf(row), name: row.name }
+            "
+            [checked]="selectedIdSet().has(row.id)"
+            [dataTestId]="'calendar-tag-filter-menu-checkbox-' + row.id"
+            (change)="onToggle(row, $event)"
+          >
+            <span
+              class="calendar-tag-filter-menu__chip calendar-tag-filter-menu__chip--{{ row.color }}"
+              aria-hidden="true"
+              data-testid="calendar-tag-filter-menu-chip"
+            >
+              <ignt-icon class="calendar-tag-filter-menu__chip-glyph" size="caption" variant="solid" [name]="row.icon" />
+            </span>
+            <span class="calendar-tag-filter-menu__name" aria-hidden="true">{{ row.name }}</span>
+            <span
+              class="calendar-tag-filter-menu__count"
+              aria-hidden="true"
+              data-testid="calendar-tag-filter-menu-count"
+              [class.calendar-tag-filter-menu__count--zero]="matchCountOf(row) === 0"
+              >{{ matchCountOf(row) }}</span
+            >
+          </ignt-checkbox>
+        </li>
+      }
+    </ul>
+  }
+  <span class="visually-hidden" aria-live="polite" data-testid="calendar-tag-filter-menu-count-label">
+    @if (hasSelection()) {
+      {{
+        (matchCount() === 1 ? 'bookedSlots.tagFilter.matchCountOne' : 'bookedSlots.tagFilter.matchCountMany')
+          | translate: { count: matchCount() }
+      }}
+    }
+  </span>
+</div>

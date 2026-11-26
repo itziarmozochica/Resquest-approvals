@@ -1,0 +1,375 @@
+<div class="printed-tickets-step">
+  <div class="printed-tickets-step__columns">
+    <div class="printed-tickets-step__form">
+      <section class="printed-tickets-step__card">
+        <h3 class="printed-tickets-step__card-title">
+          {{ 'onsiteAppearance.printedTicketsStep.cardTitle' | translate }}
+        </h3>
+
+        <ignt-accordion variant="plain">
+          <ignt-accordion-item
+            [expanded]="true"
+            [label]="'onsiteAppearance.printedTicketsStep.ticketsFormat.title' | translate"
+            data-testid="accordion-tickets-format"
+          >
+            <ul class="printed-tickets-step__toggle-list">
+              <li class="printed-tickets-step__toggle-row" data-testid="toggle-unified-preview">
+                <div class="printed-tickets-step__toggle-info">
+                  <span class="printed-tickets-step__toggle-label">
+                    {{ 'onsiteAppearance.printedTicketsStep.ticketsFormat.unifiedTickets.label' | translate }}
+                  </span>
+                  <span class="printed-tickets-step__toggle-description">
+                    {{ 'onsiteAppearance.printedTicketsStep.ticketsFormat.unifiedTickets.description' | translate }}
+                  </span>
+                </div>
+                <ignt-toggle
+                  id="toggle-unified-preview"
+                  [checked]="unifiedPreview()"
+                  (change)="unifiedPreview.set(toggleChecked($event))"
+                ></ignt-toggle>
+              </li>
+            </ul>
+
+            <div class="printed-tickets-step__field">
+              <span class="printed-tickets-step__field-label">
+                {{ 'onsiteAppearance.printedTicketsStep.ticketsFormat.layoutLabel' | translate }}
+              </span>
+              <span class="printed-tickets-step__field-description">
+                {{ 'onsiteAppearance.printedTicketsStep.ticketsFormat.layoutDescription' | translate }}
+              </span>
+              @if (layoutError()) {
+                <div class="printed-tickets-step__layout-error" data-testid="layout-error">
+                  <span>{{ 'onsiteAppearance.printedTicketsStep.ticketsFormat.loadError' | translate }}</span>
+                  <ignt-button
+                    variant="tertiary"
+                    [label]="'common.retry' | translate"
+                    (click)="retryLoadLayouts()"
+                    data-testid="layout-retry-btn"
+                  ></ignt-button>
+                </div>
+              } @else {
+                <ng-select
+                  bindLabel="name"
+                  bindValue="id"
+                  [items]="layouts()"
+                  [clearable]="false"
+                  [searchable]="false"
+                  [ngModel]="selectedLayoutId()"
+                  (ngModelChange)="selectedLayoutId.set($event)"
+                  data-testid="layout-selector"
+                ></ng-select>
+              }
+            </div>
+          </ignt-accordion-item>
+
+          <ignt-accordion-item
+            [expanded]="true"
+            [label]="'onsiteAppearance.printedTicketsStep.logos.title' | translate"
+            data-testid="accordion-logos"
+          >
+            <p class="printed-tickets-step__section-subtitle">
+              {{ 'onsiteAppearance.printedTicketsStep.logos.subtitle' | translate }}
+            </p>
+            <ul class="printed-tickets-step__toggle-list printed-tickets-step__toggle-list--indented">
+              <li class="printed-tickets-step__toggle-row" data-testid="toggle-powered-by-fever">
+                <div class="printed-tickets-step__toggle-info">
+                  <span class="printed-tickets-step__toggle-label">
+                    {{ 'onsiteAppearance.printedTicketsStep.logos.poweredByFever.label' | translate }}
+                  </span>
+                  <span class="printed-tickets-step__toggle-description">
+                    {{ 'onsiteAppearance.printedTicketsStep.logos.poweredByFever.description' | translate }}
+                  </span>
+                </div>
+                <ignt-toggle
+                  id="toggle-powered-by-fever"
+                  [checked]="poweredByFever()"
+                  (change)="poweredByFever.set(toggleChecked($event))"
+                ></ignt-toggle>
+              </li>
+
+              <li class="printed-tickets-step__toggle-row" data-testid="toggle-partner-logo">
+                <div class="printed-tickets-step__toggle-info">
+                  <span class="printed-tickets-step__toggle-label">
+                    {{ 'onsiteAppearance.printedTicketsStep.logos.partnerLogo.label' | translate }}
+                  </span>
+                  <span class="printed-tickets-step__toggle-description">
+                    {{ 'onsiteAppearance.printedTicketsStep.logos.partnerLogo.description' | translate }}
+                  </span>
+                </div>
+                <ignt-toggle
+                  id="toggle-partner-logo"
+                  [checked]="partnerLogo()"
+                  (change)="partnerLogo.set(toggleChecked($event))"
+                ></ignt-toggle>
+              </li>
+
+              @if (partnerLogo()) {
+                <li class="printed-tickets-step__logo-row" data-testid="partner-logo-row">
+                  @if (isUploadingLogo()) {
+                    <span class="printed-tickets-step__logo-uploading" data-testid="partner-logo-uploading">
+                      {{ 'onsiteAppearance.printedTicketsStep.logos.partnerLogo.uploading' | translate }}
+                    </span>
+                  } @else if (partnerLogoUrl() !== null) {
+                    <img
+                      class="printed-tickets-step__logo-thumbnail"
+                      [src]="partnerLogoUrl() ?? ''"
+                      [alt]="'onsiteAppearance.printedTicketsStep.logos.partnerLogo.label' | translate"
+                      data-testid="partner-logo-thumbnail"
+                    />
+                    <ignt-button
+                      variant="tertiary"
+                      [label]="'onsiteAppearance.printedTicketsStep.logos.partnerLogo.replace' | translate"
+                      (click)="openLogoFilePicker()"
+                      data-testid="partner-logo-replace-btn"
+                    ></ignt-button>
+                  } @else {
+                    <ignt-button
+                      variant="tertiary"
+                      [label]="'onsiteAppearance.printedTicketsStep.logos.partnerLogo.browse' | translate"
+                      (click)="openLogoFilePicker()"
+                      data-testid="partner-logo-browse-btn"
+                    ></ignt-button>
+                  }
+                  @if (logoUploadError(); as errorKey) {
+                    <span class="printed-tickets-step__logo-error" data-testid="partner-logo-error">
+                      {{ errorKey | translate }}
+                    </span>
+                  }
+                </li>
+              }
+            </ul>
+          </ignt-accordion-item>
+
+          <ignt-accordion-item
+            [expanded]="true"
+            [label]="'onsiteAppearance.printedTicketsStep.generalInformation.title' | translate"
+            data-testid="accordion-general-information"
+          >
+            <p class="printed-tickets-step__section-subtitle">
+              {{ 'onsiteAppearance.printedTicketsStep.generalInformation.subtitle' | translate }}
+            </p>
+            <ul class="printed-tickets-step__toggle-list printed-tickets-step__toggle-list--indented">
+              <li class="printed-tickets-step__toggle-row" data-testid="toggle-venue-name">
+                <div class="printed-tickets-step__toggle-info">
+                  <span class="printed-tickets-step__toggle-label">
+                    {{ 'onsiteAppearance.printedTicketsStep.generalInformation.venueName.label' | translate }}
+                  </span>
+                  <span class="printed-tickets-step__toggle-description">
+                    {{ 'onsiteAppearance.printedTicketsStep.generalInformation.venueName.description' | translate }}
+                  </span>
+                </div>
+                <ignt-toggle id="toggle-venue-name" [checked]="venueName()" (change)="venueName.set(toggleChecked($event))"></ignt-toggle>
+              </li>
+              @if (venueName()) {
+                <li class="printed-tickets-step__text-field-row">
+                  <ignt-input-field
+                    [ngModel]="venueNameText()"
+                    (ngModelChange)="venueNameText.set($event)"
+                    [label]="'onsiteAppearance.printedTicketsStep.generalInformation.venueName.textLabel' | translate"
+                    [placeholder]="'onsiteAppearance.printedTicketsStep.generalInformation.venueName.textPlaceholder' | translate"
+                    data-testid="venue-name-text-input"
+                  ></ignt-input-field>
+                </li>
+              }
+
+              <li class="printed-tickets-step__toggle-row" data-testid="toggle-address">
+                <div class="printed-tickets-step__toggle-info">
+                  <span class="printed-tickets-step__toggle-label">
+                    {{ 'onsiteAppearance.printedTicketsStep.generalInformation.address.label' | translate }}
+                  </span>
+                  <span class="printed-tickets-step__toggle-description">
+                    {{ 'onsiteAppearance.printedTicketsStep.generalInformation.address.description' | translate }}
+                  </span>
+                </div>
+                <ignt-toggle id="toggle-address" [checked]="address()" (change)="address.set(toggleChecked($event))"></ignt-toggle>
+              </li>
+
+              <li class="printed-tickets-step__toggle-row" data-testid="toggle-date-and-start-time">
+                <div class="printed-tickets-step__toggle-info">
+                  <span class="printed-tickets-step__toggle-label">
+                    {{ 'onsiteAppearance.printedTicketsStep.generalInformation.dateAndStartTime.label' | translate }}
+                  </span>
+                </div>
+                <ignt-toggle
+                  id="toggle-date-and-start-time"
+                  [checked]="dateAndStartTime()"
+                  (change)="dateAndStartTime.set(toggleChecked($event))"
+                ></ignt-toggle>
+              </li>
+
+              <li class="printed-tickets-step__toggle-row" data-testid="toggle-open-gates">
+                <div class="printed-tickets-step__toggle-info">
+                  <span class="printed-tickets-step__toggle-label">
+                    {{ 'onsiteAppearance.printedTicketsStep.generalInformation.openGates.label' | translate }}
+                  </span>
+                  <span class="printed-tickets-step__toggle-description">
+                    {{ 'onsiteAppearance.printedTicketsStep.generalInformation.openGates.description' | translate }}
+                  </span>
+                </div>
+                <ignt-toggle id="toggle-open-gates" [checked]="openGates()" (change)="openGates.set(toggleChecked($event))"></ignt-toggle>
+              </li>
+
+              <li class="printed-tickets-step__toggle-row" data-testid="toggle-price">
+                <div class="printed-tickets-step__toggle-info">
+                  <span class="printed-tickets-step__toggle-label">
+                    {{ 'onsiteAppearance.printedTicketsStep.generalInformation.price.label' | translate }}
+                  </span>
+                  <span class="printed-tickets-step__toggle-description">
+                    {{ 'onsiteAppearance.printedTicketsStep.generalInformation.price.description' | translate }}
+                  </span>
+                </div>
+                <ignt-toggle id="toggle-price" [checked]="price()" (change)="price.set(toggleChecked($event))"></ignt-toggle>
+              </li>
+
+              <li class="printed-tickets-step__toggle-row" data-testid="toggle-surcharge-breakdown">
+                <div class="printed-tickets-step__toggle-info">
+                  <span class="printed-tickets-step__toggle-label">
+                    {{ 'onsiteAppearance.printedTicketsStep.generalInformation.surchargeBreakdown.label' | translate }}
+                  </span>
+                </div>
+                <ignt-toggle
+                  id="toggle-surcharge-breakdown"
+                  [checked]="effectiveSurchargeBreakdown()"
+                  [disabled]="!price()"
+                  (change)="surchargeBreakdown.set(toggleChecked($event))"
+                ></ignt-toggle>
+              </li>
+
+              <li class="printed-tickets-step__toggle-row" data-testid="toggle-code-text-below-qr">
+                <div class="printed-tickets-step__toggle-info">
+                  <span class="printed-tickets-step__toggle-label">
+                    {{ 'onsiteAppearance.printedTicketsStep.generalInformation.codeTextBelowQr.label' | translate }}
+                  </span>
+                  <span class="printed-tickets-step__toggle-description">
+                    {{ 'onsiteAppearance.printedTicketsStep.generalInformation.codeTextBelowQr.description' | translate }}
+                  </span>
+                </div>
+                <ignt-toggle
+                  id="toggle-code-text-below-qr"
+                  [checked]="codeTextBelowQr()"
+                  (change)="codeTextBelowQr.set(toggleChecked($event))"
+                ></ignt-toggle>
+              </li>
+
+              <li class="printed-tickets-step__toggle-row" data-testid="toggle-seating-info">
+                <div class="printed-tickets-step__toggle-info">
+                  <span class="printed-tickets-step__toggle-label">
+                    {{ 'onsiteAppearance.printedTicketsStep.generalInformation.seatingInfo.label' | translate }}
+                  </span>
+                </div>
+                <ignt-toggle
+                  id="toggle-seating-info"
+                  [checked]="seatingInfo()"
+                  (change)="seatingInfo.set(toggleChecked($event))"
+                ></ignt-toggle>
+              </li>
+
+              <li class="printed-tickets-step__toggle-row" data-testid="toggle-nominative">
+                <div class="printed-tickets-step__toggle-info">
+                  <span class="printed-tickets-step__toggle-label">
+                    {{ 'onsiteAppearance.printedTicketsStep.generalInformation.nominative.label' | translate }}
+                  </span>
+                </div>
+                <ignt-toggle id="toggle-nominative" [checked]="nominative()" (change)="nominative.set(toggleChecked($event))"></ignt-toggle>
+              </li>
+
+              <li class="printed-tickets-step__toggle-row" data-testid="toggle-invitation-preview">
+                <div class="printed-tickets-step__toggle-info">
+                  <span class="printed-tickets-step__toggle-label">
+                    {{ 'onsiteAppearance.printedTicketsStep.generalInformation.invitation.label' | translate }}
+                  </span>
+                </div>
+                <ignt-toggle
+                  id="toggle-invitation-preview"
+                  [checked]="invitationPreview()"
+                  (change)="invitationPreview.set(toggleChecked($event))"
+                ></ignt-toggle>
+              </li>
+            </ul>
+          </ignt-accordion-item>
+        </ignt-accordion>
+
+        <div class="printed-tickets-step__text-section">
+          <div class="printed-tickets-step__toggle-row" data-testid="toggle-partner-tax-info">
+            <div class="printed-tickets-step__toggle-info">
+              <span class="printed-tickets-step__section-title">
+                {{ 'onsiteAppearance.printedTicketsStep.partnerTaxInfo.label' | translate }}
+              </span>
+            </div>
+            <ignt-toggle
+              id="toggle-partner-tax-info"
+              [checked]="partnerTaxInfo()"
+              (change)="partnerTaxInfo.set(toggleChecked($event))"
+            ></ignt-toggle>
+          </div>
+          @if (partnerTaxInfo()) {
+            <ignt-textarea-field
+              [ngModel]="partnerTaxInfoText()"
+              (ngModelChange)="partnerTaxInfoText.set($event)"
+              [label]="'onsiteAppearance.printedTicketsStep.partnerTaxInfo.textLabel' | translate"
+              [placeholder]="'onsiteAppearance.printedTicketsStep.partnerTaxInfo.textPlaceholder' | translate"
+              [rows]="4"
+              data-testid="partner-tax-info-text-input"
+            ></ignt-textarea-field>
+          }
+        </div>
+
+        <div class="printed-tickets-step__text-section">
+          <div class="printed-tickets-step__toggle-row" data-testid="toggle-disclaimer-and-terms">
+            <div class="printed-tickets-step__toggle-info">
+              <span class="printed-tickets-step__section-title">
+                {{ 'onsiteAppearance.printedTicketsStep.disclaimerAndTerms.label' | translate }}
+              </span>
+            </div>
+            <ignt-toggle
+              id="toggle-disclaimer-and-terms"
+              [checked]="disclaimerAndTerms()"
+              (change)="disclaimerAndTerms.set(toggleChecked($event))"
+            ></ignt-toggle>
+          </div>
+          @if (disclaimerAndTerms()) {
+            <ignt-textarea-field
+              [ngModel]="disclaimerAndTermsText()"
+              (ngModelChange)="disclaimerAndTermsText.set($event)"
+              [label]="'onsiteAppearance.printedTicketsStep.disclaimerAndTerms.textLabel' | translate"
+              [placeholder]="'onsiteAppearance.printedTicketsStep.disclaimerAndTerms.textPlaceholder' | translate"
+              [rows]="4"
+              data-testid="disclaimer-and-terms-text-input"
+            ></ignt-textarea-field>
+          }
+        </div>
+      </section>
+    </div>
+
+    <aside class="printed-tickets-step__preview">
+      <h3 class="printed-tickets-step__preview-title">
+        {{ 'onsiteAppearance.printedTicketsStep.preview.title' | translate }}
+      </h3>
+      <div class="printed-tickets-step__preview-frame">
+        @if (isLoadingLayouts()) {
+          <div class="printed-tickets-step__preview-loading">
+            {{ 'common.loading' | translate }}
+          </div>
+        } @else if (selectedLayout()?.template) {
+          <app-ticket-preview
+            [template]="selectedLayout()?.template ?? ''"
+            [activeSections]="sections()"
+            [sampleData]="sampleData()"
+          ></app-ticket-preview>
+        } @else {
+          <div class="printed-tickets-step__preview-empty">
+            {{ 'onsiteAppearance.printedTicketsStep.preview.noTemplate' | translate }}
+          </div>
+        }
+      </div>
+      <p class="printed-tickets-step__preview-note" data-testid="preview-disclaimer">
+        {{
+          (unifiedPreview()
+            ? 'onsiteAppearance.printedTicketsStep.preview.disclaimerUnified'
+            : 'onsiteAppearance.printedTicketsStep.preview.disclaimerSeparate'
+          ) | translate
+        }}
+      </p>
+    </aside>
+  </div>
+</div>

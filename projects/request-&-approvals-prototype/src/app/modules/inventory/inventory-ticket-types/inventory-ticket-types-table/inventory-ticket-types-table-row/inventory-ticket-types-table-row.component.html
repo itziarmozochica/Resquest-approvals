@@ -1,0 +1,56 @@
+@if (isSortModeActive()) {
+  <td class="itt-table__row__cell itt-table__row__cell--mini" data-testid="itt-table-row-drag">
+    <span cdkDragHandle class="itt-table__drag-handle" data-testid="itt-table-row-drag-handle">
+      <ignt-icon class="itt-table__drag-icon" name="grip-vertical" variant="solid" />
+    </span>
+  </td>
+}
+<td data-testid="itt-table-row-label" class="itt-table__row__cell itt-table__row__cell--name">
+  <span class="itt-table__row__cell__label">
+    <ignt-icon data-testid="itt-table-row-label-icon" class="ticket-icon" [name]="categoryIconMap[category]" variant="light"></ignt-icon>
+    {{ sessionType.label }}
+    @if (hasMissingRequiredFields()) {
+      <ignt-icon
+        data-testid="itt-table-row-missing-required-fields"
+        class="itt-table__missing-fields-icon"
+        name="triangle-exclamation"
+        role="img"
+        variant="solid"
+        igntTooltip
+        [attr.aria-label]="'inventory.ticketTypes.missingRequiredFieldsTooltip' | translate"
+        [tooltipLabel]="'inventory.ticketTypes.missingRequiredFieldsTooltip' | translate"
+      ></ignt-icon>
+    }
+    @if (sessionType.hasSessions === false && !sessionType.archivedAt) {
+      <!-- A problem to fix, not a label: shown as a warning, like the missing fields one. Archived ticket types are not for sale, so it does not apply. -->
+      <span
+        data-testid="itt-table-row-no-sessions"
+        class="itt-table__no-sessions"
+        tabindex="0"
+        igntTooltip
+        [tooltipLabel]="'inventory.ticketTypes.noSessionsTooltip' | translate"
+        ><ignt-icon name="calendar-exclamation" variant="light" size="sm" />{{ 'inventory.ticketTypes.noSessions' | translate }}</span
+      >
+    }
+  </span>
+</td>
+@if (!isShowingArchived()) {
+  <td data-testid="itt-table-row-sorting" class="itt-table__row__cell fixed-width">
+    {{ isSortModeActive() && sortDisplayIndex() !== null ? sortDisplayIndex() : getDisplaySorting(sessionType.sorting) }}
+  </td>
+}
+<td data-testid="itt-table-row-product-type" class="itt-table__row__cell fixed-width">
+  {{ getHumanizedProductType(sessionType.productType) }}
+</td>
+<td data-testid="itt-table-row-category" class="itt-table__row__cell fixed-width">
+  {{ 'inventory.ticketTypes.columnNames.category.options.' + category | translate }}
+</td>
+<td data-testid="itt-table-row-allowed-num-tickets" class="itt-table__row__cell fixed-width">
+  {{ getHumanizedAllowedNumTickets(sessionType.allowedNumTickets) }}
+</td>
+
+@if (showActionsColumn) {
+  <td data-testid="itt-table-row-actions" class="itt-table__row__cell itt-table__row__cell--actions" (click)="$event.stopPropagation()">
+    <app-inventory-ticket-types-row-actions-menu [availableActions]="availableActions()" (actionSelected)="onActionSelected($event)" />
+  </td>
+}

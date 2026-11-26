@@ -1,0 +1,155 @@
+<div [fzAssistantHost]="assistantHostConfig" class="list-plan">
+  <app-create-event-modal *ngIf="canCreateEvents"></app-create-event-modal>
+
+  <section class="main-wrapper list-plan-page" [attr.aria-label]="'menu.eventList' | translate">
+    <app-event-selection-band data-testid="list-plan-selectors" [summary]="filtersSummary()" [foldWhenComplete]="false">
+      <app-search-bar
+        class="list-plan-search-bar new-design"
+        [typedSearchFilters]="[selectOptionTypeaheadInput.plan]"
+        [extendedFiltersLayout]="true"
+        [mandatoryFilters]="[]"
+        [showPlanListFilters]="true"
+        [showVenue]="true"
+        [searchOnChange]="true"
+        [screen]="screen.salesAndControl"
+        [preselectActiveCity]="false"
+        [preselectActivePlan]="false"
+        (searchEmitter)="loadNewSearch($event)"
+      >
+      </app-search-bar>
+    </app-event-selection-band>
+
+    <div class="list-plan-page__title">
+      <div class="list-plan-page__title-content">
+        <span class="list-plan-page__section">{{ 'menu.events' | translate }}</span>
+        <h1 class="list-plan-page__heading" data-testid="page-title">{{ 'menu.eventList' | translate }}</h1>
+      </div>
+      @if (!outage && !isPlansListAggregatesKpiEnabled) {
+        <span class="list-plan-page__updated" data-testid="list-plan-updated">{{ 'planDetail.metabaseUpdatedMessage' | translate }}</span>
+      }
+    </div>
+
+    @if (isPlansListAggregatesKpiEnabled) {
+      <div class="list-plan-summary" data-testid="list-plan-summary">
+        <app-list-plan-header class="list-plan-summary__welcome" />
+        <app-plans-aggregates-kpi-bar class="list-plan-summary__kpi" [partnerId]="partnerId" [queryParams]="aggregatesQueryParams" />
+      </div>
+    }
+
+    <ng-container>
+      <div class="plans-container">
+        <div class="plans">
+          <ignt-alert
+            *ngIf="!loadingPlans && outage && !error"
+            class="list-plan__outage-banner"
+            sentiment="warning"
+            [description]="'outage.message' | translate"
+            data-testid="outage-banner"
+          />
+          @if (!loadingPlans && canAccessReporting) {
+            <ignt-alert
+              class="list-plan__reporting-banner"
+              data-testid="reporting-banner"
+              [description]="'listPlan.reportingBanner.message' | translate"
+            >
+              <ng-template #igntAlertActions>
+                <button
+                  igntButton
+                  type="button"
+                  sentiment="secondary"
+                  size="small"
+                  [routerLink]="['/analytics/dashboard']"
+                  (click)="onGoToReportingClicked()"
+                  data-testid="reporting-banner-cta"
+                >
+                  {{ 'listPlan.reportingBanner.cta' | translate }}
+                </button>
+              </ng-template>
+            </ignt-alert>
+          }
+          <div class="plans-table">
+            <ignt-alert
+              *ngIf="!loadingPlans && !outage && error"
+              sentiment="danger"
+              [description]="'reviews.error' | translate"
+              showCloseButton
+              [closeButtonAriaLabel]="'common.close' | translate"
+              (closeAlert)="closeError()"
+            />
+            <ng-container>
+              @if (isCrossEventBulkEditVisible) {
+                <div class="plans-table__toolbar">
+                  <ignt-button
+                    data-testid="list-plan-cross-event-bulk-edit-button"
+                    size="small"
+                    variant="secondary"
+                    [label]="'listPlan.crossEventBulkEdit.cta' | translate"
+                    [routerLink]="['/plans/bulk-edit']"
+                  />
+                </div>
+              }
+              <app-table
+                [headers]="headers"
+                [orderBy]="orderBy"
+                (updateOrderByEmit)="updateOrderBy($event)"
+                (updateFilterByEmit)="filterBy($event)"
+              >
+                <ng-container *ngIf="paginatedPlans && plans.length > 0">
+                  <ng-container *ngFor="let plan of plans; trackBy: trackById">
+                    <app-plan-card
+                      [allowRefreshAction]="true"
+                      [screenSize]="screenSize"
+                      (duplicateSucceeded)="onPlanDuplicated($event)"
+                      (navigate)="navigate($event)"
+                      (updatedPlan)="updatePlan($event)"
+                      [plan]="plan"
+                    >
+                    </app-plan-card>
+                  </ng-container>
+                </ng-container>
+              </app-table>
+              @if (loadingPlans) {
+                <div
+                  class="plans-skeleton"
+                  data-testid="list-plan-skeleton"
+                  role="status"
+                  aria-busy="true"
+                  [class.plans-skeleton--desktop]="screenSize === desktopScreenSize"
+                >
+                  @for (row of skeletonRows; track row) {
+                    @if (screenSize === desktopScreenSize) {
+                      <div class="plans-skeleton__row" data-testid="list-plan-skeleton-desktop-row">
+                        <ignt-skeleton class="plans-skeleton__image" type="image" [animation]="true" [height]="64" />
+                        <ignt-skeleton class="plans-skeleton__name" type="item" [animation]="true" [numElements]="2" />
+                        @for (column of skeletonColumns; track column) {
+                          <ignt-skeleton class="plans-skeleton__column" type="image" [animation]="true" [height]="20" />
+                        }
+                      </div>
+                    } @else {
+                      <ignt-skeleton type="card" [animation]="true" [isCardTitleVisible]="true" [numElements]="2" />
+                    }
+                  }
+                  <span class="visually-hidden">{{ 'common.loading' | translate }}</span>
+                </div>
+              }
+              <div *ngIf="paginatedPlans && plans.length === 0 && !loadingPlans" class="plans-no-results">
+                {{ 'filters.noPlansFound' | translate }}
+              </div>
+            </ng-container>
+          </div>
+          <ng-container *ngIf="paginatedPlans && plans.length > 0 && !nextPageParam">
+            <div class="end-result">
+              <span class="end-result-line" data-testid="list-plan-end-result-line"></span>
+              <fa-icon [icon]="['fas', 'circle']" class="end-result-icon"></fa-icon>
+              <span class="end-result-text">{{ 'reviews.endResults' | translate }}</span>
+              <fa-icon [icon]="['fas', 'circle']" class="end-result-icon"></fa-icon>
+              <span class="end-result-line"></span>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+    </ng-container>
+  </section>
+
+  <app-create-event-sticky-bar />
+</div>

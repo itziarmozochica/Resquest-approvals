@@ -1,0 +1,137 @@
+<app-page-title
+  class="new-design"
+  [section]="'menu.boxOffice' | translate"
+  [subsections]="shiftBreadcrumbSubsections"
+  [title]="'menu.shiftDetails' | translate"
+></app-page-title>
+<div class="shift">
+  <div>
+    <ng-container *ngTemplateOutlet="header"></ng-container>
+  </div>
+
+  @if (isNewPaymentFlowEnabled()) {
+    <app-shift-sales-stats data-testid="shift-sales-stats" [paymentSummaries]="shift.paymentMethodSummaries"></app-shift-sales-stats>
+  }
+  <div class="shift__summaries">
+    @if (isNewPaymentFlowEnabled()) {
+      <app-shift-payments-breakdown
+        data-testid="shift-payments-breakdown"
+        [currency]="shift.cashRegisters[0]?.currency ?? ''"
+        [paymentSummaries]="shift.paymentMethodSummaries"
+      ></app-shift-payments-breakdown>
+    } @else {
+      <app-shift-sales-summary data-testid="shift-sales-summary" [paymentSummaries]="shift.paymentMethodSummaries" [shift]="shift">
+      </app-shift-sales-summary>
+    }
+    <div class="shift__summaries__end">
+      <app-shift-cash-summary [shift]="shift">
+        @if (isNewPaymentFlowEnabled()) {
+          <app-shift-notes data-testid="shift-notes" [shift]="shift"></app-shift-notes>
+        }
+      </app-shift-cash-summary>
+      <app-shift-surveys *ngIf="showSurvey && shift.survey" [shift]="shift"></app-shift-surveys>
+    </div>
+  </div>
+  <div>
+    <div class="shift__transactions-label">
+      {{ 'boxOffice.shiftDetail.transactionsLabel' | translate }}
+      <button
+        ignt-icon-button
+        size="small"
+        sentiment="secondary"
+        [icon]="['fas', 'file-download']"
+        [disabled]="shift.status === shiftStatusEnum.opened || isDownloading || hasNoTransactions"
+        (click)="downloadTransactionsExcel()"
+        igntTooltip
+        [tooltipLabel]="
+          shift.status !== shiftStatusEnum.opened && !hasNoTransactions && !isDownloading
+            ? ('boxOffice.shiftDetail.transactions.downloadExcel' | translate)
+            : ''
+        "
+        tooltipPlacement="left"
+        data-testid="shift-transactions-download-button"
+      ></button>
+    </div>
+    <app-shift-transactions [shift]="shift" [timezone]="timezone" [showsTicketCount]="!isNewPaymentFlowEnabled()"> </app-shift-transactions>
+  </div>
+</div>
+
+<ng-template #header>
+  <div class="shift__header">
+    <div class="shift__data">
+      <div class="shift__date-container">
+        <div class="shift__date" data-testid="shift-summary-date">
+          <span data-testid="shift-summary-started-at">{{ shift.createdAt | momentDate: 'EEEE, d MMMM y - h:mm:ss a' : timezone }}</span>
+          <span> - </span>
+          <span data-testid="shift-summary-ended-at" *ngIf="shift.status === shiftStatusEnum.opened">{{
+            'boxOffice.shiftDetail.ongoing' | translate
+          }}</span>
+          <span data-testid="shift-summary-ended-at" *ngIf="shift.status === shiftStatusEnum.closed && shift.closedAt">{{
+            shift.closedAt | momentDate: 'EEEE, d MMMM y - h:mm:ss a' : timezone
+          }}</span>
+          <span *ngIf="shift.status === shiftStatusEnum.closed && durationDisplay">
+            (<span data-testid="shift-summary-duration">{{ durationDisplay }}</span
+            >)</span
+          >
+        </div>
+      </div>
+
+      <div class="shift__cash-setup-data">
+        <div data-testid="shift-summary-cashier">
+          <fa-icon [fixedWidth]="true" [icon]="['fal', 'user']"></fa-icon>
+          {{ 'boxOffice.shiftDetail.cashier' | translate }}: {{ shift.b2bUser.b2bUserName }}
+        </div>
+        <div data-testid="shift-summary-cash-cashier">
+          <fa-icon [fixedWidth]="true" [icon]="['fal', 'cash-register']"></fa-icon>
+          {{ cashRegister.name }}
+        </div>
+      </div>
+    </div>
+    <div class="only-in-desktop">
+      <ng-container *ngTemplateOutlet="buttonsTemplate; context: { isDesktop: true }"></ng-container>
+    </div>
+  </div>
+</ng-template>
+
+<div class="only-in-mobile">
+  <bottom-slider [buttonsTemplate]="buttonsTemplate"> </bottom-slider>
+</div>
+
+<ng-template #buttonsTemplate let-isDesktop="isDesktop">
+  <div [class.shift__buttons--mobile]="!isDesktop" class="shift__buttons">
+    <button igntButton sentiment="secondary" data-testid="shift-summary-back-button" (click)="location.back()">
+      {{ 'common.back' | translate | uppercase }}
+    </button>
+    <button *ngIf="shift.status !== shiftStatusEnum.opened" igntButton data-testid="shift-summary-print-button" (click)="print()">
+      <fa-icon data-testid="shift-summary-printing-spinner" *ngIf="isPrinting" class="loader" [icon]="['fas', 'spinner']"> </fa-icon>
+
+      <fa-icon *ngIf="!isPrinting" [icon]="['fas', 'print']"> </fa-icon>
+
+      {{ 'common.print' | translate | uppercase }}
+    </button>
+    <button
+      igntButton
+      sentiment="secondary"
+      variant="danger"
+      class="shift__buttons__end-shift-button"
+      *ngIf="shift.status === shiftStatusEnum.opened && canEndShift"
+      [disabled]="isEndingShift"
+      (click)="endShift()"
+      data-testid="shift-summary-end-shift-button"
+    >
+      <fa-icon [icon]="['fas', 'stop']"></fa-icon>
+      {{ 'boxOffice.shifts.endShiftButton' | translate | uppercase }}
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #loadingEndWait let-title="title">
+  <div class="wait-modal">
+    <div class="wait-modal__title">
+      {{ 'boxOffice.shifts.waitEnd' | translate }}
+    </div>
+    <div data-testid="shift-controls-loading-modal" class="spinner">
+      <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'4x'"></fa-icon>
+    </div>
+  </div>
+</ng-template>

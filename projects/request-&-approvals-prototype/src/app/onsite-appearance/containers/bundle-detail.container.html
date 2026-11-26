@@ -1,0 +1,57 @@
+<div class="bundle-detail">
+  <header class="bundle-detail__header">
+    <ignt-breadcrumb [items]="breadcrumbItems()" data-testid="bundle-detail-breadcrumb"></ignt-breadcrumb>
+  </header>
+
+  <div class="bundle-detail__stepper">
+    <ignt-stepper [steps]="steps()" [currentStep]="currentStep()" [hideContent]="true"></ignt-stepper>
+  </div>
+
+  <div class="bundle-detail__content">
+    @if (saveError()) {
+    <div class="bundle-detail__alert">
+      <ignt-alert
+        sentiment="danger"
+        showCloseButton
+        data-testid="bundle-detail-save-error"
+        [description]="'onsiteAppearance.bundleDetail.saveError' | translate"
+        [closeButtonAriaLabel]="'common.close' | translate"
+        (closeAlert)="dismissSaveError()"
+      />
+    </div>
+    } @if (isLoading()) {
+    <ignt-skeleton
+      type="image"
+      [numElements]="3"
+      [animation]="true"
+      [contrast]="true"
+      [height]="100"
+      data-testid="bundle-detail-loading"
+    ></ignt-skeleton>
+    } @else if (!loadError()) {
+    <app-bundle-setup-step
+      [style.display]="currentStep() === 0 ? null : 'none'"
+      [(name)]="name"
+      [(printedTickets)]="printedTickets"
+    ></app-bundle-setup-step>
+    @if (printedTickets() && ticketStepReached()) {
+    <app-printed-tickets-step
+      [style.display]="currentStep() === 1 ? null : 'none'"
+      [existingConfig]="ticketConfiguration()"
+      [configName]="name() ?? ''"
+      (saved)="onTicketConfigurationSaved($event)"
+    ></app-printed-tickets-step>
+    } }
+  </div>
+
+  @if (!isLoading() && !loadError()) {
+  <app-step-action-bar
+    [primaryLabel]="primaryLabelKey() | translate"
+    [primaryDisabled]="isPrimaryDisabled()"
+    [showBack]="currentStep() > 0"
+    (cancelled)="onCancel()"
+    (back)="onBack()"
+    (confirmed)="onPrimaryAction()"
+  ></app-step-action-bar>
+  }
+</div>

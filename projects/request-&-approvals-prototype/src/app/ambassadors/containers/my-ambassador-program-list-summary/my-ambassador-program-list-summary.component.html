@@ -1,0 +1,137 @@
+<div class="ambassador-program-list">
+  <app-ambassador-programs-search-filter [searchTerm]="searchTerm" (searchTermChanged)="onSearchTermChange($event)" />
+
+  <div class="ambassador-program-list__header">
+    <ignt-wrapper-card type="borderless">
+      <h1 class="ambassador-program-list__greeting">
+        👋 {{ 'ambassadorOverview.programs.title' | translate: { name: (userName$ | async) } }}
+      </h1>
+      <p class="ambassador-program-list__subtitle">{{ 'ambassadorOverview.programs.subtitle' | translate }}</p>
+    </ignt-wrapper-card>
+  </div>
+
+  <div class="ambassador-program-list__content">
+    <h4 *ngIf="isMobile()" class="ambassador-program-list__section-title">
+      {{ 'ambassadorOverview.programs.yourPrograms' | translate }}
+      <fa-icon
+        *ngIf="searchLoading"
+        class="loader"
+        [icon]="['fas', 'spinner']"
+        [size]="'sm'"
+        data-testid="ambassador-program-summary-search-loading__indicator"
+      >
+      </fa-icon>
+    </h4>
+    <h2 *ngIf="!isMobile()" class="ambassador-program-list__section-title">
+      {{ 'ambassadorOverview.programs.yourPrograms' | translate }}
+      <fa-icon
+        *ngIf="searchLoading"
+        class="loader"
+        [icon]="['fas', 'spinner']"
+        [size]="'sm'"
+        data-testid="ambassador-program-summary-search-loading__indicator"
+      >
+      </fa-icon>
+    </h2>
+
+    <ng-container *ngIf="loading">
+      <div class="ambassador-program-list__loading" data-testid="ambassador-program-list__loading">
+        <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'3x'"></fa-icon>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="!loading && ambassadorProgramsSummary.length > 0">
+      <div class="ambassador-program-list__list" data-testid="ambassador-program-summary-list">
+        <ng-container *ngFor="let summaryProgram of ambassadorProgramsSummary; trackBy: trackByAmbassadorProgramIdSummary">
+          <ignt-wrapper-card
+            type="borderless"
+            class="ambassador-program-card__wrapper ambassador-program-card__wrapper--summary"
+            (click)="onClickCardSummary(summaryProgram)"
+            [attr.data-testid]="'ambassador-program-summary-card__wrapper-' + summaryProgram.id"
+          >
+            <div class="ambassador-program-card">
+              <img [src]="summaryProgram.image" [alt]="summaryProgram.title" class="ambassador-program-card__image" />
+
+              <div class="ambassador-program-card__content">
+                <app-plan-status-tag
+                  [status]="summaryProgram.status"
+                  [style]="summaryProgram.status === 'off_sale' ? 'solid' : 'outline'"
+                ></app-plan-status-tag>
+                <h3 class="ambassador-program-card__title" data-testid="ambassador-program-summary-card__title">
+                  {{ summaryProgram.title }}
+                </h3>
+                <div class="ambassador-program-card__details">
+                  <p
+                    class="ambassador-program-card__location"
+                    *ngIf="summaryProgram.plans[0]?.city_name"
+                    data-testid="ambassador-program-card__location"
+                  >
+                    <fa-icon [icon]="['fal', 'map-marker-alt']" [fixedWidth]="true"></fa-icon>
+                    {{ summaryProgram.plans[0].city_name
+                    }}<span *ngIf="summaryProgram.plans[0].address">, {{ summaryProgram.plans[0].address }}</span>
+                  </p>
+                  <p
+                    class="ambassador-program-card__dates"
+                    *ngIf="summaryProgram.startsAt && summaryProgram.endsAt"
+                    data-testid="ambassador-program-summary-card__dates"
+                  >
+                    <fa-icon [icon]="['fal', 'calendar-day']" [fixedWidth]="true"></fa-icon>
+                    {{ summaryProgram.startsAt | date: 'd MMM yyyy' }} - {{ summaryProgram.endsAt | date: 'd MMM yyyy' }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="ambassador-program-card__points">
+                <div class="ambassador-program-card__points-value" data-testid="ambassador-program-summary-card__points-value">
+                  {{ summaryProgram.points || 0 }}
+                </div>
+                <div class="ambassador-program-card__points-label">{{ 'ambassadorOverview.programs.availablePoints' | translate }}</div>
+              </div>
+
+              <div class="ambassador-program-card__actions">
+                <ng-container *ngIf="summaryProgram.plans[0].tracking_link">
+                  <button
+                    igntButton
+                    size="small"
+                    [fill]="isMobile()"
+                    [trailingIcon]="['fal', 'share-alt']"
+                    (click)="shareTrackingLinkDirect($event, summaryProgram.plans[0].tracking_link)"
+                    data-testid="ambassador-program-summary-card__share-tracking-link-button"
+                  >
+                    {{ 'ambassadorOverview.programs.shareTrackingLink' | translate }}
+                  </button>
+                  <button
+                    ignt-icon-button
+                    size="small"
+                    [icon]="['fal', 'copy']"
+                    sentiment="secondary"
+                    (click)="copyTrackingLinkDirect($event, summaryProgram.plans[0].tracking_link)"
+                    data-testid="ambassador-program-summary-card__copy-link-button"
+                    *ngIf="isMobile()"
+                  ></button>
+                  <button
+                    igntButton
+                    size="small"
+                    sentiment="secondary"
+                    [trailingIcon]="['fal', 'copy']"
+                    (click)="copyTrackingLinkDirect($event, summaryProgram.plans[0].tracking_link)"
+                    *ngIf="!isMobile()"
+                    data-testid="ambassador-program-summary-card__copy-link-button"
+                  >
+                    {{ 'ambassadorOverview.programs.copyLink' | translate }}
+                  </button>
+                </ng-container>
+              </div>
+            </div>
+          </ignt-wrapper-card>
+        </ng-container>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="!loading && ambassadorProgramsSummary.length === 0">
+      <div class="ambassador-program-list__empty" data-testid="ambassador-program-list__empty">
+        <p>{{ 'ambassadorOverview.programs.noProgramsFound' | translate }}</p>
+      </div>
+    </ng-container>
+  </div>
+</div>

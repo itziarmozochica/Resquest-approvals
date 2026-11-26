@@ -1,0 +1,59 @@
+<div class="split-refund-method-row">
+  <span class="split-refund-method-row__method">
+    <ignt-icon [name]="isCash() ? 'coins' : 'credit-card'" variant="light" aria-hidden="true" />
+    <span class="split-refund-method-row__method-text">
+      <span class="split-refund-method-row__method-name">{{ methodName() }}</span>
+      @if (paymentMethod().cardLast4; as last4) {
+        <span class="split-refund-method-row__method-detail">•••• •••• •••• {{ last4 }}</span>
+      }
+    </span>
+  </span>
+
+  <div class="split-refund-method-row__quantity">
+    <span class="split-refund-method-row__amount-label">{{ 'cancellation.splitRefund.quantityToRefund' | translate }}</span>
+
+    <div
+      class="split-refund-method-row__field"
+      role="button"
+      tabindex="0"
+      [attr.aria-label]="editAriaLabel()"
+      [attr.data-testid]="'split-refund-method-row-' + paymentMethod().id"
+      (click)="edit.emit()"
+      (keydown.enter)="edit.emit()"
+      (keydown.space)="$event.preventDefault(); edit.emit()"
+    >
+      <span class="split-refund-method-row__amount">
+        <span
+          class="split-refund-method-row__amount-value"
+          [class.split-refund-method-row__amount-value--filled]="hasAmount()"
+          [attr.data-testid]="'split-refund-method-amount-' + paymentMethod().id"
+        >
+          @if (hasAmount()) {
+            {{ amount() | currency: currency() : 'symbol-narrow' : undefined : locale() }}
+          } @else {
+            0
+          }
+        </span>
+        <span class="split-refund-method-row__amount-max">
+          {{
+            'cancellation.splitRefund.outOf'
+              | translate: { amount: maxAmount() | currency: currency() : 'symbol-narrow' : undefined : locale() }
+          }}
+        </span>
+      </span>
+
+      @if (hasAmount()) {
+        <span class="split-refund-method-row__edit">
+          <ignt-icon name="edit" variant="light" aria-hidden="true" />
+        </span>
+      }
+    </div>
+  </div>
+</div>
+
+@if (hasError()) {
+  <p class="split-refund-method-row__error" role="alert" [attr.data-testid]="'split-refund-method-error-' + paymentMethod().id">
+    <ignt-icon name="exclamation-circle" variant="light" aria-hidden="true" />
+    {{ 'cancellation.splitRefund.errors.amountDoesNotCoverItems' | translate }}
+  </p>
+}

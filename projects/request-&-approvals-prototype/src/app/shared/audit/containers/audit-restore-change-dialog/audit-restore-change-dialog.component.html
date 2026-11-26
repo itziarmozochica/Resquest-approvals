@@ -1,0 +1,77 @@
+<div class="audit-restore-change-dialog" data-testid="audit-restore-change-dialog">
+  <ignt-dialog-header>{{ 'audit.restoreChange.title' | translate }}</ignt-dialog-header>
+
+  <ignt-dialog-content>
+    <div class="audit-restore-change-dialog__body">
+      <!-- The row below names the author, with the erased and unknown labels. -->
+      <p class="audit-restore-change-dialog__meta" data-testid="audit-restore-change-dialog-moment">
+        {{ moment | date: 'd MMM y, HH:mm' }}
+      </p>
+
+      <app-audit-change-row
+        [row]="row"
+        [allScopesLabelKey]="allScopesLabelKey"
+        [i18nPrefix]="i18nPrefix"
+        [detailOpen]="true"
+        [menuHidden]="true"
+        [businessEntries]="businessEntries()"
+        (moreBusinessEntries)="onMoreBusinessEntries()"
+      ></app-audit-change-row>
+
+      <p class="audit-restore-change-dialog__reading" data-testid="audit-restore-change-dialog-reading">
+        {{ readingKey | translate: { count: entryCount } }}
+      </p>
+      <p class="audit-restore-change-dialog__meta">{{ 'audit.restoreChange.recorded' | translate }}</p>
+
+      @if (row.restoreWarningKey; as warningKey) {
+        <ignt-alert
+          sentiment="warning"
+          [description]="warningKey | translate"
+          data-testid="audit-restore-change-dialog-warning"
+        ></ignt-alert>
+      }
+
+      @if (!row.restorable) {
+        <ignt-alert
+          sentiment="neutral"
+          [description]="'audit.restoreChange.tooLarge' | translate"
+          data-testid="audit-restore-change-dialog-too-large"
+        ></ignt-alert>
+      }
+
+      @if (isNothingToRestore()) {
+        <ignt-alert
+          sentiment="neutral"
+          role="status"
+          [description]="'audit.restoreError.nothingToRestore' | translate"
+          data-testid="audit-restore-change-dialog-nothing-to-restore"
+        ></ignt-alert>
+      } @else if (error(); as restoreError) {
+        <ignt-alert
+          sentiment="danger"
+          role="alert"
+          [description]="restoreError.messageKey | translate"
+          data-testid="audit-restore-change-dialog-error"
+        ></ignt-alert>
+      }
+    </div>
+  </ignt-dialog-content>
+
+  <ignt-dialog-footer [hideCancelButton]="true">
+    <ignt-button
+      variant="tertiary"
+      sentiment="neutral"
+      [label]="'audit.restoreChange.cancel' | translate"
+      [disabled]="isRestoring()"
+      data-testid="audit-restore-change-dialog-cancel"
+      (click)="onCancel()"
+    />
+    <ignt-button
+      [label]="'audit.restoreChange.confirm' | translate"
+      [loading]="isRestoring()"
+      [disabled]="isConfirmDisabled()"
+      data-testid="audit-restore-change-dialog-confirm"
+      (click)="onRestore()"
+    />
+  </ignt-dialog-footer>
+</div>

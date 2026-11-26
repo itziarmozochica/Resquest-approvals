@@ -1,0 +1,127 @@
+/* stylelint-disable property-no-vendor-prefix */
+/* stylelint-disable value-no-vendor-prefix */
+@use '../../../styles/theme/foundations/all' as foundations;
+
+:host {
+  display: contents;
+}
+
+.hero {
+  padding: foundations.$space-12;
+  background-color: foundations.$color-background-main;
+  border-radius: foundations.$themed-box-radii;
+  z-index: 1;
+  min-height: 284px;
+
+  &--sticky {
+    position: sticky;
+    top: foundations.$space-6;
+    background-color: transparent;
+    z-index: 5;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      backdrop-filter: blur(5px);
+      background-color: rgba(foundations.$color-background-main, 0.9);
+      z-index: -1;
+      // Fades the shadow in over the first 24px of document scroll, so the resting hero
+      // casts none. Where animation-timeline is unsupported this runs as a 0s time
+      // animation whose `both` fill holds the `to` keyframe: a permanent shadow, which
+      // is the accepted fallback there.
+      animation: hero-sticky-shadow linear both;
+      animation-timeline: scroll();
+      animation-range: 0 foundations.$space-6;
+    }
+
+    // Masks the gap the sticky offset leaves above the hero (and the notches outside its
+    // rounded corners) so the scrolled content never shows past the hero's top edge.
+    // Must match the .bl-main--kiosk-logged background (src/app/shared/layout/layout.component.scss).
+    &::before {
+      content: '';
+      position: absolute;
+      inset-block-start: foundations.$space-7 * -1;
+      inset-inline: 0;
+      height: foundations.$space-6 * 2;
+      background-color: foundations.$palette-neutral-100;
+      z-index: -2;
+    }
+  }
+
+  &--minimal {
+    padding: foundations.$space-4 foundations.$space-6;
+    min-height: 0;
+  }
+
+  &__wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-12;
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-6;
+  }
+
+  &__title {
+    font: foundations.$font-h1-bold;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    // The title keeps the design-system font size by default and is allowed to
+    // grow up to 3 lines. When it still does not fit, the appFitText directive
+    // shrinks the font size to fit; this clamp + ellipsis is only the last-resort fallback.
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0;
+  }
+
+  &__badge {
+    color: foundations.$color-action-text-danger;
+    padding: foundations.$space-3;
+    border-radius: foundations.$space-1;
+    font: foundations.$font-base-regular;
+    margin-top: foundations.$space-3;
+    margin-left: auto;
+    border: foundations.$size-px solid foundations.$color-action-border-danger;
+  }
+
+  &__supporting-text {
+    font: foundations.$font-h2-regular;
+    margin: 0;
+  }
+}
+
+:host-context(.kiosk-ui-refresh) .hero {
+  padding: foundations.$space-10;
+  border-radius: var(--themed-box-radii, foundations.$radii-4);
+}
+
+.hero-header {
+  display: flex;
+  gap: foundations.$space-6;
+  align-items: center;
+
+  &__actions {
+    display: flex;
+    gap: foundations.$space-6;
+    align-items: center;
+    flex: 1;
+    justify-content: flex-end;
+  }
+
+  &__logo {
+    max-height: foundations.$size-16;
+  }
+}
+
+@keyframes hero-sticky-shadow {
+  to {
+    box-shadow: 0 10px 10px 0 rgba(0, 0, 0, 0.05);
+  }
+}

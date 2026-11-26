@@ -1,0 +1,137 @@
+@use 'abstracts' as abstracts;
+
+:where(.ignt-dialog-modal-shell) {
+  --ignt-dialog-modal-shell-position: absolute;
+  --ignt-dialog-modal-shell-left: 0;
+  --ignt-dialog-modal-shell-bottom: 0;
+  --ignt-dialog-modal-shell-border-start-start-radius: var(--fv-border-radius-container-xl);
+  --ignt-dialog-modal-shell-border-start-end-radius: var(--fv-border-radius-container-xl);
+  --ignt-dialog-modal-shell-border-end-start-radius: 0;
+  --ignt-dialog-modal-shell-border-end-end-radius: 0;
+  --ignt-dialog-modal-shell-max-height: 90vh;
+  --ignt-dialog-modal-shell-max-width: none;
+  --ignt-dialog-modal-shell-width: 100vw;
+}
+
+.ignt-dialog-modal-shell {
+  overflow: auto;
+  position: var(--ignt-dialog-modal-shell-position);
+  inset-inline-start: var(--ignt-dialog-modal-shell-left);
+  bottom: var(--ignt-dialog-modal-shell-bottom);
+  width: var(--ignt-dialog-modal-shell-width);
+  max-height: var(--ignt-dialog-modal-shell-max-height);
+  max-width: var(--ignt-dialog-modal-shell-max-width);
+  display: block;
+  padding-inline: var(--fv-spacing-lg);
+  border-start-start-radius: var(--ignt-dialog-modal-shell-border-start-start-radius);
+  border-start-end-radius: var(--ignt-dialog-modal-shell-border-start-end-radius);
+  border-end-start-radius: var(--ignt-dialog-modal-shell-border-end-start-radius);
+  border-end-end-radius: var(--ignt-dialog-modal-shell-border-end-end-radius);
+  background-color: var(--fv-color-surface-static-primary);
+
+  @include abstracts.ignt-custom-scroll-bar(var(--fv-border-radius-container-xl));
+
+  /*
+   * Content-scroll grid applies when header/content/footer are the shell's own children (a template
+   * portal renders them there) or when they sit directly under a single portaled host (a component
+   * portal). Skip when an inner wrapper carries its own layout — e.g. kiosk date picker
+   * `.kiosk-date-picker-modal` (padding, width, close button sibling).
+   */
+  &:has(> ignt-dialog-content),
+  &:has(ignt-dialog-content):not(:has(> * > *:not(ignt-dialog-header, ignt-dialog-content, ignt-dialog-footer))) {
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+
+    /*
+     * Flattens the projected dialog component wrapper so header/content/footer become direct grid
+     * rows and the content can expand vertically regardless of the caller's markup. This reaches
+     * into portaled content, which is why the component uses `ViewEncapsulation.None` (see the
+     * component decorator for the full rationale).
+     */
+    > *:not(ignt-dialog-header, ignt-dialog-content, ignt-dialog-footer) {
+      display: contents;
+    }
+  }
+
+  &.ignt-dialog-modal-shell--opening {
+    animation: ignt-dialog-modal-enter-mobile var(--fv-motion-duration-normal) ease-out forwards;
+  }
+
+  &.ignt-dialog-modal-shell--closing {
+    animation: ignt-dialog-modal-leave-mobile var(--fv-motion-duration-normal) ease-out forwards;
+  }
+
+  @include abstracts.ignt-media-breakpoint-up(tablet) {
+    --ignt-dialog-modal-shell-position: static;
+    --ignt-dialog-modal-shell-bottom: 0;
+    --ignt-dialog-modal-shell-border-end-start-radius: var(--fv-border-radius-container-xl);
+    --ignt-dialog-modal-shell-border-end-end-radius: var(--fv-border-radius-container-xl);
+    --ignt-dialog-modal-shell-max-width: calc(100vw - var(--fv-spacing-xl));
+    --ignt-dialog-modal-shell-max-height: calc(100vh - var(--fv-spacing-xl));
+
+    &.ignt-dialog-modal-shell--opening {
+      animation: ignt-dialog-modal-enter-desktop var(--fv-motion-duration-normal) ease-out forwards;
+    }
+
+    &.ignt-dialog-modal-shell--closing {
+      animation: ignt-dialog-modal-leave-desktop var(--fv-motion-duration-normal) ease-out forwards;
+    }
+
+    &.ignt-dialog-modal-shell--sm {
+      --ignt-dialog-modal-shell-width: 480px;
+    }
+
+    &.ignt-dialog-modal-shell--md {
+      --ignt-dialog-modal-shell-width: 720px;
+    }
+
+    &.ignt-dialog-modal-shell--lg {
+      --ignt-dialog-modal-shell-width: 990px;
+    }
+
+    @keyframes ignt-dialog-modal-enter-desktop {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    @keyframes ignt-dialog-modal-leave-desktop {
+      from {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      to {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+    }
+  }
+
+  @keyframes ignt-dialog-modal-enter-mobile {
+    from {
+      transform: translateY(100%);
+    }
+
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes ignt-dialog-modal-leave-mobile {
+    from {
+      transform: translateY(0);
+    }
+
+    to {
+      transform: translateY(100%);
+    }
+  }
+}

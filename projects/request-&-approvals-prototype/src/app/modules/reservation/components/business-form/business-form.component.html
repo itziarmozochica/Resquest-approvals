@@ -1,0 +1,517 @@
+<div *ngIf="isCreateMode">
+  <app-page-title
+    [section]="'menu.business' | translate"
+    [title]="'menu.businessCreate' | translate"
+    [backInHistory]="true"
+    class="new-design"
+  />
+</div>
+<div *ngIf="isEditMode">
+  <app-page-title
+    [section]="'menu.business' | translate"
+    [subsection]="businessOwnerUserId?.toString() ?? ''"
+    [title]="'menu.businessSettings' | translate"
+    [backInHistory]="true"
+    class="new-design"
+  />
+</div>
+<div class="container">
+  <ignt-wrapper-card class="content">
+    <ng-template #formAlert>
+      <div *ngIf="isEditMode">
+        <ignt-alert [description]="'businessManagement.form.changesApplyInFutureInvoicesMessage' | translate"></ignt-alert>
+      </div>
+      <div *ngIf="!isEditMode">
+        <ignt-alert [description]="'businessManagement.form.creationSendsEmailMessage' | translate"></ignt-alert>
+      </div>
+    </ng-template>
+    @if (!showProfileTabs()) {
+      <ng-container [ngTemplateOutlet]="formAlert" />
+    }
+    <div [class]="componentId" [class.business-form--tabbed]="showProfileTabs()" [formGroup]="businessForm">
+      <div [class]="componentId + '__section'">
+        <p *ngIf="isCreateMode" class="form-label">{{ 'businessManagement.form.selectTypeOfBusiness' | translate }}</p>
+        <h4 *ngIf="isEditMode" class="form-label">
+          {{ business?.name }}
+        </h4>
+        <p *ngIf="isEditMode">
+          <ignt-icon name="address-card" variant="light"></ignt-icon>
+          {{ businessOwnerUserId }}
+        </p>
+        <ng-container>
+          @if (isMyBusiness && !showPartnersTable) {
+            <span class="form-label field__label--readonly">{{ 'businessManagement.form.type' | translate }} *</span>
+            <div class="field__input--readonly">
+              {{ businessForm.controls.type.value?.title ?? '-' }}
+            </div>
+          }
+          <ng-container *ngIf="!isMyBusiness">
+            <ignt-typeahead
+              [attr.data-testid]="componentId + '-business-type'"
+              [options]="businessTypeOptions"
+              [customPopupClass]="'dropdown-menu--on-sidebar'"
+              [selectedOption]="businessForm.controls.type.value"
+              [fieldLabel]="('businessManagement.form.type' | translate) + '*'"
+              [emptyLabel]="'common.selectsPlaceholder' | translate"
+              [editable]="false"
+              (selected)="setControlValueAndMarkAsDirty(businessForm.controls.type, $event)"
+              [error]="businessForm.controls.type.errors?.required && businessForm.controls.type.touched"
+            ></ignt-typeahead>
+          </ng-container>
+        </ng-container>
+      </div>
+      @if (showProfileTabs()) {
+        <ignt-tabs data-testid="business-form__tabs" [keepAlive]="true" (selectedIndexChange)="onProfileTabChange($event)">
+          @for (tab of profileTabs(); track tab) {
+            <ignt-tabs-item [label]="'businessManagement.tabs.' + tab | translate">
+              @switch (tab) {
+                @case (BusinessProfileTab.GENERAL_INFO) {
+                  <div data-testid="business-form__alert">
+                    <ng-container [ngTemplateOutlet]="formAlert" />
+                  </div>
+                  <ng-container [ngTemplateOutlet]="generalInfo" />
+                }
+                @case (BusinessProfileTab.BALANCES) {
+                  <div [class]="componentId + '__form-section'" data-testid="business-form__balances">
+                    <app-distributor-balances></app-distributor-balances>
+                  </div>
+                }
+                @case (BusinessProfileTab.TEAM) {
+                  <div [class]="componentId + '__form-section'" data-testid="business-form__team">
+                    @if (hasOpenedTeamTab()) {
+                      @if (partnerSideTeamOrganizationId(); as partnerSideOrganizationId) {
+                        <app-distributor-members
+                          [canManage]="true"
+                          [organizationId]="partnerSideOrganizationId"
+                          [businessName]="business?.name ?? ''"
+                          [ownerUserId]="businessOwnerUserId"
+                        />
+                      } @else {
+                        <app-distributor-members
+                          [organizationId]="organization.id"
+                          [businessName]="organization.name"
+                          [ownerUserId]="businessOwnerUserId"
+                        />
+                      }
+                    }
+                  </div>
+                }
+              }
+            </ignt-tabs-item>
+          }
+        </ignt-tabs>
+      } @else {
+        <ng-container [ngTemplateOutlet]="generalInfo" />
+      }
+      <ng-template #generalInfo>
+        <div [class]="componentId + '__form'" data-testid="business-form__general-info">
+          <div [class]="componentId + '__form-section'">
+            <p class="form-label">{{ 'businessManagement.form.basicInfo' | translate }}</p>
+            <div [class]="componentId + '__sub-section'">
+              <div class="cell field cell--fill-md">
+                <ignt-input-field
+                  formControlName="name"
+                  id="name"
+                  [readonly]="isEditMode && !isMyBusiness"
+                  [label]="('businessManagement.form.businessName' | translate) + '*'"
+                  [customFormErrors]="[
+                    {
+                      type: 'required',
+                      message: 'form.error.required' | translate,
+                    },
+                    {
+                      type: 'minlength',
+                      message: 'form.error.minLength' | translate: { value: '3' },
+                    },
+                  ]"
+                ></ignt-input-field>
+              </div>
+              <div class="cell field cell--fill-md">
+                <ignt-input-field
+                  formControlName="email"
+                  id="email"
+                  [readonly]="isEditMode && !isMyBusiness"
+                  [label]="('businessManagement.form.email' | translate) + '*'"
+                  [customFormErrors]="[
+                    {
+                      type: 'required',
+                      message: 'form.error.required' | translate,
+                    },
+                    {
+                      type: 'emailValidator',
+                      message: 'form.error.invalidEmail' | translate,
+                    },
+                  ]"
+                ></ignt-input-field>
+              </div>
+              <div class="cell field cell--fill-md">
+                <ignt-input-field
+                  formControlName="contactName"
+                  id="contactName"
+                  [readonly]="isEditMode && !isMyBusiness"
+                  [helperText]="'businessManagement.form.contactNameDescription' | translate"
+                  [label]="('businessManagement.form.contactName' | translate) + '*'"
+                  [customFormErrors]="[
+                    {
+                      type: 'required',
+                      message: 'form.error.required' | translate,
+                    },
+                    {
+                      type: 'minlength',
+                      message: 'form.error.minLength' | translate: { value: '2' },
+                    },
+                  ]"
+                ></ignt-input-field>
+              </div>
+              <div class="cell field cell--fill-md">
+                <ignt-input-field
+                  formControlName="phone"
+                  id="phone"
+                  [readonly]="isEditMode && !isMyBusiness"
+                  [label]="('businessManagement.form.phone' | translate) + '*'"
+                  [customFormErrors]="[
+                    {
+                      type: 'required',
+                      message: 'form.error.required' | translate,
+                    },
+                    {
+                      type: 'minlength',
+                      message: 'form.error.minLength' | translate: { value: '2' },
+                    },
+                    {
+                      type: 'maxlength',
+                      message: 'form.error.maxLength' | translate: { value: '16' },
+                    },
+                  ]"
+                ></ignt-input-field>
+              </div>
+              @if (!isMyBusiness) {
+                <div class="cell field cell--fill-md">
+                  <ignt-input-field
+                    type="text"
+                    formControlName="glCode"
+                    id="glCode"
+                    [label]="'businessManagement.form.glCode' | translate"
+                    placeholder="overseas_schools"
+                  ></ignt-input-field>
+                </div>
+                <div class="cell field cell--fill-md">
+                  <ignt-input-field
+                    type="text"
+                    formControlName="externalBusinessId"
+                    id="externalBusinessId"
+                    [label]="'businessManagement.form.externalBusinessId' | translate"
+                    placeholder="MR-1001"
+                  ></ignt-input-field>
+                </div>
+              }
+            </div>
+          </div>
+          @if (!isMyBusiness) {
+            <div>
+              <ignt-toggle-card
+                [id]="'business-channel-toggle'"
+                [title]="'businessManagement.form.businessChannelTitle' | translate"
+                [description]="'businessManagement.form.businessChannelDescription' | translate"
+                [checked]="isBusinessChannelDropdownShown()"
+                [wrapperType]="'unwrapped'"
+                (change)="onBusinessChannelShowChange()"
+              />
+            </div>
+            @if (isBusinessChannelDropdownShown()) {
+              <ignt-typeahead
+                [customPopupClass]="'dropdown-menu--on-sidebar'"
+                [attr.data-testid]="componentId + '-business-channel'"
+                [options]="businessChannelOptions"
+                [selectedOption]="businessForm.controls.channel.value"
+                [allowCreateNew]="true"
+                [createNewLabel]="'businessManagement.form.createChannel' | translate"
+                [createNewPattern]="channelPattern"
+                [createNewPatternError]="'businessManagement.form.channelPatternDescription' | translate"
+                [emptyLabel]="'common.selectsPlaceholder' | translate"
+                [fieldLabel]="'businessManagement.form.businessChannelTitle' | translate"
+                [editable]="true"
+                [error]="(businessForm.controls.channel.errors && (businessForm.controls.channel.touched || isFormSubmitted)) ?? false"
+                [errorMessage]="getChannelErrorMessage()"
+                [helperText]="'businessManagement.form.channelPatternDescription' | translate"
+                (selected)="onBusinessChannelSelected($event)"
+                (createNewSelected)="onBusinessChannelCreateNewSelected($event)"
+              />
+              <ignt-alert data-testid="business-form-channel-alert">
+                <ng-template #igntAlertContent>
+                  <div class="business-form__channel-alert-description">
+                    <span>{{ 'businessManagement.form.channelAlertDescription' | translate }}</span>
+                    <a igntLink (click)="openChannelInfoSlider(); $event.preventDefault()">
+                      {{ 'businessManagement.form.channelAlertButton' | translate }}
+                    </a>
+                  </div>
+                </ng-template>
+              </ignt-alert>
+            }
+          }
+
+          <div [class]="componentId + '__form-section'">
+            <p class="form-label">{{ 'businessManagement.form.invoicingInfo' | translate }}</p>
+            <div [class]="componentId + '__sub-section'">
+              <div class="cell field cell--fill-md">
+                <ignt-input-field
+                  formControlName="billingName"
+                  id="billingName"
+                  [label]="'businessManagement.form.billingName' | translate"
+                  [customFormErrors]="[
+                    {
+                      type: 'minlength',
+                      message: 'form.error.minLength' | translate: { value: '2' },
+                    },
+                  ]"
+                ></ignt-input-field>
+              </div>
+              <div class="cell field cell--fill-md">
+                <ignt-input-field
+                  formControlName="taxIdentificationNumber"
+                  id="taxIdentificationNumber"
+                  [label]="'businessManagement.form.taxID' | translate"
+                  [customFormErrors]="[
+                    {
+                      type: 'minlength',
+                      message: 'form.error.minLength' | translate: { value: '3' },
+                    },
+                    {
+                      type: 'maxlength',
+                      message: 'form.error.maxLength' | translate: { value: '50' },
+                    },
+                    {
+                      type: 'pattern',
+                      message: 'invoicing.form.validationError.taxIdentificationNumber' | translate,
+                    },
+                  ]"
+                ></ignt-input-field>
+              </div>
+              <div class="cell field cell--fill-md">
+                <ignt-input-field
+                  formControlName="cityCode"
+                  id="cityCode"
+                  [label]="'businessManagement.form.cityCode' | translate"
+                ></ignt-input-field>
+              </div>
+              <div class="cell field cell--fill-md">
+                <app-country-code-selector
+                  [attr.data-testid]="'business-form__countryCode'"
+                  [required]="true"
+                  [hasErrors]="businessForm.controls.countryCode.invalid && businessForm.controls.countryCode.touched"
+                  (selected)="setCountryCode(businessForm.controls.countryCode, $event)"
+                  [selectedOption]="businessForm.controls.countryCode.value"
+                ></app-country-code-selector>
+              </div>
+
+              <div class="cell field cell--fill-md">
+                <ignt-input-field
+                  formControlName="address"
+                  id="address"
+                  [label]="'businessManagement.form.address' | translate"
+                  [customFormErrors]="[
+                    {
+                      type: 'minlength',
+                      message: 'form.error.minLength' | translate: { value: '3' },
+                    },
+                  ]"
+                ></ignt-input-field>
+              </div>
+              <div class="cell field cell--fill-md">
+                <ignt-input-field
+                  formControlName="region"
+                  id="region"
+                  [label]="'invoicing.form.invoicingInfo.region' | translate"
+                  [customFormErrors]="[
+                    {
+                      type: 'minlength',
+                      message: 'form.error.minLength' | translate: { value: '3' },
+                    },
+                  ]"
+                ></ignt-input-field>
+              </div>
+              <div class="cell field cell--fill-md">
+                <ignt-input-field
+                  formControlName="postalCode"
+                  id="postalCode"
+                  [label]="'businessManagement.form.postalCode' | translate"
+                  [customFormErrors]="[
+                    {
+                      type: 'maxlength',
+                      message: 'form.error.maxLength' | translate: { value: '20' },
+                    },
+                  ]"
+                ></ignt-input-field>
+              </div>
+            </div>
+          </div>
+          <div [class]="componentId + '__sub-section--fill'" *ngIf="!isMyBusiness">
+            <p class="form-label"></p>
+            <ignt-toggle-card
+              [id]="'permission-toggle'"
+              [title]="'businessManagement.form.permissionsTitle' | translate"
+              [description]="'businessManagement.form.permissionsSubtitle' | translate"
+              [checked]="businessForm.controls.isManager.value"
+              [wrapperType]="'unwrapped'"
+              (change)="onIsManagerChange()"
+            ></ignt-toggle-card>
+          </div>
+          <div [class]="componentId + '__form-section'">
+            <p class="form-label form-label--single-column">
+              {{ 'businessManagement.form.communicationsLanguageSection' | translate }}
+            </p>
+            <div [class]="componentId + '__sub-section'">
+              <div class="cell field cell--fill-md">
+                <!-- `disabled` is bound explicitly: the widget reads the control one-way through
+                   `selectedOption`, so disabling the control alone leaves the field interactive. -->
+                <ignt-typeahead
+                  [attr.data-testid]="componentId + '-communications-language'"
+                  [options]="communicationsLanguageOptions"
+                  [customPopupClass]="'dropdown-menu--on-sidebar'"
+                  [selectedOption]="businessForm.controls.communicationsLanguage.value"
+                  [fieldLabel]="'businessManagement.form.communicationsLanguage' | translate"
+                  [emptyLabel]="'common.selectsPlaceholder' | translate"
+                  [editable]="true"
+                  [disabled]="businessForm.controls.communicationsLanguage.disabled"
+                  [class.field--readonly]="businessForm.controls.communicationsLanguage.disabled"
+                  (selected)="setControlValueAndMarkAsDirty(businessForm.controls.communicationsLanguage, $event)"
+                ></ignt-typeahead>
+                <div class="helper-paragraph">
+                  {{ 'businessManagement.form.communicationsLanguageDescription' | translate: { partnerName: organization.name } }}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div [class]="componentId + '__form-section'" *ngIf="!isMyBusiness">
+            <p class="form-label"></p>
+            <div [class]="componentId + '__sub-section'">
+              <ignt-toggle-card
+                [class]="componentId + '__sub-section-item--fill'"
+                [id]="'payment-type-toggle'"
+                [title]="'businessManagement.form.creditBalance' | translate"
+                [description]="'businessManagement.form.creditBalanceDescription' | translate"
+                [checked]="businessForm.controls['paymentType'].value === BusinessPaymentTypeEnum.BALANCE"
+                [wrapperType]="'unwrapped'"
+                (change)="onPaymentTypeChange()"
+              ></ignt-toggle-card>
+              <ng-container *ngIf="shouldShowBalance">
+                <div class="cell field cell--fill-md">
+                  <ignt-typeahead
+                    [attr.data-testid]="componentId + '-payment-currency'"
+                    [options]="currencyDropdownOptions"
+                    [customPopupClass]="'dropdown-menu--on-sidebar'"
+                    [selectedOption]="selectedCreditCurrency"
+                    [fieldLabel]="'businessManagement.form.currency' | translate"
+                    [emptyLabel]="'common.selectsPlaceholder' | translate"
+                    [editable]="true"
+                    (selected)="selectCreditCurrency($event.id)"
+                  ></ignt-typeahead>
+                </div>
+                <div class="cell field cell--fill-md">
+                  <input
+                    id="balance"
+                    type="number"
+                    data-testid="business-form__balance"
+                    class="field__input"
+                    formControlName="credit"
+                    (change)="onCreditChange()"
+                    [placeholder]="
+                      (this.isCreateMode ? 'businessManagement.form.addCredit' : 'businessManagement.form.updateCredit') | translate
+                    "
+                  />
+                  <span class="field__label"
+                    >{{ (this.isCreateMode ? 'businessManagement.form.addCredit' : 'businessManagement.form.updateCredit') | translate }}
+                  </span>
+                </div>
+              </ng-container>
+            </div>
+          </div>
+          @if (isMyBusiness && shouldShowBalance && !showPartnersTable) {
+            <div [class]="componentId + '__form-section'">
+              <p class="form-label form-label--no-margin">{{ 'businessManagement.form.creditBalance' | translate }}</p>
+              <div class="helper-paragraph helper-paragraph--balance">
+                {{ 'businessManagement.form.creditRequestDescription' | translate: { partnerName: organization.name } }}
+              </div>
+              <div [class]="componentId + '__sub-section'">
+                <div class="cell field cell--fill-md">
+                  <ignt-input-field
+                    formControlName="currencyDisplay"
+                    [label]="'businessManagement.form.currency' | translate"
+                    [readonly]="isMyBusiness"
+                    id="currency"
+                  ></ignt-input-field>
+                </div>
+                <div class="cell field cell--fill-md">
+                  <ignt-input-field
+                    formControlName="credit"
+                    [label]="'businessManagement.form.creditAmount' | translate"
+                    [readonly]="isMyBusiness"
+                    type="text"
+                    id="balance"
+                  ></ignt-input-field>
+                </div>
+              </div>
+            </div>
+          }
+          @if (canSetPaymentInstructions) {
+            <div [class]="componentId + '__sub-section--fill'">
+              <p class="form-label form-label--single-column">{{ 'businessManagement.form.paymentInstructions' | translate }}</p>
+              <ignt-textarea-field
+                data-testid="payment-instructions-text-area"
+                formControlName="paymentInstructions"
+                id="paymentInstructions"
+                [label]="'businessManagement.form.paymentInstructions' | translate"
+                [helperText]="'businessManagement.form.paymentInstructionsMessage' | translate"
+                [maxlength]="paymentInstructionsMaxLength"
+                [placeholder]="'businessManagement.form.paymentInstructions' | translate"
+              ></ignt-textarea-field>
+            </div>
+          }
+        </div>
+        <div [class]="componentId + '__submit'">
+          <ignt-button data-testid="business-form__cancel" variant="tertiary" [label]="'common.cancel' | translate" (click)="onCancel()" />
+          <ignt-button
+            data-testid="business-form__submit"
+            [label]="(isEditMode ? 'common.save' : 'common.create') | translate"
+            [disabled]="isBalanceLoading"
+            [loading]="isSaving"
+            (click)="onSubmitForm()"
+          />
+        </div>
+      </ng-template>
+    </div>
+  </ignt-wrapper-card>
+</div>
+
+<app-lateral-slider
+  [showDetails]="isChannelInfoSliderShown()"
+  [title]="'businessManagement.form.channelAlertTitle' | translate"
+  [contentTemplate]="channelInfoSliderContent"
+  (closeSlider)="closeChannelInfoSlider()"
+></app-lateral-slider>
+
+<ng-template #channelInfoSliderContent>
+  <div>
+    <div class="lateral-slider-body__wrapper business-form__channel-info-content">
+      <div>{{ 'businessManagement.form.channelAlertContent' | translate }}</div>
+      <div>{{ 'businessManagement.form.channelAlertImpactTitle' | translate }}</div>
+      <ul class="business-form__channel-info-list">
+        <li>
+          <strong>{{ 'businessManagement.form.channelAlertImpactOptions.impact1.title' | translate }}:</strong>
+          {{ 'businessManagement.form.channelAlertImpactOptions.impact1.description' | translate }}
+        </li>
+        <li>
+          <strong>{{ 'businessManagement.form.channelAlertImpactOptions.impact2.title' | translate }}:</strong>
+          {{ 'businessManagement.form.channelAlertImpactOptions.impact2.description' | translate }}
+        </li>
+        <li>
+          <strong>{{ 'businessManagement.form.channelAlertImpactOptions.impact3.title' | translate }}:</strong>
+          {{ 'businessManagement.form.channelAlertImpactOptions.impact3.description' | translate }}
+        </li>
+      </ul>
+    </div>
+    <div class="lateral-slider-body__footer">
+      <ignt-button fill [label]="'businessManagement.form.channelAlertGotIt' | translate" (click)="closeChannelInfoSlider()" />
+    </div>
+  </div>
+</ng-template>

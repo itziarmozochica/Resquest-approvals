@@ -1,0 +1,62 @@
+<section class="schedule-inference-preview" data-testid="inference-preview">
+  <header class="schedule-inference-preview__header wrapper-card" data-testid="inference-header">
+    <dl class="schedule-inference-preview__facts">
+      <div class="schedule-inference-preview__fact">
+        <dt>{{ 'inventory.schedule.inference.header.place' | translate }}</dt>
+        <dd data-testid="inference-place">{{ inference().place.name }}</dd>
+      </div>
+      <div class="schedule-inference-preview__fact">
+        <dt>{{ 'inventory.schedule.inference.header.timeZone' | translate }}</dt>
+        <dd data-testid="inference-time-zone">{{ inference().timeZone }}</dd>
+      </div>
+      <div class="schedule-inference-preview__fact">
+        <dt>{{ 'inventory.schedule.inference.header.fromDate' | translate }}</dt>
+        <dd data-testid="inference-from-date-value">{{ inference().fromDate | date: dateFormat }}</dd>
+      </div>
+      @if (inference().toDate; as toDate) {
+        <div class="schedule-inference-preview__fact">
+          <dt>{{ 'common.endDate' | translate }}</dt>
+          <dd data-testid="inference-to-date-value">{{ toDate | date: dateFormat }}</dd>
+        </div>
+      }
+    </dl>
+    <p class="schedule-inference-preview__count font-h6" data-testid="inference-sessions-described">
+      {{
+        'inventory.schedule.inference.header.sessionsDescribed'
+          | translate: { explained: inference().sessionsExplained, considered: inference().sessionsConsidered }
+      }}
+    </p>
+  </header>
+
+  @if (inference().blockers.length > 0) {
+    <app-schedule-inference-blockers
+      [blockers]="inference().blockers"
+      [title]="'inventory.schedule.inference.planBlockers.title' | translate"
+      data-testid="inference-plan-blockers"
+    />
+  }
+
+  @if (inference().calendars.length === 0) {
+    <div class="schedule-inference-preview__empty wrapper-card" data-testid="inference-empty">
+      <h3 class="font-h5">{{ 'inventory.schedule.inference.empty.title' | translate }}</h3>
+      <p>{{ 'inventory.schedule.inference.empty.description' | translate }}</p>
+    </div>
+  } @else {
+    <div class="schedule-inference-preview__cards">
+      @for (card of calendarCards(); track $index) {
+        <app-schedule-inference-calendar-card
+          [calendar]="card.calendar"
+          [capacityTemplate]="card.capacityTemplate"
+          [sessionTypeGroupIds]="sessionTypeGroupIds()"
+          [sharedWithCalendarNames]="card.sharedWithCalendarNames"
+          [slotCapacityTemplates]="card.slotCapacityTemplates"
+          data-testid="inference-calendar-card"
+        />
+      }
+    </div>
+  }
+
+  @if (inference().residue.length > 0) {
+    <app-schedule-inference-residue-table [residue]="inference().residue" />
+  }
+</section>

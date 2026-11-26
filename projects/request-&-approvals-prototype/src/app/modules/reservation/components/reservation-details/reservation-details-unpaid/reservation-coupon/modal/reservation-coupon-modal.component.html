@@ -1,0 +1,42 @@
+<app-modal-content class="reservation-coupon-modal" [title]="title">
+  <div class="reservation-coupon-modal__content">
+    <form class="reservation-coupon-modal__form" [formGroup]="couponForm">
+      <div class="reservation-coupon-modal__form-field">
+        <div [class.form-group--error]="getControlError(couponForm.get('couponInput'))" class="form-group form-group--white">
+          <input
+            id="couponInput"
+            class="form-input reservation-coupon-modal__form__code-input"
+            type="text"
+            [formControl]="getCouponInput()"
+            [placeholder]="'reservations.reservationDetails.couponCta.inputPlaceholder' | translate"
+          />
+        </div>
+        <ng-container
+          *ngTemplateOutlet="validationErrors; context: { error: getControlError(couponForm.get('couponInput')) }"
+        ></ng-container>
+      </div>
+      <ignt-button
+        fill
+        htmlType="submit"
+        [label]="'reservations.reservationDetails.couponCta.button' | translate"
+        [loading]="isApplyingCouponInProgress"
+        [disabled]="!getCouponInput().value?.trim() || isApplyingCouponInProgress"
+        (click)="applyCoupon()"
+      ></ignt-button>
+    </form>
+  </div>
+
+  <ng-template #validationErrors let-error="error">
+    <ng-container *ngIf="error">
+      <div [ngSwitch]="error" class="form-error">
+        <ignt-icon name="circle-exclamation" variant="solid" class="form-error--icon"></ignt-icon>
+        <span *ngSwitchCase="'error'" class="form-error--message" data-testid="error-min-value-field">
+          {{
+            errorMessage$() || 'reservations.reservationDetails.couponCta.canNotBeApplied'
+              | translate: { lazyCouponType: errorMessageLazyCouponType }
+          }}
+        </span>
+      </div>
+    </ng-container>
+  </ng-template>
+</app-modal-content>

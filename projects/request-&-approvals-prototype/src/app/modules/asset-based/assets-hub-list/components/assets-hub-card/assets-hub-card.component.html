@@ -1,0 +1,58 @@
+<div class="assets-hub-card">
+  <div class="assets-hub-card__header">
+    <div class="assets-hub-card__header-info">
+      <div class="assets-hub-card__name">{{ hub().name }}</div>
+      <div class="assets-hub-card__status assets-hub-card__status--{{ statusModifier() }}">{{ statusText() }}</div>
+    </div>
+    <div class="assets-hub-card__bar-container">
+      <div class="assets-hub-card__bar"></div>
+      <div
+        class="assets-hub-card__bar-overlay"
+        [ngClass]="[
+          'assets-hub-card__bar-overlay--' + statusModifier(),
+          'assets-hub-card__bar-overlay--width-' + barOverlayWidthModifier(),
+        ]"
+      ></div>
+    </div>
+  </div>
+  <div class="assets-hub-summaries">
+    <ng-container *ngTemplateOutlet="assetsHubSummaries"></ng-container>
+  </div>
+  @if (!canManage()) {
+    <ignt-button
+      data-testid="view-hub"
+      variant="secondary"
+      size="large"
+      fill
+      [label]="'assetsHubs.viewHub' | translate"
+      (click)="onEdit()"
+    />
+  } @else if (status() === AssetsHubStatus.NOT_STARTED) {
+    <ignt-button data-testid="edit-hub" variant="primary" size="large" fill [label]="'common.start' | translate" (click)="onEdit()" />
+  } @else {
+    <ignt-button data-testid="edit-hub" variant="secondary" size="large" fill [label]="'common.edit' | translate" (click)="onEdit()" />
+  }
+</div>
+
+<ng-template #assetsHubSummaries>
+  @for (item of summaryItems(); track item.labelKey) {
+    <div class="assets-hub-summaries__item">
+      @if (item.isEmpty) {
+        <ignt-icon name="circle" variant="light" class="assets-hub-summaries__item-empty-icon"></ignt-icon>
+      } @else {
+        <ignt-icon name="check-circle" variant="solid" class="assets-hub-summaries__item-icon"></ignt-icon>
+      }
+
+      <div class="assets-hub-summaries__item-name">
+        {{ item.labelKey | translate }}
+        @if (item.isOptional) {
+          <span class="lowercase"> ({{ 'common.optional' | translate }}) </span>
+        }
+      </div>
+
+      @if (!item.isEmpty) {
+        <p class="assets-hub-summaries__item-value">{{ item.count }}</p>
+      }
+    </div>
+  }
+</ng-template>

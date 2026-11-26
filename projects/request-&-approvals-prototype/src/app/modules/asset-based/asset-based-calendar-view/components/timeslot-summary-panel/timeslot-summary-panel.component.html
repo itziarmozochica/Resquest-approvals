@@ -1,0 +1,126 @@
+<div class="booked-slot-details booked-slot-details--timeslot-summary">
+  <div class="booked-slot-details__header">
+    <div class="booked-slot-details__header-text">
+      <p class="booked-slot-details__subtitle">
+        {{ 'bookedSlots.timeslotSummaryDetails.subtitle' | translate }}
+      </p>
+      <div class="booked-slot-details__header-title-row">
+        <h3 class="booked-slot-details__title">{{ assetName() }}</h3>
+        <div
+          class="booked-slot-details__hours"
+          data-testid="timeslot-summary-hours"
+          igntTooltip
+          tooltipPlacement="top"
+          [tooltipDisabled]="!hoursTooltip()"
+          [tooltipLabel]="hoursTooltip()"
+        >
+          {{ hours() }}
+        </div>
+      </div>
+      @if (isPeakCount()) {
+        <p class="booked-slot-details__peak-note" data-testid="timeslot-summary-peak-note">
+          {{ 'bookedSlots.timeslotSummaryDetails.variedOccupancyNote' | translate: { count: attendeeCount() } }}
+        </p>
+      }
+    </div>
+  </div>
+
+  <div class="booked-slot-details__summary-card" role="table">
+    <div class="booked-slot-details__summary-row" role="row">
+      <span class="booked-slot-details__summary-title" role="columnheader">
+        {{ 'bookedSlots.timeslotSummaryDetails.summary' | translate }}
+      </span>
+      <span class="booked-slot-details__summary-label" role="columnheader">
+        {{ (isDaySelection() ? 'bookedSlots.timeslotSummaryDetails.atPeak' : 'bookedSlots.timeslotSummaryDetails.total') | translate }}
+      </span>
+      <span class="booked-slot-details__summary-label" role="columnheader">
+        {{ 'bookedSlots.timeslotSummaryDetails.sold' | translate }}
+      </span>
+      <span class="booked-slot-details__summary-label" role="columnheader">
+        {{ 'bookedSlots.timeslotSummaryDetails.remaining' | translate }}
+      </span>
+    </div>
+    <div class="booked-slot-details__summary-row" role="row">
+      <span class="booked-slot-details__summary-item" role="cell">
+        {{ 'bookedSlots.timeslotSummaryDetails.tickets' | translate }}
+      </span>
+      <span class="booked-slot-details__summary-item booked-slot-details__summary-item--numeric" role="cell">
+        {{ isDaySelection() ? peakAttendeeCount() : hasTicketCapacity() ? totalCapacity() : '—' }}
+      </span>
+      <span class="booked-slot-details__summary-item booked-slot-details__summary-item--numeric" role="cell">
+        {{ attendeeCount() }}
+      </span>
+      <span class="booked-slot-details__summary-item booked-slot-details__summary-item--numeric" role="cell">
+        {{ isDaySelection() || !hasTicketCapacity() ? '—' : totalCapacity() - (attendeeCount() || 0) }}
+      </span>
+    </div>
+    @if (partyOccupancy(); as parties) {
+      <div class="booked-slot-details__summary-row" role="row" data-testid="timeslot-summary-groups-row">
+        <span class="booked-slot-details__summary-item" role="cell">
+          {{ 'bookedSlots.timeslotSummaryDetails.groups' | translate }}
+        </span>
+        <span class="booked-slot-details__summary-item booked-slot-details__summary-item--numeric" role="cell">
+          {{ parties.capacity }}
+        </span>
+        <span class="booked-slot-details__summary-item booked-slot-details__summary-item--numeric" role="cell">
+          {{ parties.booked }}
+        </span>
+        <span class="booked-slot-details__summary-item booked-slot-details__summary-item--numeric" role="cell">
+          {{ remainingParties() }}
+        </span>
+      </div>
+    }
+  </div>
+
+  @if (attendeeRows().length) {
+    <div class="booked-slot-details__timeslot-attendees" data-testid="timeslot-summary-attendees">
+      <div class="booked-slot-details__timeslot-attendees-inner">
+        <div class="booked-slot-details__timeslot-attendees-header-row">
+          <div class="booked-slot-details__timeslot-attendees-header booked-slot-details__timeslot-attendees-header--name">
+            {{ 'bookedSlots.timeslotSummaryDetails.nameHeader' | translate }}
+          </div>
+          <div class="booked-slot-details__timeslot-attendees-header booked-slot-details__timeslot-attendees-header--sold">
+            {{ 'bookedSlots.timeslotSummaryDetails.sold' | translate }}
+          </div>
+        </div>
+        @for (row of attendeeRows(); track row.bookedSlot.id) {
+          <div
+            class="booked-slot-details__timeslot-attendees-data-row"
+            role="button"
+            tabindex="0"
+            [attr.aria-label]="('bookedSlots.timeslotSummaryDetails.viewBookingDetails' | translate) + ' — ' + row.name"
+            (click)="attendeeClick.emit(row.bookedSlot)"
+            (keyup.enter)="attendeeClick.emit(row.bookedSlot)"
+            (keyup.space)="$event.preventDefault(); attendeeClick.emit(row.bookedSlot)"
+          >
+            <div class="booked-slot-details__timeslot-attendees-name-cell">
+              <div class="booked-slot-details__timeslot-attendees-name-stack">
+                <span class="booked-slot-details__timeslot-attendees-name">{{ row.name }}</span>
+                @if (row.isTimeBlock) {
+                  <ignt-tag
+                    class="booked-slot-details__timeslot-attendees-block-tag"
+                    data-testid="timeslot-summary-block-tag"
+                    [sentiment]="'sharp'"
+                    [variant]="'outline'"
+                    [startIcon]="['fal', 'lock-alt']"
+                  >
+                    {{ 'bookedSlots.block' | translate }}
+                  </ignt-tag>
+                }
+                @if (row.refLabelKey && row.refValue !== null) {
+                  <p class="booked-slot-details__timeslot-attendees-ref-line">
+                    <span class="booked-slot-details__timeslot-attendees-ref-label">{{ row.refLabelKey | translate }}</span>
+                    <span class="booked-slot-details__timeslot-attendees-ref-value">{{ row.refValue }}</span>
+                  </p>
+                }
+              </div>
+            </div>
+            <div class="booked-slot-details__timeslot-attendees-sold-cell">
+              {{ row.soldTickets }}
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

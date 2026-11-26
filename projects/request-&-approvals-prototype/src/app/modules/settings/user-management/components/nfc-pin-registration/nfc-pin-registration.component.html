@@ -1,0 +1,97 @@
+<div class="nfc-registration">
+  @if (isReadingNfc() && !nfcCardData()) {
+    <div class="nfc-registration__reading">
+      <p class="nfc-registration__message">{{ 'login.nfc.bringCardCloseToSecondScreen' | translate }}</p>
+      <div class="nfc-registration__animation">
+        <app-nfc-success-animation></app-nfc-success-animation>
+      </div>
+      <ignt-button
+        variant="secondary"
+        data-testid="cancel-nfc-reading-button"
+        [label]="'common.cancel' | translate"
+        (click)="cancelNfcRegistration()"
+      ></ignt-button>
+    </div>
+  }
+  @if (nfcCardData() && isSetByEmail()) {
+    <div class="nfc-registration__email">
+      @if (isSubmitting()) {
+        <ignt-icon name="spinner" variant="solid" [spin]="true" class="nfc-registration__email-icon" size="h3"></ignt-icon>
+        <p class="nfc-registration__message" data-testid="nfc-registration-submitting">{{ 'common.loading' | translate }}</p>
+        <div class="nfc-registration__actions">
+          <ignt-button
+            variant="secondary"
+            data-testid="close-nfc-submitting-button"
+            [label]="'common.close' | translate"
+            (click)="cancelNfcRegistration()"
+          ></ignt-button>
+        </div>
+      } @else if (emailSent()) {
+        <ignt-icon name="envelope-open-text" variant="solid" class="nfc-registration__email-icon" size="h3"></ignt-icon>
+        <p class="nfc-registration__message" data-testid="nfc-registration-email-sent">
+          {{ 'userManagement.nfcPinEmailSent' | translate: { email: userEmail() } }}
+        </p>
+        <p class="nfc-registration__message">{{ 'userManagement.nfcPinEmailSentHint' | translate }}</p>
+        <div class="nfc-registration__actions">
+          <ignt-button
+            variant="primary"
+            data-testid="finish-nfc-registration-button"
+            [label]="'common.close' | translate"
+            (click)="finishEmailRegistration()"
+          ></ignt-button>
+        </div>
+      } @else if (errorMessage()) {
+        <div class="nfc-registration__error" data-testid="nfc-registration-error">
+          <ignt-icon name="exclamation-circle" variant="solid" class="nfc-registration__error-icon" size="base"></ignt-icon>
+          <span class="nfc-registration__error-message">{{ errorMessage() }}</span>
+        </div>
+        <div class="nfc-registration__actions">
+          <ignt-button
+            variant="secondary"
+            data-testid="cancel-nfc-registration-button"
+            [label]="'common.cancel' | translate"
+            (click)="cancelNfcRegistration()"
+          ></ignt-button>
+          <ignt-button
+            variant="primary"
+            data-testid="retry-nfc-registration-button"
+            [label]="'common.retry' | translate"
+            (click)="startNfcReading()"
+          ></ignt-button>
+        </div>
+      }
+    </div>
+  }
+  @if (nfcCardData() && !isSetByEmail()) {
+    <div class="nfc-registration__pin">
+      <p class="nfc-registration__message">{{ 'userManagement.enterPinForCard' | translate }}</p>
+      <app-digit-input
+        class="nfc-registration__digit-input"
+        [digitLength]="4"
+        [showToggleVisibility]="true"
+        (valueChange)="onPinChange($event)"
+      ></app-digit-input>
+      @if (errorMessage()) {
+        <div class="nfc-registration__error" data-testid="nfc-registration-error">
+          <ignt-icon name="exclamation-circle" variant="solid" class="nfc-registration__error-icon" size="base"></ignt-icon>
+          <span class="nfc-registration__error-message">{{ errorMessage() }}</span>
+        </div>
+      }
+      <div class="nfc-registration__actions">
+        <ignt-button
+          variant="secondary"
+          data-testid="cancel-nfc-registration-button"
+          [label]="'common.cancel' | translate"
+          (click)="cancelNfcRegistration()"
+        ></ignt-button>
+        <ignt-button
+          variant="primary"
+          data-testid="save-nfc-pin-button"
+          [disabled]="pin().length !== 4"
+          [label]="'common.save' | translate"
+          (click)="saveNfcPin()"
+        ></ignt-button>
+      </div>
+    </div>
+  }
+</div>

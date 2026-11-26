@@ -1,0 +1,49 @@
+<div class="request-results" [class.request-results--covered]="isLoading && loadingTemplate">
+  <ng-container *ngIf="currentState !== stateEnum.noFiltersSelected; else noFiltersTemplate ?? noFilterSelected">
+    <ng-container [ngSwitch]="currentState">
+      <ng-container *ngSwitchCase="stateEnum.noResults" [ngTemplateOutlet]="noResultsTemplate ?? noResults"></ng-container>
+      <ng-container *ngSwitchCase="stateEnum.withResults" [ngTemplateOutlet]="withResults"></ng-container>
+      <ng-container *ngSwitchCase="stateEnum.error" [ngTemplateOutlet]="errorTemplate ?? error"></ng-container>
+    </ng-container>
+  </ng-container>
+</div>
+
+<ng-template #withResults>
+  <div class="request-results__content">
+    <ng-content></ng-content>
+  </div>
+  @if (isLoading && loadingTemplate) {
+    <div class="request-results__loading-cover" data-testid="request-results-loading" role="status" aria-busy="true">
+      <ng-container [ngTemplateOutlet]="loadingTemplate"></ng-container>
+    </div>
+  } @else if (isLoading) {
+    <ng-container [ngTemplateOutlet]="loading"></ng-container>
+  }
+</ng-template>
+
+<ng-template #noResults>
+  <ng-container *ngIf="displayContentWithNoResults" [ngTemplateOutlet]="withResults"></ng-container>
+  <div data-testid="request-results-no-results" class="request-results__no-results">
+    <fa-icon *ngIf="noResultIcon" class="state-icon" [icon]="noResultIcon"></fa-icon>
+    <div>{{ noResultMessage }}</div>
+  </div>
+</ng-template>
+
+<ng-template #loading>
+  <div data-testid="request-results-loading" class="spinner">
+    <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'3x'"></fa-icon>
+  </div>
+</ng-template>
+
+<ng-template #noFilterSelected>
+  <div data-testid="request-results-no-filters-selected" class="request-results__no-filters-selected">
+    <fa-icon *ngIf="noFiltersIcon" class="state-icon" [icon]="noFiltersIcon"></fa-icon>
+    <div>{{ noFiltersMessage }}</div>
+  </div>
+</ng-template>
+
+<ng-template #error>
+  <div data-testid="request-results-error" class="request-results__error">
+    <ignt-alert sentiment="danger" [description]="errorMessage" />
+  </div>
+</ng-template>

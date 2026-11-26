@@ -1,0 +1,147 @@
+<div class="coupon-footer">
+  <ng-container *ngIf="showCoupon">
+    <app-coupon-code-selector
+      [error]="couponError"
+      (couponCode)="applyCouponDiscount($event.code, $event.lazyCouponType)"
+      [couponCodeApplied$]="couponCodeApplied$"
+      [onsiteSetupIdSelected]="onsiteSetupSelected().id"
+    ></app-coupon-code-selector>
+  </ng-container>
+</div>
+<div class="cart-footer">
+  <div class="cart-footer__total-price">
+    <div class="cart-footer__total-price-label" translate>
+      {{ 'boxOffice.cart.total' }}
+    </div>
+    <div class="cart-footer__total-price-amount">
+      <ng-container *ngIf="currentCart">
+        <ng-container *ngTemplateOutlet="cartTotal; context: { money: cartTotalMoney, locale: locale }"></ng-container>
+      </ng-container>
+    </div>
+  </div>
+</div>
+<ng-container *ngTemplateOutlet="showPayButtonForOneStepFlow; context: { money: cartTotalMoney }"></ng-container>
+
+<ng-template #cartTotal let-locale="locale" let-money="money">
+  <span data-testid="cart-total-price">
+    {{ money ? (money.amount | currency: money.currency : 'symbol-narrow' : null : locale) : '-' }}
+  </span>
+</ng-template>
+
+<ng-template #showPayButtonForOneStepFlow let-money="money">
+  <ng-container *ngIf="money?.amount > 0; else freePaymentButtonTemplate">
+    @if (isSplitPaymentEnabled()) {
+      <div class="bo-one-step-actions bo-one-step-actions--stackable">
+        @if (fullPaymentIntegratedAvailable()) {
+          <button
+            igntButton
+            [fill]="true"
+            [title]="(getCardDisabledTooltip(PaymentTypeEnum.CARD) | translate) || getButtonLabel(PaymentTypeEnum.CARD)"
+            [disabled]="addSessionsToCartIsDisabled || payWithCardIsDisabled(PaymentTypeEnum.CARD)"
+            (click)="requestFullPaymentIntegrated()"
+            data-testid="quick-pay-card"
+          >
+            @if (getButtonImageUrl(PaymentTypeEnum.CARD); as imageUrl) {
+              <img
+                class="bo-one-step-actions__button__icon"
+                [class.bo-one-step-actions__button__icon--tintable]="isButtonImageTintable(PaymentTypeEnum.CARD)"
+                alt=""
+                [src]="imageUrl"
+              />
+            }
+            {{ getButtonLabel(PaymentTypeEnum.CARD) }}
+          </button>
+        }
+        @if (fullPaymentCashAvailable()) {
+          <button
+            igntButton
+            [fill]="true"
+            [disabled]="addSessionsToCartIsDisabled"
+            (click)="requestFullPaymentCash()"
+            data-testid="quick-pay-cash"
+          >
+            @if (getButtonImageUrl(PaymentTypeEnum.CASH); as imageUrl) {
+              <img
+                class="bo-one-step-actions__button__icon"
+                [class.bo-one-step-actions__button__icon--tintable]="isButtonImageTintable(PaymentTypeEnum.CASH)"
+                alt=""
+                [src]="imageUrl"
+              />
+            }
+            {{ getButtonLabel(PaymentTypeEnum.CASH) }}
+          </button>
+        }
+        <button
+          igntButton
+          [fill]="true"
+          class="bo-one-step-actions__own-row"
+          [sentiment]="fullPaymentIntegratedAvailable() || fullPaymentCashAvailable() ? 'secondary' : 'primary'"
+          [disabled]="addSessionsToCartIsDisabled"
+          (click)="openPaymentOptionsModal()"
+          data-testid="split-payment-pay-button"
+        >
+          {{ (fullPaymentIntegratedAvailable() || fullPaymentCashAvailable() ? 'boxOffice.seeMoreOptions' : 'boxOffice.pay') | translate }}
+        </button>
+      </div>
+    } @else {
+      <ng-container *ngIf="showCommonPaymentButton; else directlyShowPaymentMethodsForOneStepFlow">
+        <div class="bo-one-step-actions">
+          <button
+            class="bo-one-step-actions__button button button--large button--primary button--fill"
+            [disabled]="addSessionsToCartIsDisabled"
+            (click)="simplePayClick()"
+            data-testid="ticket-step-add-cart"
+          >
+            {{ 'boxOffice.pay' | translate }}
+          </button>
+        </div>
+      </ng-container>
+    }
+  </ng-container>
+</ng-template>
+
+<ng-template #freePaymentButtonTemplate>
+  <button
+    igntButton
+    class="free-payment-button"
+    [fill]="true"
+    (click)="clickOnPay(PaymentTypeEnum.FREE)"
+    data-testid="pay-with-free-button"
+  >
+    {{ 'common.confirm' | translate }}
+  </button>
+</ng-template>
+
+<ng-template #directlyShowPaymentMethodsForOneStepFlow>
+  <div
+    class="bo-one-step-actions"
+    [class.bo-one-step-actions--three-payment-methods]="hasThreePaymentMethods"
+    data-testid="payment-buttons"
+  >
+    <button
+      igntButton
+      [fill]="true"
+      [sentiment]="i % 2 === 0 && paymentTypes.length > 1 ? 'secondary' : 'primary'"
+      *ngFor="let payment of paymentTypes; let i = index"
+      [title]="(getCardDisabledTooltip(payment) | translate) || getButtonLabel(payment)"
+      [attr.aria-label]="getButtonLabel(payment)"
+      [disabled]="addSessionsToCartIsDisabled || payWithCardIsDisabled(payment)"
+      (click)="clickOnPay(payment)"
+      data-testid="payment-button"
+    >
+      @if (getButtonImageUrl(payment); as imageUrl) {
+        <img
+          class="bo-one-step-actions__button__icon"
+          [class.bo-one-step-actions__button__icon--tintable]="isButtonImageTintable(payment)"
+          alt=""
+          [src]="imageUrl"
+        />
+        @if (isButtonImageTintable(payment)) {
+          {{ getButtonLabel(payment) }}
+        }
+      } @else {
+        {{ getButtonLabel(payment) }}
+      }
+    </button>
+  </div>
+</ng-template>

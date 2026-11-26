@@ -1,0 +1,116 @@
+<div class="information-request-evaluation" data-testid="information-request-evaluation">
+  @if (isLoading()) {
+    <p class="information-request-evaluation__status" data-testid="information-request-evaluation-loading">
+      {{ 'informationRequests.detail.loading' | translate }}
+    </p>
+  } @else if (loadErrorKey(); as loadErrorKey) {
+    <p class="information-request-evaluation__status" data-testid="information-request-evaluation-load-error">
+      {{ 'informationRequests.errors.' + loadErrorKey | translate }}
+    </p>
+  } @else if (request(); as ir) {
+    <ignt-wrapper-card [elevation]="1">
+      <header class="information-request-evaluation__header">
+        <h1 class="information-request-evaluation__title">{{ 'informationRequests.evaluation.title' | translate }}</h1>
+      </header>
+      <dl class="information-request-evaluation__meta">
+        <dt>{{ 'informationRequests.evaluation.name' | translate }}</dt>
+        <dd data-testid="information-request-evaluation-name">{{ ir.title || '—' }}</dd>
+        <dt>{{ 'informationRequests.evaluation.launch' | translate }}</dt>
+        <dd data-testid="information-request-evaluation-launch">{{ launchName() ?? '—' }}</dd>
+      </dl>
+    </ignt-wrapper-card>
+
+    <ignt-wrapper-card [elevation]="1">
+      <section class="information-request-evaluation__section" data-testid="information-request-evaluation-answers">
+        <h2>{{ 'informationRequests.evaluation.answers' | translate }}</h2>
+        @if (ir.questions?.length) {
+          <app-ir-form-layout
+            [form]="answersForm()"
+            [questions]="ir.questions ?? []"
+            [layout]="ir.layout ?? null"
+            [locked]="true"
+            [partnerId]="partnerId()"
+            [launchId]="launchId()"
+            [informationRequestId]="ir.id"
+            [referencedStepperTemplates]="ir.referencedStepperTemplates ?? {}"
+          />
+        } @else {
+          <p data-testid="information-request-evaluation-no-answers">{{ 'informationRequests.evaluation.noAnswers' | translate }}</p>
+        }
+      </section>
+    </ignt-wrapper-card>
+
+    <ignt-wrapper-card [elevation]="1">
+      <section class="information-request-evaluation__section" data-testid="information-request-evaluation-decision">
+        @if (reviewErrorKey(); as reviewErrorKey) {
+          <ignt-alert
+            sentiment="danger"
+            [description]="'informationRequests.evaluation.errors.' + reviewErrorKey | translate"
+            data-testid="information-request-evaluation-error"
+          />
+        }
+        @if (sendBackAction()) {
+          <ignt-textarea-field
+            id="information-request-evaluation-reason"
+            [label]="'informationRequests.evaluation.reason.label' | translate"
+            [placeholder]="'informationRequests.evaluation.reason.placeholder' | translate"
+            [rows]="4"
+            [maxlength]="reasonMaxLength"
+            [formControl]="reasonControl"
+          />
+          @if (isReasonTooLong()) {
+            <p class="information-request-evaluation__error" data-testid="information-request-evaluation-reason-too-long">
+              {{ 'informationRequests.evaluation.reason.tooLong' | translate: { max: reasonMaxLength } }}
+            </p>
+          }
+          @if (isReasonRequired()) {
+            <p class="information-request-evaluation__error" data-testid="information-request-evaluation-reason-required">
+              {{ 'informationRequests.evaluation.reason.required' | translate }}
+            </p>
+          }
+          <footer class="information-request-evaluation__actions">
+            <ignt-button
+              variant="primary"
+              [label]="confirmLabelKey() | translate"
+              [disabled]="isSubmitting()"
+              (click)="confirmSendBack()"
+              data-testid="information-request-evaluation-confirm"
+            />
+            <ignt-button
+              variant="secondary"
+              [label]="'common.cancel' | translate"
+              [disabled]="isSubmitting()"
+              (click)="cancelSendBack()"
+              data-testid="information-request-evaluation-cancel"
+            />
+          </footer>
+        } @else {
+          <footer class="information-request-evaluation__actions">
+            <ignt-button
+              variant="primary"
+              [label]="'informationRequests.evaluation.approve' | translate"
+              [disabled]="isSubmitting()"
+              (click)="approve()"
+              data-testid="information-request-evaluation-approve"
+            />
+            <ignt-button
+              variant="secondary"
+              [label]="'informationRequests.evaluation.requestChanges' | translate"
+              [disabled]="isSubmitting()"
+              (click)="openSendBack(reviewAction.RequestChanges)"
+              data-testid="information-request-evaluation-request-changes"
+            />
+            <ignt-button
+              variant="secondary"
+              sentiment="danger"
+              [label]="'informationRequests.evaluation.reject' | translate"
+              [disabled]="isSubmitting()"
+              (click)="openSendBack(reviewAction.Reject)"
+              data-testid="information-request-evaluation-reject"
+            />
+          </footer>
+        }
+      </section>
+    </ignt-wrapper-card>
+  }
+</div>

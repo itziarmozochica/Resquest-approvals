@@ -1,0 +1,161 @@
+<section class="schedule-special-days">
+  <header class="schedule-special-days__header">
+    <div class="schedule-special-days__heading">
+      <h2 class="schedule-special-days__title" translate>assetsHubs.detail.schedule.specialDaysTitle</h2>
+      <p class="schedule-special-days__description" translate>assetsHubs.detail.schedule.specialDaysDescription</p>
+    </div>
+
+    @if (canManage() && !isFormOpen()) {
+      <ignt-button
+        sentiment="brand"
+        variant="secondary"
+        size="large"
+        [label]="'assetsHubs.detail.schedule.addSpecialDay' | translate"
+        [disabled]="isSaving()"
+        data-testid="schedule-add-special-day"
+        (click)="openForm()"
+      ></ignt-button>
+    }
+  </header>
+
+  @if (canManage() && isFormOpen()) {
+    <div class="schedule-special-day-form" [formGroup]="form" data-testid="schedule-special-day-form">
+      <div class="schedule-special-day-form__fields">
+        <label class="schedule-special-day-form__field">
+          <span class="schedule-special-day-form__label">{{ 'assetsHubs.detail.schedule.specialDayDate' | translate }} *</span>
+          <ignt-native-date-input
+            inputId="schedule-special-day-date"
+            testId="schedule-special-day-date"
+            type="date"
+            [min]="datesFrom()"
+            [value]="form.controls.date.value"
+            [hasError]="isDuplicateDate() || isDateOutOfRange()"
+            (valueChange)="onDateChange($event)"
+          ></ignt-native-date-input>
+        </label>
+
+        <ignt-input-field
+          class="schedule-special-day-form__field"
+          formControlName="name"
+          type="text"
+          id="schedule-special-day-name"
+          [label]="'assetsHubs.detail.schedule.specialDayName' | translate"
+        />
+      </div>
+
+      @if (isDateOutOfRange()) {
+        <p class="schedule-special-day-form__error" data-testid="schedule-special-day-out-of-range">
+          {{ 'assetsHubs.detail.schedule.errors.dateOutOfRange' | translate: { from: datesFrom(), to: datesTo() } }}
+        </p>
+      }
+
+      @if (isDuplicateDate()) {
+        <p class="schedule-special-day-form__error" data-testid="schedule-special-day-duplicate" translate>
+          assetsHubs.detail.schedule.errors.duplicateSpecialDay
+        </p>
+      }
+
+      @if (inheritedTails().length > 0) {
+        <ignt-alert
+          sentiment="info"
+          data-testid="schedule-inherited-tail"
+          [title]="'assetsHubs.detail.schedule.inheritedTailTitle' | translate"
+          [description]="'assetsHubs.detail.schedule.inheritedTailDescription' | translate: { windows: inheritedTailDescription() }"
+        ></ignt-alert>
+      }
+
+      <ignt-checkbox
+        formControlName="isOpen"
+        [label]="'assetsHubs.detail.schedule.specialDayIsOpen' | translate"
+        (change)="toggleOpen($event)"
+      ></ignt-checkbox>
+
+      @if (isOpenSelected()) {
+        <ignt-checkbox
+          formControlName="isAllDay"
+          size="small"
+          [label]="'assetsHubs.detail.schedule.allDay' | translate"
+          (change)="toggleAllDay($event)"
+        ></ignt-checkbox>
+
+        @if (!isAllDaySelected()) {
+          <app-schedule-window-list
+            [windows]="form.controls.windows"
+            [overlappingIndexes]="overlappingIndexes()"
+            [isDisabled]="isSaving()"
+            [canManage]="canManage()"
+            testIdPrefix="schedule-special-day-window"
+            (windowAdded)="addWindow()"
+            (windowRemoved)="removeWindow($event)"
+          ></app-schedule-window-list>
+
+          @if (hasOpenWithoutWindows()) {
+            <p class="schedule-special-day-form__error" data-testid="schedule-special-day-no-windows" translate>
+              assetsHubs.detail.schedule.errors.openWithoutWindows
+            </p>
+          }
+        }
+      } @else {
+        <p class="schedule-special-days__hint" translate>assetsHubs.detail.schedule.specialDayClosedHint</p>
+      }
+
+      <div class="schedule-special-day-form__actions">
+        <ignt-button
+          sentiment="neutral"
+          variant="secondary"
+          size="large"
+          [label]="'assetsHubs.detail.schedule.discard' | translate"
+          [disabled]="isSaving()"
+          (click)="closeForm()"
+        ></ignt-button>
+        <ignt-button
+          sentiment="brand"
+          variant="primary"
+          size="large"
+          [label]="'assetsHubs.detail.schedule.saveSpecialDay' | translate"
+          [loading]="isSaving()"
+          [disabled]="isSaving()"
+          data-testid="schedule-save-special-day"
+          (click)="submit()"
+        ></ignt-button>
+      </div>
+    </div>
+  }
+
+  @if (rows().length === 0) {
+    <p class="schedule-special-days__empty" data-testid="schedule-special-days-empty" translate>
+      assetsHubs.detail.schedule.specialDaysEmpty
+    </p>
+  } @else {
+    <div class="schedule-special-days__list">
+      @for (row of rows(); track row.date) {
+        <div class="schedule-special-day" [attr.data-testid]="'schedule-special-day-' + row.date">
+          <div class="schedule-special-day__info">
+            <span class="schedule-special-day__date">{{ row.date }}</span>
+            <span class="schedule-special-day__name">{{ row.name }}</span>
+          </div>
+
+          <span class="schedule-special-day__windows">
+            @if (row.isClosed) {
+              <span class="schedule-special-day__closed" translate>assetsHubs.detail.schedule.states.closed</span>
+            } @else {
+              {{ row.windowsSummary }}
+            }
+          </span>
+
+          @if (canManage()) {
+            <ignt-button
+              sentiment="danger"
+              variant="tertiary"
+              size="small"
+              [label]="'assetsHubs.detail.schedule.deleteSpecialDay' | translate"
+              [disabled]="isSaving()"
+              [attr.data-testid]="'schedule-delete-special-day-' + row.date"
+              (click)="deleteSpecialDay(row.date)"
+            ></ignt-button>
+          }
+        </div>
+      }
+    </div>
+  }
+</section>

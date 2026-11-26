@@ -1,0 +1,158 @@
+<div class="sales-window-field">
+  @if (label()) {
+    <label class="sales-window-field__label">{{ label() }}</label>
+  }
+
+  <div
+    class="sales-window-field__cards"
+    [class.sales-window-field__cards--embedded]="embedded()"
+    [class.sales-window-field__cards--start-disabled]="showSalesStartToggle() && !salesStartEnabled()"
+  >
+    @if (showSalesStartToggle()) {
+      <div class="sales-window-field__start-card">
+        <label class="sales-window-field__checkbox-label" data-testid="sales-start-checkbox-label">
+          <input
+            type="checkbox"
+            class="sales-window-field__checkbox-input"
+            [checked]="salesStartEnabled()"
+            (change)="onSalesStartToggle($event)"
+            data-testid="sales-start-checkbox"
+          />
+          {{ 'salesWindow.default.salesStartLabel' | translate
+          }}<span class="sales-window-field__checkbox-label-light"> {{ 'salesWindow.default.salesStartOptional' | translate }}</span>
+        </label>
+      </div>
+    }
+
+    <div class="sales-window-field__inputs">
+      <div class="sales-window-field__input-group" [class.sales-window-field__input-group--invalid]="shouldShowSincePairInvalid">
+        @if (!showSalesStartToggle()) {
+          <label class="sales-window-field__input-label">{{ 'salesWindow.field.salesStart' | translate }}</label>
+        }
+        <div class="sales-window-field__input-pair" [class.sales-window-field__input-pair--invalid]="shouldShowSincePairInvalid">
+          <div #sinceDateSlot class="sales-window-field__input-slot">
+            <span class="sales-window-field__input-slot-label">{{ 'salesWindow.field.date' | translate }}</span>
+            <ignt-native-date-input
+              type="date"
+              class="sales-window-field__ignite-date"
+              [disabled]="sinceControl.disabled"
+              [value]="datePart(sinceControl.value)"
+              testId="sales-window-since-date-input"
+              (valueChange)="onDatePartValueChange(sinceControl, $event)"
+            />
+            <button
+              ignt-icon-button
+              type="button"
+              class="sales-window-field__input-slot-icon"
+              sentiment="tertiary"
+              size="small"
+              [disabled]="sinceControl.disabled"
+              [icon]="['fal', 'calendar-day']"
+              (click)="openPickerFromHost(sinceDateSlot)"
+            ></button>
+          </div>
+          <div class="sales-window-field__input-divider"></div>
+          <div class="sales-window-field__input-slot">
+            <span class="sales-window-field__input-slot-label">{{ 'salesWindow.field.time' | translate }}</span>
+            <input
+              #sinceTimeInput
+              type="time"
+              step="60"
+              class="sales-window-field__native-input"
+              [disabled]="sinceControl.disabled"
+              [value]="timePart(sinceControl.value)"
+              (input)="onTimePartChange(sinceControl, $event)"
+              data-testid="sales-window-since-time-input"
+            />
+            <button
+              ignt-icon-button
+              type="button"
+              class="sales-window-field__input-slot-icon"
+              sentiment="tertiary"
+              size="small"
+              [disabled]="sinceControl.disabled"
+              [icon]="['fal', 'clock']"
+              (click)="openPicker(sinceTimeInput)"
+            ></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sales-window-field__input-group" [class.sales-window-field__input-group--invalid]="shouldShowUntilPairInvalid">
+        <label class="sales-window-field__input-label">{{ 'salesWindow.field.salesEnd' | translate }}</label>
+        <div class="sales-window-field__input-pair" [class.sales-window-field__input-pair--invalid]="shouldShowUntilPairInvalid">
+          <div #untilDateSlot class="sales-window-field__input-slot">
+            <span class="sales-window-field__input-slot-label">{{ 'salesWindow.field.date' | translate }}</span>
+            <ignt-native-date-input
+              type="date"
+              class="sales-window-field__ignite-date"
+              [disabled]="untilControl.disabled"
+              [value]="datePart(untilControl.value)"
+              testId="sales-window-until-date-input"
+              (valueChange)="onDatePartValueChange(untilControl, $event)"
+            />
+            <button
+              ignt-icon-button
+              type="button"
+              class="sales-window-field__input-slot-icon"
+              sentiment="tertiary"
+              size="small"
+              [disabled]="untilControl.disabled"
+              [icon]="['fal', 'calendar-day']"
+              (click)="openPickerFromHost(untilDateSlot)"
+            ></button>
+          </div>
+          <div class="sales-window-field__input-divider"></div>
+          <div class="sales-window-field__input-slot">
+            <span class="sales-window-field__input-slot-label">{{ 'salesWindow.field.time' | translate }}</span>
+            <input
+              #untilTimeInput
+              type="time"
+              step="60"
+              class="sales-window-field__native-input"
+              [disabled]="untilControl.disabled"
+              [value]="timePart(untilControl.value)"
+              (input)="onTimePartChange(untilControl, $event)"
+              data-testid="sales-window-until-time-input"
+            />
+            <button
+              ignt-icon-button
+              type="button"
+              class="sales-window-field__input-slot-icon"
+              sentiment="tertiary"
+              size="small"
+              [disabled]="untilControl.disabled"
+              [icon]="['fal', 'clock']"
+              (click)="openPicker(untilTimeInput)"
+            ></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    @if (shouldShowSalesWindowFieldValidationFeedback) {
+      <div class="sales-window-field__error" data-testid="sales-window-field-error">
+        <ignt-icon name="exclamation-circle" variant="solid" class="sales-window-field__error-icon"></ignt-icon>
+        @if (formGroup.hasError('WINDOW_SINCE_INCOMPLETE')) {
+          <span data-testid="error-since-incomplete">{{ 'salesWindow.errors.sinceIncomplete' | translate }}</span>
+        } @else if (formGroup.hasError('WINDOW_OPENS_AFTER_SESSION_STARTS')) {
+          <span data-testid="error-opens-after-session-starts">{{ 'salesWindow.errors.opensAfterSessionStarts' | translate }}</span>
+        } @else if (formGroup.hasError('WINDOW_CLOSES_BEFORE_OPENING')) {
+          <span data-testid="error-closes-before-opening">{{ 'salesWindow.errors.closesBeforeOpening' | translate }}</span>
+        } @else if (formGroup.hasError('WINDOW_CLOSES_AFTER_SESSION_ENDS')) {
+          @if (maxBoundType() === 'defaultWindowEnd') {
+            <span data-testid="error-closes-after-default-window-end">{{
+              'salesWindow.errors.closesAfterDefaultWindowEnd' | translate
+            }}</span>
+          } @else {
+            <span data-testid="error-closes-after-session-ends">{{ 'salesWindow.errors.closesAfterSessionEnds' | translate }}</span>
+          }
+        } @else if (untilControl.dirty && formGroup.hasError('WINDOW_UNTIL_INCOMPLETE')) {
+          <span data-testid="error-until-incomplete">{{ 'salesWindow.errors.untilIncomplete' | translate }}</span>
+        } @else if (formGroup.hasError('WINDOW_UNTIL_INCOMPLETE')) {
+          <span data-testid="error-until-required">{{ 'salesWindow.errors.untilRequired' | translate }}</span>
+        }
+      </div>
+    }
+  </div>
+</div>

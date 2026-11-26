@@ -1,0 +1,80 @@
+<div class="waitlist-settings">
+  <div class="waitlist-settings__title" translate>planSettings.title</div>
+
+  <ignt-alert class="waitlist-settings__banner" [description]="'planSettings.optionalBannerDescription' | translate"></ignt-alert>
+
+  <div class="waitlist-settings__content">
+    <form [formGroup]="waitlistSettingsForm" class="waitlist-settings__form">
+      <div class="waitlist-settings__expiration">
+        <div>
+          <label class="waitlist-settings__expiration-label">
+            {{ 'planSettings.waitlist.expirationQuestion' | translate }}
+          </label>
+          <p class="waitlist-settings__expiration-info">{{ 'planSettings.waitlist.expirationDescription' | translate }}</p>
+        </div>
+        <ignt-toggle [checked]="hasExpirationDate()" [disabled]="!canEditPlan()" (change)="onExpirationToggle()" />
+      </div>
+
+      @if (hasExpirationDate()) {
+        <div class="waitlist-settings__date">
+          <label class="waitlist-settings__label" for="waitlist-expiration-date">
+            {{ 'planSettings.waitlist.expirationDate' | translate }}
+          </label>
+          <ignt-native-date-input
+            type="datetime-local"
+            inputId="waitlist-expiration-date"
+            [disabled]="!canEditPlan()"
+            [value]="expirationDateTimeLocal()"
+            [min]="minDateTimeLocal()"
+            [hasError]="hasDateError()"
+            [errorMessage]="dateErrorMessage() || ''"
+            testId="waitlist-expiration-date"
+            (valueChange)="onExpirationDateTimeChange($event)"
+            (blurred)="onExpirationDateTimeBlur()"
+          />
+        </div>
+        <div class="waitlist-settings__related-event">
+          <label class="waitlist-settings__label">
+            {{ 'planSettings.waitlist.relatedEvent' | translate }}
+          </label>
+          <ignt-typeahead
+            [disabled]="!canEditPlan()"
+            [fieldLabel]="'planSettings.waitlist.selectRelatedEvent' | translate"
+            [inputType]="SelectOptionTypeaheadInput.plan"
+            [options]="planOptions()"
+            [error]="!!planError()"
+            [errorMessage]="planError()"
+            [selectedOption]="selectedPlan()"
+            [useIdInSearch]="useIdInSearch"
+            [showId]="showId"
+            (selected)="onPlanSelected($event)"
+            (userInteraction)="onTypeaheadInteraction($event)"
+            data-testid="waitlist-related-event-typeahead"
+          ></ignt-typeahead>
+        </div>
+        <ignt-checkbox
+          class="waitlist-settings__redirection-checkbox"
+          (change)="onRedirectionToggle($event)"
+          [checked]="isRedirectionChecked()"
+          [disabled]="isRedirectionDisabled() || !canEditPlan()"
+          [label]="'planSettings.waitlist.redirection' | translate"
+        ></ignt-checkbox>
+      }
+    </form>
+  </div>
+</div>
+
+<app-actions-bar
+  [useConfirmButton]="true"
+  [showSaveDraftButton]="mode === 'creation'"
+  [continueButtonTranslationKey]="mode === 'edit' ? 'common.saveSettings' : continueToNextTab() ? 'common.continue' : undefined"
+  [continueButtonDisabled]="
+    !canEditPlan() || isSaving() || waitlistSettingsForm.invalid || hasDateError() || (mode === 'edit' && !waitlistSettingsForm.dirty)
+  "
+  [continueButtonLoading]="isSaving()"
+  [saveDraftDisabled]="!canEditPlan() || isSaving()"
+  (saveDraft)="onSaveDraft()"
+  (continue)="onConfirm()"
+  continueButtonTestId="waitlist-settings-confirm"
+  saveDraftTestId="waitlist-settings-save-draft"
+></app-actions-bar>

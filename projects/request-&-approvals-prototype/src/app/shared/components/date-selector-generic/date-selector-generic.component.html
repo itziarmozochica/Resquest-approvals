@@ -1,0 +1,224 @@
+<div class="date-time-selector">
+  <article class="date-time-selector__dates--datepicker">
+    <h3 class="date-time-selector__title">{{ 'boxOffice.dateSession' | translate }}</h3>
+    <div class="row-container">
+      <div class="previous-and-next-buttons">
+        <button
+          class="icon-button icon-button--small icon-button--sharp-tertiary"
+          data-testid="previous-date-button"
+          [disabled]="!selectedDate.value || selectedDate.value === minDate"
+          (click)="onClickChevron('left')"
+        >
+          <fa-icon [icon]="['fas', 'chevron-left']"></fa-icon>
+        </button>
+        <div class="form-group">
+          <label class="field">
+            <input
+              #datepickerInput
+              class="field__input field-input--date"
+              type="date"
+              [min]="minDate"
+              [max]="maxDate"
+              [formControl]="selectedDate"
+              data-testid="date-selector-datepicker"
+            />
+            <span class="field__label">{{ 'boxOffice.datePickerLabel' | translate }}</span>
+            <fa-icon
+              class="field__icon field__icon--trail"
+              [icon]="['fal', 'calendar-alt']"
+              [fixedWidth]="true"
+              (click)="datepickerInput.showPicker()"
+            ></fa-icon>
+          </label>
+        </div>
+        <button
+          class="icon-button icon-button--small icon-button--sharp-tertiary"
+          data-testid="next-date-button"
+          [disabled]="!selectedDate.value || selectedDate.value === maxDate"
+          (click)="onClickChevron('right')"
+        >
+          <fa-icon [icon]="['fas', 'chevron-right']"></fa-icon>
+        </button>
+      </div>
+    </div>
+    <div class="no-sessions-for-date" data-testid="no-sessions-for-date-message" *ngIf="isDateWithoutSessions">
+      <span class="no-sessions-for-date__message">{{ 'boxOffice.noSessionsForDate' | translate }}</span>
+    </div>
+  </article>
+
+  <article *ngIf="selectedDate" class="date-time-selector__hours">
+    <ng-container *ngIf="morningSessions.length > 0">
+      <div class="time-selector">
+        <ng-container
+          *ngTemplateOutlet="
+            hourBlockDescription;
+            context: {
+              title: 'boxOffice.morning',
+              description: isOperatingDayGrouping ? '' : 'boxOffice.morningHours',
+              timeRangeSection: 'morning',
+              timeRangeSessions: morningSessions,
+              isSessionsRangeVisible: openedTimeRangeSections.has('morning') || isSelectedSessionInHoursRange(morningSessions),
+            }
+          "
+        ></ng-container>
+        <div
+          class="tile-wrapper tile-wrapper--grid"
+          data-testid="morning-session"
+          *ngIf="openedTimeRangeSections.has('morning') || isSelectedSessionInHoursRange(morningSessions)"
+        >
+          <ng-container *ngFor="let session of morningSessions">
+            <ng-container
+              *ngTemplateOutlet="
+                hour;
+                context: {
+                  session: session,
+                  label: session.startsAt | momentDate: 'H:mm' : timezone,
+                }
+              "
+            ></ng-container>
+          </ng-container>
+        </div>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="afternoonSessions.length > 0">
+      <div class="time-selector">
+        <ng-container
+          *ngTemplateOutlet="
+            hourBlockDescription;
+            context: {
+              title: 'boxOffice.afternoon',
+              description: isOperatingDayGrouping ? '' : 'boxOffice.afternoonHours',
+              timeRangeSection: 'afternoon',
+              timeRangeSessions: afternoonSessions,
+              isSessionsRangeVisible: openedTimeRangeSections.has('afternoon') || isSelectedSessionInHoursRange(afternoonSessions),
+            }
+          "
+        ></ng-container>
+        <div
+          class="tile-wrapper tile-wrapper--grid"
+          data-testid="afternoon-session"
+          *ngIf="openedTimeRangeSections.has('afternoon') || isSelectedSessionInHoursRange(afternoonSessions)"
+        >
+          <ng-container *ngFor="let session of afternoonSessions">
+            <ng-container
+              *ngTemplateOutlet="
+                hour;
+                context: {
+                  session: session,
+                  label: session.startsAt | momentDate: 'H:mm' : timezone,
+                }
+              "
+            ></ng-container>
+          </ng-container>
+        </div>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="eveningSessions.length > 0">
+      <div class="time-selector">
+        <ng-container
+          *ngTemplateOutlet="
+            hourBlockDescription;
+            context: {
+              title: 'boxOffice.evening',
+              description: isOperatingDayGrouping ? '' : 'boxOffice.eveningHours',
+              timeRangeSection: 'evening',
+              timeRangeSessions: eveningSessions,
+              isSessionsRangeVisible: openedTimeRangeSections.has('evening') || isSelectedSessionInHoursRange(eveningSessions),
+            }
+          "
+        ></ng-container>
+        <div
+          class="tile-wrapper tile-wrapper--grid"
+          data-testid="evening-session"
+          *ngIf="openedTimeRangeSections.has('evening') || isSelectedSessionInHoursRange(eveningSessions)"
+        >
+          <ng-container *ngFor="let session of eveningSessions">
+            <ng-container
+              *ngTemplateOutlet="
+                hour;
+                context: {
+                  session: session,
+                  label: session.startsAt | momentDate: 'H:mm' : timezone,
+                }
+              "
+            ></ng-container>
+          </ng-container>
+        </div>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="nightSessions.length > 0">
+      <div class="time-selector">
+        <ng-container
+          *ngTemplateOutlet="
+            hourBlockDescription;
+            context: {
+              title: 'boxOffice.night',
+              description: isOperatingDayGrouping ? '' : 'boxOffice.nightHours',
+              timeRangeSection: 'night',
+              timeRangeSessions: nightSessions,
+              isSessionsRangeVisible: openedTimeRangeSections.has('night') || isSelectedSessionInHoursRange(nightSessions),
+            }
+          "
+        ></ng-container>
+        <div
+          class="tile-wrapper tile-wrapper--grid"
+          data-testid="night-session"
+          *ngIf="openedTimeRangeSections.has('night') || isSelectedSessionInHoursRange(nightSessions)"
+        >
+          <ng-container *ngFor="let session of nightSessions">
+            <ng-container
+              *ngTemplateOutlet="
+                hour;
+                context: {
+                  session: session,
+                  label: session.startsAt | momentDate: 'H:mm' : timezone,
+                }
+              "
+            ></ng-container>
+          </ng-container>
+        </div>
+      </div>
+    </ng-container>
+  </article>
+</div>
+
+<ng-template
+  #hourBlockDescription
+  let-title="title"
+  let-description="description"
+  let-timeRangeSection="timeRangeSection"
+  let-timeRangeSessions="timeRangeSessions"
+  let-isSessionsRangeVisible="isSessionsRangeVisible"
+>
+  <div
+    class="time-selector__hour-block"
+    [ngClass]="{ 'time-selector__hour__block--disabled': timeRangeSessions && isSelectedSessionInHoursRange(timeRangeSessions) }"
+    (click)="toggleTimeRangeSection(timeRangeSection, timeRangeSessions)"
+  >
+    <span>
+      <strong>{{ title | translate }}</strong
+      ><ng-container *ngIf="description"> - {{ description | translate }}</ng-container>
+    </span>
+    <button
+      class="icon-button icon-button--small icon-button--sharp-tertiary"
+      [attr.data-testid]="timeRangeSection + '-collapse-button'"
+      [disabled]="timeRangeSessions && isSelectedSessionInHoursRange(timeRangeSessions)"
+    >
+      <fa-icon [icon]="['fas', isSessionsRangeVisible ? 'chevron-up' : 'chevron-down']"></fa-icon>
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #hour let-session="session" let-ticketTypes="ticketTypes" let-label="label">
+  <button
+    class="tile-wrapper__item tile"
+    [class.tile--selected]="session.id === selectedSessionId"
+    data-testid="session-item"
+    (click)="selectSession(session)"
+  >
+    {{ label }}
+  </button>
+</ng-template>

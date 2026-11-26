@@ -1,0 +1,120 @@
+<ignt-wrapper-card class="immersive-module-panel" data-testid="immersive-module-panel">
+  <div class="immersive-module-panel__divider">
+    <span>{{ 'planEdition.immersiveContentPlan.modulesHeading' | translate: { count: modules().length } }}</span>
+    <ignt-button
+      class="immersive-module-panel__add-module"
+      size="small"
+      variant="secondary"
+      [label]="'planEdition.immersiveContentPlan.addModuleCta' | translate"
+      [leadingIcon]="{ name: 'plus-circle', variant: 'light' }"
+      data-testid="immersive-module-panel-add-module"
+      [disabled]="addableModules().length === 0"
+      [igntMenuTriggerFor]="addableModules().length === 0 ? null : addModuleMenu"
+    />
+    <ng-template #addModuleMenu>
+      <ignt-menu class="immersive-module-panel__add-module-menu" data-testid="immersive-module-panel-add-module-menu">
+        @for (entry of addableModules(); track entry.type) {
+          <ignt-menu-item
+            [attr.data-testid]="'immersive-module-panel-add-module-option-' + entry.type"
+            [label]="entry.label"
+            [value]="entry.type"
+            (triggered)="addModule(entry.type)"
+          />
+        }
+      </ignt-menu>
+    </ng-template>
+  </div>
+
+  <div
+    class="immersive-module-panel__list"
+    cdkDropList
+    data-testid="immersive-module-panel-list"
+    [cdkDropListData]="modules()"
+    [cdkDropListSortPredicate]="sortPredicate"
+    (cdkDropListDropped)="moduleDropped($event)"
+  >
+    @for (module of modules(); track module.id) {
+      <ignt-list-item
+        class="immersive-module-panel__item"
+        cdkDrag
+        [class.immersive-module-panel__item--selected]="module.id === selectedModuleId()"
+        [clickable]="true"
+        [selected]="module.id === selectedModuleId()"
+        [title]="module.label"
+        [attr.data-testid]="'immersive-module-panel-item-' + module.id"
+        [cdkDragDisabled]="module.fixed"
+        (click)="selectModule(module.id)"
+      >
+        <ng-container trailing-modifier>
+          <span class="immersive-module-panel__trailing">
+            @if (module.unsupported) {
+              <ignt-tag
+                class="immersive-module-panel__unsupported-tag"
+                data-testid="immersive-module-not-supported-tag"
+                [heightAuto]="true"
+                sentiment="neutral"
+                variant="solid"
+              >
+                {{ 'planEdition.immersiveContentPlan.notSupportedTag' | translate }}
+              </ignt-tag>
+            }
+            @if (module.gapCount > 0) {
+              <!-- `heightAuto`: the tag's fixed 20px box leaves a 12px content area for a 16px line,
+                   and `.tag` hides the overflow — the digit gets clipped without it. -->
+              <ignt-tag
+                class="immersive-module-panel__gap-tag"
+                [attr.data-testid]="'immersive-module-gap-tag-' + module.id"
+                [heightAuto]="true"
+                sentiment="warning"
+                variant="solid"
+              >
+                {{ module.gapCount }}
+              </ignt-tag>
+            }
+            <!-- The fixed row keeps the same grip, muted and disabled, so every row stays aligned. -->
+            <span
+              class="immersive-module-panel__drag-handle"
+              cdkDragHandle
+              aria-hidden="true"
+              data-testid="immersive-module-panel-drag-handle"
+              [class.immersive-module-panel__drag-handle--disabled]="module.fixed"
+              [cdkDragHandleDisabled]="module.fixed"
+            >
+              <ignt-icon name="grip-vertical" variant="solid" size="sm" />
+            </span>
+          </span>
+        </ng-container>
+      </ignt-list-item>
+    }
+  </div>
+
+  <div class="immersive-module-panel__divider" aria-hidden="true"></div>
+
+  <div class="immersive-module-panel__list">
+    <ignt-list-item
+      class="immersive-module-panel__item"
+      [class.immersive-module-panel__item--selected]="isGeneralSelected()"
+      [clickable]="true"
+      [selected]="isGeneralSelected()"
+      [title]="'planEdition.immersiveContentPlan.generalSettings' | translate"
+      data-testid="immersive-general-settings-item"
+      (click)="selectModule(generalSettingsId)"
+    >
+      <ng-container trailing-modifier>
+        @if (generalEdited()) {
+          <!-- `heightAuto`: the tag's fixed 20px box leaves a 12px content area for a 16px line,
+               and `.tag` hides the overflow — the label gets clipped without it. -->
+          <ignt-tag
+            class="immersive-module-panel__edited-tag"
+            data-testid="immersive-general-settings-edited-tag"
+            [heightAuto]="true"
+            sentiment="neutral"
+            variant="solid"
+          >
+            {{ 'planEdition.immersiveContentPlan.editedBadge' | translate }}
+          </ignt-tag>
+        }
+      </ng-container>
+    </ignt-list-item>
+  </div>
+</ignt-wrapper-card>

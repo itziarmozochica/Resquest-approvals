@@ -1,0 +1,75 @@
+<article
+  class="timeline-item"
+  [class.timeline-item--connector-below]="showConnectorBelow()"
+  [class.timeline-item--icon-small]="iconSize() === 'small'"
+  [class.timeline-item--inline-header]="headerLayout() === 'inline'"
+  [attr.aria-labelledby]="ariaTitleId()"
+  data-testid="shared-timeline-item"
+>
+  <div class="timeline-item__header">
+    <div class="timeline-item__header__content">
+      <div class="timeline-item__header__content__row">
+        @if (showIcon()) {
+          <div [class]="iconContainerClass()" aria-hidden="true" data-testid="shared-timeline-item-icon">
+            <fa-icon class="timeline-item__icon-container__icon" [icon]="icon()"></fa-icon>
+          </div>
+        }
+        <h4 class="timeline-item__activity-type" [id]="ariaTitleId()">
+          {{ title() }}
+        </h4>
+        @if (tagText()) {
+          <ignt-tag class="timeline-item__tag" [sentiment]="tagSentiment()" [variant]="tagVariant()">
+            {{ tagText() }}
+          </ignt-tag>
+        }
+      </div>
+      @if (description()) {
+        <p
+          class="timeline-item__description"
+          [class.timeline-item__description--clamped]="isDescriptionClamped()"
+          [style.--timeline-item-description-lines]="descriptionLineClamp()"
+          data-testid="shared-timeline-item-description"
+        >
+          {{ description() }}
+        </p>
+      }
+    </div>
+    @if (formattedDate()) {
+      <time class="timeline-item__date" [attr.datetime]="datetime()">{{ formattedDate() }}</time>
+    }
+    @if (headerActionsTemplate()) {
+      <ng-container [ngTemplateOutlet]="headerActionsTemplate()!"></ng-container>
+    }
+    @if (hasExpandableContent()) {
+      <button
+        class="timeline-item__expand-button"
+        ignt-icon-button
+        [icon]="isExpanded() ? ['fas', 'chevron-up'] : ['fas', 'chevron-down']"
+        size="small"
+        sentiment="tertiary"
+        variant="sharp"
+        [attr.aria-expanded]="isExpanded()"
+        [attr.aria-controls]="ariaControlsId()"
+        [attr.aria-label]="isExpanded() ? mergedA11yLabels().collapseDetails : mergedA11yLabels().expandDetails"
+        (click)="toggleExpanded()"
+      ></button>
+    }
+  </div>
+  @if (hasExpandableContent() && isExpanded()) {
+    <div
+      class="timeline-item__content"
+      [id]="ariaControlsId()"
+      data-testid="shared-timeline-item-content"
+      role="region"
+      [attr.aria-label]="mergedA11yLabels().details"
+    >
+      @if (expandedTemplate()) {
+        <div class="timeline-item__content__body">
+          <ng-container [ngTemplateOutlet]="expandedTemplate()!"></ng-container>
+        </div>
+      } @else {
+        <div class="timeline-item__content__body" [innerHTML]="renderedContent()"></div>
+      }
+    </div>
+  }
+</article>

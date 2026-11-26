@@ -1,0 +1,217 @@
+<ignt-dialog-header class="event-group-details__header">
+  <span class="event-group-details__title" data-testid="event-group-details-group">{{ group.name }}</span>
+  <span class="event-group-details__subtitle" data-testid="event-group-details-event">{{ event.name }}</span>
+</ignt-dialog-header>
+
+<ignt-dialog-content class="event-group-details__content">
+  @if (!isReadOnly) {
+    @if (showsFirstPublication()) {
+      <div class="event-group-details__publication" data-testid="event-group-details-first-publication">
+        <div class="event-group-details__publication-text">
+          <span class="event-group-details__publication-label">{{
+            'marketplaceEvents.details.firstPublish.cardTitle' | translate: { group: group.name }
+          }}</span>
+          <span class="event-group-details__publication-hint">{{
+            'marketplaceEvents.details.firstPublish.cardDescription' | translate
+          }}</span>
+        </div>
+        <ignt-button
+          data-testid="event-group-details-first-publish"
+          variant="primary"
+          [disabled]="!canManagePublication || isSaving() || isCheckingBlockers()"
+          [label]="'marketplaceEvents.details.firstPublish.publish' | translate"
+          (click)="onFirstPublish()"
+        />
+        <ng-container *ngTemplateOutlet="blockersAlert" />
+      </div>
+    } @else {
+      <div class="event-group-details__publication" data-testid="event-group-details-publication">
+        <div class="event-group-details__publication-text">
+          <span class="event-group-details__publication-label">{{ 'marketplaceEvents.details.published' | translate }}</span>
+          <span class="event-group-details__publication-hint" data-testid="event-group-details-published-hint">{{
+            (isPublished() ? 'marketplaceEvents.details.publishedHint' : 'marketplaceEvents.details.unpublishedHint') | translate
+          }}</span>
+        </div>
+        <span
+          data-testid="event-group-details-published"
+          igntTooltip
+          [tooltipDisabled]="canManagePublication"
+          [tooltipLabel]="'marketplaceEvents.details.publishDisabledReason' | translate"
+        >
+          <ignt-toggle
+            [attr.aria-label]="'marketplaceEvents.details.published' | translate"
+            [checked]="isPublished()"
+            [disabled]="!canManagePublication || isSaving() || isCheckingFirstPublication() || isCheckingBlockers()"
+            (change)="onPublishedToggled($event)"
+          />
+        </span>
+        <ng-container *ngTemplateOutlet="blockersAlert" />
+      </div>
+    }
+  }
+
+  <ng-template #blockersAlert>
+    @if (publicationBlockers().length > 0) {
+      <div class="event-group-details__blockers" data-testid="event-group-details-blockers" role="alert">
+        <ignt-alert sentiment="warning" [title]="'marketplaceEvents.details.cannotPublishYet' | translate">
+          <ng-template #igntAlertContent>
+            <ul class="event-group-details__blocker-list">
+              @for (blocker of publicationBlockers(); track blocker) {
+                <li [attr.data-testid]="'event-group-details-blocker-' + blocker">
+                  {{ publicationFailureKey(blocker) | translate }}
+                  @if (blocker === priceListsRequiredErrorCode) {
+                    <a
+                      class="event-group-details__link"
+                      data-testid="event-group-details-blockers-price-lists-link"
+                      routerLink="/inventory/pricing"
+                      [queryParams]="{ planId: event.id }"
+                      (click)="close()"
+                      >{{ 'marketplaceEvents.details.goToPriceLists' | translate }}</a
+                    >
+                  }
+                </li>
+              }
+            </ul>
+          </ng-template>
+        </ignt-alert>
+      </div>
+    }
+  </ng-template>
+
+  @if (!group.isDefault) {
+    <p class="event-group-details__segment-note" data-testid="event-group-details-segment-note">
+      {{ 'marketplaceEvents.details.segmentNote' | translate }}
+    </p>
+  }
+
+  @if (publicationError()) {
+    <p class="event-group-details__error" data-testid="event-group-details-error">
+      {{ publicationErrorKey() | translate }}
+      @if (isMissingPriceLists()) {
+        <a
+          class="event-group-details__link"
+          data-testid="event-group-details-error-price-lists-link"
+          routerLink="/inventory/pricing"
+          [queryParams]="{ planId: event.id }"
+          (click)="close()"
+          >{{ 'marketplaceEvents.details.goToPriceLists' | translate }}</a
+        >
+      }
+    </p>
+  }
+
+  <ignt-tabs
+    #tabs
+    class="event-group-details__tabs"
+    tabindex="-1"
+    [hasExtraLine]="true"
+    [keepAlive]="true"
+    [selectedIndex]="selectedTabIndex()"
+    (selectedIndexChange)="onTabSelected($event)"
+  >
+    <ignt-tabs-item [label]="'marketplaceEvents.details.tabs.tickets' | translate">
+      <p class="event-group-details__tab-description" data-testid="event-group-details-tickets-description">
+        @if (isReadOnly) {
+          {{ ticketsDescription.beforeLink }}{{ 'marketplaceEvents.details.channels' | translate }}{{ ticketsDescription.afterLink }}
+        } @else {
+          {{ ticketsDescription.beforeLink
+          }}<a
+            class="event-group-details__tab-link"
+            data-testid="event-group-details-channels-link"
+            [attr.href]="channelsUrl"
+            (click)="$event.preventDefault(); goTo(channelsUrl)"
+            >{{ 'marketplaceEvents.details.channels' | translate }}</a
+          >{{ ticketsDescription.afterLink }}
+        }
+      </p>
+      <app-marketplace-event-group-tickets data-testid="event-group-details-tickets" [groupId]="group.id" [planId]="event.id" />
+    </ignt-tabs-item>
+    <ignt-tabs-item [label]="'marketplaceEvents.details.tabs.prices' | translate">
+      <p class="event-group-details__tab-description" data-testid="event-group-details-prices-description">
+        @if (isReadOnly) {
+          {{ pricesDescription.beforeLink }}{{ 'marketplaceEvents.details.priceLists' | translate }}{{ pricesDescription.afterLink }}
+        } @else {
+          {{ pricesDescription.beforeLink
+          }}<a
+            class="event-group-details__tab-link"
+            data-testid="event-group-details-price-lists-link"
+            [attr.href]="priceListsUrl()"
+            (click)="$event.preventDefault(); goTo(priceListsUrl())"
+            >{{ 'marketplaceEvents.details.priceLists' | translate }}</a
+          >{{ pricesDescription.afterLink }}
+        }
+      </p>
+      @if (visitedTabs().has('prices')) {
+        <app-marketplace-event-group-prices
+          data-testid="event-group-details-prices"
+          [groupId]="group.id"
+          [planId]="event.id"
+          (priceListsLoaded)="onPriceListsLoaded($event)"
+        />
+      }
+    </ignt-tabs-item>
+    <ignt-tabs-item [label]="'marketplaceEvents.details.tabs.rules' | translate">
+      <p class="event-group-details__tab-description" data-testid="event-group-details-rules-description">
+        @if (isReadOnly) {
+          {{ rulesDescription.beforeLink }}{{ 'marketplaceEvents.details.tabs.rules' | translate }}{{ rulesDescription.afterLink }}
+        } @else {
+          {{ rulesDescription.beforeLink
+          }}<a
+            class="event-group-details__tab-link"
+            data-testid="event-group-details-rules-link"
+            [attr.href]="rulesUrl()"
+            (click)="$event.preventDefault(); goTo(rulesUrl())"
+            >{{ 'marketplaceEvents.details.tabs.rules' | translate }}</a
+          >{{ rulesDescription.afterLink }}
+        }
+      </p>
+      @if (visitedTabs().has('rules')) {
+        <app-distributor-group-rules
+          data-testid="event-group-details-rules"
+          [groupId]="group.id"
+          [partnerId]="partnerId"
+          [showTitle]="false"
+          (rulesLoaded)="onRulesLoaded($event)"
+        />
+      }
+    </ignt-tabs-item>
+  </ignt-tabs>
+</ignt-dialog-content>
+
+<ignt-dialog-footer class="event-group-details__footer" [hideCancelButton]="true">
+  @if (!isReadOnly) {
+    @if (selectedTab() === 'tickets') {
+      <ignt-button
+        data-testid="event-group-details-go-to-channels"
+        variant="secondary"
+        [fill]="isMobile()"
+        [label]="'marketplaceEvents.details.goToChannels' | translate"
+        (click)="goTo(channelsUrl)"
+      />
+    } @else if (selectedTab() === 'prices') {
+      <ignt-button
+        data-testid="event-group-details-go-to-price-lists"
+        variant="secondary"
+        [fill]="isMobile()"
+        [label]="'marketplaceEvents.details.goToPriceLists' | translate"
+        (click)="goTo(priceListsUrl())"
+      />
+    } @else {
+      <ignt-button
+        data-testid="event-group-details-go-to-rules"
+        variant="secondary"
+        [fill]="isMobile()"
+        [label]="'marketplaceEvents.details.goToRules' | translate"
+        (click)="goTo(rulesUrl())"
+      />
+    }
+  }
+  <ignt-button
+    data-testid="event-group-details-done"
+    variant="primary"
+    [fill]="isMobile()"
+    [label]="'marketplaceEvents.details.done' | translate"
+    [loading]="isSaving()"
+    (click)="close()"
+  />
+</ignt-dialog-footer>

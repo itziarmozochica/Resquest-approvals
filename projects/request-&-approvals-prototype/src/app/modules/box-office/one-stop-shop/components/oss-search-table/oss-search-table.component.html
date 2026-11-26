@@ -1,0 +1,55 @@
+<div class="oss-search-table" data-testid="oss-search-table">
+  <div class="oss-search-table__floating-headers" [class.visible]="showFloatingHeaders()">
+    <div class="simple-header">
+      <div class="simple-header__col simple-header__col-name">{{ 'oneStopShop.search.table.name' | translate }}</div>
+      <div class="simple-header__col simple-header__col-sku">SKU</div>
+      <div class="simple-header__col simple-header__col-gtin">GTIN</div>
+      <div class="simple-header__col simple-header__col-price">{{ 'oneStopShop.search.table.price' | translate }}</div>
+      <div class="simple-header__col simple-header__col-action"></div>
+    </div>
+  </div>
+
+  <div #scrollWrapper class="oss-search-table__wrapper" (scroll)="onScroll($event)">
+    <app-table [hasActions]="false" [headers]="headers" [scrollable]="true" [type]="TableType.FZ_TABLE" data-testid="oss-search-table-body">
+      @for (session of visibleSessions(); track session.id) {
+        <tr class="scrollable-table__row" [class.pulse-animation]="isPulsing(session.id)" data-testid="oss-search-table-row">
+          <td class="scrollable-table__row-cell">
+            <span class="oss-search-table__title" data-testid="oss-search-row-title">{{ session.title }}</span>
+          </td>
+          <td class="scrollable-table__row-cell">
+            <span class="oss-search-table__sku" data-testid="oss-search-row-sku">{{ session.sku || '--' }}</span>
+          </td>
+          <td class="scrollable-table__row-cell">
+            <span class="oss-search-table__gtin" data-testid="oss-search-row-gtin">{{ session.gtin || '--' }}</span>
+          </td>
+          <td class="scrollable-table__row-cell">
+            <span class="oss-search-table__price" data-testid="oss-search-row-price">{{
+              session.price.amount | currency: session.price.currency : 'symbol' : null : locale
+            }}</span>
+          </td>
+          <td class="scrollable-table__row-cell">
+            <button
+              class="oss-search-table__add-btn"
+              (click)="onAddToCart(session)"
+              [attr.aria-label]="'oneStopShop.search.table.addToCart' | translate"
+              data-testid="oss-search-row-add-btn"
+            >
+              <ignt-icon name="plus" variant="light" size="base" aria-hidden="true" />
+            </button>
+          </td>
+        </tr>
+      }
+    </app-table>
+
+    @if (hasMoreRows()) {
+      <div #loadMoreSentinel class="oss-search-table__load-more" data-testid="oss-search-table-load-more"></div>
+    }
+
+    @if (sessions().length === 0) {
+      <div class="oss-search-table__no-results" data-testid="oss-search-no-results">
+        <ignt-icon name="ticket-alt" variant="light" size="h3" aria-hidden="true" />
+        <span translate>oneStopShop.search.noResults</span>
+      </div>
+    }
+  </div>
+</div>

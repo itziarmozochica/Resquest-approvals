@@ -1,0 +1,63 @@
+<div class="information-requests-list" data-testid="information-requests-list">
+  <div class="information-requests-list__header">
+    <h1 class="information-requests-list__title">{{ 'informationRequests.list.title' | translate }}</h1>
+    <button
+      type="button"
+      igntButton
+      sentiment="primary"
+      class="information-requests-list__create"
+      data-testid="information-requests-list-create"
+      (click)="onCreateClick()"
+    >
+      {{ 'informationRequests.list.create' | translate }}
+    </button>
+  </div>
+
+  @if (loading()) {
+    <p class="information-requests-list__loading" data-testid="information-requests-list-loading">
+      {{ 'informationRequests.list.loading' | translate }}
+    </p>
+  } @else if (error()) {
+    <p class="information-requests-list__error" data-testid="information-requests-list-error">
+      {{ 'informationRequests.errors.' + error() | translate }}
+    </p>
+  } @else if (requests().length === 0) {
+    <p class="information-requests-list__empty" data-testid="information-requests-list-empty">
+      {{ 'informationRequests.list.empty' | translate }}
+    </p>
+  } @else {
+    <table class="information-requests-list__table" data-testid="information-requests-list-table">
+      <thead>
+        <tr>
+          <th scope="col">{{ 'informationRequests.list.columns.title' | translate }}</th>
+          <th scope="col">{{ 'informationRequests.list.columns.launch' | translate }}</th>
+          <th scope="col">{{ 'informationRequests.list.columns.created' | translate }}</th>
+          <th scope="col">{{ 'informationRequests.list.columns.due' | translate }}</th>
+          <th scope="col">{{ 'informationRequests.list.columns.updated' | translate }}</th>
+          <th scope="col">{{ 'informationRequests.list.columns.status' | translate }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (request of requests(); track request.id) {
+          <tr
+            class="information-requests-list__row"
+            data-testid="information-requests-list-row"
+            [attr.data-request-id]="request.id"
+            (click)="onRequestClick(request)"
+          >
+            <td>{{ request.title }}</td>
+            <td>{{ launchNameFor(request) }}</td>
+            <td>{{ request.createdAt | date: 'mediumDate' }}</td>
+            <td>{{ request.dueDate ? (request.dueDate | date: 'mediumDate') : '—' }}</td>
+            <td>{{ request.updatedAt | date: 'mediumDate' }}</td>
+            <td>
+              <span [class]="'information-requests-list__badge information-requests-list__badge--' + statusKey(request.status)">
+                {{ 'informationRequests.status.' + statusKey(request.status) | translate }}
+              </span>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

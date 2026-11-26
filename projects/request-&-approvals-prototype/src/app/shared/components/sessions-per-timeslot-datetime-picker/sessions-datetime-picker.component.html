@@ -1,0 +1,122 @@
+<div class="filters">
+  <div class="filters__content">
+    <div class="filters__left-section">
+      <div class="filters__date-filters">
+        <ng-container *ngIf="showPicker">
+          <div class="filters__date-time" [class.filters__date-time--single]="!showTimePicker">
+            <app-date-range-time
+              (selectDateEmitter)="selectDate($event)"
+              (selectDateTimeEmitter)="selectDateTime($event)"
+              [dateTimeList]="dateTimeList"
+              [disabled]="!filtersSelected"
+              [initialDateShown]="true"
+              [queryDate]="dateSelected"
+              [selectedDateTime]="getSelectedDateTime()"
+              [showTimePicker]="showTimePicker"
+              [timezone]="timezone"
+              class="bottom-placement"
+            >
+            </app-date-range-time>
+          </div>
+        </ng-container>
+
+        <ng-content *ngIf="showDateRangeFilter" select="[slot=schedule-filters]"></ng-content>
+      </div>
+      <div class="filters__hidden-sessions-checkbox" *ngIf="showHiddenSessionsCheckbox">
+        <input
+          id="hidden-sessions-checkbox"
+          type="checkbox"
+          [checked]="shouldHideHiddenSessions"
+          (change)="onShouldHideHiddenSessionsChange($event)"
+        />
+        <label for="hidden-sessions-checkbox" translate>
+          {{ 'sessions.sessionsPerTimeslot.disableHiddenSessions' }}
+        </label>
+      </div>
+    </div>
+    <div class="filters__accessory-container">
+      <div class="filters__accessory-container__actions">
+        <div *ngIf="isBulkEditSessionsPerTimeslotShown()">
+          <ignt-button
+            [fill]="isMobile()"
+            variant="secondary"
+            size="small"
+            [label]="'sessions.sessionsPerTimeslot.bulkEdit.title' | translate"
+            (click)="onClickBulkEdit()"
+            data-testid="bulk-edit-button"
+          />
+        </div>
+        <ng-container *ngIf="!loading && filtersSelected && hasResults()">
+          <ng-content select="[slot=button-seating-actions]"></ng-content>
+        </ng-container>
+        <div *ngIf="isCancelTimeSlotShown()">
+          <ignt-button
+            size="small"
+            sentiment="danger"
+            [fill]="isMobile()"
+            [label]="'sessions.cancelTimeSlotForm.slideTitle' | translate"
+            (click)="onClickCancelTimeSlot()"
+            data-testid="cancel-time-slot-button"
+          />
+        </div>
+        <div *ngIf="isExtendSessionsPerTimeslotShown()">
+          <ignt-button
+            size="small"
+            [fill]="isMobile()"
+            [label]="'sessions.extendTimeSlotForm.slideTitle' | translate"
+            (click)="onClickExtendTimeSlot()"
+            data-testid="extend-time-slot-button"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sessions">
+  <div class="sessions__content">
+    <div class="sessions__row">
+      <ng-container *ngIf="!loading; else spinner">
+        <div class="sessions__result">
+          <div class="sessions__result--error">
+            <ignt-alert
+              *ngIf="error"
+              sentiment="danger"
+              [description]="'errors.generic' | translate"
+              showCloseButton
+              [closeButtonAriaLabel]="'common.close' | translate"
+              (closeAlert)="error = false"
+              data-testid="sessions-error"
+            />
+          </div>
+
+          <div *ngIf="!error && !loading && filtersSelected && !hasResults()" class="sessions__result--empty">
+            <fa-icon [icon]="icon" class="icon-empty"></fa-icon>
+            <p class="text-empty" data-testid="sessions-no-results" translate>common.searchResult.withoutResults</p>
+          </div>
+
+          <div *ngIf="!error && !loading && !filtersSelected" class="sessions__result--empty">
+            <fa-icon [icon]="icon" class="icon-empty"></fa-icon>
+            <p class="text-empty" data-testid="sessions-filters-no-selected" translate>
+              sessions.sessionsPerTimeslot.bulkEdit.noFiltersSelected
+            </p>
+          </div>
+
+          <div *ngIf="!loading && filtersSelected && hasResults()" class="sessions__result--list" data-testid="sessions-results">
+            <ng-container *ngTemplateOutlet="resultTemplate"></ng-container>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+</div>
+
+<ng-template #spinner>
+  <div class="sessions__spinner" data-testid="sessions-filters-spinner">
+    <fa-icon [icon]="['fas', 'spinner']" [size]="'4x'" class="loader"></fa-icon>
+  </div>
+</ng-template>
+
+<ng-template #toastMessage>
+  <div [innerHTML]="'sessions.sessionsPerTimeslot.bulkEdit.success.message' | translate" data-testid="bulk-edit-toast"></div>
+</ng-template>

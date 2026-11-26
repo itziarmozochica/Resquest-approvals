@@ -1,0 +1,75 @@
+@use 'foundations' as foundations;
+@import 'abstracts/all';
+
+$fade-duration: 0.4s;
+
+:host {
+  display: block;
+}
+
+// The width cap lives on the container, not on the image, so the skeleton and the capture it
+// stands in for are always the same box — sizing the image alone would make the placeholder wider
+// than the picture and shift the layout on load. Both layers sit in the same grid cell so one can
+// fade out while the other fades in, and the placeholder's own height is what reserves the box
+// while the capture downloads.
+.immersive-module-preview {
+  display: grid;
+  margin-inline: auto;
+  width: 100%;
+
+  // The 60% cap only makes sense once the form column is wide; on a phone it shrank the capture to
+  // a thumbnail nobody could read.
+  @include breakpoint(md) {
+    width: 60%;
+  }
+
+  // Centred, not `start`: the row is as tall as the taller layer, so whichever of the two is
+  // shorter — usually the capture against the placeholder's reserved height — sits centred in it
+  // instead of hanging from the top.
+  > * {
+    align-self: center;
+    grid-area: 1 / 1;
+  }
+}
+
+// `ignt-skeleton type="image"` sizes itself from the `[height]` the component binds, a desktop
+// figure. Below `md` the box follows the width instead so a phone does not reserve 280px for a
+// capture that lands at less than half of that; `min-height: 0` is what lets a grid item obey the
+// ratio over its content.
+.immersive-module-preview__placeholder {
+  aspect-ratio: 7 / 4;
+  min-height: 0;
+  overflow: hidden;
+  transition: opacity $fade-duration ease;
+
+  @include breakpoint(md) {
+    aspect-ratio: auto;
+    overflow: visible;
+  }
+
+  &--faded {
+    opacity: 0;
+  }
+}
+
+.immersive-module-preview__image {
+  border: 1px solid foundations.$color-border-main;
+  border-radius: foundations.$radii-2;
+  display: block;
+  height: auto;
+  opacity: 0;
+  transition: opacity $fade-duration ease;
+  width: 100%;
+
+  &--loaded {
+    opacity: 1;
+  }
+}
+
+// The pulse is the design system's own; only the cross-fade is ours to silence here.
+@media (prefers-reduced-motion: reduce) {
+  .immersive-module-preview__placeholder,
+  .immersive-module-preview__image {
+    transition: none;
+  }
+}

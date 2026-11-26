@@ -1,0 +1,216 @@
+<div class="transfer-capacity-form">
+  <div class="transfer-capacity-form__header-details">
+    <div *ngIf="formattedDate" class="transfer-capacity-form__header-detail transfer-capacity-form__header-detail--bold">
+      {{ formattedDate }}
+    </div>
+    <div *ngIf="capacityPoolTitle" class="transfer-capacity-form__header-detail transfer-capacity-form__header-detail--regular">
+      <ng-container *ngIf="capacityGroupTitle; else poolTitleOnly"> {{ capacityGroupTitle }} / {{ capacityPoolTitle }} </ng-container>
+      <ng-template #poolTitleOnly>
+        {{ capacityPoolTitle }}
+      </ng-template>
+    </div>
+  </div>
+  <form [formGroup]="formGroup" class="transfer-capacity-form__form">
+    <section class="transfer-capacity-form__fields">
+      <div class="transfer-capacity-form__quota-section">
+        <div
+          class="transfer-capacity-form__quota-box"
+          [class.transfer-capacity-form__quota-box--blocked]="sourceQuotaConsumeMode() === 'blocked'"
+        >
+          <div class="transfer-capacity-form__quota-select-wrapper">
+            <label class="transfer-capacity-form__quota-label" for="sourceQuotaId">
+              {{ 'sessions.transferCapacityForm.from.label' | translate }}
+            </label>
+            <select
+              class="transfer-capacity-form__select"
+              [class.transfer-capacity-form__select--unselected]="formGroup.get('sourceQuotaId')?.value === null"
+              formControlName="sourceQuotaId"
+              id="sourceQuotaId"
+              data-testid="source-quota-select"
+            >
+              <option [value]="null" disabled>{{ 'sessions.transferCapacityForm.from.placeholder' | translate }}</option>
+              <option *ngFor="let quota of quotas" [value]="quota.capacityQuotaId">
+                {{ quota.name }}
+              </option>
+            </select>
+            <div class="transfer-capacity-form__quota-content">
+              <fa-icon
+                *ngIf="sourceQuotaName()"
+                class="transfer-capacity-form__quota-icon"
+                [icon]="['fal', 'chart-pie']"
+                [fixedWidth]="true"
+              ></fa-icon>
+              <span class="transfer-capacity-form__quota-name">{{
+                sourceQuotaName() || ('sessions.transferCapacityForm.from.placeholder' | translate)
+              }}</span>
+            </div>
+            <fa-icon class="transfer-capacity-form__chevron" [icon]="['fal', 'chevron-down']" [fixedWidth]="true"></fa-icon>
+          </div>
+          <div class="transfer-capacity-form__available-wrapper">
+            <div
+              *ngIf="sourceQuotaConsumeMode() === 'blocked' && sourceDisplayBlockedUnits() !== null"
+              class="transfer-capacity-form__available-content"
+            >
+              <span class="transfer-capacity-form__available-label">{{ 'sessions.transferCapacityForm.blocked' | translate }}</span>
+              <span class="transfer-capacity-form__available-value">{{ sourceDisplayBlockedUnits()! }}</span>
+            </div>
+            <div
+              *ngIf="sourceQuotaConsumeMode() !== 'blocked' && sourceDisplayAvailableUnits() !== null"
+              class="transfer-capacity-form__available-content"
+            >
+              <span class="transfer-capacity-form__available-label">{{ 'sessions.transferCapacityForm.available' | translate }}</span>
+              <span class="transfer-capacity-form__available-value">{{ sourceDisplayAvailableUnits()! }}</span>
+            </div>
+          </div>
+        </div>
+        <div
+          *ngIf="formGroup.controls.sourceQuotaId.touched && formGroup.controls.sourceQuotaId.invalid"
+          class="transfer-capacity-form__error"
+          data-testid="source-quota-error"
+        >
+          {{ 'sessions.transferCapacityForm.from.error' | translate }}
+        </div>
+      </div>
+
+      <div class="transfer-capacity-form__transfer-section">
+        <button
+          type="button"
+          class="transfer-capacity-form__transfer-icon-wrapper"
+          (click)="onSwapQuotas()"
+          [disabled]="!formGroup.get('sourceQuotaId')?.value || !formGroup.get('destinationQuotaId')?.value"
+          data-testid="swap-quotas-button"
+        >
+          <div class="transfer-capacity-form__transfer-icon-container">
+            <fa-icon class="transfer-capacity-form__transfer-icon-up" [icon]="['fal', 'angle-up']" [fixedWidth]="true"></fa-icon>
+            <fa-icon class="transfer-capacity-form__transfer-icon-down" [icon]="['fal', 'angle-down']" [fixedWidth]="true"></fa-icon>
+          </div>
+        </button>
+        <div class="transfer-capacity-form__amount-group">
+          <span class="transfer-capacity-form__amount-label">{{ 'sessions.transferCapacityForm.amount.label' | translate }}</span>
+          <label class="field" for="amount">
+            <input
+              class="field__input transfer-capacity-form__amount-input"
+              formControlName="amount"
+              id="amount"
+              type="number"
+              min="1"
+              [max]="maxTransferableAmount()"
+              [placeholder]="'sessions.transferCapacityForm.amount.placeholder' | translate"
+              data-testid="amount-input"
+            />
+          </label>
+        </div>
+      </div>
+      <div
+        *ngIf="formGroup.controls.amount.touched && formGroup.controls.amount.invalid"
+        class="transfer-capacity-form__error transfer-capacity-form__error--amount"
+        data-testid="amount-error"
+      >
+        <fa-icon class="transfer-capacity-form__error-icon" [icon]="['fas', 'exclamation-circle']" [fixedWidth]="true"></fa-icon>
+        <span *ngIf="formGroup.controls.amount.errors?.['max']; else defaultError">
+          {{ 'sessions.transferCapacityForm.amount.errorExceedsAvailable' | translate: { available: maxTransferableAmount() ?? 0 } }}
+        </span>
+        <ng-template #defaultError>
+          {{ 'sessions.transferCapacityForm.amount.error' | translate }}
+        </ng-template>
+      </div>
+
+      <div class="transfer-capacity-form__quota-section">
+        <div
+          class="transfer-capacity-form__quota-box"
+          [class.transfer-capacity-form__quota-box--blocked]="destinationQuotaConsumeMode() === 'blocked'"
+        >
+          <div class="transfer-capacity-form__quota-select-wrapper">
+            <label class="transfer-capacity-form__quota-label" for="destinationQuotaId">
+              {{ 'sessions.transferCapacityForm.to.label' | translate }}
+            </label>
+            <select
+              class="transfer-capacity-form__select"
+              [class.transfer-capacity-form__select--unselected]="formGroup.get('destinationQuotaId')?.value === null"
+              formControlName="destinationQuotaId"
+              id="destinationQuotaId"
+              data-testid="destination-quota-select"
+            >
+              <option [value]="null" disabled>{{ 'sessions.transferCapacityForm.to.placeholder' | translate }}</option>
+              <option *ngFor="let quota of destinationQuotaOptions()" [value]="quota.capacityQuotaId">
+                {{ quota.name }}
+              </option>
+            </select>
+            <div class="transfer-capacity-form__quota-content">
+              <fa-icon
+                *ngIf="destinationQuotaName()"
+                class="transfer-capacity-form__quota-icon"
+                [icon]="['fal', 'chart-pie']"
+                [fixedWidth]="true"
+              ></fa-icon>
+              <span class="transfer-capacity-form__quota-name">{{
+                destinationQuotaName() || ('sessions.transferCapacityForm.to.placeholder' | translate)
+              }}</span>
+            </div>
+            <fa-icon class="transfer-capacity-form__chevron" [icon]="['fal', 'chevron-down']" [fixedWidth]="true"></fa-icon>
+          </div>
+          <div class="transfer-capacity-form__available-wrapper">
+            <div *ngIf="!selectedDestinationQuota()" class="transfer-capacity-form__available-content">
+              <span class="transfer-capacity-form__available-label">{{ 'sessions.transferCapacityForm.available' | translate }}</span>
+              <span class="transfer-capacity-form__available-value">-</span>
+            </div>
+            <div
+              *ngIf="selectedDestinationQuota() && destinationQuotaConsumeMode() === 'blocked' && destinationDisplayBlockedUnits() !== null"
+              class="transfer-capacity-form__available-content"
+            >
+              <span class="transfer-capacity-form__available-label">{{ 'sessions.transferCapacityForm.blocked' | translate }}</span>
+              <span class="transfer-capacity-form__available-value">{{ destinationDisplayBlockedUnits()! }}</span>
+            </div>
+            <div
+              *ngIf="
+                selectedDestinationQuota() && destinationQuotaConsumeMode() !== 'blocked' && destinationDisplayAvailableUnits() !== null
+              "
+              class="transfer-capacity-form__available-content"
+            >
+              <span class="transfer-capacity-form__available-label">{{ 'sessions.transferCapacityForm.available' | translate }}</span>
+              <span class="transfer-capacity-form__available-value">{{ destinationDisplayAvailableUnits()! }}</span>
+            </div>
+          </div>
+        </div>
+        <div
+          *ngIf="formGroup.controls.destinationQuotaId.touched && formGroup.controls.destinationQuotaId.invalid"
+          class="transfer-capacity-form__error"
+          data-testid="destination-quota-error"
+        >
+          {{ 'sessions.transferCapacityForm.to.error' | translate }}
+        </div>
+        <div *ngIf="hasBlockedQuotaSelected()" class="transfer-capacity-form__warning" data-testid="blocked-quota-warning">
+          <fa-icon class="transfer-capacity-form__warning-icon" [icon]="['fas', 'exclamation-triangle']" [fixedWidth]="true"></fa-icon>
+          <div class="transfer-capacity-form__warning-content">
+            <div class="transfer-capacity-form__warning-title">
+              {{ 'sessions.transferCapacityForm.blockedQuotaWarning.title' | translate }}
+            </div>
+            <div
+              class="transfer-capacity-form__warning-message"
+              [innerHTML]="'sessions.transferCapacityForm.blockedQuotaWarning.message1' | translate"
+            ></div>
+            <div
+              class="transfer-capacity-form__warning-message"
+              [innerHTML]="'sessions.transferCapacityForm.blockedQuotaWarning.message2' | translate"
+            ></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="transfer-capacity-form__actions">
+      <button
+        igntButton
+        type="button"
+        sentiment="primary"
+        [fill]="true"
+        (click)="onSave()"
+        [disabled]="formGroup.invalid || isSaving"
+        [loading]="isSaving"
+        data-testid="save-button"
+      >
+        {{ 'common.save' | translate }}
+      </button>
+    </section>
+  </form>
+</div>

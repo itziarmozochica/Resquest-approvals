@@ -1,0 +1,67 @@
+<div class="content" data-testid="payment-method-container">
+  <form>
+    <ng-container *ngIf="isLoading" [ngTemplateOutlet]="loading"></ng-container>
+    <div class="form__content" *ngIf="!isLoading" data-testid="payment-methods-content">
+      <div class="form__content__selector" data-testid="payment-method">
+        <ng-container
+          *ngFor="let paymentMethod of paymentMethods"
+          [ngTemplateOutlet]="paymentMethodTemplate"
+          [ngTemplateOutletContext]="{ paymentMethod: paymentMethod }"
+        >
+        </ng-container>
+      </div>
+      <ng-container [ngSwitch]="paymentType">
+        <app-card-stripe-input
+          class="content__stripe-input"
+          *ngSwitchCase="BusinessPaymentTypeEnum.CARD"
+          [currency]="cart.total.currency"
+          (cardAdded)="stripeCardAdded($event)"
+          data-testid="stripe-input"
+        >
+        </app-card-stripe-input>
+        <app-balance-banner *ngSwitchCase="BusinessPaymentTypeEnum.BALANCE" [balance]="balance"> </app-balance-banner>
+        <app-active-invoicing-period-banner *ngSwitchCase="BusinessPaymentTypeEnum.INVOICING" data-testid="invoicing-period-banner">
+        </app-active-invoicing-period-banner>
+      </ng-container>
+      <app-receipt-document-banner
+        *ngIf="showReceiptDocumentBanner"
+        data-testid="receipt-document-banner"
+        class="content__receipt-document"
+        [helperText]="
+          paymentType === BusinessPaymentTypeEnum.RECEIPT_DOCUMENT || paymentType === BusinessPaymentTypeEnum.BANK_TRANSFER
+            ? 'boxOffice.receiptDocument.helperWithReceiptDocumentMethod'
+            : 'boxOffice.receiptDocument.helperWithoutReceiptDocumentMethod'
+        "
+        (receiptDocumentChange)="onReceiptDocumentChange($event)"
+        (moneyConfirmationChange)="onMoneyConfirmationChange($event)"
+        [paymentType]="paymentType"
+        [requiresMoneyConfirmation]="bannerRequiresMoneyConfirmation"
+      ></app-receipt-document-banner>
+    </div>
+  </form>
+</div>
+
+<ng-template #loading>
+  <div data-testid="payment-methods-loading" class="spinner">
+    <ignt-icon class="loader" name="spinner" variant="solid" [spin]="true" size="h3"></ignt-icon>
+  </div>
+</ng-template>
+
+<ng-template #paymentMethodTemplate let-paymentMethod="paymentMethod">
+  <div
+    class="payment-method-option"
+    (click)="selectPaymentMethod(paymentMethod.method)"
+    [class.payment-method-option--checked]="paymentType === paymentMethod.method"
+    [class.payment-method-option--disabled]="paymentMethod.disabled"
+  >
+    <input [id]="paymentMethod.method" class="payment-method-option__input" type="radio" [value]="paymentMethod.method" />
+    <span class="payment-method-option__icon">
+      <ignt-icon [name]="paymentMethod.iconName || 'credit-card'" variant="light"></ignt-icon>
+    </span>
+    <div class="payment-method-option__label-container">
+      <span class="payment-method-option__label">
+        {{ paymentMethod.label | translate }}
+      </span>
+    </div>
+  </div>
+</ng-template>

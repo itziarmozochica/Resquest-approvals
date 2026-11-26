@@ -1,0 +1,85 @@
+<div class="session-tree" [class.session-tree--updating]="isLoading()" [attr.aria-busy]="isLoading()" data-testid="session-tree">
+  <div class="session-tree__master">
+    <p class="session-tree__master-label">
+      {{
+        'orders.bulkPartialRefunds.selectTickets.selectAllSummary'
+          | translate: { slots: groups().length | number, tickets: totalTickets() | number }
+      }}
+    </p>
+
+    <ignt-checkbox
+      class="session-tree__checkbox session-tree__select-all"
+      [ariaLabel]="'orders.bulkPartialRefunds.selectTickets.selectAll' | translate"
+      [checked]="isEverySessionSelected()"
+      [dataTestId]="'session-tree-select-all'"
+      [label]="'common.selectAll' | translate"
+      (change)="allToggled.emit()"
+    />
+  </div>
+
+  <ul class="session-tree__slots">
+    @for (group of groups(); track group.id) {
+      <li class="session-tree__slot">
+        <div class="session-tree__slot-row" [class.session-tree__slot-row--open]="isExpanded(group)">
+          <button
+            ignt-icon-button
+            class="session-tree__disclosure"
+            type="button"
+            size="small"
+            sentiment="tertiary"
+            variant="sharp"
+            [attr.aria-expanded]="isExpanded(group)"
+            [attr.aria-label]="'orders.bulkPartialRefunds.selectTickets.toggleSlot' | translate"
+            [attr.data-testid]="'session-tree-slot-toggle-' + group.id"
+            [icon]="isExpanded(group) ? chevronDownIcon : chevronRightIcon"
+            (click)="toggleExpanded(group)"
+          ></button>
+
+          <div class="session-tree__slot-text">
+            <span class="session-tree__slot-title">{{ group.startsAt | momentDate: 'EEE d MMM y · HH:mm' : timezone() }}</span>
+            <span class="session-tree__slot-meta">
+              {{ 'orders.bulkPartialRefunds.selectTickets.slotTickets' | translate: { tickets: group.ticketCount | number } }}
+            </span>
+
+            @if (selectedCountOf(group) > 0 && !isGroupSelected(group)) {
+              <span class="session-tree__slot-count" [attr.data-testid]="'session-tree-slot-count-' + group.id">
+                {{
+                  'orders.bulkPartialRefunds.selectTickets.partialSlotSelection'
+                    | translate: { selected: selectedCountOf(group), total: group.sessions.length }
+                }}
+              </span>
+            }
+          </div>
+
+          <ignt-checkbox
+            class="session-tree__checkbox session-tree__slot-select-all"
+            [ariaLabel]="'orders.bulkPartialRefunds.selectTickets.selectSlot' | translate"
+            [checked]="isGroupSelected(group)"
+            [dataTestId]="'session-tree-slot-checkbox-' + group.id"
+            [label]="'common.selectAll' | translate"
+            (change)="groupToggled.emit(groupSessionIds(group))"
+          />
+        </div>
+
+        @if (isExpanded(group)) {
+          <ul class="session-tree__sessions">
+            @for (session of group.sessions; track session.id) {
+              <li class="session-tree__session">
+                <ignt-checkbox
+                  class="session-tree__checkbox"
+                  [checked]="isSessionSelected(session)"
+                  [dataTestId]="'session-tree-session-checkbox-' + session.id"
+                  [label]="session.ticketTypeLabel"
+                  (change)="sessionToggled.emit(session.id)"
+                />
+                <span class="session-tree__session-count">
+                  {{ 'orders.bulkPartialRefunds.selectTickets.slotTickets' | translate: { tickets: session.ticketCount | number } }}
+                </span>
+              </li>
+            }
+          </ul>
+        }
+      </li>
+    }
+  </ul>
+</div>

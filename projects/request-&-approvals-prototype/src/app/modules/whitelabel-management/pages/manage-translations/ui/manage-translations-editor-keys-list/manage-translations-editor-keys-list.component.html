@@ -1,0 +1,185 @@
+<div class="manage-translations-editor-keys-list" data-testid="manage-translations-editor-keys-list">
+  <!-- Tri-state status dot, shared by the key rows, the filter trigger and the filter menu options. -->
+  <ng-template #statusDot let-visual="visual" let-ariaLabel="ariaLabel" let-testid="testid">
+    <ignt-icon
+      class="manage-translations-editor-keys-list__status-icon manage-translations-editor-keys-list__status-icon--{{ visual.modifier }}"
+      [name]="visual.iconName"
+      [variant]="visual.iconVariant"
+      [attr.aria-label]="ariaLabel ?? null"
+      [attr.data-testid]="testid ?? null"
+    ></ignt-icon>
+  </ng-template>
+
+  <h3 class="manage-translations-editor-keys-list__title">{{ 'manageTranslations.editor.keys.title' | translate }}</h3>
+
+  <div class="manage-translations-editor-keys-list__filters">
+    <!-- `[id]` is bound, not static: a static id also lands on the non-labelable host and steals the label's `for`. -->
+    <div class="manage-translations-editor-keys-list__filter">
+      <label class="manage-translations-editor-keys-list__filter-label" for="manage-translations-editor-keys-search">
+        {{ 'manageTranslations.editor.keys.searchLabel' | translate }}
+      </label>
+      <ignt-input-field
+        class="manage-translations-editor-keys-list__search-field"
+        label=""
+        type="search"
+        [id]="'manage-translations-editor-keys-search'"
+        [formControl]="searchControl"
+      />
+    </div>
+
+    <div class="manage-translations-editor-keys-list__filter">
+      <label class="manage-translations-editor-keys-list__filter-label" for="manage-translations-editor-keys-text-search">
+        {{ 'manageTranslations.editor.keys.textSearchLabel' | translate }}
+      </label>
+      <ignt-input-field
+        class="manage-translations-editor-keys-list__search-field"
+        label=""
+        type="search"
+        [id]="'manage-translations-editor-keys-text-search'"
+        [formControl]="textSearchControl"
+      />
+    </div>
+
+    <div class="manage-translations-editor-keys-list__filter">
+      <span class="manage-translations-editor-keys-list__filter-label" id="manage-translations-status-filter-label">
+        {{ 'manageTranslations.editor.keys.status.filterLabel' | translate }}
+      </span>
+      <button
+        #statusTrigger
+        type="button"
+        class="manage-translations-editor-keys-list__status-filter-trigger"
+        [igntMenuTriggerFor]="statusMenu"
+        aria-labelledby="manage-translations-status-filter-label"
+        data-testid="manage-translations-editor-keys-status-filter"
+        (click)="captureMenuWidth()"
+      >
+        @if (selectedStatusOption().visual; as visual) {
+          <ng-container *ngTemplateOutlet="statusDot; context: { visual }"></ng-container>
+        }
+        <span class="manage-translations-editor-keys-list__status-filter-value">
+          {{ selectedStatusOption().labelKey | translate }}
+        </span>
+        <ignt-icon class="manage-translations-editor-keys-list__status-filter-chevron" name="chevron-down" variant="solid"></ignt-icon>
+      </button>
+      <ng-template #statusMenu>
+        <ignt-menu [style.width.px]="menuWidth()" [style.maxWidth.px]="menuWidth()" (menuItemSelected)="onStatusSelected($event)">
+          @for (option of statusFilterOptions; track option.value) {
+            <ignt-menu-item
+              class="manage-translations-editor-keys-list__status-option"
+              [label]="option.labelKey | translate"
+              [value]="option.value"
+              [attr.data-testid]="'manage-translations-editor-keys-status-option-' + option.value"
+            >
+              <!-- Inline (not the shared #statusDot template): ignt-menu-item projects its dot via
+                   `ng-content select="ignt-icon"`, which only matches a direct <ignt-icon> child. -->
+              @if (option.visual; as visual) {
+                <ignt-icon
+                  class="manage-translations-editor-keys-list__status-icon manage-translations-editor-keys-list__status-icon--{{
+                    visual.modifier
+                  }}"
+                  [name]="visual.iconName"
+                  [variant]="visual.iconVariant"
+                ></ignt-icon>
+              }
+            </ignt-menu-item>
+          }
+        </ignt-menu>
+      </ng-template>
+    </div>
+  </div>
+
+  <div class="manage-translations-editor-keys-list__body" data-testid="manage-translations-editor-keys-body">
+    @if (keys().length > 0) {
+      <ul
+        class="manage-translations-editor-keys-list__list"
+        [class.manage-translations-editor-keys-list__list--refreshing]="loading()"
+        role="list"
+        [attr.aria-busy]="loading()"
+      >
+        @for (row of keys(); track row.keyId) {
+          @let visual = statusVisual(row.status);
+          <li class="manage-translations-editor-keys-list__row-item">
+            <button
+              type="button"
+              class="manage-translations-editor-keys-list__row"
+              [class.manage-translations-editor-keys-list__row--selected]="row.keyId === selectedKeyId()"
+              [attr.data-testid]="'manage-translations-editor-keys-row-' + row.keyId"
+              [attr.aria-pressed]="row.keyId === selectedKeyId()"
+              [disabled]="loading()"
+              (click)="onRowClick(row.keyId)"
+            >
+              <span class="manage-translations-editor-keys-list__key">{{ row.key }}</span>
+              <ng-container
+                *ngTemplateOutlet="
+                  statusDot;
+                  context: {
+                    visual,
+                    ariaLabel: visual.ariaKey | translate,
+                    testid: 'manage-translations-editor-keys-status-' + visual.modifier,
+                  }
+                "
+              ></ng-container>
+            </button>
+          </li>
+        }
+      </ul>
+    } @else if (loading()) {
+      <div
+        class="manage-translations-editor-keys-list__status manage-translations-editor-keys-list__status--loading"
+        role="status"
+        aria-live="polite"
+        data-testid="manage-translations-editor-keys-loading"
+      >
+        {{ 'manageTranslations.editor.keys.loading' | translate }}
+      </div>
+    } @else if (errorMessage()) {
+      <div
+        class="manage-translations-editor-keys-list__status manage-translations-editor-keys-list__status--error"
+        role="alert"
+        data-testid="manage-translations-editor-keys-error"
+      >
+        <p class="manage-translations-editor-keys-list__error-message">
+          {{ 'manageTranslations.editor.keys.error' | translate }}
+        </p>
+        <p class="manage-translations-editor-keys-list__error-detail">{{ errorMessage() }}</p>
+      </div>
+    } @else {
+      <div
+        class="manage-translations-editor-keys-list__status manage-translations-editor-keys-list__status--empty"
+        data-testid="manage-translations-editor-keys-empty"
+      >
+        {{ 'manageTranslations.editor.keys.empty' | translate }}
+      </div>
+    }
+  </div>
+
+  <div
+    class="manage-translations-editor-keys-list__pagination"
+    [class.manage-translations-editor-keys-list__pagination--inactive]="totalPages() <= 1"
+    data-testid="manage-translations-editor-keys-pagination"
+  >
+    <span class="manage-translations-editor-keys-list__pagination-label">
+      {{ 'manageTranslations.editor.keys.pagination.label' | translate: { current: currentPage(), total: totalPages() || 1 } }}
+    </span>
+    <div class="manage-translations-editor-keys-list__pagination-controls">
+      <button
+        type="button"
+        class="manage-translations-editor-keys-list__pagination-button"
+        [disabled]="totalPages() <= 1 || !hasPrev() || loading()"
+        (click)="onPrev()"
+        data-testid="manage-translations-editor-keys-pagination-prev"
+      >
+        &lsaquo; {{ 'manageTranslations.editor.keys.pagination.previous' | translate }}
+      </button>
+      <button
+        type="button"
+        class="manage-translations-editor-keys-list__pagination-button"
+        [disabled]="totalPages() <= 1 || !hasNext() || loading()"
+        (click)="onNext()"
+        data-testid="manage-translations-editor-keys-pagination-next"
+      >
+        {{ 'manageTranslations.editor.keys.pagination.next' | translate }} &rsaquo;
+      </button>
+    </div>
+  </div>
+</div>

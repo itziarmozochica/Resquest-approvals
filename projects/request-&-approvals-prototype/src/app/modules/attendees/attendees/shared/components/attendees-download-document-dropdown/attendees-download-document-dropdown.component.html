@@ -1,0 +1,60 @@
+<div class="documents-drop-down">
+  <div
+    appDropdownOverlay
+    data-testid="attendees-documents-dropdown-dropdown"
+    [position]="'bottomLeft'"
+    [display]="displayDropdown"
+    (displayChange)="onDropdownDisplayChange($event)"
+    [dropdownTemplate]="dropdown"
+    [zIndex]="zIndex"
+  >
+    <button
+      data-testid="attendees-documents-dropdown-button"
+      [class.documents-drop-down__button--downloading]="isDownloadingDocument"
+      [disabled]="isDisabled()"
+      [class.documents-drop-down__button--disabled]="isDisabled()"
+      class="icon-button icon-button--medium documents-drop-down__button"
+      (click)="toggleDisplayDropdown()"
+      [attr.aria-label]="(isDownloadingDocument ? 'attendeesList.cancelDownload' : 'attendeesList.openDownloadMenu') | translate"
+      [attr.title]="(isDownloadingDocument ? 'attendeesList.cancelDownload' : 'attendeesList.openDownloadMenu') | translate"
+    >
+      <fa-icon *ngIf="!isDownloadingDocument; else spinner" [fixedWidth]="true" [icon]="['fas', 'file-download']"> </fa-icon>
+    </button>
+  </div>
+</div>
+
+<ng-template #dropdown>
+  <div *ngIf="displayDropdown" class="documents-drop-down__menu">
+    <div class="documents-drop-down__content">
+      <app-attendees-date-range
+        [isDisabled]="isDisabled()"
+        [timezone]="timezone"
+        class="documents-drop-down__date-range"
+        data-testid="attendees-documents-dropdown-date-range"
+        *ngIf="enableDateRangeSelector && displayDropdown"
+        [dateRange]="selectedDateRange"
+        (dateRangeChange)="onDownloadDateRangeChange($event)"
+      >
+      </app-attendees-date-range>
+      <app-attendees-download-document-selector
+        data-testid="attendees-documents-dropdown-selector"
+        (downloadRequest)="onDocumentDownloadRequest($event)"
+        [isDisabled]="(downloadDateRange === null && !sessionId) || isDisabled()"
+        [sessionId]="sessionId"
+        [packSessionId]="packSessionId"
+        [downloadType]="downloadType"
+        [attendeesCount]="attendeesCount"
+        [startsAtFrom]="downloadDateRange?.startsAtFrom ?? null"
+        [startsAtTo]="downloadDateRange?.startsAtTo ?? null"
+      >
+      </app-attendees-download-document-selector>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #spinner>
+  <div class="loader">
+    <fa-icon class="loader__spinner" [icon]="['fas', 'spinner']"></fa-icon>
+    <fa-icon class="loader__cancel" [icon]="['fas', 'xmark']"></fa-icon>
+  </div>
+</ng-template>

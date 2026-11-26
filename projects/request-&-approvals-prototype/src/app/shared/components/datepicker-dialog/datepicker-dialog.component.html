@@ -1,0 +1,131 @@
+<ng-template #datepickerBody>
+  <div class="dialog-modal__content">
+    <div class="dialog-modal__date-chips">
+      <ignt-pill
+        [label]="'reservations.dialogDatePicker.today' | translate"
+        value="today"
+        data-testid="datepicker-dialog__today-pill"
+        (statusChange)="today()"
+        [isActive]="isToday()"
+        [disabled]="disabled"
+      >
+      </ignt-pill>
+      <ignt-pill
+        [label]="'reservations.dialogDatePicker.thisWeek' | translate"
+        value="thisWeek"
+        data-testid="datepicker-dialog__this-week-pill"
+        (statusChange)="selectThisWeek()"
+        [isActive]="isThisWeek()"
+        [disabled]="disabled"
+      >
+      </ignt-pill>
+      <ignt-pill
+        [label]="'reservations.dialogDatePicker.thisMonth' | translate"
+        [isActive]="isThisMonth()"
+        value="thisMonth"
+        data-testid="datepicker-dialog__this-month-pill"
+        (statusChange)="selectThisMonth()"
+        [disabled]="disabled"
+      >
+      </ignt-pill>
+      <ignt-pill
+        [label]="'reservations.dialogDatePicker.nextThreeMonths' | translate"
+        value="nextThreeMonths"
+        data-testid="datepicker-dialog__next-three-months-pill"
+        [isActive]="isThreeMonths()"
+        (statusChange)="selectNextThreeMonths()"
+        [disabled]="disabled"
+      >
+      </ignt-pill>
+    </div>
+    <div class="dialog-calendar" [ngClass]="{ 'dialog-calendar--disabled': disabled }">
+      <ngb-datepicker
+        #dp
+        [outsideDays]="'hidden'"
+        class="dialog-calendar__datepicker"
+        #datepicker
+        (dateSelect)="onDateSelection($event)"
+        [startDate]="fromDate() ?? todayDate()"
+        [displayMonths]="isMobile() ? 1 : 2"
+        [dayTemplate]="customDay"
+        navigation="none"
+      >
+        <ng-template ngbDatepickerContent>
+          <ng-container *ngFor="let month of datepicker.state.months; let i = index">
+            <div class="dialog-calendar__month">
+              <div class="dialog-calendar__month-header" role="group">
+                <button
+                  class="dialog-calendar__month-header-button dialog-calendar__month-header-button--prev"
+                  [ngClass]="{ 'dialog-calendar__month-header-button--hidden': i % 2 !== 0 }"
+                  (click)="navigate(-1)"
+                  data-testid="datepicker-dialog__previous-month-button"
+                >
+                  <fa-icon [icon]="['fas', 'chevron-left']"></fa-icon>
+                </button>
+                <button type="button" class="dialog-calendar__month-header-button" data-testid="datepicker-dialog__month-title">
+                  <strong> {{ generateMonth(month.month) }} {{ month.year }} </strong>
+                </button>
+                <button
+                  class="dialog-calendar__month-header-button dialog-calendar__month-header-button--next"
+                  [ngClass]="{ 'dialog-calendar__month-header-button--hidden': i % 2 === 0 && !isMobile() }"
+                  (click)="navigate(1)"
+                  data-testid="datepicker-dialog__next-month-button"
+                >
+                  <fa-icon [icon]="['fas', 'chevron-right']"></fa-icon>
+                </button>
+              </div>
+              <ngb-datepicker-month class="" [month]="month"></ngb-datepicker-month>
+            </div>
+          </ng-container>
+        </ng-template>
+      </ngb-datepicker>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #datepickerDialog>
+  <ignt-dialog-header>{{ 'reservations.dialogDatePicker.title' | translate }}</ignt-dialog-header>
+  <ignt-dialog-content data-testid="datepicker-dialog__content">
+    <ng-container [ngTemplateOutlet]="datepickerBody" />
+  </ignt-dialog-content>
+  <ignt-dialog-footer hideCancelButton>
+    <ignt-button
+      fill
+      variant="tertiary"
+      [disabled]="disabled"
+      [label]="'common.clearAll' | translate"
+      (click)="clear()"
+      data-testid="datepicker-dialog__clear-button"
+    />
+    <ignt-button
+      fill
+      [disabled]="disabled"
+      [label]="'reservations.dialogDatePicker.applyFilters' | translate"
+      (click)="applyDates()"
+      data-testid="datepicker-dialog__apply-button"
+    />
+  </ignt-dialog-footer>
+</ng-template>
+
+<ng-template
+  #customDay
+  let-date="date"
+  let-selected="selected"
+  let-currentMonth="currentMonth"
+  let-currentYear="currentYear"
+  let-data="data"
+>
+  <div
+    class="custom-day custom-day--dialog-modal"
+    data-testid="date-range-day"
+    [class.custom-day--current]="currentMonth === date.month && currentYear === date.year"
+    [class.selected]="isSelected(date)"
+    [class.custom-day--in-range]="isRange(date)"
+    [class.custom-day--outside]="isOutOfRange(date)"
+    [class.custom-day--disabled]="disabled"
+    (mouseenter)="onDateHover(date)"
+    (mouseleave)="onDateHover(null)"
+  >
+    <span>{{ date.day }}</span>
+  </div>
+</ng-template>

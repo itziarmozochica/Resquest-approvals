@@ -1,0 +1,60 @@
+<section class="main-wrapper pipeline-list-page" [attr.aria-label]="'menu.fundraisingPipeline' | translate">
+  <app-fundraising-page-title [section]="'menu.fundraising' | translate" [title]="'menu.fundraisingPipeline' | translate">
+    <ignt-button
+      [label]="'fundraising.pipeline.list.createButton' | translate"
+      (click)="onCreateOpportunity()"
+      data-testid="pipeline-list-create-button"
+    />
+  </app-fundraising-page-title>
+
+  <div class="pipeline-list" [attr.aria-busy]="isLoading()">
+    <div class="pipeline-list__toolbar">
+      @let totalPipelineAmount = totalAmount() | currency: currencyCode() : 'symbol' : '1.0-0';
+      <p
+        class="pipeline-list__total"
+        role="status"
+        data-testid="pipeline-list-total"
+        [innerHTML]="'fundraising.pipeline.list.totalPipeline' | translate: { amount: totalPipelineAmount, count: totalCount() } | sanitize"
+      ></p>
+      <div class="pipeline-list__filters">
+        <div class="pipeline-list__filter pipeline-list__filter--staff">
+          <app-multi-select
+            class="pipeline-list__selector"
+            [options]="giftOfficerOptions()"
+            [selectedOptions]="selectedGiftOfficer()"
+            [placeholder]="'fundraising.pipeline.list.staffFilterLabel' | translate"
+            [searchPlaceholder]="'fundraising.pipeline.list.allStaff' | translate"
+            [displayInPlaceMaximum]="2"
+            (selected)="onGiftOfficerChange($event)"
+            data-testid="pipeline-list-staff-filter"
+          ></app-multi-select>
+        </div>
+        <div class="pipeline-list__filter pipeline-list__filter--campaign">
+          <app-multi-select
+            class="pipeline-list__selector"
+            [options]="campaignOptions()"
+            [selectedOptions]="selectedCampaign()"
+            [placeholder]="'fundraising.pipeline.list.campaignFilterLabel' | translate"
+            [searchPlaceholder]="'fundraising.pipeline.list.allCampaigns' | translate"
+            [displayInPlaceMaximum]="2"
+            (selected)="onCampaignChange($event)"
+            data-testid="pipeline-list-campaign-filter"
+          ></app-multi-select>
+        </div>
+      </div>
+    </div>
+
+    <div class="pipeline-list__board" cdkDropListGroup data-testid="pipeline-list-board">
+      @for (column of columns(); track column.stage) {
+        <app-pipeline-board-column
+          [stage]="column.stage"
+          [opportunities]="column.opportunities"
+          [totalAmount]="column.totalAmount"
+          [currencyCode]="currencyCode()"
+          (cardDropped)="onCardDropped($event, column.stage)"
+          (addOpportunity)="onCreateOpportunity()"
+        />
+      }
+    </div>
+  </div>
+</section>

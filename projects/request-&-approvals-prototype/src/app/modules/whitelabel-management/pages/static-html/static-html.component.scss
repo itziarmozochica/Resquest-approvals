@@ -1,0 +1,507 @@
+@use 'components/navigation/headerbar/tokens' as headerbar;
+@use 'foundations' as foundations;
+
+/**
+ * Where the workspace stops being three columns, then two.
+ *
+ * Three columns from 1401px up, which is as wide as the section has ever been asked to be. Side by
+ * side is the point of the layout — the preview is a column rather than a row below the editor so
+ * that an edit and its result share a screen — so the threshold sits at the narrowest width where
+ * three columns still fit rather than at the width where the preview would be most comfortable.
+ *
+ * It also decides which side of the workspace is sized by its own contents, and the two cannot be
+ * pulled apart. Above it the preview sits beside the panel and is what gives their shared row its
+ * height; below it the preview drops to a row of its own and the panel is the only thing left in the
+ * row it is in, so a panel that refused to size that row would have nothing to be stretched to and
+ * would collapse — 2px, measured. Moving this number still moves a band of viewports between two
+ * behaviours, then; what changes with it is which panes take their height from the preview and which
+ * take it from what they hold.
+ *
+ * Width is still not something a media query can settle by itself, and that part has not changed: it
+ * cannot see the side menu, and an expanded menu takes 256px off the workspace, so one viewport
+ * width means two different amounts of room. That is solved where it actually lives — the menu is
+ * collapsed on entering this route, which hands the workspace those 256px directly and leaves the
+ * columns alone. At 1440px that is a 598px preview rendering at ~43.5% with three columns intact,
+ * against the 445px / ~31.6% the same viewport got with the menu open.
+ */
+$breakpoint-three-columns: 1400px;
+
+/** Below this the panel's own two regions stack, and the rail's width stops applying. */
+$breakpoint-two-columns: 1024px;
+
+/**
+ * The ratio the three tracks are asked to hold: pages 10%, editor 40%, preview 50%.
+ *
+ * Stated in `fr`, never in `%`. A percentage track resolves against the grid container's content box
+ * and knows nothing about the `gap` between the tracks, so a literal `10% 40% 50%` overflows by
+ * exactly one gap. `fr` divides what is left once the gaps are taken out, which is what actually
+ * produces the ratio that was asked for.
+ *
+ * It arrives in two steps, because the rail and the editor share one bordered panel: the outer grid
+ * splits the panel against the preview 50/50, and the panel's own grid then splits itself 20/80,
+ * which lands the rail on 10% and the editor on 40% of the whole.
+ */
+$rail-fraction: 1fr;
+$editor-fraction: 4fr;
+$section-fraction: 1fr;
+$preview-fraction: 1fr;
+
+/** The editor's own share of the workspace, restated as a length for the panel floor below. */
+$editor-share: 40%;
+
+/**
+ * The floor under the rail, which is the number that decides what this layout actually renders as.
+ *
+ * 10% is not a rail at any width a partner uses. With the side menu open it is about 113px at
+ * 1440, 130px at 1600, 161px at 1920 and 226px at 2560 — every one of them at or below this floor,
+ * so the floor binds essentially everywhere and the true split is nearer 14/40/46 at 1920, reaching
+ * the requested 10/40/50 only past roughly 2400-2650px depending on the side menu.
+ *
+ * 228px, because that is where the *list rows* stop coping, and they bind before the add-page form
+ * does. Measured with the real Montserrat metrics the app ships:
+ *
+ * - A served path of 32-40 characters wraps to two lines down to 228px and to three at 224px, which
+ *   takes the tallest row from 68px to 88px and costs about a third of the pages visible without
+ *   scrolling. The rail exists to show many pages at once, so that is the constraint that counts.
+ * - The add-page footer form survives further down, to 220px. Its buttons are `nowrap` and shrink
+ *   only to a 64px floor before their labels spill out of them; English clears every width down to
+ *   180px, and the longest plausible translations of "Add page" — German "Seite hinzufügen", Dutch
+ *   "Pagina toevoegen" — start spilling at 216px. `staticHtml` is English-only in `i18n` today, so
+ *   228px also keeps ~8px of slack against strings that are still only projections.
+ *
+ * Going to 220px would buy the preview 8px, which is 0.6 of a point of render scale and invisible,
+ * in exchange for the three-line row. "10%" was a proportion reached for to get a bigger preview,
+ * not a request to make the page list worse, so the floor stays at the row's limit.
+ */
+$rail-floor: 228px;
+
+/**
+ * The other two floors, and what the panel needs so that a bound rail is never paid for by the
+ * editor.
+ *
+ * The panel asks for the rail's floor *plus* the editor's full 40% of the workspace, against the
+ * same content box the `fr` tracks divide up. So while the rail sits on its floor — which is every
+ * viewport below roughly 2400px — the editor still gets its whole share and the shortfall comes off
+ * the preview, which is the widest of the three and the one that degrades most gracefully. The
+ * editor's own 360px floor is a backstop under that: 40% of the workspace only falls below it under
+ * about a 1200px viewport, which is already past the point where these columns stop being columns.
+ *
+ * The preview has no maximum any more. It used to be capped so that surplus width went to the
+ * editor; a proportional split is the opposite instruction, so the cap is gone and the preview
+ * simply takes its half.
+ */
+$editor-min-width: 360px;
+$preview-min-width: 300px;
+$panel-border: foundations.$size-px;
+$section-min-width: calc(#{$rail-floor} + #{$editor-share} + #{$panel-border} * 2);
+
+/** Where the app's fixed header bar changes height, which is what both offsets below are measured from. */
+$breakpoint-compact-headerbar: 1200px;
+
+/**
+ * What the app's fixed chrome takes off the top of the viewport.
+ *
+ * `section#main-content` pads itself by exactly this much, and the bar overlays what is under it, so
+ * this is how far down a sticky child has to sit — and how far short of the top a scroll target has
+ * to stop — for the bar not to cover it. All three things here that know about the viewport measure
+ * from it: the floor under the whole section, the sticky toolbar, and the preview's
+ * `scroll-margin-top`.
+ */
+$app-chrome: calc(#{headerbar.$dimensions-height-large} + var(--impersonation-banner-height, 0px));
+$app-chrome-compact: calc(#{headerbar.$dimensions-height} + var(--impersonation-banner-height, 0px));
+
+/** Matches the 32px `size="small"` action buttons beside it, so the row reads as one bar of controls. */
+$serve-height: foundations.$size-8;
+
+/**
+ * The serve switch, scoped down to fit that row.
+ *
+ * `ignt-toggle` is legacy design system on its way out under the `fz/*` migration rules: it exposes
+ * no size and hard-codes 56×32 in its own tokens, so widening its API for one page would be the
+ * wrong direction. The dimensions are overridden here instead, from the same foundation tokens the
+ * component's own `_tokens.scss` reads, and the checked travel is recomputed by the component's own
+ * formula so the switch still lands where it used to relative to its track.
+ */
+$toggle-width: foundations.$size-10;
+$toggle-height: foundations.$size-6;
+$toggle-padding-inline: foundations.$space-1;
+$toggle-switch-off: foundations.$size-3;
+$toggle-switch-on: foundations.$size-4;
+$toggle-travel: $toggle-width - $toggle-padding-inline * 2 - $toggle-switch-on;
+
+/**
+ * One column for the whole section: the house header, then the row of controls, then the panes.
+ *
+ * The column is given a floor and no ceiling, which is the whole difference between this and the
+ * `height` that used to sit here. A configuration short enough to fit fills the screen instead of
+ * floating in the top of it; one that does not fit grows past it and the page scrolls, so a 6000px
+ * render is still a 6000px panel rather than a scroll area nested inside another one. The workspace
+ * is the only part of this column that grows, so whatever slack the floor creates lands there and
+ * the grid row hands it to both panels.
+ *
+ * `dvh` restates `vh` rather than replacing it: the dynamic unit is what a mobile browser leaves once
+ * its toolbar retracts, and the static one is the fallback for anything that does not know it.
+ *
+ * The go-back link and the house title bar are inside this column rather than above it, so the
+ * section is one block from the top of the page down and the toolbar has a container tall enough to
+ * stay stuck to. Putting the column on the host instead would not work: the app layout forces
+ * `display: block` on every routed host through an `::ng-deep` rule whose ID no `:host` selector can
+ * outrank.
+ */
+.static-html {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - #{$app-chrome});
+  min-height: calc(100dvh - #{$app-chrome});
+  min-width: 0;
+
+  @media (max-width: $breakpoint-compact-headerbar) {
+    min-height: calc(100vh - #{$app-chrome-compact});
+    min-height: calc(100dvh - #{$app-chrome-compact});
+  }
+
+  // Neither is allowed to be squeezed by the panes below them, whatever the column has to give.
+  > app-go-back,
+  > app-page-title {
+    flex: 0 0 auto;
+  }
+
+  &__error {
+    margin: foundations.$space-4;
+  }
+
+  // Stays put while the document scrolls: the save state and the serve switch are true of the whole
+  // section, and an author deep in a document should not have to scroll back up to reach either.
+  &__toolbar {
+    align-items: center;
+    background: foundations.$color-background-main;
+    border-bottom: foundations.$size-px solid foundations.$color-border-main;
+    column-gap: foundations.$space-4;
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    padding: foundations.$space-3 foundations.$space-5;
+    position: sticky;
+    row-gap: foundations.$space-2;
+    z-index: 2;
+
+    // The app header bar is fixed and overlays the top of the viewport, so `top: 0` would park the
+    // row behind it. The offset is the same one the preview's `scroll-margin-top` stops short by.
+    top: $app-chrome;
+
+    @media (max-width: $breakpoint-compact-headerbar) {
+      top: $app-chrome-compact;
+    }
+  }
+
+  // One pill in both states, with nothing but the colour between them: the geometry is declared once
+  // here, so toggling the switch cannot change the control's weight or move anything beside it.
+  // Each state is sentiment-coloured, and neither rests on that colour: both name themselves in
+  // words beside the switch, so the pair reads the same to anyone who cannot tell them apart. The
+  // green also agrees with the switch, whose own track the design system turns positive when checked.
+  // The text is the `$palette-positive-800` step rather than `$color-text-positive`, which is
+  // `$palette-positive-700` and manages only 4.41:1 on this fill — under AA for 12px. Its warning
+  // counterpart is `$palette-warning-800`, so 800 is also the step that makes the two states match.
+  // Fill and text colour only, never a border: a 1px border here put the group at 42px, taller than
+  // the small buttons it sits beside.
+  &__serve {
+    align-items: center;
+    background: foundations.$color-background-positive-weak;
+    border-radius: foundations.$radii-full;
+    color: foundations.$palette-positive-800;
+    display: inline-flex;
+    // Horizontal only, so the group's height stays the $serve-height the small buttons are.
+    gap: foundations.$space-3;
+    min-block-size: $serve-height;
+    padding-inline: foundations.$space-2;
+
+    // Off means every page 404s, so the warning treatment stays — carried by the sentence beside the
+    // switch as well as by the fill, since colour alone never says it.
+    &--off {
+      background: foundations.$color-background-warning-weak;
+      color: foundations.$color-text-warning;
+    }
+
+    /* stylelint-disable-next-line selector-pseudo-element-no-unknown */
+    ::ng-deep .toggle {
+      &__container {
+        block-size: $toggle-height;
+        inline-size: $toggle-width;
+        padding-block: 0;
+        padding-inline: $toggle-padding-inline;
+      }
+
+      &__switch {
+        block-size: $toggle-switch-off;
+        inline-size: $toggle-switch-off;
+      }
+
+      &__input:checked + .toggle__container .toggle__switch {
+        block-size: $toggle-switch-on;
+        inline-size: $toggle-switch-on;
+        transform: translateX($toggle-travel);
+      }
+    }
+  }
+
+  &__serve-label {
+    cursor: pointer;
+    font: foundations.$font-caption-bold;
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  &__actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: foundations.$space-2;
+    margin-inline-start: auto;
+  }
+
+  // Says the same thing the Save button's enabled state says, in words, before it is reached for.
+  &__dirty {
+    align-items: center;
+    background: foundations.$color-background-warning-weak;
+    border: foundations.$size-px solid foundations.$color-border-warning-medium;
+    border-radius: foundations.$radii-4;
+    color: foundations.$color-text-warning;
+    display: inline-flex;
+    font: foundations.$font-caption-regular;
+    gap: foundations.$space-2;
+    padding: foundations.$space-1 foundations.$space-2;
+    white-space: nowrap;
+  }
+
+  &__dirty-dot {
+    background: foundations.$color-border-warning-base;
+    block-size: foundations.$space-2;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    inline-size: foundations.$space-2;
+  }
+
+  // Below the toolbar rather than inside it: these are statements about the content, not controls.
+  // Still on the toolbar's surface, though. They used to be inside it, and the page behind the
+  // section is `$gray-200` from 1440px up, which is not a background these text colours were
+  // contrast-checked against.
+  &__notices {
+    background: foundations.$color-background-main;
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: foundations.$space-1;
+    list-style: none;
+    margin: 0;
+    padding: foundations.$space-2 foundations.$space-5 0;
+  }
+
+  // Quiet by default, coloured only when the notice is a warning or an error. Capped so each one
+  // reads as a sentence rather than as one line the width of the whole section.
+  &__notice {
+    color: foundations.$color-text-subtle;
+    font: foundations.$font-caption-regular;
+    margin: 0;
+    max-width: 46ch;
+
+    &--danger {
+      color: foundations.$color-text-danger;
+    }
+
+    &--warning {
+      color: foundations.$color-text-warning;
+    }
+  }
+
+  // Pick a page and write it in the one panel that is both of those, then watch it render in the other.
+  &__workspace {
+    align-items: stretch;
+    display: grid;
+    flex: 1 1 auto;
+    gap: foundations.$space-3;
+    /**
+     * Half the workspace to the panel, half to the preview — the 10% + 40% and the 50%.
+     *
+     * Both tracks are flexible with a floor, which is what makes the degradation predictable: when
+     * the panel cannot fit its floor at 50% it takes what it needs and the preview keeps the rest,
+     * rather than either track overflowing or the editor being squeezed to pay for the rail.
+     */
+    grid-template-columns: minmax($section-min-width, $section-fraction) minmax($preview-min-width, $preview-fraction);
+    // Equal on both axes. The inline value is the one the toolbar and the notices list pad by, so it is
+    // the block value that moves to meet it and the section's left edge stays one straight line.
+    padding: foundations.$space-5;
+
+    // From here down the preview takes a row of its own, so the section has the full width and can
+    // keep its own two regions side by side for as long as it can.
+    @media (max-width: $breakpoint-three-columns) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  // One border, one radius, one surface per panel — and there are two of them, not three. Picking a
+  // page and writing it are one activity, so the rail and the editor share this chrome and are
+  // separated by the divider below; the preview is the result rather than the work, so it keeps its
+  // own. The preview is as tall as its render and the section is as tall as the row that render makes,
+  // so the two always agree and the grid row leaves neither ragged. The `overflow` rounds the corners
+  // of the regions painted inside the radius; on the section it is also the backstop under the scroll
+  // containers inside it, and the only thing it can ever reach is chrome too tall for its own panel.
+  &__section,
+  &__preview {
+    background: foundations.$color-background-main;
+    border: $panel-border solid foundations.$color-border-main;
+    border-radius: foundations.$radii-2;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  // The two regions of the merged panel, laid out by the panel rather than each sizing itself: a
+  // grid, so both get the panel's full height and neither can be pushed out of it by the other.
+  &__section {
+    display: grid;
+    // 20/80 of the panel, which is 10/40 of the workspace, each with the floor it needs.
+    grid-template-columns: minmax($rail-floor, $rail-fraction) minmax($editor-min-width, $editor-fraction);
+
+    // Below three columns the preview is on a row of its own, so there is no three-way ratio left to
+    // hold: the rail goes back to a fixed width and the editor takes everything else, which is what
+    // these two columns did when each of them was a panel of its own.
+    @media (max-width: $breakpoint-three-columns) {
+      grid-template-columns: $rail-floor minmax(0, 1fr);
+    }
+
+    // Stacked, and the rail's divider turns with them — see below.
+    @media (max-width: $breakpoint-two-columns) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  /**
+   * The two regions of the merged panel, and the side of the workspace that is given a height rather
+   * than asking for one.
+   *
+   * Neither has a height of its own, so the row stretches both to whatever it comes out at.
+   * `contain: size` is what stops that from being circular: a size-contained box is measured as if it
+   * were empty, so the 6000-line document in the editor and the hundred-page list in the rail
+   * contribute nothing to the row they are then stretched to fill, and the preview beside them is
+   * left as the only thing sizing it. Without it the row is sized by whichever of the three holds
+   * most, and a long document makes the page 100000px tall — measured, not assumed. `min-height: 0`
+   * was tried in this role first and cannot do it: it removes an item's automatic *minimum* size, it
+   * does not clamp what that item contributes to an auto track's maximum.
+   *
+   * Only in the three-column band, and only there because below it the preview is on a row of its own
+   * and this panel is alone in the row above — a contained box with nothing beside it to size the row
+   * collapses to 2px. At those widths the panes stay content-sized, which is what the rest of the
+   * layout does there anyway: the preview is a full-width row already several screens tall, so an
+   * editor that grows with its document adds to a page that was never going to fit a screen.
+   *
+   * Nothing here clips, and neither region carries an `overflow` of its own. Each hands its bound
+   * down to a real scroll container instead — the rail's list of pages, CodeMirror's own scroller,
+   * the assets tab panel — and the `min-height: 0` chains that reach them live in the components that
+   * own them. `min-width: 0` is unrelated and unchanged: it is what lets a long URL in either region
+   * be truncated rather than widen the column.
+   */
+  &__rail,
+  &__editor {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    @media (min-width: $breakpoint-three-columns + 1px) {
+      contain: size;
+    }
+  }
+
+  // The one line between the two regions, in place of the gap and the two borders they used to have.
+  // Inline while they sit side by side; block once they stack, where a vertical rule between a list
+  // and the document below it would be separating nothing. Logical, so RTL needs no second rule.
+  &__rail {
+    border-inline-end: $panel-border solid foundations.$color-border-main;
+
+    @media (max-width: $breakpoint-two-columns) {
+      border-block-end: $panel-border solid foundations.$color-border-main;
+      border-inline-end: 0;
+    }
+  }
+
+  // Below three columns the preview takes a row of its own, so a document authored at desktop width
+  // is still previewed at something close to that width rather than in a 300px slot.
+  &__preview {
+    display: flex;
+    flex-direction: column;
+
+    /**
+     * A row of its own, at whatever height the render needs.
+     *
+     * There is no ceiling on it. One was tried — 80vh, with the frame scrolling whatever did not fit
+     * — on the reasoning that the footer at the bottom of a panel several screens tall is nowhere
+     * anyone is looking. It cost more than it bought: a scroll area inside the page's own scroll, a
+     * wheel that meant two different things depending on where the pointer was, and a render no
+     * amount of scrolling showed in one piece. A 6000px page is now a 6000px panel that the document
+     * scrolls past, which is both what was asked for and what the page does when it is served.
+     */
+    @media (max-width: $breakpoint-three-columns) {
+      grid-column: 1 / -1;
+    }
+
+    // The app header is fixed, so the jump button's `scrollIntoView` has to stop short of it.
+    scroll-margin-top: calc(#{$app-chrome} + #{foundations.$space-4});
+
+    @media (max-width: $breakpoint-compact-headerbar) {
+      scroll-margin-top: calc(#{$app-chrome-compact} + #{foundations.$space-4});
+    }
+  }
+
+  // Stands in for the editor, so it sits in the editor's column of the panel rather than beside it.
+  &__empty {
+    color: foundations.$color-text-subtle;
+    grid-column: 2 / -1;
+    margin: 0;
+    padding: foundations.$space-4;
+
+    @media (max-width: $breakpoint-two-columns) {
+      grid-column: 1 / -1;
+    }
+  }
+
+  /**
+   * Every destructive action in the section is outlined in its own sentiment, not in the house grey.
+   *
+   * The design system colours the *text* of a danger secondary and leaves the border at
+   * `$palette-neutral-300`, so today a delete action is outlined in exactly the same grey as a
+   * neutral one. The border already exists — this only recolours it, which is why nothing here adds
+   * a border and why the selector names `--secondary`: a tertiary danger button is deliberately
+   * borderless and must stay that way.
+   *
+   * One rule for the whole section rather than one per component. The assets panel is projected
+   * through `<ng-content>` into the editor's assets tab, so all three buttons — the page delete, the
+   * selection clear and the library delete — are descendants of this element wherever they are
+   * declared, and the treatment cannot drift between two stylesheets.
+   *
+   * `$color-action-border-danger` rather than the lighter `$color-border-danger-medium`: at 1px a
+   * border has to be visible before it is tasteful. Danger-300 manages 2.53:1 on the panel and
+   * 2.29:1 on the hover fill, both under the 3:1 that WCAG 1.4.11 asks of a component boundary and
+   * barely above the 2.16:1 grey it would replace. The 500 step is 4.51:1 and 4.09:1, and is the
+   * token the system names for the border of a danger action — so on the day the button itself reads
+   * it, this rule becomes a no-op rather than a divergence.
+   *
+   * Both states the design system already spells out are left to it, because this selector outranks
+   * both and would otherwise silently win them:
+   *
+   * - `.button--disabled.button--secondary` greys the border out, and `--disabled` is set for
+   *   `loading` as well as `disabled`. Two of the three buttons bind it, so without the guard a
+   *   delete button mid-save would hold a full-strength red border around greyed-out text.
+   * - `.button--secondary:focus-visible` swaps the border to `$color-border-main-contrast`, which is
+   *   one of the two cues a keyboard user gets. Keeping the red there would cost them that cue.
+   *
+   * Hover needs no exception: it sets only a background, so this border carries into it.
+   */
+  ::ng-deep .button--danger.button--secondary:not(.button--disabled):not(:focus-visible) {
+    border-color: foundations.$color-action-border-danger;
+  }
+}
+
+// The travel above is a physical translate, because that is what the legacy toggle animates. Mirrored
+// here for the same reason its own stylesheet mirrors it: a right-to-left switch travels the other way.
+/* stylelint-disable-next-line selector-pseudo-element-no-unknown */
+:host-context([dir='rtl']) .static-html__serve ::ng-deep .toggle__input:checked + .toggle__container .toggle__switch {
+  transform: translateX(-$toggle-travel);
+}

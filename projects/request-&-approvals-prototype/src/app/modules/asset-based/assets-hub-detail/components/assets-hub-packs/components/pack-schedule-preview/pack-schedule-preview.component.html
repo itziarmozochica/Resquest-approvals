@@ -1,0 +1,133 @@
+<div class="pack-schedule-preview" data-testid="pack-schedule-preview">
+  @switch (preview().kind) {
+    @case (previewKind.UNREADABLE) {
+      <div class="pack-schedule-preview__state" role="status" data-testid="pack-schedule-preview-unreadable">
+        <ignt-icon name="triangle-exclamation" variant="regular" size="h4" aria-hidden="true"></ignt-icon>
+        <p class="pack-schedule-preview__state-title" translate>assetsHubs.detail.packs.preview.unreadableTitle</p>
+        <p class="pack-schedule-preview__state-text" translate>assetsHubs.detail.packs.preview.unreadableDescription</p>
+      </div>
+    }
+
+    @case (previewKind.NONE) {
+      <div class="pack-schedule-preview__state" role="status" data-testid="pack-schedule-preview-none">
+        <ignt-icon name="circle-info" variant="light" size="h4" aria-hidden="true"></ignt-icon>
+        <p class="pack-schedule-preview__state-title" translate>assetsHubs.detail.packs.preview.noneTitle</p>
+        <p class="pack-schedule-preview__state-text" translate>assetsHubs.detail.packs.preview.noneDescription</p>
+      </div>
+    }
+
+    @case (previewKind.GRAPH) {
+      @if (graph(); as view) {
+        <div class="pack-schedule-preview__scroll">
+          <div
+            class="pack-schedule-preview__canvas"
+            data-testid="pack-schedule-preview-canvas"
+            [style.grid-template-columns]="columnTemplate()"
+          >
+            @for (step of view.steps; track step.localId) {
+              @if (step.connectorRow !== null) {
+                <div
+                  class="pack-schedule-preview__connector"
+                  data-testid="pack-schedule-preview-connector"
+                  [class.pack-schedule-preview__connector--branch]="step.isBranch"
+                  [style.grid-column]="step.column"
+                  [style.grid-row]="step.connectorRow"
+                >
+                  <span class="pack-schedule-preview__connector-stem" aria-hidden="true"></span>
+                  @if (step.gapMinMinutes !== null && step.gapMaxMinutes !== null) {
+                    <span class="pack-schedule-preview__connector-gap">
+                      {{ 'assetsHubs.detail.packs.preview.gapWindow' | translate: { max: step.gapMaxMinutes, min: step.gapMinMinutes } }}
+                    </span>
+                  }
+                  <span class="pack-schedule-preview__connector-stem" aria-hidden="true"></span>
+                  <span class="pack-schedule-preview__connector-arrow" aria-hidden="true"></span>
+                </div>
+              }
+
+              @if (step.childRow !== null) {
+                <span
+                  class="pack-schedule-preview__stub"
+                  aria-hidden="true"
+                  [style.grid-column]="step.column"
+                  [style.grid-row]="step.childRow"
+                ></span>
+              }
+              @if (step.forkColumn !== null && step.childRow !== null) {
+                <span
+                  class="pack-schedule-preview__fork"
+                  aria-hidden="true"
+                  data-testid="pack-schedule-preview-fork"
+                  [style.grid-column]="step.forkColumn"
+                  [style.grid-row]="step.childRow"
+                ></span>
+              }
+
+              <div
+                class="pack-schedule-preview__step"
+                data-testid="pack-schedule-preview-step"
+                [style.grid-column]="step.column"
+                [style.grid-row]="step.row"
+              >
+                <div class="pack-schedule-preview__step-header">
+                  <span class="pack-schedule-preview__step-position">{{ step.position }}</span>
+                  <span class="pack-schedule-preview__step-title">{{ step.title }}</span>
+                </div>
+
+                <div class="pack-schedule-preview__step-badges">
+                  @if (step.predecessorLabel === null) {
+                    <span class="pack-schedule-preview__badge" translate>assetsHubs.detail.packs.schedule.startsThePack</span>
+                  }
+                  @if (step.isAnyOrder) {
+                    <span class="pack-schedule-preview__badge pack-schedule-preview__badge--accent" translate
+                      >assetsHubs.detail.packs.schedule.anyOrderBadge</span
+                    >
+                  }
+                  @if (step.startOffsetMinutes !== null) {
+                    <span class="pack-schedule-preview__badge">
+                      {{ 'assetsHubs.detail.packs.preview.startOffset' | translate: { minutes: step.startOffsetMinutes } }}
+                    </span>
+                  }
+                </div>
+
+                <ul class="pack-schedule-preview__members">
+                  <ng-container [ngTemplateOutlet]="memberList" [ngTemplateOutletContext]="{ $implicit: step.members }"></ng-container>
+                </ul>
+
+                @if (step.isAnyOrder && step.internalMinMinutes !== null && step.internalMaxMinutes !== null) {
+                  <p class="pack-schedule-preview__step-internal">
+                    {{
+                      'assetsHubs.detail.packs.preview.internalWindow'
+                        | translate: { max: step.internalMaxMinutes, min: step.internalMinMinutes }
+                    }}
+                  </p>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+    }
+  }
+</div>
+
+<ng-template #memberList let-members>
+  @for (member of members; track member.localId) {
+    @if (member.kind === memberKind.ACTIVITY) {
+      <li class="pack-schedule-preview__member">
+        {{ member.name ?? ('assetsHubs.detail.packs.schedule.unknownActivity' | translate: { id: member.activityId }) }}
+      </li>
+    } @else {
+      <li class="pack-schedule-preview__member pack-schedule-preview__member--group" data-testid="pack-schedule-preview-group">
+        <span class="pack-schedule-preview__badge" translate>assetsHubs.detail.packs.schedule.keptTogetherBadge</span>
+        <ul class="pack-schedule-preview__members">
+          <ng-container [ngTemplateOutlet]="memberList" [ngTemplateOutletContext]="{ $implicit: member.members }"></ng-container>
+        </ul>
+        @if (member.minMinutes !== null && member.maxMinutes !== null) {
+          <span class="pack-schedule-preview__member-internal">
+            {{ 'assetsHubs.detail.packs.preview.internalWindow' | translate: { max: member.maxMinutes, min: member.minMinutes } }}
+          </span>
+        }
+      </li>
+    }
+  }
+</ng-template>

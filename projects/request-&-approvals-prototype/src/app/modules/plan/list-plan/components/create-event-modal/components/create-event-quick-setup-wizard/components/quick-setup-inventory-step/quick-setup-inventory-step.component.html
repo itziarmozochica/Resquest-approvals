@@ -1,0 +1,227 @@
+<div class="quick-setup-inventory-step" data-testid="create-event-quick-setup-inventory-step">
+  <form class="quick-setup-inventory-step__form" [formGroup]="form" (focusin)="onFieldFocus($event)">
+    <section class="quick-setup-inventory-step__section">
+      <div class="quick-setup-inventory-step__section-heading">
+        <h3 class="quick-setup-inventory-step__section-title">
+          {{ 'createEvent.quickSetupWizard.step2.venueCapacityTitle' | translate }}
+        </h3>
+        <p class="quick-setup-inventory-step__section-helper">
+          {{ 'createEvent.quickSetupWizard.step2.venueCapacityHelper' | translate }}
+        </p>
+      </div>
+      <div class="quick-setup-inventory-step__total-capacity-field" data-scroll-field>
+        <ignt-input-field
+          id="create-event-quick-setup-total-capacity"
+          formControlName="totalCapacity"
+          type="number"
+          [label]="'createEvent.quickSetupWizard.step2.totalCapacityPlaceholder' | translate"
+          [customFormErrors]="[
+            { type: 'required', message: 'form.error.required' | translate },
+            { type: 'min', message: 'form.error.greaterThanZero' | translate },
+          ]"
+          data-testid="create-event-quick-setup-total-capacity-input"
+        />
+      </div>
+    </section>
+
+    <section class="quick-setup-inventory-step__section">
+      <div class="quick-setup-inventory-step__section-heading">
+        <h3 class="quick-setup-inventory-step__section-title">
+          {{ 'createEvent.quickSetupWizard.step2.productsTitle' | translate }}
+        </h3>
+        <p class="quick-setup-inventory-step__section-helper">
+          {{ 'createEvent.quickSetupWizard.step2.productsHelper' | translate }}
+          <br />
+          <strong>{{ 'createEvent.quickSetupWizard.step2.productsHelperPreTax' | translate }}</strong>
+          {{ 'createEvent.quickSetupWizard.step2.productsHelperManual' | translate }}
+        </p>
+      </div>
+
+      <div
+        class="quick-setup-inventory-step__currency"
+        aria-live="polite"
+        data-testid="create-event-quick-setup-currency"
+        [attr.aria-busy]="isCurrencyLoading()"
+      >
+        <dl class="quick-setup-inventory-step__currency-details">
+          <dt class="quick-setup-inventory-step__currency-label">
+            {{ 'createEvent.quickSetupWizard.step2.currencyLabel' | translate }}
+          </dt>
+          @if (isCurrencyLoading()) {
+            <dd class="quick-setup-inventory-step__currency-loading" data-testid="create-event-quick-setup-currency-loading">
+              <ignt-skeleton-base aria-hidden="true" width="4rem" [animation]="true" [height]="20" />
+              <span class="visually-hidden">{{ 'createEvent.quickSetupWizard.step2.currencyLoading' | translate }}</span>
+            </dd>
+          } @else if (isCurrencyLoadFailed()) {
+            <dd class="quick-setup-inventory-step__currency-load-error" data-testid="create-event-quick-setup-currency-load-error">
+              {{ 'createEvent.quickSetupWizard.step2.currencyLoadError' | translate }}
+            </dd>
+          } @else if (currencyDisplay(); as currency) {
+            <dd class="quick-setup-inventory-step__currency-value" data-testid="create-event-quick-setup-currency-value">
+              {{ currency }}
+            </dd>
+          } @else {
+            <dd class="quick-setup-inventory-step__currency-unavailable" data-testid="create-event-quick-setup-currency-unavailable">
+              {{ 'createEvent.quickSetupWizard.step2.currencyUnavailable' | translate }}
+            </dd>
+          }
+        </dl>
+        @if (!isCurrencyLoading() && currencyDisplay()) {
+          <p class="quick-setup-inventory-step__currency-helper" data-testid="create-event-quick-setup-currency-helper">
+            {{ 'createEvent.quickSetupWizard.step2.currencyHelper' | translate }}
+          </p>
+        }
+      </div>
+
+      <div class="quick-setup-inventory-step__tickets-header">
+        <h4 class="quick-setup-inventory-step__tickets-title">
+          {{ 'cancellation.ticketsTitle' | translate }}
+        </h4>
+        <div class="quick-setup-inventory-step__prices-by-tier">
+          <span class="quick-setup-inventory-step__prices-by-tier-label">
+            {{ 'createEvent.quickSetupWizard.step2.pricesByTier' | translate }}
+            <ignt-icon
+              class="quick-setup-inventory-step__prices-by-tier-info"
+              name="circle-info"
+              variant="light"
+              aria-hidden="true"
+              igntTooltip
+              [tooltipLabel]="'createEvent.quickSetupWizard.step2.pricesByTierTooltip' | translate"
+              tooltipPlacement="top"
+              data-testid="create-event-quick-setup-prices-by-tier-tooltip"
+            />
+          </span>
+          <ignt-toggle
+            [id]="pricesByTierToggleId"
+            [checked]="isPricesByTier()"
+            data-testid="create-event-quick-setup-prices-by-tier-toggle"
+            (change)="onPricesByTierChange($event)"
+          />
+        </div>
+      </div>
+
+      <div class="quick-setup-inventory-step__groups" cdkDropListGroup>
+        @for (group of groups.controls; track group) {
+          <app-quick-setup-inventory-group
+            [canDeleteTicket]="canDeleteTicket()"
+            [currency]="venueCurrency()"
+            [group]="group"
+            [index]="$index"
+            [isNew]="group === addedGroup()"
+            [isPricesByTier]="isPricesByTier()"
+            [neededSessionTypeOptionsByTicket]="neededSessionTypeOptionsByTicket()"
+            [productTypeOptions]="productTypeOptions()"
+            [revealErrorsRequest]="revealErrorsRequest()"
+            [ticketIndexes]="ticketIndexes()"
+            (deleted)="removeGroup(group)"
+            (ticketAdded)="addTicketToGroup(group)"
+            (ticketDeleted)="removeTicket($event)"
+            (ticketDropped)="onTicketDropped($event)"
+          />
+        }
+
+        <div class="quick-setup-inventory-step__ungrouped" data-testid="create-event-quick-setup-ungrouped">
+          <div class="quick-setup-inventory-step__ungrouped-header">
+            <span class="quick-setup-inventory-step__ungrouped-title">
+              {{ 'createEvent.quickSetupWizard.step2.ungroupedTitle' | translate }}
+            </span>
+          </div>
+
+          <div
+            class="quick-setup-inventory-step__rows"
+            [class.quick-setup-inventory-empty-drop-list]="ungroupedTickets.length === 0"
+            cdkDropList
+            [cdkDropListAutoScrollStep]="12"
+            [cdkDropListData]="ungroupedTickets"
+            data-testid="create-event-quick-setup-ungrouped-tickets"
+            (cdkDropListDropped)="onTicketDropped($event)"
+          >
+            @for (ticket of ungroupedTickets.controls; track ticket) {
+              <app-quick-setup-inventory-row
+                cdkDrag
+                [cdkDragData]="ticket"
+                [canDelete]="canDeleteTicket()"
+                [currency]="venueCurrency()"
+                [index]="ticketIndexes().get(ticket) ?? -1"
+                [isDraggable]="true"
+                [isPricesByTier]="isPricesByTier()"
+                [kind]="rowKind.Ticket"
+                [neededSessionTypeOptions]="neededSessionTypeOptionsByTicket().get(ticket) ?? []"
+                [productTypeOptions]="productTypeOptions()"
+                [row]="ticket"
+                (deleted)="removeTicket(ticket)"
+              />
+            } @empty {
+              <app-quick-setup-inventory-drop-hint
+                data-testid="create-event-quick-setup-ungrouped-empty"
+                [message]="'createEvent.quickSetupWizard.step2.ungroupedHint' | translate"
+              />
+            }
+          </div>
+
+          <ignt-button
+            class="quick-setup-inventory-step__add-link"
+            data-testid="create-event-quick-setup-add-ungrouped-ticket-button"
+            [label]="'createEvent.quickSetupWizard.step2.addTicket' | translate"
+            size="small"
+            variant="tertiary"
+            [leadingIcon]="{ name: 'plus', variant: 'light' }"
+            (click)="addUngroupedTicket()"
+          />
+        </div>
+      </div>
+
+      <div class="quick-setup-inventory-step__groups-footer">
+        <ignt-button
+          class="quick-setup-inventory-step__add-link"
+          data-testid="create-event-quick-setup-add-group-button"
+          [label]="'createEvent.quickSetupWizard.step2.addProductGroup' | translate"
+          size="small"
+          variant="secondary"
+          [leadingIcon]="{ name: 'plus', variant: 'light' }"
+          (click)="addGroup()"
+        />
+        <p class="quick-setup-inventory-step__groups-helper">
+          {{ 'createEvent.quickSetupWizard.step2.groupsHelper' | translate }}
+        </p>
+      </div>
+
+      @if (addOns.length > 0) {
+        <h4 class="quick-setup-inventory-step__add-ons-title" data-testid="create-event-quick-setup-addons-title">
+          {{ 'createEvent.quickSetupWizard.step2.addOnsTitle' | translate }}
+        </h4>
+      }
+
+      <div class="quick-setup-inventory-step__add-ons">
+        @for (addOn of addOns.controls; track addOn) {
+          <app-quick-setup-inventory-row
+            [index]="$index"
+            [currency]="venueCurrency()"
+            [isPricesByTier]="isPricesByTier()"
+            [kind]="rowKind.AddOn"
+            [neededSessionTypeOptions]="neededSessionTypeOptionsByTicket().get(addOn) ?? []"
+            [productTypeOptions]="productTypeOptions()"
+            [row]="addOn"
+            (deleted)="removeAddOn(addOn)"
+          />
+        }
+      </div>
+
+      <ignt-button
+        class="quick-setup-inventory-step__add-link"
+        data-testid="create-event-quick-setup-add-addon-button"
+        [label]="'createEvent.quickSetupWizard.step2.addAddOn' | translate"
+        size="small"
+        variant="tertiary"
+        [leadingIcon]="{ name: 'plus', variant: 'light' }"
+        (click)="addAddOn()"
+      />
+    </section>
+
+    <ignt-alert
+      class="quick-setup-inventory-step__info-banner"
+      [description]="'createEvent.quickSetupWizard.step2.infoBanner' | translate"
+      data-testid="create-event-quick-setup-inventory-info-banner"
+    />
+  </form>
+</div>

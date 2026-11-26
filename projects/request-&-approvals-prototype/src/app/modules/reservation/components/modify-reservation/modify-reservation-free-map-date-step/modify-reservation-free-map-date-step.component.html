@@ -1,0 +1,117 @@
+<div class="modify-reservation-free-map-date-step">
+  <div class="modify-reservation-free-map-date-step__header">
+    <div class="modify-reservation-free-map-date-step__header__titles">
+      <h2 class="modify-reservation-free-map-date-step__header__title" data-testid="modify-reservation-free-map-date-step__title">
+        {{ 'reservations.modify.freeMapDateStepTitle' | translate }}
+      </h2>
+      <p class="modify-reservation-free-map-date-step__header__subtitle" data-testid="modify-reservation-free-map-date-step__subtitle">
+        {{ 'reservations.modify.freeMapDateStepSubtitle' | translate }}
+      </p>
+    </div>
+    <button
+      ignt-icon-button
+      variant="danger"
+      sentiment="secondary"
+      size="small"
+      [icon]="['fal', 'times']"
+      class="modify-reservation-free-map-date-step__header__close"
+      data-testid="modify-reservation-free-map-date-step__close"
+      [attr.aria-label]="'reservations.modify.backToReservation' | translate"
+      (click)="closeStep.emit()"
+    ></button>
+  </div>
+
+  @if (group(); as timeslotGroup) {
+    <div class="modify-reservation-free-map-date-step__summary" data-testid="modify-reservation-free-map-date-step__summary">
+      <p class="modify-reservation-free-map-date-step__summary__seats">
+        {{ 'reservations.modify.freeMapDateStepSummaryPrefix' | translate }}
+        <span
+          class="modify-reservation-free-map-date-step__summary__seats__count"
+          data-testid="modify-reservation-free-map-date-step__seat-count"
+        >
+          {{ seatsLabelKey() | translate: { count: seatCount() } }}
+        </span>
+      </p>
+
+      <div class="modify-reservation-free-map-date-step__summary__route">
+        <p class="modify-reservation-free-map-date-step__summary__route__from">
+          <span class="modify-reservation-free-map-date-step__summary__route__prefix">
+            {{ 'reservations.modify.rescheduleSummaryFrom' | translate }}
+          </span>
+          <span
+            class="modify-reservation-free-map-date-step__summary__route__date"
+            data-testid="modify-reservation-free-map-date-step__original-date"
+          >
+            {{ timeslotGroup.startDate | momentDate: dateFormat : timeslotGroup.timezone : locale }}
+          </span>
+        </p>
+
+        <ignt-icon
+          class="modify-reservation-free-map-date-step__summary__route__arrow"
+          name="arrow-right-long"
+          variant="regular"
+          size="caption"
+          aria-hidden="true"
+        />
+
+        <p class="modify-reservation-free-map-date-step__summary__route__to">
+          <span class="modify-reservation-free-map-date-step__summary__route__prefix">
+            {{ 'reservations.modify.rescheduleSummaryTo' | translate }}
+          </span>
+          @if (selectedDestinationDate(); as destinationDate) {
+            <span
+              class="modify-reservation-free-map-date-step__summary__route__date"
+              data-testid="modify-reservation-free-map-date-step__destination-date"
+            >
+              {{ destinationDate | momentDate: dateFormat : timeslotGroup.timezone : locale }}
+            </span>
+          } @else {
+            <span
+              class="modify-reservation-free-map-date-step__summary__route__placeholder"
+              data-testid="modify-reservation-free-map-date-step__destination-placeholder"
+            >
+              {{ 'reservations.modify.freeMapDateStepToPlaceholder' | translate }}
+            </span>
+          }
+        </p>
+      </div>
+    </div>
+
+    <div
+      class="modify-reservation-free-map-date-step__selector box-office-content__content-card"
+      data-testid="modify-reservation-free-map-date-step__date-selector-card"
+    >
+      <box-office-date-selector
+        data-testid="modify-reservation-free-map-date-step__date-selector"
+        (displayedSessionTypeChange)="onDisplayedSessionTypeChange($event)"
+        (handleShowAvailabilityFromDateChange)="onAvailabilityFromDateChange($event)"
+        (selectedSessionChange)="onSelectedSessionChange($event)"
+        [displayedSessionType]="displayedSessionType()"
+        [excludeNextHours]="excludeNextHours()"
+        [hideDates]="!shouldShowDateSelector()"
+        [loading]="loading()"
+        [locale]="locale"
+        [regularSessionAvailabilitySummaryByDate]="regularSessionAvailabilitySummary()"
+        [selectedAvailabilityFromDate]="selectedAvailabilityFromDate()"
+        [selectedSession]="selectedSession()"
+        [sessionSelectorType]="sessionSelectorType()"
+        [ticketTypes]="ticketTypesBySessionType()"
+        [timezone]="timezone()"
+      ></box-office-date-selector>
+      @if (!hasAvailabilityDates()) {
+        <ignt-alert
+          class="box-office-content__error"
+          sentiment="info"
+          [showCloseButton]="false"
+          [description]="'boxOffice.noSessionsAvailableForDate' | translate"
+          data-testid="modify-reservation-free-map-date-step__no-dates-alert"
+        />
+      }
+      @if (loading()) {
+        <div class="box-office-content__spinner" data-testid="modify-reservation-free-map-date-step__loading-spinner">
+          <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'3x'"></fa-icon>
+        </div>
+      }
+    </div>
+  }
+</div>

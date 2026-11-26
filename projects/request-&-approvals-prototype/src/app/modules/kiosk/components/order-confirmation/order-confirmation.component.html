@@ -1,0 +1,145 @@
+<main class="main-wrapper">
+  <app-kiosk-hero
+    [title]="plan.name"
+    [supportingText]="uiRefreshEnabled ? undefined : ('kiosk.orderConfirmation.hero.supportingText' | translate)"
+    [hideHomeButton]="true"
+    [hideLanguageSelector]="true"
+  ></app-kiosk-hero>
+  <!-- <ng-container *ngIf="isLoading" [ngTemplateOutlet]="loadingSkeleton"> </ng-container> -->
+  <div class="main-wrapper--content flex-box-wrapper order-confirmation-wrapper">
+    <header class="order-confirmation-wrapper__header order-confirmation-header">
+      <img class="order-confirmation-header__img" src="assets/images/kiosk/icon-succes-animated.svg" width="128" alt="Success Icon" />
+      <h1 class="order-confirmation-header__title">{{ 'kiosk.orderConfirmation.header.title' | translate }}</h1>
+      <h2 *ngIf="!isPartnerTUI && !hasNoDeliveryOptions" class="order-confirmation-header__supporting-text">
+        {{ 'kiosk.orderConfirmation.header.supportingText' | translate }}
+      </h2>
+      <h2
+        *ngIf="isPartnerTUI"
+        class="order-confirmation-header__supporting-text"
+        [innerHTML]="'kiosk.orderConfirmation.getTickets.emailSend' | translate: { email: customer?.email }"
+      ></h2>
+      <h2 *ngIf="hasNoDeliveryOptions" class="order-confirmation-header__supporting-text">
+        {{ 'kiosk.orderConfirmation.getTickets.autoPrint' | translate }}
+      </h2>
+      <p class="order-confirmation-header__supporting-text">
+        {{ 'kiosk.orderConfirmation.header.orderId' | translate }}
+        <span class="order-id-green">{{ order.externalOrderCode ?? order.id }}</span>
+      </p>
+    </header>
+
+    <div *ngIf="!isPartnerTUI && !hasNoDeliveryOptions" class="order-confirmation-divider"></div>
+
+    <div *ngIf="!isPartnerTUI && !hasNoDeliveryOptions" class="order-confirmation-wrapper__get-tickets order-confirmation-get-tickets">
+      <h3 class="order-confirmation-get-tickets__title">{{ emailTitleTranslationKey | translate }}</h3>
+      <div class="order-confirmation-get-tickets__row">
+        <button
+          *ngIf="shouldShowDeliveryOption(TicketMode.QR)"
+          class="order-confirmation-get-tickets__button"
+          (click)="selectTicketMode(ticketMode.QR)"
+        >
+          <img src="assets/images/kiosk/fa-qrcode.svg" alt="QR" height="48" />
+          <span [innerHTML]="'kiosk.orderConfirmation.getTickets.qrCodeOption' | translate"></span>
+        </button>
+        <button
+          *ngIf="shouldShowDeliveryOption(TicketMode.Email)"
+          class="order-confirmation-get-tickets__button"
+          (click)="selectTicketMode(ticketMode.Email)"
+        >
+          <img src="assets/images/kiosk/fa-envelope-dot.svg" alt="Email" height="48" />
+          <span [innerHTML]="emailOptionTranslationKey | translate"></span>
+        </button>
+      </div>
+
+      <div
+        *ngIf="!isPartnerTUI && shouldShowDeliveryOption(TicketMode.Print)"
+        class="order-confirmation-get-tickets__callout order-confirmation-callout"
+      >
+        <img src="assets/images/kiosk/fa-hand-holding-seedling.svg" alt="Hand holding seedling" width="40" />
+        <p class="order-confirmation-callout__label" [innerHTML]="'kiosk.orderConfirmation.getTickets.callout' | translate"></p>
+      </div>
+    </div>
+
+    <div *ngIf="!isPartnerTUI && shouldShowDeliveryOption(TicketMode.Print)" class="order-confirmation-divider">
+      {{ 'kiosk.orderConfirmation.divider' | translate }}
+    </div>
+
+    <button
+      *ngIf="!isPartnerTUI && shouldShowDeliveryOption(TicketMode.Print)"
+      class="order-confirmation-print"
+      (click)="selectTicketMode(ticketMode.Print)"
+    >
+      <img src="assets/images/kiosk/fa-print.svg" width="28" alt="Print icon" />
+      <div class="order-confirmation-print__content">
+        <div class="order-confirmation-print__title">{{ 'kiosk.orderConfirmation.printOption.label' | translate }}</div>
+        <div class="order-confirmation-print__suporting-text">{{ 'kiosk.orderConfirmation.printOption.supportingText' | translate }}</div>
+      </div>
+    </button>
+
+    @if (shouldShowOtherExperiences) {
+      <div class="order-confirmation-divider"></div>
+      <section class="order-confirmation-other-experiences">
+        <h3 class="order-confirmation-other-experiences__title">
+          {{ 'kiosk.orderConfirmation.otherExperiences.title' | translate }}
+        </h3>
+        <div class="order-confirmation-other-experiences__card">
+          <div class="order-confirmation-other-experiences__info">
+            <div class="order-confirmation-other-experiences__image" aria-hidden="true">
+              @if (otherExperienceThumbnail; as thumbnail) {
+                <img [appKioskImage]="thumbnail" class="order-confirmation-other-experiences__thumbnail" />
+              }
+            </div>
+            <span class="order-confirmation-other-experiences__count">
+              {{ 'kiosk.orderConfirmation.otherExperiences.toBeScheduled' | translate: { count: otherExperiencesToSchedule.length } }}
+            </span>
+          </div>
+          <kiosk-button
+            class="order-confirmation-other-experiences__schedule-button"
+            icon="calendar-plus"
+            [iconTrailing]="true"
+            [secondary]="true"
+            [label]="'kiosk.orderConfirmation.otherExperiences.scheduleButton' | translate"
+            (click)="manageBooking()"
+          ></kiosk-button>
+        </div>
+      </section>
+    }
+  </div>
+  <app-action-footer
+    [primaryButtonText]="'kiosk.orderConfirmation.footer.finish' | translate"
+    [primaryFill]="true"
+    (primaryButtonClick)="navigateToNewOrder()"
+    [disablePrimary]="finishButtonDisabled"
+  >
+  </app-action-footer>
+</main>
+
+<ng-template #loadingSkeleton>
+  <div class="main-wrapper--content flex-box-wrapper order-confirmation-wrapper">
+    <div class="loading-skeleton__header">
+      <ignt-skeleton-base [alignment]="'center'" [animation]="true" [height]="100" [width]="'10%'"> </ignt-skeleton-base>
+      <ignt-skeleton-base [alignment]="'center'" [animation]="true" [height]="50" [width]="'50%'"> </ignt-skeleton-base>
+      <ignt-skeleton [type]="'item'" [animation]="true" [height]="40" [numElements]="1"> </ignt-skeleton>
+    </div>
+    <ignt-skeleton [type]="'item'" [animation]="true" [height]="40" [numElements]="1"> </ignt-skeleton>
+    <div class="loading-skeleton__cards">
+      <ignt-skeleton
+        [type]="'item'"
+        [isBordered]="true"
+        [numElements]="3"
+        [width]="'50%'"
+        [height]="200"
+        [animation]="true"
+      ></ignt-skeleton>
+      <ignt-skeleton
+        [type]="'item'"
+        [isBordered]="true"
+        [numElements]="3"
+        [width]="'50%'"
+        [height]="200"
+        [animation]="true"
+      ></ignt-skeleton>
+    </div>
+    <ignt-skeleton [type]="'image'" [width]="'100%'" [height]="50" [animation]="true"></ignt-skeleton>
+    <ignt-skeleton [type]="'image'" [width]="'100%'" [height]="50" [animation]="true"></ignt-skeleton>
+  </div>
+</ng-template>

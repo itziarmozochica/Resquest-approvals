@@ -1,0 +1,99 @@
+<div class="bl-plan-detail">
+  <div class="bl-plan-detail-content" data-testid="plan-detail-content">
+    @if (!errorGraphs() && outage() && !loadingGraphs()) {
+      <ignt-alert
+        class="my-4 d-block"
+        sentiment="warning"
+        [description]="'outage.message' | translate"
+        data-testid="outage-banner"
+      ></ignt-alert>
+    }
+    @if (isFzAssistantEligible && !loadingGraphs()) {
+      <app-fz-assistant-banner buttonSentiment="secondary" (dismissed)="isFzAssistantEligible = false"></app-fz-assistant-banner>
+    }
+    @if (errorGraphs()) {
+      <ignt-alert
+        class="my-4 d-block"
+        sentiment="danger"
+        [description]="'planDetail.errorPlanGraphs' | translate"
+        showCloseButton
+        (closeAlert)="errorGraphs.set(false)"
+        data-testid="plan-dashboard-error"
+      ></ignt-alert>
+    }
+
+    <div class="bl-plan-detail-row">
+      <div class="bl-plan-detail-accordion-control-panel-and-description">
+        <div class="bl-sessions-group">
+          <div class="collapse show" aria-labelledby="sessionsList">
+            @if (loadingGraphs()) {
+              <div class="bl-loader">
+                <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'4x'"></fa-icon>
+              </div>
+            }
+            @if (graphs() && !loadingGraphs()) {
+              <div class="bl-sessions-result__carousel">
+                @for (graph of graphs(); track $index) {
+                  <div
+                    class="bl-sessions-result__tab"
+                    data-testid="dashboard-tab"
+                    [class.bl-sessions-result__tab--selected]="graph.id === selectedGraph()?.id"
+                    (click)="updateSelectedTab(graph)"
+                  >
+                    {{ graph.name.trim() | translate }}
+                  </div>
+                }
+              </div>
+              <div class="bl-sessions-result">
+                @for (graph of graphs(); track $index) {
+                  @if (selectedGraph()?.id === graph.id && graph.url) {
+                    @if (isDataFreshnessVisible()) {
+                      <div class="bl-sessions-result__freshness">
+                        <span class="bl-sessions-result__freshness__item">
+                          {{ 'planDetail.lastActivity' | translate }}
+                          <span class="bl-sessions-result__freshness__value">
+                            {{ dataFreshness()?.lastData ?? ('planDetail.lastDataNullMessage' | translate) }}
+                          </span>
+                        </span>
+                        <span class="bl-sessions-result__freshness__item">
+                          {{ 'planDetail.lastRefresh' | translate }}
+                          <span class="bl-sessions-result__freshness__value">
+                            {{ dataFreshness()?.lastRefresh ?? ('planDetail.lastDataNullMessage' | translate) }}
+                          </span>
+                        </span>
+                      </div>
+                    }
+                    <iframe
+                      data-testid="plan-dashboard-iframe"
+                      class="bl-sessions-result__graph"
+                      border="0"
+                      frameborder="0"
+                      width="95%"
+                      allowtransparency
+                      [src]="graph.url | safeUrl"
+                      appIframeResizer
+                      title="Thread Content"
+                    >
+                    </iframe>
+                  }
+                }
+              </div>
+
+              @if (isQueueSectionVisible && plan.id && plan.partnerId) {
+                <app-queue-panel [partnerId]="plan.partnerId" [planId]="plan.id" [channelId]="channelId ?? null"></app-queue-panel>
+              }
+
+              <div class="bl-sessions-result__help-topic" data-testid="help-topic-wrapper" appHideWrapperOnHelpTopicClose>
+                <app-help-topic-banner
+                  [message]="'helpTopics.dashboard.message' | translate"
+                  [ctaLabel]="'helpTopics.generic.cta.label' | translate"
+                  [ctaLink]="'helpTopics.dashboard.cta.href' | translate"
+                ></app-help-topic-banner>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

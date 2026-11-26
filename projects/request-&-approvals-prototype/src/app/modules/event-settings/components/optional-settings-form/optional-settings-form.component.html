@@ -1,0 +1,152 @@
+<form [formGroup]="form()" class="optional-settings-form">
+  <div class="form-group__fields form-group__fields--one">
+    @if (selectorConfig()) {
+      <app-selector-settings-section
+        formControlName="selectorSettings"
+        id="selector-settings-section"
+        data-testid="selector-settings-section"
+        [canEditPlan]="canEditPlan()"
+        [config]="selectorConfig()"
+      ></app-selector-settings-section>
+    }
+    @if (externalPlatformsConfig()) {
+      <app-external-platforms-section
+        id="external-platforms-section"
+        [allowPublishingInOta]="allowPublishingInOta()"
+        [canEditPlan]="canEditPlan()"
+        [config]="externalPlatformsConfig()"
+        (allowPublishingInOtaChange)="onAllowPublishingInOtaChange($event)"
+        data-testid="external-platforms-section"
+      ></app-external-platforms-section>
+    }
+    @if (transportForm(); as transportFormRef) {
+      <app-transport-configuration-section
+        id="transport-configuration-section"
+        [canEditPlan]="canEditPlan()"
+        [form]="transportFormRef"
+        [config]="transportConfig()"
+        [providers]="transportProviders()"
+        (enabledChange)="onTransportEnabledChange($event)"
+        data-testid="transport-configuration-section"
+      ></app-transport-configuration-section>
+    }
+    @if (postPurchaseConfig()) {
+      <app-post-purchase-section
+        formControlName="postPurchaseReview"
+        id="post-purchase-section"
+        [canEditPlan]="canEditPlan()"
+        [config]="postPurchaseConfig()"
+        data-testid="post-purchase-section"
+      ></app-post-purchase-section>
+    }
+    @if (cancellationsForm(); as cancellationsFormRef) {
+      <app-cancellation-settings-section
+        id="cancellation-settings-section"
+        [canEditPlan]="canEditPlan()"
+        [config]="cancellationsConfig()"
+        [form]="cancellationsFormRef"
+        [onFormDirtyChange]="onFormDirtyChange()"
+      />
+    }
+    @if (disallowIndexingConfig() || eventRedirectConfig()) {
+      <div class="indexing-section" id="indexing-section">
+        <div class="indexing-section__content">
+          <ignt-wrapper-card>
+            <div>
+              <div class="indexing-section__header">
+                <h4 class="font-h6">{{ 'eventSettings.indexing.title' | translate }}</h4>
+              </div>
+              @if (disallowIndexingConfig()) {
+                <app-disallow-indexing-section
+                  id="disallow-indexing-section"
+                  formControlName="disallowIndexing"
+                  [canEditPlan]="canEditPlan()"
+                  [config]="disallowIndexingConfig()"
+                  data-testid="disallow-indexing-section"
+                ></app-disallow-indexing-section>
+              }
+              @if (eventRedirectConfig()) {
+                <app-event-redirect-section
+                  id="event-redirect-section"
+                  [canEditPlan]="canEditPlan()"
+                  [config]="eventRedirectConfig()"
+                  (redirectEnabledChange)="onRedirectEnabledChange($event)"
+                  (redirectConfigChange)="onRedirectConfigChange($event)"
+                  data-testid="event-redirect-section"
+                ></app-event-redirect-section>
+              }
+            </div>
+          </ignt-wrapper-card>
+        </div>
+      </div>
+    }
+    @if (overrideCapacityConfig(); as overrideCapacityCfg) {
+      <div class="override-capacity-section" id="override-capacity-section" data-testid="override-capacity-section">
+        <ignt-wrapper-card>
+          <div>
+            <div class="override-capacity-section__header">
+              <h4 class="font-h6 override-capacity-section__title">
+                {{ 'eventSettings.overrideCapacity.title' | translate }}
+                @if (isSuperuserOnlyField(overrideCapacityCfg.limit, overrideCapacityCfg.limit.editable && canEditPlan())) {
+                  <app-fever-only-marker />
+                }
+              </h4>
+              <p class="font-small-regular">{{ 'eventSettings.overrideCapacity.description' | translate }}</p>
+            </div>
+            <div class="override-capacity-section__toggle-container">
+              <span class="font-small-regular">{{ 'eventSettings.overrideCapacity.toggleLabel' | translate }}</span>
+              <ignt-toggle
+                [checked]="overrideCapacityEnabled()"
+                [disabled]="!overrideCapacityCfg.limit.editable || !canEditPlan()"
+                (change)="onOverrideCapacityEnabledChange($event)"
+                data-testid="override-capacity-toggle"
+              />
+            </div>
+            @if (overrideCapacityEnabled()) {
+              <div class="override-capacity-section__input-container">
+                <label class="field">
+                  <input
+                    class="field__input"
+                    type="number"
+                    min="1"
+                    step="1"
+                    [disabled]="!overrideCapacityCfg.limit.editable || !canEditPlan()"
+                    [value]="form().get('overrideCapacityLimit')?.value"
+                    (input)="onOverrideCapacityLimitInput($event)"
+                    data-testid="override-capacity-limit-input"
+                  />
+                  <span class="field__label">{{ 'eventSettings.overrideCapacity.inputLabel' | translate }}</span>
+                </label>
+              </div>
+            }
+          </div>
+        </ignt-wrapper-card>
+      </div>
+    }
+    @if (waitingRoomForm(); as form) {
+      <app-waiting-room-section
+        id="waiting-room-section"
+        [canEditPlan]="canEditPlan()"
+        [waitingRoomForm]="form"
+        data-testid="waiting-room-section"
+      ></app-waiting-room-section>
+    }
+    @if (bundleDiscountApplicationModeVisible()) {
+      <app-bundle-discount-application-mode-section
+        id="bundle-discount-application-mode-section"
+        formControlName="bundleDiscountApplicationMode"
+        [canEditPlan]="canEditPlan()"
+        data-testid="bundle-discount-application-mode-section"
+      ></app-bundle-discount-application-mode-section>
+    }
+    @if (showSelfServiceSettings()) {
+      <app-self-service-settings-section
+        id="self-service-settings-section"
+        formControlName="declarativeInventory"
+        [canEditPlan]="canEditPlan()"
+        [state]="declarativeInventoryState()"
+        data-testid="self-service-settings-section"
+      />
+    }
+  </div>
+</form>

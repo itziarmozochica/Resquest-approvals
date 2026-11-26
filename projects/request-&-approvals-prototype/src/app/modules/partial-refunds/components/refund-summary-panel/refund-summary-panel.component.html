@@ -1,0 +1,111 @@
+<div
+  class="refund-summary-panel wrapper-card"
+  [class.refund-summary-panel--updating]="preview().isLoading && preview().data !== null"
+  [attr.aria-busy]="preview().isLoading"
+  data-testid="refund-summary-panel"
+>
+  <h3 class="refund-summary-panel__title">{{ 'orders.bulkPartialRefunds.defineRefund.summary.title' | translate }}</h3>
+
+  @if (preview().error !== null) {
+    <ignt-alert
+      data-testid="refund-summary-error"
+      sentiment="danger"
+      [description]="'orders.bulkPartialRefunds.defineRefund.summary.error.description' | translate"
+      [title]="'orders.bulkPartialRefunds.defineRefund.summary.error.title' | translate"
+    />
+  } @else if (preview().data === null) {
+    <dl class="refund-summary-panel__lines" [attr.data-testid]="preview().isLoading ? 'refund-summary-loading' : 'refund-summary-idle'">
+      <div class="refund-summary-panel__line">
+        <dt>{{ 'orders.bulkPartialRefunds.defineRefund.summary.tickets' | translate }}</dt>
+        <dd><ng-container [ngTemplateOutlet]="pendingValue" /></dd>
+      </div>
+      <div class="refund-summary-panel__line">
+        <dt>{{ baseTotalLabel() | translate }}</dt>
+        <dd><ng-container [ngTemplateOutlet]="pendingValue" /></dd>
+      </div>
+      <div class="refund-summary-panel__result">
+        <dt class="refund-summary-panel__result-label">{{ 'orders.bulkPartialRefunds.defineRefund.summary.thisRefund' | translate }}</dt>
+        <dd class="refund-summary-panel__result-amount">
+          <ng-container [ngTemplateOutlet]="pendingValue" [ngTemplateOutletContext]="{ $implicit: true }" />
+        </dd>
+      </div>
+      <div class="refund-summary-panel__line">
+        <dt>{{ 'orders.bulkPartialRefunds.defineRefund.summary.remainingAfter' | translate }}</dt>
+        <dd><ng-container [ngTemplateOutlet]="pendingValue" /></dd>
+      </div>
+    </dl>
+  } @else {
+    @for (section of preview().data?.sections ?? []; track section.currency) {
+      <section class="refund-summary-panel__section" [attr.data-testid]="'refund-summary-section-' + section.currency">
+        @if ((preview().data?.sections ?? []).length > 1) {
+          <p class="refund-summary-panel__currency">{{ section.currency }}</p>
+        }
+
+        <dl class="refund-summary-panel__lines">
+          <div class="refund-summary-panel__line">
+            <dt>{{ 'orders.bulkPartialRefunds.defineRefund.summary.tickets' | translate }}</dt>
+            <dd data-testid="refund-summary-tickets">{{ section.totals.ticketsCount | number }}</dd>
+          </div>
+          <div class="refund-summary-panel__line">
+            <dt>{{ baseTotalLabel() | translate }}</dt>
+            <dd>{{ section.totals.refundableBaseAmount | currency: section.currency : 'symbol-narrow' }}</dd>
+          </div>
+          @if (section.totals.alreadyRefundedAmount > 0) {
+            <div class="refund-summary-panel__line refund-summary-panel__line--deduction">
+              <dt>{{ 'orders.bulkPartialRefunds.defineRefund.summary.alreadyRefunded' | translate }}</dt>
+              <dd data-testid="refund-summary-already-refunded">
+                −{{ section.totals.alreadyRefundedAmount | currency: section.currency : 'symbol-narrow' }}
+              </dd>
+            </div>
+            <div class="refund-summary-panel__line">
+              <dt>{{ 'orders.bulkPartialRefunds.defineRefund.summary.refundableNow' | translate }}</dt>
+              <dd>{{ section.totals.remainingAmount | currency: section.currency : 'symbol-narrow' }}</dd>
+            </div>
+          }
+          <div class="refund-summary-panel__result" data-testid="refund-summary-result">
+            <dt class="refund-summary-panel__result-label">
+              {{
+                rate() === null
+                  ? ('orders.bulkPartialRefunds.defineRefund.summary.thisRefund' | translate)
+                  : ('orders.bulkPartialRefunds.defineRefund.summary.thisRefundAtRate' | translate: { rate: rate() })
+              }}
+            </dt>
+            <dd class="refund-summary-panel__result-amount" data-testid="refund-summary-this-refund">
+              {{ section.totals.refundAmount | currency: section.currency : 'symbol-narrow' }}
+            </dd>
+          </div>
+          <div class="refund-summary-panel__line">
+            <dt>{{ 'orders.bulkPartialRefunds.defineRefund.summary.remainingAfter' | translate }}</dt>
+            <dd>{{ section.totals.remainingAmountAfter | currency: section.currency : 'symbol-narrow' }}</dd>
+          </div>
+        </dl>
+      </section>
+    }
+  }
+
+  @if (cappedTickets() > 0) {
+    <ignt-alert
+      class="refund-summary-panel__notice"
+      data-testid="refund-summary-capped"
+      sentiment="warning"
+      [description]="'orders.bulkPartialRefunds.defineRefund.summary.capped' | translate: { tickets: cappedTickets() | number }"
+    />
+  }
+
+  @if (skippedTickets() > 0) {
+    <ignt-alert
+      class="refund-summary-panel__notice"
+      data-testid="refund-summary-skipped"
+      sentiment="warning"
+      [description]="skippedNoteKey() | translate: { orders: skippedOrders() | number, tickets: skippedTickets() | number }"
+    />
+  }
+</div>
+
+<ng-template #pendingValue let-onTint>
+  @if (preview().isLoading) {
+    <ignt-skeleton-base class="refund-summary-panel__pending" width="4rem" [animation]="true" [height]="16" [white]="onTint === true" />
+  } @else {
+    —
+  }
+</ng-template>

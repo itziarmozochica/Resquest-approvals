@@ -1,0 +1,290 @@
+<div
+  class="cart cart--full-height cart--no-shadow modify-reservation-cart"
+  data-testid="modify-reservation-cart"
+  [attr.aria-busy]="loading()"
+  [class.modify-reservation-cart--updating]="loading()"
+>
+  <div class="header">
+    <div class="header__title">{{ 'boxOffice.cart.title' | translate }}</div>
+  </div>
+  <div class="body">
+    @if (isEmpty()) {
+      <p class="modify-reservation-cart__empty" data-testid="modify-reservation-cart__empty">
+        {{ 'reservations.modify.emptyReservationTitle' | translate }}
+      </p>
+    }
+
+    @for (group of groups(); track group.datetime) {
+      @if (group.isShopProduct) {
+        <div class="header__shop-products-title" data-testid="modify-reservation-cart__group-date">
+          {{ 'reservation.shopProducts.productsGroupTitle' | translate }}
+        </div>
+      } @else {
+        <div class="header__session-date" data-testid="modify-reservation-cart__group-date">
+          @if (group.datetime) {
+            {{ group.datetime | momentDate: 'd MMM yyyy - HH:mm' : timezone() : locale() }}
+          } @else {
+            -
+          }
+        </div>
+      }
+      <div class="ticket-list">
+        <!--
+          The summary acts as a disclosure button (role="button" + aria-expanded) instead of a native <button>
+          because the panel it reveals holds interactive controls, which cannot be nested inside a button.
+        -->
+        @for (line of group.lines; track line.key) {
+          <div
+            class="ticket ticket--expandable"
+            data-testid="modify-reservation-cart__line"
+            [class.ticket--expanded]="expandedLineKey() === line.key"
+            [class.modify-reservation-cart__line--removed]="line.change === LineChange.Removed"
+          >
+            <div
+              class="ticket__summary"
+              role="button"
+              tabindex="0"
+              data-testid="modify-reservation-cart__line-toggle"
+              [attr.aria-expanded]="expandedLineKey() === line.key"
+              [attr.aria-label]="'boxOffice.cart.toggleLineActions' | translate: { name: line.title }"
+              [attr.aria-describedby]="'modify-cart-line-' + line.key"
+              (click)="toggleLine(line)"
+              (keydown.enter)="toggleLine(line, $event)"
+              (keydown.space)="toggleLine(line, $event)"
+            >
+              <div
+                class="ticket__main"
+                [id]="'modify-cart-line-' + line.key"
+                [class.ticket__main--strikethrough]="line.change === LineChange.Removed"
+              >
+                <div class="count">{{ line.units }}x</div>
+                <div class="session">
+                  <span class="session__name" data-testid="modify-reservation-cart__line-title">{{ line.title }}</span>
+                  @switch (line.change) {
+                    @case (LineChange.New) {
+                      <ignt-tag sentiment="positive" variant="outline" data-testid="modify-reservation-cart__line-change">
+                        {{ 'reservations.modify.cartLineNew' | translate }}
+                      </ignt-tag>
+                    }
+                    @case (LineChange.Removed) {
+                      <ignt-tag sentiment="danger" variant="outline" data-testid="modify-reservation-cart__line-change">
+                        {{ 'reservations.modify.cartLineRemoved' | translate }}
+                      </ignt-tag>
+                    }
+                    @case (LineChange.Increased) {
+                      <ignt-tag sentiment="info" variant="outline" data-testid="modify-reservation-cart__line-change"
+                        >+{{ line.delta }}</ignt-tag
+                      >
+                    }
+                    @case (LineChange.Decreased) {
+                      <ignt-tag sentiment="warning" variant="outline" data-testid="modify-reservation-cart__line-change"
+                        >−{{ -line.delta }}</ignt-tag
+                      >
+                    }
+                  }
+                </div>
+                @if (line.price; as price) {
+                  <div class="price" data-testid="modify-reservation-cart__line-price">
+                    @if (line.catalogTotal; as catalogTotal) {
+                      <s class="old-price" data-testid="modify-reservation-cart__line-catalogue-price">
+                        <span class="visually-hidden">{{ 'boxOffice.cart.linePrice.cataloguePrice' | translate }}</span>
+                        {{ catalogTotal.amount | currency: catalogTotal.currency : 'symbol' : '1.2-2' : locale() }}
+                      </s>
+                    }
+                    {{ price.amount | currency: price.currency : 'symbol' : '1.2-2' : locale() }}
+                  </div>
+                }
+              </div>
+            </div>
+            @if (line.manualPrice; as manualPrice) {
+              <div class="ticket__serving-time" data-testid="modify-reservation-cart__line-price-reason">
+                <div class="count"></div>
+                <div class="session">
+                  <span class="session__price">{{ 'boxOffice.cart.linePrice.reasonLabel' | translate }}: {{ manualPrice.concept }}</span>
+                </div>
+              </div>
+              @if (manualPrice.setBy?.name; as author) {
+                <div class="ticket__serving-time" data-testid="modify-reservation-cart__line-price-author">
+                  <div class="count"></div>
+                  <div class="session">
+                    <span class="session__price">{{ 'boxOffice.cart.linePrice.setBy' | translate: { name: author } }}</span>
+                  </div>
+                </div>
+              }
+            }
+            @if (expandedLineKey() === line.key) {
+              <div class="ticket__actions" data-testid="modify-reservation-cart__line-actions">
+                @if (line.change === LineChange.Removed) {
+                  <ignt-button
+                    data-testid="modify-reservation-cart__line-restore"
+                    size="small"
+                    variant="tertiary"
+                    [label]="'reservations.modify.cartLineRestore' | translate"
+                    (click)="changeQuantity(line, line.originalUnits, $event)"
+                    (keydown.enter)="$event.stopPropagation()"
+                    (keydown.space)="$event.stopPropagation()"
+                  />
+                } @else {
+                  <div class="ticket__stepper" role="group" [attr.aria-label]="line.title">
+                    <button
+                      type="button"
+                      ignt-icon-button
+                      sentiment="tertiary"
+                      size="small"
+                      data-testid="modify-reservation-cart__line-decrease"
+                      [icon]="['fal', 'minus']"
+                      [disabled]="atMinLineKeys().has(line.key)"
+                      [attr.aria-label]="'boxOffice.cart.decreaseQuantity' | translate"
+                      (click)="changeQuantity(line, line.units - 1, $event)"
+                      (keydown.enter)="$event.stopPropagation()"
+                      (keydown.space)="$event.stopPropagation()"
+                    ></button>
+                    <span class="ticket__stepper-value" data-testid="modify-reservation-cart__line-units">{{ line.units }}</span>
+                    <button
+                      type="button"
+                      ignt-icon-button
+                      sentiment="tertiary"
+                      size="small"
+                      data-testid="modify-reservation-cart__line-increase"
+                      [icon]="['fal', 'plus']"
+                      [disabled]="atMaxLineKeys().has(line.key)"
+                      [attr.aria-label]="'boxOffice.cart.increaseQuantity' | translate"
+                      (click)="changeQuantity(line, line.units + 1, $event)"
+                      (keydown.enter)="$event.stopPropagation()"
+                      (keydown.space)="$event.stopPropagation()"
+                    ></button>
+                  </div>
+                  <ignt-button
+                    data-testid="modify-reservation-cart__line-remove"
+                    sentiment="danger"
+                    size="small"
+                    variant="tertiary"
+                    [ariaLabel]="'boxOffice.cart.removeTicketLine' | translate: { name: line.title }"
+                    [label]="'boxOffice.cart.removeLine' | translate"
+                    [leadingIcon]="{ name: 'trash-alt', variant: 'light' }"
+                    (click)="changeQuantity(line, 0, $event)"
+                    (keydown.enter)="$event.stopPropagation()"
+                    (keydown.space)="$event.stopPropagation()"
+                  />
+                  @if (linePriceEditable() && line.canEditPrice) {
+                    <div class="ticket__price-actions">
+                      <ignt-button
+                        data-testid="modify-reservation-cart__line-edit-price"
+                        size="small"
+                        variant="tertiary"
+                        [disabled]="linePriceDisabledHint() !== null || loading()"
+                        [label]="'boxOffice.cart.linePrice.editPrice' | translate"
+                        [leadingIcon]="{ name: 'pen', variant: 'solid' }"
+                        (click)="openPriceEditor(line, $event)"
+                        (keydown.enter)="$event.stopPropagation()"
+                        (keydown.space)="$event.stopPropagation()"
+                      />
+                      @if (line.manualPrice && linePriceDisabledHint() === null) {
+                        <ignt-button
+                          data-testid="modify-reservation-cart__line-clear-price"
+                          sentiment="danger"
+                          size="small"
+                          variant="tertiary"
+                          [disabled]="loading()"
+                          [label]="'boxOffice.cart.linePrice.clearPrice' | translate"
+                          (click)="clearLinePrice(line, $event)"
+                          (keydown.enter)="$event.stopPropagation()"
+                          (keydown.space)="$event.stopPropagation()"
+                        />
+                      }
+                    </div>
+                  }
+                }
+              </div>
+              @if (linePriceEditable() && line.canEditPrice && linePriceDisabledHint(); as disabledHint) {
+                <span class="ticket__price-hint" data-testid="modify-reservation-cart__line-edit-price-hint">{{
+                  disabledHint | translate
+                }}</span>
+              }
+              @if (editingPriceLineKey() === line.key && linePriceDisabledHint() === null && line.catalogUnitPrice; as catalogue) {
+                <app-cart-line-price-editor
+                  [busy]="loading()"
+                  [catalogUnitPrice]="catalogue"
+                  [locale]="locale()"
+                  [manualPrice]="line.manualPrice"
+                  [surchargePerTicket]="line.surchargePerTicket"
+                  [units]="line.units"
+                  (applied)="applyLinePrice(line, $event)"
+                  (cancelled)="closePriceEditor()"
+                />
+              }
+            }
+          </div>
+        }
+      </div>
+    }
+
+    @if (canEditOverride()) {
+      @for (resetKey of [overrideResetKey()]; track resetKey) {
+        <app-cart-adjustment-price
+          class="modify-reservation-cart__override"
+          data-testid="modify-reservation-cart__override"
+          trackingScope="modify_reservation"
+          [canToggleAdjustmentPrice]="canToggleOverride()"
+          [currency]="overrideCurrency()"
+          [errorKey]="overrideErrorKey()"
+          [initialAdjustment]="overrideInitialAdjustment()"
+          (adjustmentChange)="adjustmentChange.emit($event)"
+        />
+      }
+    }
+
+    @if (totals(); as totals) {
+      <div class="price-summary" data-testid="modify-reservation-cart__totals" aria-live="polite">
+        <div class="fee-price">
+          <span class="fee-price__label">{{ 'reservations.modify.cartOriginalTotal' | translate }}</span>
+          <span class="fee-price__amount" data-testid="modify-reservation-cart__original-total">
+            {{ totals.originalTotal.amount | currency: totals.originalTotal.currency : 'symbol' : '1.2-2' : locale() }}
+          </span>
+        </div>
+        <div class="fee-price">
+          <span class="fee-price__label">{{ 'reservations.modify.cartNewTotal' | translate }}</span>
+          <span class="fee-price__amount" data-testid="modify-reservation-cart__new-total">
+            {{ totals.newTotal.amount | currency: totals.newTotal.currency : 'symbol' : '1.2-2' : locale() }}
+          </span>
+        </div>
+        @if (showPaidAmount()) {
+          <div class="fee-price">
+            <span class="fee-price__label">{{ 'reservations.modify.cartPaidAmount' | translate }}</span>
+            <span class="fee-price__amount" data-testid="modify-reservation-cart__paid-amount">
+              {{ totals.paidAmount.amount | currency: totals.paidAmount.currency : 'symbol' : '1.2-2' : locale() }}
+            </span>
+          </div>
+          <div class="fee-price">
+            <span class="fee-price__label">{{ 'reservations.modify.remainingAmount' | translate }}</span>
+            <span class="fee-price__amount" data-testid="modify-reservation-cart__remaining-amount">
+              {{ totals.remainingAmount.amount | currency: totals.remainingAmount.currency : 'symbol' : '1.2-2' : locale() }}
+            </span>
+          </div>
+        }
+        <div class="total-price">
+          <span class="total-price__label">{{ 'reservations.modify.cartDifference' | translate }}</span>
+          <span class="total-price__amount" data-testid="modify-reservation-cart__difference">
+            {{ differencePrefix() }}{{ totals.difference.amount | currency: totals.difference.currency : 'symbol' : '1.2-2' : locale() }}
+          </span>
+        </div>
+      </div>
+    }
+
+    @if (errorMessage(); as errorMessage) {
+      <p class="modify-reservation-cart__error" data-testid="modify-reservation-cart__error" role="alert">{{ errorMessage }}</p>
+    }
+
+    <div class="modify-reservation-cart__actions">
+      @if (hasChanges()) {
+        <ignt-button
+          data-testid="modify-reservation-cart__clear-changes"
+          variant="secondary"
+          fill
+          [label]="'reservations.modify.clearChanges' | translate"
+          (click)="clearChanges.emit()"
+        />
+      }
+    </div>
+  </div>
+</div>

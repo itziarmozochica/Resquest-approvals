@@ -1,0 +1,67 @@
+<div class="sales-routing-view" data-testid="sales-routing-view">
+  @switch (viewFlow()) {
+    @case ('salesRoutingError') {
+      <ignt-alert sentiment="danger" [description]="'salesRouting.salesRoutingError' | translate" />
+    }
+    @case ('emptySalesRouting') {
+      <fz-empty-state
+        class="sales-routing-view__empty-state"
+        description="salesRouting.emptySalesRoutingState.description"
+        label="salesRouting.emptySalesRoutingState.label"
+        testId="sales-routing-view-empty-state"
+        title="salesRouting.emptySalesRoutingState.title"
+        showLeadingIcon
+        (emptyStateClick)="onEmptySalesRoutingStateClick()"
+      />
+    }
+    @case ('salesRoutingListView') {
+      <ignt-table
+        [data]="filteredPlans()"
+        [hasPagination]="true"
+        [pageSize]="10"
+        [searchConfig]="searchConfig()"
+        (searchChanged)="onSearchChanged($event)"
+      >
+        <ignt-table-column columnType="primary" key="event" [header]="'salesRouting.list.columns.event' | translate">
+          <ng-template let-plan="item" [igntTableColumnTemplateType]="columnTemplateType()">
+            <div class="table-cell-event">
+              <img alt="" class="table-cell-event__cover-image" width="36" height="36" [ngSrc]="plan.imageUrl" />
+              <div class="table-cell-event__content">
+                <span class="table-cell-event__event-name">{{ plan.name }}</span>
+                <span class="table-cell-event__event-location">{{ plan.placeName }}, {{ plan.cityName }}</span>
+              </div>
+            </div>
+          </ng-template>
+        </ignt-table-column>
+        <ignt-table-column columnType="secondary" key="channels" [header]="'salesRouting.list.columns.channels' | translate">
+          <ng-template let-plan="item" [igntTableColumnTemplateType]="columnTemplateType()">
+            @let channelsLabel = plan.channels | groupChannels: channelsCountLabel();
+            <ignt-button
+              size="small"
+              variant="tertiary"
+              [ariaLabel]="channelsLabel"
+              [attr.data-testid]="`sales-routing-plan-channels-${plan.id}`"
+              [disabled]="plan.channels.length === 0"
+              [label]="channelsLabel"
+              (click)="onChannelsClick(plan)"
+            />
+          </ng-template>
+        </ignt-table-column>
+        <ignt-table-column columnType="action" key="actions" [header]="'salesRouting.list.columns.actions' | translate">
+          <ng-template let-plan="item" [igntTableColumnTemplateType]="columnTemplateType()">
+            @let editLabel = 'common.edit' | translate;
+            <ignt-button
+              size="small"
+              variant="tertiary"
+              [ariaLabel]="`${editLabel} ${plan.name}`"
+              [attr.data-testid]="`sales-routing-plan-edit-${plan.id}`"
+              [disabled]="true"
+              [label]="editLabel"
+              (click)="onEditClick(plan)"
+            />
+          </ng-template>
+        </ignt-table-column>
+      </ignt-table>
+    }
+  }
+</div>

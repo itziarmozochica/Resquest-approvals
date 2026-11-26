@@ -1,0 +1,97 @@
+<app-cart-header
+  #cartHeader
+  *ngIf="viewReservation"
+  [firstName]="viewReservation.ownerFirstName ?? ''"
+  [lastName]="viewReservation.ownerLastName ?? ''"
+  [planAddress]="plan?.firstPlace?.addressName ?? ''"
+  [planName]="planName"
+  [sessionStartAt]="viewReservation.sessionStartsAt"
+  [ownerEmail]="viewReservation.ownerEmail ?? ''"
+  [ownerPhone]="viewCartSession?.ownerPhone ?? ''"
+  [ownerFullName]="viewReservation.ownerFullName ?? ''"
+  [ownerNameEditable]="viewReservation.ownerNameEditable ?? false"
+  [timezone]="timezone ?? ''"
+  [isGuest]="viewCartSession?.isGuest ?? false"
+  [isMember]="reservationHasMembershipDiscounts"
+  [isReservationDetail]="true"
+  [reservationDetailsCompactMobile]="reservationDetailsCompactMobile()"
+  [reservationStatus]="viewReservation.status"
+  [contactUpdateInProgress]="isUpdatingContact()"
+  (contactEdited)="onContactEdited($event, cartHeader)"
+  (isCollapsedEmitter)="toggleCollapsedCard($event)"
+>
+  <ng-container options>
+    <ignt-button-dropdown
+      class="reservation-header__option"
+      data-testid="reservation-header__options-download"
+      sentiment="tertiary"
+      size="small"
+      align="right"
+      [hoverEffect]="true"
+      [options]="downloadOptions"
+      [loading]="isPrintingDelivery || isPrintingPartySummary"
+      (optionClick)="onDownloadOptionClick($event)"
+    >
+      {{ 'common.download' | translate }}
+    </ignt-button-dropdown>
+    @if (canViewCalendar()) {
+      <ignt-button
+        variant="tertiary"
+        size="small"
+        [leadingIcon]="{ name: 'calendar', variant: 'light' }"
+        [label]="'validateTicketsNew.orderHeader.viewCalendar' | translate"
+        class="reservation-header__option"
+        data-testid="reservation-header__options-view-calendar"
+        (click)="viewCalendar()"
+      />
+    }
+    @if (viewReservation.status === ReservationStatus.TO_BE_PAID) {
+      @if (showModifyReservationButton()) {
+        <ignt-button
+          variant="tertiary"
+          size="small"
+          [leadingIcon]="{ name: 'edit', variant: 'solid' }"
+          [label]="'reservations.modifyReservation' | translate"
+          class="reservation-header__option"
+          data-testid="reservation-header__options-modify"
+          (click)="requestModifyReservationItems(EditReservationAction.MODIFY_RESERVATION)"
+        />
+      }
+      @if (canCancelReservation()) {
+        <ignt-button
+          variant="tertiary"
+          sentiment="danger"
+          size="small"
+          [leadingIcon]="{ name: 'ban', variant: 'solid' }"
+          [label]="'validateTicketsNew.orderHeader.cancelOrder' | translate"
+          class="reservation-header__option"
+          data-testid="reservation-header__options-cancel"
+          (click)="cancelReservation()"
+        />
+      }
+    }
+  </ng-container>
+
+  <ng-container identifiers>
+    @if (hasBookingTagsAccess() && tagsTarget(); as bookingTagsTarget) {
+      <app-booking-tags-row [target]="bookingTagsTarget" [sessionTypeIds]="ticketTypeIds" data-testid="reservation-header-tags" />
+    }
+    <div class="reservation-header__reservation-id" data-testid="reservation-header-status">
+      @if (!reservationDetailsCompactMobile()) {
+        <span class="reservation-header__reservation-id-tag"> {{ 'reservations.tableColumns.status' | translate }}: </span>
+        <ng-container>{{ ' ' }}</ng-container>
+      }
+      <app-reservation-status-tag [status]="viewReservation.status"></app-reservation-status-tag>
+    </div>
+    <div class="reservation-header__reservation-id" data-testid="reservation-header-reservation-id">
+      <span class="reservation-header__reservation-id-tag">
+        @if (!reservationDetailsCompactMobile()) {
+          <ng-container>{{ 'validateTicketsNew.orderHeader.reservationId' | translate }}</ng-container>
+        } @else {
+          <ng-container>{{ 'reservations.filterLabels.id' | translate }}:</ng-container>
+        }
+      </span>
+      {{ ' ' }}<span class="reservation-header__reservation-id-value">{{ viewReservation?.locator }}</span>
+    </div>
+  </ng-container>
+</app-cart-header>

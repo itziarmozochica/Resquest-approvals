@@ -1,0 +1,339 @@
+<div class="cart-header" [class.cart-header--reservation-details-mobile]="reservationDetailsCompactMobile()">
+  <div class="cart-header__plan-name" data-testid="cart-header-plan-name">
+    {{ planName() }}
+    @if (!reservationDetailsCompactMobile()) {
+      <fa-icon
+        (click)="toggleIsCollapsed()"
+        [class.cart-header__collapse--collapsed]="isCollapsed()"
+        [icon]="['fas', 'chevron-down']"
+        class="cart-header__collapse"
+      >
+      </fa-icon>
+    }
+  </div>
+
+  <div class="cart-header__options">
+    <ng-content select="[options]"></ng-content>
+  </div>
+
+  <div class="cart-header__plan-details">
+    <div data-testid="cart-header-session-address">
+      {{ planAddress() }}
+    </div>
+    @if (showSessionDate()) {
+      <div class="cart-header__plan-date" data-testid="cart-header-session-date">
+        <div>
+          {{ sessionStartAt() | momentDate: 'd MMM yyyy hh:mm a' : timezone() }}
+        </div>
+        <ng-container *permissionBased="'can_view_validation'">
+          <div class="cart-header__extra-label-wrapper">
+            <ng-content select="[extra-label]"></ng-content>
+          </div>
+        </ng-container>
+      </div>
+    }
+  </div>
+
+  <div [class.cart-header__user--guest]="isGuest()" class="cart-header__user" data-testid="cart-header-user">
+    <div class="cart-header__user-name" data-testid="cart-header-user-name">
+      <fa-icon class="cart-header__user-avatar" [icon]="['fal', 'user-circle']"></fa-icon>
+      <span class="cart-header__user-name-text">{{ ownerFullName() }}</span>
+      @if (isMember()) {
+        <span class="cart-header__user-member tag tag--warning-outline">{{ 'boxOffice.memberships.label' | translate }}</span>
+      }
+      <div class="cart-header__email-icon">
+        <fa-icon [icon]="['fal', 'exclamation-triangle']"> </fa-icon>
+        <div class="cart-header__email-tooltip">
+          {{ 'validateTicketsNew.orderHeader.emailTooltip' | translate }}
+        </div>
+      </div>
+      @if (isGuest()) {
+        <ignt-tag class="cart-header__guest-tag" data-testid="cart-header-guest-tag" [sentiment]="'accent'" [variant]="'solid'">
+          {{ 'validateTicketsNew.orderHeader.guestTag' | translate | uppercase }}
+        </ignt-tag>
+      }
+    </div>
+    <div class="cart-header__user-contact-info">
+      @if (hasOwnerEmail()) {
+        <span class="cart-header__email" data-testid="cart-header-user-email">
+          {{ (ownerEmail() | isPlaceholderEmail) ? ('reservation.emailNotProvided' | translate) : ownerEmail() }}
+        </span>
+      }
+      @if (hasOwnerPhone()) {
+        <span
+          class="cart-header__phone"
+          [class.cart-header__phone-separator]="hasOwnerEmail() && hasOwnerPhone()"
+          data-testid="cart-header-user-phone"
+        >
+          <bdi dir="ltr">{{ ownerPhone() }}</bdi>
+        </span>
+      }
+    </div>
+    @if (canEditContact()) {
+      <div class="cart-header__user-contact-info-edit">
+        <button
+          type="button"
+          igntButton
+          sentiment="tertiary"
+          size="small"
+          data-testid="cart-header-edit-contact"
+          [leadingIcon]="['fas', 'edit']"
+          (click)="onEditContact()"
+        >
+          {{ 'boxOffice.contactInformationButton' | translate }}
+        </button>
+      </div>
+    }
+  </div>
+
+  @if (reservationDetailsCompactMobile()) {
+    <div class="cart-header__mobile-divider" aria-hidden="true"></div>
+  }
+
+  <div class="cart-header__meta">
+    <div class="cart-header__id-container" data-testid="cart-header-id-container">
+      <ng-content select="[identifiers]"></ng-content>
+    </div>
+
+    <div class="cart-header__status" data-testid="cart-header-status">
+      <ng-content select="[status]"></ng-content>
+    </div>
+  </div>
+</div>
+
+<app-lateral-slider
+  [closeOnBackdropClick]="true"
+  [showDetails]="showEditContactSlider()"
+  [titleTemplate]="editContactSliderTitle"
+  (closeSlider)="onCancelEditContact()"
+>
+  @if (showEditContactSlider()) {
+    <div class="lateral-slider-body__wrapper cart-header__edit-contact-slider">
+      @if (editContactStep() === 'form') {
+        <div class="cart-header__edit-contact-slider__body">
+          <form class="cart-header__edit-contact-form" [formGroup]="editContactForm">
+            <ignt-input-field
+              appInputMobileBehavior
+              id="cart-header-edit-contact-email"
+              data-testid="cart-header-edit-contact-email"
+              formControlName="email"
+              type="email"
+              autocomplete="off"
+              [label]="'form.field.email' | translate"
+              [customFormErrors]="[
+                {
+                  type: 'required',
+                  message: ('form.error.mandatoryField' | translate),
+                },
+                {
+                  type: 'emailValidator',
+                  message: ('form.error.invalidEmail' | translate),
+                },
+              ]"
+            />
+            @if (!areNameFieldsEditable()) {
+              <div class="cart-header__edit-contact-form__name-fields__helper-text">
+                <ignt-alert
+                  [title]="'boxOffice.contactInformationNameEditableTitle' | translate"
+                  [description]="'boxOffice.contactInformationNameEditableDescription' | translate"
+                />
+              </div>
+            }
+            <div class="cart-header__edit-contact-form__name-fields">
+              <ignt-input-field
+                appInputMobileBehavior
+                id="cart-header-edit-contact-first-name"
+                data-testid="cart-header-edit-contact-first-name"
+                formControlName="firstName"
+                type="text"
+                autocomplete="off"
+                [maxlength]="nameFieldMaxLength"
+                [readonly]="!areNameFieldsEditable()"
+                [label]="'form.field.firstName' | translate"
+                [customFormErrors]="[
+                  {
+                    type: 'maxlength',
+                    message: ('form.error.maxLength' | translate: { value: nameFieldMaxLength }),
+                  },
+                ]"
+              />
+              <ignt-input-field
+                appInputMobileBehavior
+                id="cart-header-edit-contact-last-name"
+                data-testid="cart-header-edit-contact-last-name"
+                formControlName="lastName"
+                type="text"
+                autocomplete="off"
+                [maxlength]="nameFieldMaxLength"
+                [readonly]="!areNameFieldsEditable()"
+                [label]="'form.field.lastName' | translate"
+                [customFormErrors]="[
+                  {
+                    type: 'maxlength',
+                    message: ('form.error.maxLength' | translate: { value: nameFieldMaxLength }),
+                  },
+                ]"
+              />
+            </div>
+          </form>
+        </div>
+        <div class="lateral-slider-body__footer cart-header__edit-contact-slider__footer">
+          <button
+            type="button"
+            igntButton
+            sentiment="primary"
+            variant="default"
+            size="large"
+            data-testid="cart-header-edit-contact-confirm"
+            [loading]="isApplyContactLoading()"
+            (click)="onConfirmEditContact()"
+          >
+            {{ 'common.confirm' | translate }}
+          </button>
+          <button
+            type="button"
+            igntButton
+            sentiment="secondary"
+            variant="default"
+            size="large"
+            data-testid="cart-header-edit-contact-cancel"
+            (click)="onCancelEditContact()"
+          >
+            {{ 'common.cancel' | translate }}
+          </button>
+        </div>
+      } @else {
+        <div class="cart-header__edit-contact-slider__body cart-header__edit-contact-review" data-testid="cart-header-edit-contact-review">
+          <div class="cart-header__edit-contact-review__summary">
+            @if (reviewHasNameChange()) {
+              <div class="cart-header__edit-contact-review__row">
+                <span class="cart-header__edit-contact-review__label">
+                  {{ 'boxOffice.contactInformationConfirmNameLabel' | translate | uppercase }}
+                </span>
+                <span class="cart-header__edit-contact-review__value" data-testid="cart-header-edit-contact-review-name">
+                  @if (reviewOriginalName()) {
+                    <span class="cart-header__edit-contact-review__value--previous">{{ reviewOriginalName() }}</span>
+                  } @else {
+                    <span
+                      class="cart-header__edit-contact-review__value--previous cart-header__edit-contact-review__value--placeholder"
+                      data-testid="cart-header-edit-contact-review-name-previous-placeholder"
+                    >
+                      {{ 'boxOffice.contactInformationNoNameProvided' | translate }}
+                    </span>
+                  }
+                  <span class="cart-header__edit-contact-review__arrow" aria-hidden="true">→</span>
+                  @if (reviewNewName()) {
+                    <span class="cart-header__edit-contact-review__value--current">{{ reviewNewName() }}</span>
+                  } @else {
+                    <span
+                      class="cart-header__edit-contact-review__value--current cart-header__edit-contact-review__value--placeholder"
+                      data-testid="cart-header-edit-contact-review-name-current-placeholder"
+                    >
+                      {{ 'boxOffice.contactInformationNoNameProvided' | translate }}
+                    </span>
+                  }
+                </span>
+              </div>
+            }
+            <div class="cart-header__edit-contact-review__row">
+              <span class="cart-header__edit-contact-review__label">
+                {{ 'boxOffice.contactInformationConfirmEmailLabel' | translate | uppercase }}
+              </span>
+              <span class="cart-header__edit-contact-review__value" data-testid="cart-header-edit-contact-review-email">
+                @if (reviewHasEmailChange()) {
+                  <span class="cart-header__edit-contact-review__value--previous">{{ reviewPreviousEmailForDisplay() }}</span>
+                  <span class="cart-header__edit-contact-review__arrow" aria-hidden="true">→</span>
+                  <span class="cart-header__edit-contact-review__value--current">{{ reviewCurrentEmailForDisplay() }}</span>
+                } @else {
+                  {{ reviewCurrentEmailForDisplay() }}
+                }
+              </span>
+            </div>
+          </div>
+
+          @if (reviewShowProfileUpdateWarning()) {
+            <ignt-alert
+              class="cart-header__edit-contact-review__alert"
+              sentiment="warning"
+              [title]="'boxOffice.contactInformationConfirmProfileUpdateTitle' | translate"
+              [description]="'boxOffice.contactInformationConfirmProfileUpdateMessage' | translate: { email: reviewProfileEmail() }"
+              data-testid="cart-header-edit-contact-review-profile-alert"
+            />
+          }
+
+          @if (reviewHasEmailChange()) {
+            <ignt-alert
+              class="cart-header__edit-contact-review__alert"
+              sentiment="warning"
+              [title]="'boxOffice.contactInformationConfirmNewAccountTitle' | translate"
+              [description]="'boxOffice.contactInformationConfirmNewAccountMessage' | translate: { email: reviewNewEmail() }"
+              data-testid="cart-header-edit-contact-review-new-account-alert"
+            />
+            @if (reviewShowPaymentLinkResentWarning()) {
+              <ignt-alert
+                class="cart-header__edit-contact-review__alert"
+                sentiment="info"
+                [title]="'boxOffice.contactInformationConfirmPaymentLinkTitle' | translate"
+                [description]="'boxOffice.contactInformationConfirmPaymentLinkMessage' | translate"
+                data-testid="cart-header-edit-contact-review-payment-link-alert"
+              />
+            }
+          }
+          <ignt-checkbox
+            class="cart-header__edit-contact-review__consent"
+            dataTestId="cart-header-edit-contact-review-consent"
+            [checked]="true"
+            [disabled]="true"
+            [label]="'boxOffice.termsAndConditionsDescription' | translate"
+          />
+        </div>
+        <div class="lateral-slider-body__footer cart-header__edit-contact-slider__footer">
+          <button
+            type="button"
+            igntButton
+            sentiment="primary"
+            variant="default"
+            size="large"
+            data-testid="cart-header-edit-contact-apply"
+            [loading]="isApplyContactLoading()"
+            (click)="onApplyContactChanges()"
+          >
+            {{ 'boxOffice.contactInformationConfirmApply' | translate }}
+          </button>
+          <button
+            type="button"
+            igntButton
+            sentiment="secondary"
+            variant="default"
+            size="large"
+            data-testid="cart-header-edit-contact-back-to-edit"
+            [loading]="isApplyContactLoading()"
+            (click)="onBackToEditContact()"
+          >
+            {{ 'boxOffice.contactInformationConfirmBackToEdit' | translate }}
+          </button>
+        </div>
+      }
+    </div>
+  }
+</app-lateral-slider>
+
+<ng-template #editContactSliderTitle>
+  <div class="cart-header__edit-contact-slider__title">
+    @if (editContactStep() === 'review') {
+      <span class="cart-header__edit-contact-slider__title__heading">
+        {{ 'boxOffice.contactInformationConfirmTitle' | translate }}
+      </span>
+      <span class="cart-header__edit-contact-slider__title__subtitle">
+        {{ 'boxOffice.contactInformationConfirmSubtitle' | translate }}
+      </span>
+    } @else {
+      <span class="cart-header__edit-contact-slider__title__heading">
+        {{ 'boxOffice.contactInformationTitle' | translate }}
+      </span>
+      <span class="cart-header__edit-contact-slider__title__subtitle">
+        {{ 'boxOffice.contactInformationEditSubtitle' | translate }}
+      </span>
+    }
+  </div>
+</ng-template>

@@ -1,0 +1,118 @@
+<div class="layout-editor" cdkDropListGroup>
+  <div class="layout-editor__schedule">
+    <span class="layout-editor__schedule-label">{{ 'adminServiceCatalog.editor.layout.eventSchedule' | translate }}</span>
+    <label class="layout-editor__radio">
+      <input
+        type="radio"
+        name="eventScheduleCapture"
+        [checked]="eventScheduleCapture === null"
+        [disabled]="disabled"
+        (change)="setEventScheduleCapture(null)"
+      />
+      {{ 'adminServiceCatalog.editor.layout.scheduleNone' | translate }}
+    </label>
+    <label class="layout-editor__radio">
+      <input
+        type="radio"
+        name="eventScheduleCapture"
+        [checked]="eventScheduleCapture === 'composer'"
+        [disabled]="disabled"
+        (change)="setEventScheduleCapture('composer')"
+      />
+      {{ 'adminServiceCatalog.editor.layout.scheduleComposer' | translate }}
+    </label>
+    <label class="layout-editor__radio">
+      <input
+        type="radio"
+        name="eventScheduleCapture"
+        [checked]="eventScheduleCapture === 'custom'"
+        [disabled]="disabled"
+        (change)="setEventScheduleCapture('custom')"
+      />
+      {{ 'adminServiceCatalog.editor.layout.scheduleCustom' | translate }}
+    </label>
+  </div>
+
+  @for (section of working().sections; track si; let si = $index) {
+    <section class="layout-editor__section">
+      <header class="layout-editor__section-head">
+        <h4 class="layout-editor__section-title">{{ section.title }}</h4>
+        <button type="button" igntButton sentiment="tertiary" size="small" [disabled]="disabled" (click)="addRow(si)">
+          {{ 'adminServiceCatalog.editor.layout.addRow' | translate }}
+        </button>
+      </header>
+
+      @for (row of section.rows; track ri; let ri = $index) {
+        <div class="layout-editor__row">
+          <div class="layout-editor__columns" [style.grid-template-columns]="'repeat(' + (row.columns.length || 1) + ', minmax(0, 1fr))'">
+            @for (column of row.columns; track ci; let ci = $index) {
+              <div class="layout-editor__column">
+                <div class="layout-editor__column-head">
+                  <span class="layout-editor__column-name">
+                    {{ 'adminServiceCatalog.editor.layout.column' | translate }} {{ ci + 1 }}
+                  </span>
+                  <button
+                    type="button"
+                    class="layout-editor__col-remove"
+                    [disabled]="disabled"
+                    (click)="removeColumn(si, ri, ci)"
+                    [attr.aria-label]="'adminServiceCatalog.editor.layout.removeColumn' | translate"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div
+                  class="layout-editor__dropzone"
+                  cdkDropList
+                  [cdkDropListData]="columnData(si, ri, ci)"
+                  [cdkDropListDisabled]="disabled"
+                  (cdkDropListDropped)="drop($event)"
+                >
+                  @for (id of column; track id) {
+                    <div class="layout-editor__chip" cdkDrag [cdkDragData]="id" [cdkDragDisabled]="disabled">
+                      {{ labelFor(id) }}
+                    </div>
+                  }
+                  @if (!column.length) {
+                    <p class="layout-editor__empty">{{ 'adminServiceCatalog.editor.layout.emptyColumn' | translate }}</p>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+          <button
+            type="button"
+            igntButton
+            sentiment="tertiary"
+            size="small"
+            class="layout-editor__add-col"
+            [disabled]="disabled"
+            (click)="addColumn(si, ri)"
+          >
+            {{ 'adminServiceCatalog.editor.layout.addColumn' | translate }}
+          </button>
+        </div>
+      }
+    </section>
+  }
+
+  <section class="layout-editor__tray">
+    <h4 class="layout-editor__tray-title">{{ 'adminServiceCatalog.editor.layout.unused' | translate }}</h4>
+    <div
+      class="layout-editor__dropzone layout-editor__dropzone--tray"
+      cdkDropList
+      [cdkDropListData]="trayData"
+      [cdkDropListDisabled]="disabled"
+      (cdkDropListDropped)="drop($event)"
+    >
+      @for (id of unusedIds(); track id) {
+        <div class="layout-editor__chip" cdkDrag [cdkDragData]="id" [cdkDragDisabled]="disabled">
+          {{ labelFor(id) }}
+        </div>
+      }
+      @if (!unusedIds().length) {
+        <p class="layout-editor__empty">{{ 'adminServiceCatalog.editor.layout.trayEmpty' | translate }}</p>
+      }
+    </div>
+  </section>
+</div>

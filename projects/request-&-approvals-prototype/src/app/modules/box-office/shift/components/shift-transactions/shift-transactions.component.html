@@ -1,0 +1,52 @@
+<ng-container [ngSwitch]="currentState">
+  <ng-container *ngSwitchCase="stateEnum.noResults" [ngTemplateOutlet]="noResults"></ng-container>
+  <ng-container *ngSwitchCase="stateEnum.withResults" [ngTemplateOutlet]="withResults"></ng-container>
+  <ng-container *ngSwitchCase="stateEnum.error" [ngTemplateOutlet]="error"></ng-container>
+</ng-container>
+
+<ng-template #loading>
+  <div data-testid="shift-transactions-loading" class="spinner">
+    <fa-icon class="loader" [icon]="['fas', 'spinner']" [size]="'3x'"></fa-icon>
+  </div>
+</ng-template>
+
+<ng-template #error>
+  <div data-testid="shift-transactions-error" class="shift-transactions__error">
+    <ignt-alert sentiment="danger" [description]="'boxOffice.shiftDetail.transactions.error' | translate" />
+  </div>
+</ng-template>
+
+<ng-template #withResults>
+  <div
+    data-testid="shift-transactions-table-container"
+    appInfiniteScrollLoader
+    [pageRequestCallback]="pageRequestCallback"
+    [active]="activatePagination"
+  >
+    <app-shift-transactions-table
+      [transactions]="transactions"
+      [showsTicketCount]="showsTicketCount"
+      (selectedTransaction)="viewTransaction($event)"
+    >
+    </app-shift-transactions-table>
+  </div>
+  <ng-container *ngIf="isLoading" [ngTemplateOutlet]="loading"></ng-container>
+  <ng-container *ngIf="!hasMorePages" [ngTemplateOutlet]="endResults"></ng-container>
+</ng-template>
+
+<ng-template #noResults>
+  <div data-testid="shift-transactions-no-results" class="shift-transactions__no-results">
+    <fa-icon class="state-icon" [icon]="['far', 'receipt']"></fa-icon>
+    <div>{{ 'boxOffice.shiftDetail.transactions.noResults' | translate }}</div>
+  </div>
+</ng-template>
+
+<ng-template #endResults>
+  <div class="end-result">
+    <span class="end-result-line" data-testid="shift-transactions-no-more-results"></span>
+    <fa-icon [icon]="['fas', 'circle']" class="end-result-icon"></fa-icon>
+    <span class="end-result-text">{{ 'reviews.endResults' | translate }}</span>
+    <fa-icon [icon]="['fas', 'circle']" class="end-result-icon"></fa-icon>
+    <span class="end-result-line"></span>
+  </div>
+</ng-template>

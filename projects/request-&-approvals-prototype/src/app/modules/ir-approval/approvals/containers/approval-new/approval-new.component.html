@@ -1,0 +1,518 @@
+<div class="approval-new" data-testid="approval-new">
+  <form [formGroup]="form" class="approval-new__form" [class.approval-new__form--busy]="submitting()" [attr.aria-busy]="submitting()">
+    <div class="approval-new__heading">
+      <h1 class="approval-new__title">{{ 'approvals.new.title' | translate }}</h1>
+      <app-drive-folder-button [launchId]="directoryProjectId()" />
+    </div>
+
+    <app-fz-wizard-stepper
+      class="approval-new__stepper"
+      data-testid="approval-new-steps"
+      [steps]="stepViews()"
+      [currentIndex]="currentStepIndex()"
+      [allowStepSelect]="true"
+      (stepSelect)="onStepSelect($event)"
+    />
+
+    @switch (currentStep()) {
+      @case ('project') {
+        <ignt-wrapper-card [elevation]="1" [mobileBorderless]="true">
+          <section class="approval-new__section" data-testid="approval-new-step-project">
+            <div class="approval-new__project-picker" data-testid="approval-new-project-picker">
+              <label>{{ 'approvals.new.metadata.project.label' | translate }}</label>
+              <app-launch-picker
+                [launches]="availableProjects()"
+                [selectedLaunchId]="selectedProjectId()"
+                [loading]="projectsLoading()"
+                (launchSelected)="onProjectPicked($event)"
+              />
+            </div>
+          </section>
+        </ignt-wrapper-card>
+      }
+
+      @case ('type') {
+        <ignt-wrapper-card [elevation]="1" [mobileBorderless]="true">
+          <section class="approval-new__section" data-testid="approval-new-step-type">
+            <p class="approval-new__hint">{{ 'approvals.new.type.hint' | translate }}</p>
+            <div class="approval-new__option-grid">
+              @for (option of typeOptions; track option.id) {
+                <button
+                  type="button"
+                  class="approval-new__option-card"
+                  [class.approval-new__option-card--selected]="isTypeSelected(option)"
+                  (click)="selectType(option)"
+                  [attr.aria-pressed]="isTypeSelected(option)"
+                  [attr.data-testid]="'approval-new-type-' + option.id"
+                >
+                  <span class="approval-new__option-title">{{ typeOptionLabelKey(option) | translate }}</span>
+                  <span class="approval-new__option-desc">{{ typeOptionDescKey(option) | translate }}</span>
+                </button>
+              }
+            </div>
+          </section>
+        </ignt-wrapper-card>
+      }
+
+      @case ('campaign') {
+        <ignt-wrapper-card [elevation]="1" [mobileBorderless]="true">
+          <section class="approval-new__section" data-testid="approval-new-step-campaign">
+            <p class="approval-new__hint">{{ 'approvals.new.campaign.hint' | translate }}</p>
+            <div class="approval-new__option-list">
+              @for (option of marketingLinkOptions; track option) {
+                <button
+                  type="button"
+                  class="approval-new__option-row"
+                  [class.approval-new__option-row--selected]="form.controls.marketingRequestLink.value === option"
+                  (click)="selectMarketingLink(option)"
+                  [attr.aria-pressed]="form.controls.marketingRequestLink.value === option"
+                  [attr.data-testid]="'approval-new-campaign-' + option"
+                >
+                  <span class="approval-new__option-title">{{ 'approvals.new.campaign.options.' + option + '.label' | translate }}</span>
+                  <span class="approval-new__option-desc">{{
+                    'approvals.new.campaign.options.' + option + '.description' | translate
+                  }}</span>
+                </button>
+              }
+            </div>
+            @if (form.controls.marketingRequestLink.value === 'specific') {
+              <label class="approval-new__field">
+                <span class="approval-new__field-label">{{ 'approvals.new.campaign.specificName.label' | translate }}</span>
+                <input
+                  type="text"
+                  class="form-control"
+                  formControlName="specificCampaignName"
+                  [placeholder]="'approvals.new.campaign.specificName.placeholder' | translate"
+                  data-testid="approval-new-campaign-name"
+                />
+              </label>
+              <div class="approval-new__field-row">
+                <label class="approval-new__field">
+                  <span class="approval-new__field-label">{{ 'approvals.new.campaign.specificStartDate.label' | translate }}</span>
+                  <input
+                    type="date"
+                    class="form-control"
+                    formControlName="specificCampaignStartDate"
+                    [max]="form.controls.specificCampaignEndDate.value || null"
+                    (click)="openDatePicker($event)"
+                    data-testid="approval-new-campaign-start-date"
+                  />
+                </label>
+                <label class="approval-new__field">
+                  <span class="approval-new__field-label">{{ 'approvals.new.campaign.specificEndDate.label' | translate }}</span>
+                  <input
+                    type="date"
+                    class="form-control"
+                    formControlName="specificCampaignEndDate"
+                    [min]="form.controls.specificCampaignStartDate.value || null"
+                    (click)="openDatePicker($event)"
+                    data-testid="approval-new-campaign-end-date"
+                  />
+                </label>
+              </div>
+            }
+          </section>
+        </ignt-wrapper-card>
+      }
+
+      @case ('subtype') {
+        <ignt-wrapper-card [elevation]="1" [mobileBorderless]="true">
+          <section class="approval-new__section" data-testid="approval-new-step-subtype">
+            <p class="approval-new__hint">{{ 'approvals.new.subtype.hint' | translate }}</p>
+            <div class="approval-new__option-list">
+              @for (option of availableSubtypes(); track option) {
+                <button
+                  type="button"
+                  class="approval-new__option-row"
+                  [class.approval-new__option-row--selected]="form.controls.subtype.value === option"
+                  (click)="selectSubtype(option)"
+                  [attr.aria-pressed]="form.controls.subtype.value === option"
+                  [attr.data-testid]="'approval-new-subtype-' + option"
+                >
+                  <span class="approval-new__option-title">{{ 'approvals.new.metadata.subtype.options.' + option | translate }}</span>
+                  <span class="approval-new__option-desc">{{ 'approvals.new.subtype.help.' + option | translate }}</span>
+                </button>
+              }
+            </div>
+          </section>
+        </ignt-wrapper-card>
+      }
+
+      @case ('configure') {
+        <ignt-wrapper-card class="approval-new__sticky-details" [elevation]="1" [mobileBorderless]="true">
+          <section class="approval-new__section">
+            <label class="approval-new__field">
+              <span class="approval-new__field-label"
+                >{{ 'approvals.new.metadata.title.label' | translate
+                }}<span class="approval-new__required" aria-hidden="true">*</span></span
+              >
+              <input
+                type="text"
+                class="form-control"
+                formControlName="title"
+                [placeholder]="'approvals.new.metadata.title.placeholder' | translate"
+                data-testid="approval-new-title"
+              />
+            </label>
+
+            <label class="approval-new__field">
+              <span class="approval-new__field-label"
+                >{{ 'approvals.new.metadata.dueDate.label' | translate
+                }}<span class="approval-new__required" aria-hidden="true">*</span></span
+              >
+              <input
+                type="date"
+                class="form-control"
+                formControlName="dueDate"
+                required
+                (click)="openDatePicker($event)"
+                data-testid="approval-new-due-date"
+              />
+            </label>
+          </section>
+        </ignt-wrapper-card>
+
+        <ignt-wrapper-card [elevation]="1" [mobileBorderless]="true">
+          <section class="approval-new__section" data-testid="approval-new-step-configure">
+            <ng-template #stepGuide>
+              <aside class="approval-new__guide" data-testid="approval-new-guide">
+                <span class="approval-new__guide-title">{{ 'approvals.new.guide.title' | translate }}</span>
+                <p class="approval-new__guide-text">{{ 'approvals.new.guide.' + form.controls.subtype.value | translate }}</p>
+              </aside>
+            </ng-template>
+
+            @if (!hasAssetTabs()) {
+              <ng-container *ngTemplateOutlet="stepGuide"></ng-container>
+            }
+
+            @if (isUrlBasedSubtype() || isSheetBasedSubtype()) {
+              <app-subtype-payload-editor
+                [subtype]="form.controls.subtype.value"
+                [partnerId]="partnerId()"
+                [launchId]="directoryProjectId()"
+                [form]="form.controls.subtypePayload"
+                data-testid="approval-new-subtype-payload"
+              ></app-subtype-payload-editor>
+            } @else {
+              @if (partnerId()) {
+                <ng-template #manualUpload>
+                  <app-fz-upload
+                    [enableComputer]="true"
+                    [enableDrive]="true"
+                    [enablePaste]="true"
+                    [enableDriveFolders]="true"
+                    [expandDirectories]="true"
+                    [formatsLabel]="mediaFormatsLabel"
+                    [mutuallyExclusive]="true"
+                    [accept]="mediaAccept"
+                    [acceptedMimeTypes]="mediaMimeTypes"
+                    [fileCommit]="assetCommit"
+                    [driveCommit]="validateDrive"
+                    [downloadDriveSelections]="true"
+                    [previewResolver]="previewAsset"
+                    [urlParser]="parseDriveUrl"
+                    (itemsChange)="onUploadItemsChange($event)"
+                    data-testid="approval-new-upload"
+                  />
+                  @if (drivePreflightSummaries().length) {
+                    <div class="approval-new__drive-preflight-list" data-testid="approval-new-drive-preflight">
+                      @for (summary of drivePreflightSummaries(); track summary.driveFileId) {
+                        <article class="approval-new__drive-preflight-card" data-testid="approval-new-drive-preflight-card">
+                          <p class="approval-new__drive-preflight-title">{{ summary.name }}</p>
+                          <p class="approval-new__drive-preflight-text">
+                            @if (summary.mimeType === driveFolderMimeType) {
+                              {{
+                                'approvals.new.upload.drivePreflightReadyFolder'
+                                  | translate: { acceptedCount: summary.acceptedCount, discoveredCount: summary.discoveredCount }
+                              }}
+                            } @else {
+                              {{ 'approvals.new.upload.drivePreflightReadyFile' | translate }}
+                            }
+                          </p>
+                          @if (summary.skippedCount) {
+                            <p class="approval-new__drive-preflight-warning">
+                              {{
+                                'approvals.new.upload.drivePreflightSkipped'
+                                  | translate
+                                    : {
+                                        skippedCount: summary.skippedCount,
+                                        files: summary.skippedFiles.join(', '),
+                                        formats: summary.acceptedExtensions.join(', '),
+                                      }
+                              }}
+                            </p>
+                          }
+                          @if (summary.acceptedFiles.length) {
+                            <app-approval-drive-file-tree
+                              [files]="summary.acceptedFiles"
+                              [rootUrl]="summary.rootUrl ?? null"
+                              [selectedDriveFileIds]="summary.selectedChildDriveFileIds"
+                              (selectionChange)="onDriveFileSelectionChange(summary.driveFileId, $event)"
+                            />
+                          }
+                        </article>
+                      }
+                    </div>
+                  }
+                </ng-template>
+
+                @if (hasAssetTabs()) {
+                  <ignt-tabs
+                    [keepAlive]="true"
+                    [selectedIndex]="activeAssetTab()"
+                    (selectedIndexChange)="activeAssetTab.set($event)"
+                    data-testid="approval-new-asset-tabs"
+                  >
+                    <ignt-tabs-item [label]="'approvals.new.upload.assetTabs.ziflow' | translate">
+                      <div class="approval-new__tab-body">
+                        <app-approval-ziflow-folder-picker
+                          [partnerId]="partnerId()"
+                          [projectId]="directoryProjectId()"
+                          [selectedFolder]="form.controls.ziflowFolder.value"
+                          (selectionChange)="onZiflowFolderChange($event)"
+                          data-testid="approval-new-ziflow-picker"
+                        />
+                      </div>
+                    </ignt-tabs-item>
+                    <ignt-tabs-item [label]="'approvals.new.upload.assetTabs.manual' | translate">
+                      <div class="approval-new__tab-body">
+                        <ng-container *ngTemplateOutlet="stepGuide"></ng-container>
+                        <ng-container *ngTemplateOutlet="manualUpload"></ng-container>
+                      </div>
+                    </ignt-tabs-item>
+                  </ignt-tabs>
+                } @else {
+                  <ng-container *ngTemplateOutlet="manualUpload"></ng-container>
+                }
+              } @else {
+                <p class="approval-new__hint" data-testid="approval-new-upload-placeholder">
+                  {{ 'approvals.new.upload.hint' | translate }}
+                </p>
+              }
+            }
+          </section>
+        </ignt-wrapper-card>
+      }
+
+      @case ('alerts') {
+        <ignt-wrapper-card [elevation]="1" [mobileBorderless]="true">
+          <section class="approval-new__section" data-testid="approval-new-step-alerts">
+            <app-alert-config-form
+              formControlName="alertConfig"
+              [partnerId]="partnerId()"
+              [projectId]="directoryProjectId()"
+              [currentUserEmail]="currentUserEmail"
+              [showValidationMode]="showValidationMode()"
+              data-testid="approval-new-alert-config"
+            ></app-alert-config-form>
+            @if (alertError(); as alertErr) {
+              <p class="approval-new__field-error" data-testid="approval-new-alert-error">
+                @if (alertErr.raw) {
+                  {{ alertErr.raw }}
+                } @else {
+                  {{ alertErr.key! | translate: alertErr.params }}
+                }
+              </p>
+            }
+          </section>
+        </ignt-wrapper-card>
+      }
+
+      @default {
+        <ignt-wrapper-card [elevation]="1" [mobileBorderless]="true">
+          <section class="approval-new__section approval-new__review" data-testid="approval-new-step-review">
+            <h2 class="approval-new__summary-title">{{ 'approvals.new.summary.detailsTitle' | translate }}</h2>
+            <dl class="approval-new__summary" data-testid="approval-new-summary">
+              <dt>{{ 'approvals.new.summary.type' | translate }}</dt>
+              <dd>{{ 'approvals.new.metadata.category.options.' + form.controls.category.value | translate }}</dd>
+
+              <dt>{{ 'approvals.new.summary.subtype' | translate }}</dt>
+              <dd>{{ 'approvals.new.metadata.subtype.options.' + form.controls.subtype.value | translate }}</dd>
+
+              @if (isMarketing() && form.controls.marketingRequestLink.value) {
+                <dt>{{ 'approvals.new.summary.campaign' | translate }}</dt>
+                <dd>
+                  {{ 'approvals.new.campaign.options.' + form.controls.marketingRequestLink.value + '.label' | translate }}
+                  @if (form.controls.marketingRequestLink.value === 'specific' && form.controls.specificCampaignName.value) {
+                    — {{ form.controls.specificCampaignName.value }}
+                  }
+                </dd>
+                @if (form.controls.marketingRequestLink.value === 'specific' && form.controls.specificCampaignStartDate.value) {
+                  <dt>{{ 'approvals.new.summary.campaignDates' | translate }}</dt>
+                  <dd data-testid="approval-new-summary-campaign-dates">
+                    {{ form.controls.specificCampaignStartDate.value }} → {{ form.controls.specificCampaignEndDate.value }}
+                  </dd>
+                }
+              }
+
+              <dt>{{ 'approvals.new.summary.title' | translate }}</dt>
+              <dd>{{ form.controls.title.value }}</dd>
+
+              @if (form.controls.dueDate.value) {
+                <dt>{{ 'approvals.new.summary.dueDate' | translate }}</dt>
+                <dd>{{ form.controls.dueDate.value }}</dd>
+              }
+
+              @if (summaryLinks().length) {
+                <dt>{{ 'approvals.new.summary.links' | translate }}</dt>
+                <dd>
+                  <ul class="approval-new__summary-links">
+                    @for (link of summaryLinks(); track link.url) {
+                      <li>
+                        <span class="approval-new__summary-mode">{{ 'approvals.new.payload.modes.' + link.mode | translate }}</span>
+                        <span class="approval-new__summary-url">{{ link.url }}</span>
+                        @if (link.description) {
+                          <span class="approval-new__summary-desc">{{ link.description }}</span>
+                        }
+                      </li>
+                    }
+                  </ul>
+                </dd>
+              }
+
+              @if (uploadCount() || hasZiflowFolder()) {
+                <dt>{{ 'approvals.new.summary.uploads' | translate }}</dt>
+                <dd data-testid="approval-new-summary-uploads">
+                  @if (uploadCount()) {
+                    {{ 'approvals.new.summary.fileCount' | translate: { count: uploadCount() } }}
+                  }
+                  @if (uploadCount() && hasZiflowFolder()) {
+                    ·
+                  }
+                  @if (hasZiflowFolder()) {
+                    {{ 'approvals.new.summary.ziflowFolder' | translate }}
+                  }
+                </dd>
+              }
+
+              @if (reviewReminders(); as reminders) {
+                <dt>{{ 'approvals.new.summary.reminders' | translate }}</dt>
+                @if (reminders.enabled) {
+                  <dd>
+                    <span class="approval-new__badge approval-new__badge--on" data-testid="approval-new-summary-reminders">
+                      <span class="approval-new__badge-dot"></span>
+                      {{ 'approvals.new.summary.remindersOn' | translate }} ·
+                      {{ 'alertConfigForm.frequency.options.' + reminders.frequency | translate }}
+                      @if (reminders.time) {
+                        · {{ reminders.time }}
+                      }
+                    </span>
+                  </dd>
+                } @else {
+                  <dd>
+                    <span class="approval-new__badge approval-new__badge--off" data-testid="approval-new-summary-reminders">{{
+                      'approvals.new.summary.remindersOff' | translate
+                    }}</span>
+                  </dd>
+                }
+              }
+            </dl>
+
+            <h2 class="approval-new__summary-title">{{ 'approvals.new.summary.notifyTitle' | translate }}</h2>
+            @if (reviewRecipients(); as recipients) {
+              <div class="approval-new__summary-recipients" data-testid="approval-new-summary-recipients">
+                <div class="approval-new__recipient-group">
+                  <span class="approval-new__recipient-head">
+                    {{ 'approvals.new.summary.notifyPartners' | translate }}
+                    <span class="approval-new__recipient-count">{{ recipients.partners.length }}</span>
+                  </span>
+                  @if (recipients.partners.length) {
+                    <ul class="approval-new__people">
+                      @for (email of recipients.partners; track email) {
+                        <li class="approval-new__person">
+                          <span class="approval-new__avatar">{{ email.charAt(0) }}</span>
+                          <span class="approval-new__person-email">{{ email }}</span>
+                        </li>
+                      }
+                    </ul>
+                  } @else {
+                    <p class="approval-new__summary-empty">{{ 'approvals.new.summary.notifyNone' | translate }}</p>
+                  }
+                </div>
+                <div class="approval-new__recipient-group">
+                  <span class="approval-new__recipient-head">
+                    {{ 'approvals.new.summary.notifyFever' | translate }}
+                    <span class="approval-new__recipient-count">{{ recipients.fever.length }}</span>
+                  </span>
+                  @if (recipients.fever.length) {
+                    <ul class="approval-new__people">
+                      @for (email of recipients.fever; track email) {
+                        <li class="approval-new__person approval-new__person--fever">
+                          <span class="approval-new__avatar">{{ email.charAt(0) }}</span>
+                          <span class="approval-new__person-email">{{ email }}</span>
+                        </li>
+                      }
+                    </ul>
+                  } @else {
+                    <p class="approval-new__summary-empty">{{ 'approvals.new.summary.notifyNone' | translate }}</p>
+                  }
+                </div>
+              </div>
+            }
+          </section>
+        </ignt-wrapper-card>
+      }
+    }
+
+    @if (error(); as errorKey) {
+      <p class="approval-new__error" data-testid="approval-new-error">
+        {{ 'approvals.new.errors.' + errorKey | translate }}
+      </p>
+    }
+
+    @if (created() && skippedDriveFiles().length) {
+      <div class="approval-new__skipped" data-testid="approval-new-skipped">
+        <p class="approval-new__skipped-text">
+          {{ 'approvals.new.upload.driveFolderSkipped' | translate: { files: skippedDriveFiles().join(', '), formats: mediaFormatsLabel } }}
+        </p>
+        <ignt-button
+          variant="primary"
+          data-testid="approval-new-skipped-continue"
+          [label]="'approvals.new.upload.viewApproval' | translate"
+          (click)="goToCreatedApproval()"
+        />
+      </div>
+    }
+
+    @if (!created()) {
+      <div class="approval-new__actions">
+        <ignt-button
+          variant="secondary"
+          data-testid="approval-new-cancel"
+          [label]="'common.cancel' | translate"
+          [disabled]="submitting()"
+          (click)="cancel()"
+        />
+        @if (!isFirstStep()) {
+          <ignt-button
+            variant="secondary"
+            data-testid="approval-new-previous"
+            [label]="'approvals.new.actions.previous' | translate"
+            [disabled]="submitting()"
+            (click)="previous()"
+          />
+        }
+        @if (!isLastStep()) {
+          <span class="approval-new__next" [attr.title]="dueDateHint() | translate">
+            <ignt-button
+              variant="primary"
+              data-testid="approval-new-next"
+              [label]="'approvals.new.actions.next' | translate"
+              [disabled]="!isStepValid(currentStep())"
+              (click)="next()"
+            />
+          </span>
+        } @else {
+          <ignt-button
+            variant="primary"
+            data-testid="approval-new-submit"
+            [label]="'approvals.new.actions.submit' | translate"
+            [loading]="submitting()"
+            [disabled]="!canSubmit() || submitting()"
+            (click)="submit()"
+          />
+        }
+      </div>
+    }
+  </form>
+</div>

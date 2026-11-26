@@ -1,0 +1,136 @@
+<div class="common-session-edit lateral-slider-body__wrapper">
+  <form class="common-session-edit__form capacity-template-selection-form">
+    <fieldset class="wrapper">
+      <div>
+        <h6>{{ 'inventory.schedule.capacityTemplateSelectionForm.fields.capacityTemplate.title' | translate }}</h6>
+        <small class="capacity-template-selection-form__subtitle">
+          {{ 'inventory.schedule.capacityTemplateSelectionForm.fields.capacityTemplate.subtitle' | translate }}
+        </small>
+
+        <div class="capacity-template-selection-form__capacity-template-select">
+          <ignt-typeahead
+            (selected)="onCapacityTemplateSelected($event)"
+            [emptyLabel]="'inventory.schedule.capacityTemplateSelectionForm.fields.capacityTemplate.empty' | translate"
+            [fieldLabel]="'inventory.schedule.capacityTemplateSelectionForm.fields.capacityTemplate.label' | translate"
+            [options]="capacityTemplateOptions()"
+            [selectedOption]="selectedCapacityTemplateOption()"
+            [disabled]="isSelectionDisabled() || disabledSessionTypeIds().length > 0"
+            [editable]="false"
+            [attr.data-testid]="'capacity-template-select'"
+            id="capacityTemplate"
+          ></ignt-typeahead>
+        </div>
+      </div>
+
+      @if (!!selectedCapacityTemplateOption()) {
+        <div class="capacity-template-selection-form__products__table">
+          <h6>{{ 'inventory.schedule.capacityTemplateSelectionForm.fields.products.title' | translate }}</h6>
+
+          <div class="capacity-template-selection-form__products__search">
+            <input
+              (input)="onSearchTermChange($any($event.target).value)"
+              [placeholder]="'inventory.schedule.capacityTemplateSelectionForm.fields.products.search.placeholder' | translate"
+              [value]="searchTerm()"
+              [disabled]="isSelectionDisabled()"
+              class="capacity-template-selection-form__products__search__input"
+              data-testid="bulk-session-search-filter-input"
+              id="capacity-template-selection-search"
+              type="text"
+            />
+          </div>
+
+          <div class="capacity-template-selection-form__products__table__header">
+            <ignt-checkbox
+              (change)="onSessionTypeGroupsToggle(visibleSessionTypeGroups(), $event)"
+              [checked]="areSessionTypeGroupsFullySelected(visibleSessionTypeGroups())"
+              [disabled]="isSelectionDisabled() || isSelectAllCheckboxDisabled(visibleSessionTypeGroups())"
+              [label]="'inventory.schedule.capacityTemplateSelectionForm.fields.products.columns.product' | translate"
+            ></ignt-checkbox>
+            <b>{{ 'inventory.schedule.capacityTemplateSelectionForm.fields.products.columns.maxQty' | translate }}</b>
+          </div>
+
+          @if (hasNoVisibleSessionTypeGroups()) {
+            <div class="capacity-template-selection-form__empty-state" data-testid="capacity-template-selection-empty-state">
+              {{ 'inventory.schedule.capacityTemplateSelectionForm.fields.products.empty' | translate }}
+            </div>
+          }
+
+          <div class="capacity-template-selection-form__products__table__body">
+            @for (group of visibleSessionTypeGroups(); track group.sessionTypeGroupId) {
+              <div class="capacity-template-selection-form__products__group-row">
+                <ignt-checkbox
+                  (change)="onSessionTypeGroupToggle(group, $event)"
+                  [checked]="isSessionTypeGroupFullySelected(group)"
+                  [dataTestId]="'session-type-group-' + (group.sessionTypeGroupId ?? 'ungrouped')"
+                  [disabled]="isSelectionDisabled() || isSessionTypeGroupDisabled(group) || hasAllSessionTypesDisabled(group)"
+                  [label]="group.name || ('inventory.schedule.capacityTemplateSelectionForm.fields.products.ungrouped' | translate)"
+                ></ignt-checkbox>
+                @if (isSessionTypeGroupDisabled(group)) {
+                  <span class="capacity-template-selection-form__products__group-warning">
+                    <ignt-icon name="exclamation-circle" variant="solid"></ignt-icon>
+                    {{ 'inventory.schedule.capacityTemplateSelectionForm.fields.products.missingCapacity' | translate }}
+                  </span>
+                }
+                @if (!this.isUngroupedSessionTypeGroup(group) && !isSessionTypeGroupDisabled(group)) {
+                  <b
+                    class="capacity-template-selection-form__products__group-capacity"
+                    [class.capacity-template-selection-form__products__group-capacity--disabled]="hasAllSessionTypesDisabled(group)"
+                    >{{ group.capacity }}</b
+                  >
+                }
+              </div>
+
+              @for (sessionType of group.sessionTypes; track sessionType.sessionTypeId) {
+                <div
+                  class="capacity-template-selection-form__products__session-type-row"
+                  [class.capacity-template-selection-form__products__session-type-row--disabled]="isSessionTypeDisabled(sessionType, group)"
+                >
+                  <ignt-checkbox
+                    (change)="onSessionTypeToggle(sessionType, $event, group)"
+                    [checked]="isSessionTypeSelected(sessionType.sessionTypeId)"
+                    [dataTestId]="'session-type-' + sessionType.sessionTypeId"
+                    [disabled]="isSelectionDisabled() || isSessionTypeDisabled(sessionType, group)"
+                    [label]="sessionType.name"
+                  ></ignt-checkbox>
+                  <span
+                    class="capacity-template-selection-form__products__session-type-capacity"
+                    [class.capacity-template-selection-form__products__session-type-capacity--disabled]="
+                      isSessionTypeDisabled(sessionType, group)
+                    "
+                  >
+                    {{ getSessionTypeCapacity(sessionType) }}
+                  </span>
+                  @if (isSessionTypeDisabledDueToOwnCapacity(sessionType, group)) {
+                    <span class="capacity-template-selection-form__products__session-type-warning">
+                      <ignt-icon aria-hidden="true" name="exclamation-circle" variant="solid"></ignt-icon>
+                      {{ 'inventory.schedule.capacityTemplateSelectionForm.fields.products.missingCapacity' | translate }}
+                    </span>
+                  }
+                </div>
+              }
+            }
+          </div>
+        </div>
+      }
+    </fieldset>
+  </form>
+</div>
+
+<div class="lateral-slider-body__footer">
+  <ignt-button
+    variant="tertiary"
+    sentiment="danger"
+    [label]="'common.cancel' | translate"
+    (click)="cancel()"
+    data-testid="capacity-template-selection-cancel-button"
+  />
+  <ignt-button
+    igntTooltip
+    [disabled]="isSaveButtonDisabled()"
+    [label]="'common.save' | translate"
+    [tooltipDisabled]="!isSaveButtonDisabled()"
+    [tooltipLabel]="saveButtonTooltipKey() | translate"
+    (click)="save()"
+    data-testid="capacity-template-selection-submit-button"
+  />
+</div>

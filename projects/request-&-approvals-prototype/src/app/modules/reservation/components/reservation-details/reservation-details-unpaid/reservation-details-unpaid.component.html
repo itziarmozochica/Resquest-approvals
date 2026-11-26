@@ -1,0 +1,128 @@
+<ng-template #reservationUnpaidContent>
+  <app-reservation-header
+    [cart]="cart"
+    [reservation]="reservation"
+    [plan]="plan"
+    [planNamesDisplay]="planNamesDisplay()"
+    [reservationDetailsCompactMobile]="isMobile()"
+    (isCollapsed)="isCollapsed = $event"
+    (reservationCancelled)="onReservationCancelled()"
+  ></app-reservation-header>
+  <div class="reservation-details__body">
+    <div class="reservation-details__side-detail">
+      <div class="reservation-details__stack-block reservation-details__stack-block--notes">
+        <app-notes
+          [customerNotesReservationId]="reservation?.id ?? null"
+          [note]="reservation?.note ?? null"
+          [isCollapsed]="false"
+          [hideNoteDetails$]="hideNoteDetails$"
+          [showErrorSubject]="showNoteError$"
+          [requiredPermissions]="[permissions.CAN_MODIFY_RESERVATION, permissions.CAN_MODIFY_MY_RESERVATION]"
+          [permissionOverride]="notesPermissionOverride()"
+          (noteUpdated)="updatedNote($event)"
+          (deleteNote)="deleteNote()"
+        ></app-notes>
+      </div>
+      <div class="reservation-details__stack-block reservation-details__stack-block--cart" data-testid="reservation-cart-block">
+        <app-cart-detail-v2
+          [showInvoiceButton]="true"
+          [showSeatingInModal]="true"
+          [planNamesByPlanId]="planNamesByPlanId()"
+          [showPlanNames]="showPlanNames()"
+          [showServingTime]="servingTimeFlagEnabled"
+          [canEditServingTime]="canSetServingTime()"
+          [servingTimeActionDisabled]="servingTimeSaving()"
+          [servingTimesBySessionId]="servingTimesBySessionId()"
+          [servingTimeAnchorDate]="reservation?.sessionStartsAt ?? null"
+          (serviceTimeRequested)="onServiceTimeRequested()"
+        ></app-cart-detail-v2>
+      </div>
+      @if (reservation?.journey; as journey) {
+        <div class="reservation-details__stack-block reservation-details__stack-block--journey" data-testid="reservation-journey-block">
+          <app-order-journey [journey]="journey"></app-order-journey>
+        </div>
+      }
+      @if (canApplyCoupons()) {
+        <div class="reservation-details__stack-block reservation-details__stack-block--coupon">
+          <app-reservation-coupon
+            [cartId]="cart?.id"
+            [partnerId]="plan.partnerId"
+            [userId]="cart?.userId"
+            [couponCodeApplied]="couponCodeApplied"
+            [couponCodeError]="couponCodeError"
+            [giftCardCombinationEnabled]="giftCardCombinationEnabled"
+            [appliedGiftCardCodes]="appliedGiftCardCodes"
+            (couponCode)="applyCouponToCart($event)"
+            (addGiftCard)="addGiftCardToCart($event)"
+          ></app-reservation-coupon>
+        </div>
+      }
+      <ng-container *permissionBased="'can_view_order_tax_documents'">
+        @if (depositInvoicesEnabled && reservation?.purchaseUrn && isDepositPaid(cart?.deposit)) {
+          <div class="reservation-details__stack-block" data-testid="reservation-tax-documents">
+            <app-order-tax-document-list [purchaseUrn]="reservation.purchaseUrn" />
+          </div>
+        }
+      </ng-container>
+    </div>
+    <ng-template #reservationPaymentDetailInner>
+      @if (
+        reservation.status === ReservationStatus.TO_BE_PAID ||
+        reservation.status === ReservationStatus.EXPIRED ||
+        reservation.status === ReservationStatus.CANCELLED
+      ) {
+        <app-reservation-payment-cta-card
+          [reservationId]="reservation.id"
+          [reservationEmail]="reservation.ownerEmail"
+          [reservationExpiration]="reservation.expirationDate"
+          [reservationPlanAvailableLanguages]="reservation.planAvailableLanguages"
+          [reservationPlanDefaultLanguage]="reservation.planDefaultLanguage"
+          [reservationStatus]="reservation.status"
+          [placeId]="reservation.placeId"
+          [cityId]="reservation.cityId"
+          [plan]="plan"
+          [cart]="cart"
+          [cartId]="reservation.cartId"
+          [timezone]="plan.timezone"
+          [createReservationUrl]="createReservationUrl"
+          [reservationListUrl]="reservationListUrl"
+          (reservationExpired)="onReservationExpired()"
+          (deadlineUpdated)="onDeadlineUpdated($event)"
+        ></app-reservation-payment-cta-card>
+      }
+
+      @if (reservation.status === ReservationStatus.PAID) {
+        <div class="reservation-status-content" [class.reservation-status-content--with-deposit]="cart?.deposit">
+          @if (cart?.deposit; as deposit) {
+            <app-deposit-status-badge
+              [deposit]="deposit"
+              [cartTotal]="cart?.total"
+              [currency]="cart?.total?.currency ?? null"
+              [isInReservationDetails]="true"
+            />
+          }
+        </div>
+      }
+    </ng-template>
+
+    @if (isMobile()) {
+      <div class="reservation-details__detail reservation-details__detail--mobile-flat">
+        <ng-container *ngTemplateOutlet="reservationPaymentDetailInner"></ng-container>
+      </div>
+    } @else {
+      <ignt-wrapper-card class="reservation-details__detail">
+        <ng-container *ngTemplateOutlet="reservationPaymentDetailInner"></ng-container>
+      </ignt-wrapper-card>
+    }
+  </div>
+</ng-template>
+
+@if (isMobile()) {
+  <div class="reservation-details reservation-details--mobile-flat">
+    <ng-container *ngTemplateOutlet="reservationUnpaidContent"></ng-container>
+  </div>
+} @else {
+  <ignt-wrapper-card class="reservation-details" [class.reservation-details--collapsed]="isCollapsed">
+    <ng-container *ngTemplateOutlet="reservationUnpaidContent"></ng-container>
+  </ignt-wrapper-card>
+}

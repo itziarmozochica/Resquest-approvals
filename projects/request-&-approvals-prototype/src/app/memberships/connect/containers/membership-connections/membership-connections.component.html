@@ -1,0 +1,159 @@
+<section class="main-wrapper" [attr.aria-label]="copy.pageTitle">
+  <app-membership-page-title [section]="'menu.memberships' | translate" [title]="copy.pageTitle" />
+
+  <div class="membership-connections" [attr.aria-busy]="busy()">
+    <p class="membership-connections__description">{{ copy.description }}</p>
+
+    <app-membership-connection-provider-picker
+      [isDisabled]="busy()"
+      [providers]="providers"
+      [selectedKey]="selectedProviderKey()"
+      (selected)="onProviderSelected($event)"
+    />
+
+    @if (loadErrorMessage(); as message) {
+      <ignt-alert data-testid="membership-connections-error" role="alert" sentiment="danger" [description]="message">
+        <!--
+          The picker cannot be the retry path: re-selecting the radio that is already checked fires no
+          `change` at all for a keyboard user, so without this the only way out is a page reload.
+        -->
+        <ng-template #igntAlertActions>
+          <ignt-button
+            data-testid="membership-connections-retry"
+            size="small"
+            variant="secondary"
+            [label]="copy.retry"
+            (click)="onStartAgain()"
+          />
+        </ng-template>
+      </ignt-alert>
+    }
+
+    @switch (view()) {
+      @case (steps.LOADING) {
+        <div class="membership-connections__loading" data-testid="membership-connections-loading" role="status">
+          <ignt-icon aria-hidden="true" name="spinner" size="h1" variant="solid" [spin]="true" />
+          <span class="visually-hidden">{{ copy.loading }}</span>
+        </div>
+      }
+
+      @case (steps.AUTHORIZE_READY) {
+        <section class="membership-connections__card wrapper-card" data-testid="membership-connections-authorize" role="status">
+          <h2 class="membership-connections__subtitle">{{ copy.authorizeTitle }}</h2>
+          <p class="membership-connections__hint">{{ copy.authorizeBody(providerName()) }}</p>
+          <ignt-button
+            data-testid="membership-connections-authorize-button"
+            [label]="copy.authorizeAction(providerName())"
+            (click)="onAuthorize()"
+          />
+        </section>
+      }
+
+      @case (steps.LINK_UNUSABLE) {
+        <app-membership-connect-message
+          data-testid="membership-connections-session-expired"
+          sentiment="warning"
+          [body]="copy.sessionExpiredBody"
+          [hint]="copy.sessionExpiredHint"
+          [title]="copy.sessionExpiredTitle"
+        />
+        <ignt-button data-testid="membership-connections-start-again" [label]="copy.startAgain" (click)="onStartAgain()" />
+      }
+
+      @case (steps.CONNECTED) {
+        <app-membership-connect-message
+          data-testid="membership-connections-connected"
+          sentiment="success"
+          [body]="copy.connectedBody(providerName())"
+          [hint]="connectedHint()"
+          [title]="copy.connectedTitle(providerName())"
+        />
+      }
+
+      @case (steps.OUTCOME_FAILED) {
+        @if (outcomeCopy(); as outcome) {
+          <app-membership-connect-message
+            data-testid="membership-connections-outcome-failed"
+            [body]="outcome.body(providerName())"
+            [hint]="outcome.hint(providerName())"
+            [title]="outcome.title(providerName())"
+          />
+        }
+      }
+
+      @case (steps.ALREADY_CONNECTED) {
+        <app-membership-connect-message
+          data-testid="membership-connections-already-connected"
+          sentiment="success"
+          [body]="copy.alreadyConnectedBody(providerName())"
+          [hint]="alreadyConnectedHint()"
+          [title]="copy.alreadyConnectedTitle(providerName())"
+        />
+        @if (descriptor()) {
+          <ignt-button
+            data-testid="membership-connections-reconnect"
+            variant="secondary"
+            [label]="copy.reconnectAction"
+            (click)="onReconnect()"
+          />
+        }
+      }
+
+      @default {
+        @if (descriptor(); as connectDescriptor) {
+          @if (reconnecting()) {
+            <section class="membership-connections__card wrapper-card" data-testid="membership-connections-reconnect-notice">
+              <h2 class="membership-connections__subtitle">{{ copy.reconnectTitle(connectDescriptor.providerName) }}</h2>
+              <p class="membership-connections__hint">{{ reconnectSafety() }}</p>
+              <p class="membership-connections__hint">{{ copy.reconnectBody(connectDescriptor.providerName) }}</p>
+            </section>
+          }
+
+          <section class="membership-connections__card wrapper-card">
+            <h2 class="membership-connections__subtitle">{{ copy.beforeYouStart }}</h2>
+            @if (connectDescriptor.requiresConsent) {
+              <p class="membership-connections__hint">
+                {{
+                  reconnecting()
+                    ? copy.redirectUriHintReconnect(connectDescriptor.providerName)
+                    : copy.redirectUriHint(connectDescriptor.providerName)
+                }}
+              </p>
+              <app-membership-connect-copy-value
+                [label]="copy.redirectUriLabel(connectDescriptor.providerName)"
+                [value]="connectDescriptor.redirectUri"
+              />
+            } @else {
+              <p class="membership-connections__hint" data-testid="membership-connections-direct-intro">
+                {{ copy.directBody(connectDescriptor.providerName) }}
+              </p>
+            }
+            @if (connectDescriptor.providerDocumentationUrl; as documentationUrl) {
+              <p class="membership-connections__hint">
+                <a
+                  data-testid="membership-connections-documentation"
+                  referrerpolicy="no-referrer"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  [href]="documentationUrl"
+                >
+                  {{ copy.helpDocumentation(connectDescriptor.providerName) }}
+                </a>
+              </p>
+            }
+          </section>
+
+          <section class="membership-connections__card wrapper-card">
+            <app-membership-connect-credentials-form
+              [descriptor]="connectDescriptor"
+              [errorMessage]="submitErrorMessage()"
+              [fieldErrors]="fieldErrors()"
+              [isSubmitting]="step() === steps.SUBMITTING"
+              (submitted)="onCredentialsSubmitted($event)"
+            />
+          </section>
+        }
+      }
+    }
+  </div>
+</section>

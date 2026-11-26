@@ -1,0 +1,135 @@
+<ignt-table
+  class="attendees-sessions-table"
+  data-testid="attendees-sessions-table"
+  [data]="rows()"
+  [filterConfig]="filterConfig()"
+  [getRowId]="getRowId"
+  [interactiveRows]="true"
+  [isLoading]="isLoading()"
+  [subRows]="'timeSlots'"
+  (filterClearAll)="filterClearAll.emit()"
+  (filterClosed)="filterClosed.emit($event)"
+  (filterPillRemoved)="filterPillRemoved.emit($event)"
+  (rowInteraction)="onRowInteraction($event)"
+>
+  <ignt-table-parent-row>
+    <ng-template
+      [igntTableParentRowTemplateType]="rowSample()"
+      let-item="item"
+      let-isExpandable="isExpandable"
+      let-isExpanded="isExpanded"
+      let-subRowCount="subRowCount"
+    >
+      <ignt-table-parent-row-label
+        data-testid="attendees-sessions-table-day"
+        [isExpandable]="isExpandable"
+        [isExpanded]="isExpanded"
+        [label]="item.startsAt | momentDate: 'EEE, d MMM ’yy' : timezone()"
+        [subRowCount]="subRowCount"
+      />
+    </ng-template>
+
+    <ignt-table-parent-cell key="validated">
+      <ng-template let-item="item">
+        <ng-container [ngTemplateOutlet]="validatedCount" [ngTemplateOutletContext]="{ $implicit: item }" />
+      </ng-template>
+    </ignt-table-parent-cell>
+    <ignt-table-parent-cell key="sold">
+      <ng-template let-item="item">
+        <ng-container [ngTemplateOutlet]="soldCount" [ngTemplateOutletContext]="{ $implicit: item }" />
+      </ng-template>
+    </ignt-table-parent-cell>
+    <ignt-table-parent-cell key="remaining">
+      <ng-template let-item="item">
+        <ng-container [ngTemplateOutlet]="remainingCount" [ngTemplateOutletContext]="{ $implicit: item }" />
+      </ng-template>
+    </ignt-table-parent-cell>
+    <ignt-table-parent-cell columnType="action">
+      <ng-template let-item="item">
+        @if (dayActions(); as actions) {
+          <span class="attendees-sessions-table__actions" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+            <ng-container [ngTemplateOutlet]="actions" [ngTemplateOutletContext]="{ $implicit: item }" />
+          </span>
+        }
+      </ng-template>
+    </ignt-table-parent-cell>
+  </ignt-table-parent-row>
+
+  <ignt-table-column key="startsAt" columnType="primary" [header]="'attendees.ticketsCount.startTime' | translate" [width]="160">
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      <span data-testid="attendees-sessions-table-time-slot">
+        @if (isCardView()) {
+          {{ item.startsAt | momentDate: 'EEE, d MMM ’yy' : timezone() }} ·
+        }
+        {{ item.startsAt | momentDate: 'shortTime' : timezone() }}
+      </span>
+    </ng-template>
+  </ignt-table-column>
+
+  <ignt-table-column
+    key="validated"
+    columnType="secondary"
+    align="right"
+    [header]="'attendees.ticketsCount.validated' | translate"
+    [width]="110"
+  >
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      <ng-container [ngTemplateOutlet]="validatedCount" [ngTemplateOutletContext]="{ $implicit: item }" />
+    </ng-template>
+  </ignt-table-column>
+
+  <ignt-table-column key="sold" columnType="secondary" align="right" [header]="'attendees.ticketsCount.sold' | translate" [width]="110">
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      <ng-container [ngTemplateOutlet]="soldCount" [ngTemplateOutletContext]="{ $implicit: item }" />
+    </ng-template>
+  </ignt-table-column>
+
+  <ignt-table-column
+    key="remaining"
+    columnType="secondary"
+    align="right"
+    [header]="'attendees.ticketsCount.remaining' | translate"
+    [width]="110"
+  >
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      <ng-container [ngTemplateOutlet]="remainingCount" [ngTemplateOutletContext]="{ $implicit: item }" />
+    </ng-template>
+  </ignt-table-column>
+
+  <ignt-table-column columnType="action" align="right" [header]="'attendees.table.actions' | translate" [width]="96">
+    <ng-template [igntTableColumnTemplateType]="rowSample()" let-item="item">
+      @if (timeSlotActions(); as actions) {
+        <span class="attendees-sessions-table__actions" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
+          <ng-container [ngTemplateOutlet]="actions" [ngTemplateOutletContext]="{ $implicit: item }" />
+        </span>
+      }
+    </ng-template>
+  </ignt-table-column>
+</ignt-table>
+
+<ng-template #validatedCount let-row>
+  <span class="attendees-sessions-table__count attendees-sessions-table__count--validated" data-testid="attendees-sessions-table-validated">
+    {{ row.regular.validated }}
+    @if (displayAddons()) {
+      ({{ row.addons.validated }})
+    }
+  </span>
+</ng-template>
+
+<ng-template #soldCount let-row>
+  <span class="attendees-sessions-table__count attendees-sessions-table__count--sold" data-testid="attendees-sessions-table-sold">
+    {{ row.regular.sold }}
+    @if (displayAddons()) {
+      ({{ row.addons.sold }})
+    }
+  </span>
+</ng-template>
+
+<ng-template #remainingCount let-row>
+  <span class="attendees-sessions-table__count attendees-sessions-table__count--remaining" data-testid="attendees-sessions-table-remaining">
+    {{ row.regular.remaining }}
+    @if (displayAddons()) {
+      ({{ row.addons.remaining }})
+    }
+  </span>
+</ng-template>

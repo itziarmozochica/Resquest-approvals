@@ -1,0 +1,326 @@
+<div class="marketplace-events">
+  <ignt-breadcrumb class="marketplace-events__breadcrumb" [items]="breadcrumbs" />
+
+  <h1 class="marketplace-events__title">{{ 'marketplaceEvents.title' | translate }}</h1>
+  <p class="marketplace-events__description">
+    {{ descriptionBeforeGroupsLink
+    }}<a
+      class="marketplace-events__link"
+      data-testid="marketplace-events-distributor-groups-link"
+      routerLink="/b2b-publishing/distributors/groups"
+      >{{ 'distributors.groups.pageTitle' | translate }}</a
+    >{{ descriptionBetweenLinks
+    }}<a class="marketplace-events__link" data-testid="marketplace-events-distributors-link" routerLink="/b2b-publishing/distributors">{{
+      'menu.distributors' | translate
+    }}</a
+    >{{ descriptionAfterDistributorsLink }}
+  </p>
+
+  <app-onboarding-entry />
+
+  <ignt-radio-group class="marketplace-events__view" data-testid="marketplace-events-view" [formControl]="viewControl">
+    <ignt-radio
+      dataTestId="marketplace-events-view-events"
+      name="marketplace-events-view"
+      size="small"
+      [label]="'marketplaceEvents.view.events' | translate"
+      [value]="viewEnum.EVENTS"
+    />
+    <ignt-radio
+      dataTestId="marketplace-events-view-groups"
+      name="marketplace-events-view"
+      size="small"
+      [label]="'marketplaceEvents.view.groups' | translate"
+      [value]="viewEnum.GROUPS"
+    />
+  </ignt-radio-group>
+
+  @if (view() === viewEnum.GROUPS && partnerId !== null) {
+    <app-marketplace-group-table
+      [filterConfig]="filterConfig()"
+      [filters]="filters()"
+      [pageIndex]="pageIndex()"
+      [partnerId]="partnerId"
+      [searchQuery]="searchQuery()"
+      (filterClearAll)="onFilterClearAll()"
+      (filterClosed)="onFilterClosed($event)"
+      (filterPillRemoved)="onFilterPillRemoved($event)"
+      (paginationChange)="onPaginationChange($event)"
+      (searchChanged)="onSearchChanged($event)"
+    />
+  } @else if (hasError()) {
+    <div class="marketplace-events__message" data-testid="marketplace-events-error">
+      {{ 'marketplaceEvents.loadError' | translate }}
+      <ignt-button
+        class="marketplace-events__retry"
+        size="small"
+        variant="secondary"
+        data-testid="marketplace-events-retry"
+        [label]="'marketplaceEvents.retry' | translate"
+        (click)="load()"
+      />
+    </div>
+  } @else {
+    <ignt-table
+      layout="table"
+      [data]="rows()"
+      [filterConfig]="filterConfig()"
+      [hasServerSidePagination]="true"
+      [isLoading]="isLoading()"
+      [pageIndex]="pageIndex()"
+      [pageSize]="pageSize"
+      [searchConfig]="searchConfig()"
+      [getRowId]="rowId"
+      [interactiveRows]="canManageAccessMode"
+      [subRows]="'subRows'"
+      [totalRowCount]="total()"
+      [expandedRowIds]="expandedEventIds()"
+      (expandedRowIdsChange)="onExpandedEventsChange($event)"
+      (filterClearAll)="onFilterClearAll()"
+      (filterClosed)="onFilterClosed($event)"
+      (filterPillRemoved)="onFilterPillRemoved($event)"
+      (paginationChange)="onPaginationChange($event)"
+      (rowInteraction)="onRowActivated($event)"
+      (searchChanged)="onSearchChanged($event)"
+    >
+      <ignt-table-parent-row>
+        <ng-template
+          [igntTableParentRowTemplateType]="rowSample"
+          let-isExpandable="isExpandable"
+          let-isExpanded="isExpanded"
+          let-item="item"
+        >
+          <span class="marketplace-events__event">
+            <span class="marketplace-events__toggle" aria-hidden="true">
+              @if (isExpandable) {
+                <ignt-icon data-testid="marketplace-event-toggle" variant="light" [name]="isExpanded ? 'chevron-down' : 'chevron-right'" />
+              }
+            </span>
+            @if (item.event.imageUrl) {
+              <img class="marketplace-events__thumb" alt="" data-testid="marketplace-event-image" [src]="item.event.imageUrl" />
+            } @else {
+              <span class="marketplace-events__thumb marketplace-events__thumb--empty" aria-hidden="true"></span>
+            }
+            <span class="marketplace-events__event-text">
+              <span class="marketplace-events__name" data-testid="marketplace-event-name">{{ item.event.name }}</span>
+              @if (locationLabel(item.event); as location) {
+                <span class="marketplace-events__location" data-testid="marketplace-event-location">{{ location }}</span>
+              }
+            </span>
+          </span>
+        </ng-template>
+
+        <ignt-table-parent-cell key="distributors">
+          <ng-template [igntTableParentRowTemplateType]="rowSample" let-item="item">
+            <span data-testid="marketplace-event-distributors">{{ item.event.distributorsCount }}</span>
+          </ng-template>
+        </ignt-table-parent-cell>
+
+        <ignt-table-parent-cell key="tickets">
+          <ng-template [igntTableParentRowTemplateType]="rowSample" let-item="item">
+            <span data-testid="marketplace-event-tickets" [class.marketplace-events__empty-cell]="item.event.ticketTypesCount === null">{{
+              item.event.ticketTypesCount ?? '—'
+            }}</span>
+          </ng-template>
+        </ignt-table-parent-cell>
+
+        <ignt-table-parent-cell key="accessMode">
+          <ng-template [igntTableParentRowTemplateType]="rowSample" let-item="item">
+            <ignt-tag
+              data-testid="marketplace-event-access"
+              [bullet]="accessBullet"
+              [sentiment]="accessModeSentiment(item.event.accessMode)"
+              [variant]="'outline'"
+            >
+              {{
+                (item.event.accessMode === catalogAccessModeEnum.APPROVAL_REQUIRED
+                  ? 'marketplaceEvents.accessMode.approvalRequired'
+                  : 'marketplaceEvents.accessMode.open'
+                ) | translate
+              }}
+            </ignt-tag>
+          </ng-template>
+        </ignt-table-parent-cell>
+
+        <ignt-table-parent-cell key="visibility">
+          <ng-template [igntTableParentRowTemplateType]="rowSample" let-item="item">
+            <ignt-tag
+              data-testid="marketplace-event-visibility"
+              [bullet]="accessBullet"
+              [sentiment]="publicationStatusSentiments[item.event.visibility]"
+              [variant]="'outline'"
+            >
+              {{ publicationStatusLabelKeys[item.event.visibility] | translate }}
+            </ignt-tag>
+          </ng-template>
+        </ignt-table-parent-cell>
+
+        <ignt-table-parent-cell columnType="action">
+          <ng-template [igntTableParentRowTemplateType]="rowSample" let-item="item">
+            <!-- Disabled, not hidden: the route stays open to read-only callers. -->
+            <ignt-button
+              size="small"
+              variant="secondary"
+              data-testid="marketplace-event-row-action"
+              igntTooltip
+              [ariaLabel]="canManageAccessMode ? undefined : ('marketplaceEvents.actions.manageDisabledReason' | translate)"
+              [disabled]="!canManageAccessMode"
+              [label]="'marketplaceEvents.actions.manage' | translate"
+              [tooltipDisabled]="canManageAccessMode"
+              [tooltipLabel]="'marketplaceEvents.actions.manageDisabledReason' | translate"
+              (click)="onManageAccessMode($event, item.event)"
+              (keydown)="$event.stopPropagation()"
+            />
+          </ng-template>
+        </ignt-table-parent-cell>
+      </ignt-table-parent-row>
+
+      <ignt-table-column key="name" columnType="primary" [header]="'marketplaceEvents.columns.event' | translate">
+        <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+          @switch (item.kind) {
+            @case ('group') {
+              <span class="marketplace-events__group">
+                <ignt-icon class="marketplace-events__group-icon" name="users" size="sm" variant="light" aria-hidden="true" />
+                <span class="marketplace-events__group-name" data-testid="marketplace-event-group-name">{{ item.group.name }}</span>
+                @if (item.group.isDefault) {
+                  <span class="marketplace-events__default" data-testid="marketplace-event-group-default">{{
+                    'marketplaceEvents.groups.default' | translate
+                  }}</span>
+                }
+              </span>
+            }
+            @case ('noPublishedGroups') {
+              <span class="marketplace-events__no-published-groups" data-testid="marketplace-event-no-published-groups">
+                {{ 'marketplaceEvents.groups.nonePublished' | translate }}
+              </span>
+            }
+            @case ('notPublishedToggle') {
+              <ignt-button
+                size="small"
+                variant="tertiary"
+                data-testid="marketplace-event-not-published-toggle"
+                [label]="item.hiddenCount | notPublishedToggleLabel: item.isShowingHidden | translate: { count: item.hiddenCount }"
+                (click)="onToggleNotPublished($event, item.event)"
+                (keydown)="$event.stopPropagation()"
+              />
+            }
+          }
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column
+        align="right"
+        key="distributors"
+        columnType="secondary"
+        [header]="'marketplaceEvents.columns.distributors' | translate"
+        [width]="150"
+      >
+        <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+          @if (item.kind === 'group') {
+            <span data-testid="marketplace-event-group-distributors">{{ item.group.distributorsCount }}</span>
+          }
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column
+        align="right"
+        key="tickets"
+        columnType="secondary"
+        [header]="'marketplaceEvents.columns.tickets' | translate"
+        [width]="110"
+      >
+        <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+          @if (item.kind === 'group') {
+            <span
+              data-testid="marketplace-event-group-tickets"
+              [class.marketplace-events__empty-cell]="item.group.ticketTypesCount === null"
+              >{{ item.group.ticketTypesCount ?? '—' }}</span
+            >
+          }
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column key="accessMode" columnType="secondary" [header]="'marketplaceEvents.columns.access' | translate" [width]="150">
+        <ng-template igntTableHeaderTemplate>
+          {{ 'marketplaceEvents.columns.access' | translate }}
+          <ignt-icon
+            class="marketplace-events__header-hint"
+            data-testid="marketplace-event-access-hint"
+            igntTooltip
+            name="info-circle"
+            role="img"
+            size="sm"
+            tabindex="0"
+            tooltipPlacement="top"
+            variant="solid"
+            [attr.aria-label]="'marketplaceEvents.columns.accessTooltip' | translate"
+            [tooltipLabel]="'marketplaceEvents.columns.accessTooltip' | translate"
+          />
+        </ng-template>
+
+        <ng-template [igntTableColumnTemplateType]="rowSample"></ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column
+        key="visibility"
+        columnType="secondary"
+        [header]="'marketplaceEvents.columns.visibility' | translate"
+        [width]="140"
+      >
+        <ng-template igntTableHeaderTemplate>
+          {{ 'marketplaceEvents.columns.visibility' | translate }}
+          <ignt-icon
+            class="marketplace-events__header-hint"
+            data-testid="marketplace-event-visibility-hint"
+            igntTooltip
+            name="info-circle"
+            role="img"
+            size="sm"
+            tabindex="0"
+            tooltipPlacement="top"
+            variant="solid"
+            [attr.aria-label]="'marketplaceEvents.columns.visibilityTooltip' | translate"
+            [tooltipLabel]="'marketplaceEvents.columns.visibilityTooltip' | translate"
+          />
+        </ng-template>
+
+        <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+          @if (item.kind === 'group') {
+            <ignt-tag
+              data-testid="marketplace-event-group-status"
+              [bullet]="accessBullet"
+              [sentiment]="publicationStatusSentiments[item.group.status]"
+              [variant]="'outline'"
+            >
+              {{ publicationStatusLabelKeys[item.group.status] | translate }}
+            </ignt-tag>
+          }
+        </ng-template>
+      </ignt-table-column>
+
+      <ignt-table-column align="right" columnType="action" [header]="''" [width]="120">
+        <ng-template [igntTableColumnTemplateType]="rowSample" let-item="item">
+          @if (item.kind === 'group') {
+            <ignt-button
+              size="small"
+              variant="tertiary"
+              data-testid="marketplace-event-group-details"
+              igntTooltip
+              [ariaLabel]="
+                canManageAccessMode
+                  ? ('marketplaceEvents.actions.seeDetailsOf' | translate: { group: item.group.name, event: item.event.name })
+                  : ('marketplaceEvents.actions.seeDetailsDisabledReason' | translate)
+              "
+              [disabled]="!canManageAccessMode"
+              [label]="'marketplaceEvents.actions.seeDetails' | translate"
+              [tooltipDisabled]="canManageAccessMode"
+              [tooltipLabel]="'marketplaceEvents.actions.seeDetailsDisabledReason' | translate"
+              (click)="onSeeGroupDetails($event, item.event, item.group)"
+              (keydown)="$event.stopPropagation()"
+            />
+          }
+        </ng-template>
+      </ignt-table-column>
+    </ignt-table>
+  }
+</div>

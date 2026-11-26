@@ -1,0 +1,228 @@
+<div class="scrollable-table">
+  <app-table
+    [type]="TableType.FZ_TABLE"
+    [scrollable]="true"
+    [headers]="headers"
+    [orderBy]="orderBy"
+    (updateOrderByEmit)="updateOrderParam($event)"
+  >
+    @for (reservation of reservations; track reservation.id; let index = $index) {
+      @if (startsMarketplaceSection(index)) {
+        <tr class="scrollable-table__section" data-testid="scrollable-table-marketplace-separator">
+          <td class="scrollable-table__section-cell" [attr.colspan]="headers.length">
+            {{ 'reservations.filterLabels.audience.marketplace' | translate }}
+          </td>
+        </tr>
+      }
+      <tr
+        data-testid="scrollable-table-row"
+        class="scrollable-table__row scrollable-table__row--link"
+        (click)="clickOnReservation($event, reservation)"
+        [ngClass]="reservation.attendanceStatus === ReservationAttendanceEnum.VALIDATED ? 'scrollable-table__row--validated' : ''"
+      >
+        <ng-container *ngTemplateOutlet="tableRow; context: { reservation }"> </ng-container>
+      </tr>
+    }
+  </app-table>
+</div>
+<ng-template #tableRow let-reservation="reservation">
+  <td class="scrollable-table__event_date scrollable-table__row-cell fz-table__cell">
+    <span
+      class="scrollable-table__column-text"
+      data-testid="scrollable-table-event-date"
+      *ngIf="dateFilters | pipeFunction: showDayInDateColumn : this"
+    >
+      {{ reservation.sessionStartsAt | momentDate: 'd MMM yyyy' : timezone }}
+    </span>
+    <span class="scrollable-table__column-text" data-testid="scrollable-table-event-time">
+      {{ reservation.sessionStartsAt | momentDate: 'HH:mm' : timezone }}
+    </span>
+  </td>
+  <td
+    data-testid="scrollable-table-group"
+    *ngIf="!hiddenBusiness"
+    class="scrollable-table__group scrollable-table__row-cell scrollable-table__type fz-table__cell"
+  >
+    @if (showMarketplaceBadge(reservation)) {
+      <div class="scrollable-table__column-text business-type business-type--marketplace" data-testid="scrollable-table-source">
+        {{ 'reservations.filterLabels.audience.marketplace' | translate }}
+      </div>
+    } @else if (showBusinessDetails(reservation)) {
+      @if (reservation.businessId !== null) {
+        <div>
+          <div
+            data-testid="scrollable-table-business-type"
+            class="scrollable-table__column-text business-type business-type--{{ reservation.businessType }}"
+            translate
+          >
+            {{ 'businessManagement.' + reservation.businessType }}
+          </div>
+          <div data-testid="scrollable-table-business-name" class="scrollable-table__column-text--big" translate>
+            {{ reservation.businessName }}
+          </div>
+          <div class="scrollable-table__group-information">
+            <a
+              class="scrollable-table__column-text--break"
+              data-testid="scrollable-table-business-email"
+              (click)="$event.stopPropagation()"
+              [href]="'mailto:' + reservation.businessEmail"
+              target="_blank"
+              rel="noopener"
+            >
+              {{ reservation.businessEmail }}
+            </a>
+          </div>
+          @if (reservation.businessPhone) {
+            <div class="scrollable-table__group-information">
+              <ignt-icon class="scrollable-table__column-icon" name="phone" variant="light"></ignt-icon>
+              <a
+                data-testid="scrollable-table-business-phone"
+                (click)="$event.stopPropagation()"
+                [href]="'tel:' + reservation.businessPhone"
+                target="_blank"
+                rel="noopener"
+              >
+                {{ reservation.businessPhone }}</a
+              >
+            </div>
+          }
+        </div>
+      } @else {
+        <span class="scrollable-table__column-text" data-testid="scrollable-table-no-business">-</span>
+      }
+    }
+  </td>
+  <td data-testid="scrollable-table-event-name" class="scrollable-table__event_name scrollable-table__row-cell fz-table__cell">
+    <span class="scrollable-table__column-text">
+      {{ reservation.plans[0]?.name ?? reservation.planName }}
+      @if (reservation.plans.length > 1) {
+        <strong>({{ 'reservations.multiPlan.morePlans' | translate: { count: reservation.plans.length - 1 } }})</strong>
+      }
+    </span>
+  </td>
+  <td data-testid="scrollable-table-reservation-locator" class="scrollable-table__row-cell fz-table__cell">
+    <span class="scrollable-table__column-text">{{ reservation.locator }}</span>
+  </td>
+  <td data-testid="scrollable-table-order-id" class="scrollable-table__row-cell fz-table__cell">
+    <span class="scrollable-table__column-text">{{ reservation.orderId }}</span>
+  </td>
+  <td class="scrollable-table__group scrollable-table__row-cell fz-table__cell">
+    <div>
+      <span class="scrollable-table__column-text" data-testid="scrollable-table-cart-owner-name">{{ reservation.ownerFullName }}</span>
+    </div>
+    <div class="scrollable-table__group-information">
+      @if (reservation.ownerEmail | isPlaceholderEmail) {
+        <span class="scrollable-table__column-text scrollable-table__column-text--break" data-testid="scrollable-table-cart-owner-email">
+          {{ 'reservation.emailNotProvided' | translate }}
+        </span>
+      } @else {
+        <a
+          class="scrollable-table__column-text scrollable-table__column-text--break"
+          (click)="$event.stopPropagation()"
+          [href]="'mailto:' + reservation.ownerEmail"
+          data-testid="scrollable-table-cart-owner-email"
+          target="_blank"
+          rel="noopener"
+        >
+          {{ reservation.ownerEmail }}
+        </a>
+      }
+    </div>
+  </td>
+  <td data-testid="scrollable-table-tickets" class="scrollable-table__tickets scrollable-table__row-cell fz-table__cell">
+    <span class="scrollable-table__column-text">{{ reservation.totalNumberOfTickets }}</span>
+  </td>
+  <td data-testid="scrollable-table-price" class="scrollable-table__price scrollable-table__row-cell fz-table__cell">
+    <ng-container
+      *ngTemplateOutlet="reservationMoney; context: { money: reservation.deposit?.effectiveTotal ?? reservation.totalToBePaid }"
+    >
+    </ng-container>
+  </td>
+  <td data-testid="reservations-status" class="scrollable-table__status scrollable-table__row-cell fz-table__cell">
+    <div class="reservation-header__reservation-id" data-testid="reservation-header-status">
+      <app-reservation-status-tag data-testid="scrollable-table-status" [status]="reservation.status"></app-reservation-status-tag>
+    </div>
+    @if (reservation.deposit && depositListLabelKey(reservation.deposit); as depositLabelKey) {
+      <div
+        class="scrollable-table__deposit-summary"
+        data-testid="scrollable-table-deposit-summary"
+        [attr.aria-label]="
+          ('reservations.depositList.srPrefix' | translate) +
+          ' ' +
+          (depositLabelKey | translate) +
+          (reservation.deposit.calculatedAmount
+            ? ' ' +
+              (reservation.deposit.calculatedAmount.amount | currency: reservation.deposit.calculatedAmount.currency : 'symbol-narrow')
+            : '')
+        "
+      >
+        <span class="scrollable-table__column-text scrollable-table__deposit-summary-text">
+          {{ depositLabelKey | translate }}
+          @if (reservation.deposit.calculatedAmount; as dm) {
+            · {{ dm.amount | currency: dm.currency : 'symbol-narrow' }}
+          }
+        </span>
+      </div>
+    }
+    @if (showListingExpirationAlert(reservation)) {
+      <div class="scrollable-table__status-meta" data-testid="scrollable-table-expiration-date">
+        <div class="scrollable-table__column-text scrollable-table__listing-deadline-text">
+          <app-reservation-list-expiration-summary
+            [deadline]="listingExpirationDeadlineFormatted(reservation)"
+            [timeLeft]="getCountdown(reservation) || null"
+            testId="scrollable-table-expiration-alert"
+          />
+        </div>
+      </div>
+    }
+  </td>
+  <td
+    data-testid="scrollable-table-group"
+    *ngIf="!hiddenBusiness && (null | pipeFunction: isAttendanceEnabled : this)"
+    class="scrollable-table__group scrollable-table__row-cell fz-table__cell"
+  >
+    <ng-template [ngIf]="reservation.status === ReservationStatus.PAID && !!reservation.orderId">
+      <div data-testid="scrollable-table-attendance">
+        <button
+          class="button button--secondary button--small"
+          data-testid="scrollable-table-attendance-arrived-button"
+          *ngIf="!reservation.attendanceStatus"
+          (click)="setAttendanceStatus($event, reservation, ReservationAttendanceEnum.ARRIVED)"
+          [disabled]="reservation.id | pipeFunction: isSettingAttendance : this"
+        >
+          <ignt-icon *ngIf="isSettingAttendance(reservation.id)" name="spinner-third" variant="duotone" [spin]="true"></ignt-icon>
+          {{ 'reservation.attendance.arrived' | translate }}
+        </button>
+        <button
+          class="button button--primary button--small"
+          data-testid="scrollable-table-attendance-validate-button"
+          *ngIf="reservation.attendanceStatus === ReservationAttendanceEnum.ARRIVED"
+          (click)="setAttendanceStatus($event, reservation, ReservationAttendanceEnum.VALIDATED)"
+        >
+          {{ 'reservation.attendance.validate' | translate }}
+        </button>
+        <button
+          class="button button--success-primary button--small"
+          data-testid="scrollable-table-attendance-validated-button"
+          *ngIf="reservation.attendanceStatus === ReservationAttendanceEnum.VALIDATED"
+        >
+          {{ 'reservation.attendance.validated' | translate }}
+        </button>
+      </div>
+    </ng-template>
+  </td>
+  <td class="scrollable-table__actions-cell scrollable-table__row-cell fz-table__cell" data-testid="scrollable-table-actions">
+    <ng-container *ngTemplateOutlet="actions; context: { reservation }"></ng-container>
+  </td>
+</ng-template>
+<ng-template #reservationMoney let-money="money">
+  {{ money ? (money.amount | currency: money.currency : 'symbol-narrow') : '-' }}
+</ng-template>
+
+<ng-template #actions let-reservation="reservation">
+  <app-reservation-actions
+    [reservation]="reservation"
+    (viewReservationDetailsClicked)="viewReservationDetails($event)"
+    (reservationCancelled)="cancelReservation($event)"
+  ></app-reservation-actions>
+</ng-template>

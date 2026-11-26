@@ -1,0 +1,118 @@
+<div *ngIf="isLoading" class="loading">
+  <span class="loading__icon">
+    <fa-icon [icon]="['fas', 'spinner']" [size]="'4x'" class="loader"></fa-icon>
+  </span>
+</div>
+<div *ngIf="!isLoading" class="cart-details" data-testid="cart">
+  <div *ngIf="checkCustomerInfo" class="form-error">
+    <fa-icon [icon]="['fas', 'exclamation-circle']" class="form-error--icon"></fa-icon>
+    <span class="form-error--message" translate>
+      {{ 'boxOffice.cart.reviewProvidedData' }}
+    </span>
+  </div>
+  <div *ngIf="isEmptyCart()" class="cart-details__empty-case" data-testid="empty-cart-placeholder">
+    <fa-icon [icon]="['fal', 'receipt']" class="cart-details__empty-case-icon"></fa-icon>
+    <p class="cart-details__empty-case-label" translate>boxOffice.cart.empty</p>
+  </div>
+  <ng-container *ngIf="!isEmptyCart()">
+    <ng-container *ngIf="ticketSessions() && ticketSessions().length">
+      <ng-container
+        *ngTemplateOutlet="
+          cartSessions;
+          context: {
+            sessions: ticketSessions(),
+            sectionTitle: 'boxOffice.cart.sectionTicketsTitle',
+            bookingFeeTitle: 'boxOffice.cart.bookingFeePerTicket',
+          }
+        "
+      ></ng-container>
+    </ng-container>
+    <ng-container *ngIf="productSessions() && productSessions().length">
+      <ng-container
+        *ngTemplateOutlet="
+          cartSessions;
+          context: {
+            sessions: productSessions(),
+            sectionTitle: 'boxOffice.cart.sectionProductsTitle',
+            bookingFeeTitle: 'boxOffice.cart.bookingFeePerProduct',
+          }
+        "
+      ></ng-container>
+    </ng-container>
+    <ng-container *ngIf="couponDiscount && showPrice">
+      <app-coupon-cart-card
+        [coupon]="couponDiscount"
+        [fallbackCurrency]="couponFallbackCurrency"
+        (removeCoupon)="removeCoupon()"
+      ></app-coupon-cart-card>
+    </ng-container>
+  </ng-container>
+</div>
+
+<ng-template #cartMoney let-locale="locale" let-money="money">
+  {{ money ? (money.amount | currency: money.currency : 'symbol-narrow' : null : locale) : '-' }}
+</ng-template>
+
+<ng-template #cartSessions let-sessions="sessions" let-sectionTitle="sectionTitle" let-bookingFeeTitle="bookingFeeTitle">
+  <div class="ticket-list__wrapper">
+    <div *ngIf="hasTitleSessions()" class="ticket-list__title">
+      <span translate> {{ sectionTitle }} </span>
+    </div>
+    <ul class="ticket-list">
+      <li *ngFor="let session of sessions" class="ticket-list__item cart-ticket-item wrapper-card">
+        <div class="cart-ticket-item__counter" data-testid="cart-ticket-count">{{ session.units }}x</div>
+        <div class="cart-ticket-item__session cart-ticket-item-session-info">
+          <div class="cart-ticket-item-session-info__label">
+            <div class="cart-ticket-item-session-info__name" data-testid="cart-ticket-session-name">
+              <ng-container *ngIf="showPrice">{{ session.sessionName }}</ng-container>
+            </div>
+            <div class="cart-ticket-item-session-info__ticket-price" *ngIf="showPrice" data-testid="cart-total-ticket-session-price">
+              <ng-container *ngTemplateOutlet="cartMoney; context: { money: session.price, locale: locale }"></ng-container>
+            </div>
+          </div>
+          <div class="cart-ticket-item-session-info__supporting-text">
+            <ng-container *ngIf="showPrice">
+              <div class="cart-ticket-item-session-info__fee" data-testid="cart-ticket-session-booking-fee">
+                {{ bookingFeeTitle | translate }}:
+                <ng-container *ngTemplateOutlet="cartMoney; context: { money: session.surchargePerTicket, locale: locale }"></ng-container>
+              </div>
+              <div class="cart-ticket-item-session-info__fee-price">
+                <ng-container
+                  *ngTemplateOutlet="cartMoney; context: { money: session.totalSurchargePerTicket, locale: locale }"
+                ></ng-container>
+              </div>
+            </ng-container>
+            <ng-container *ngIf="!showSeatingInModal">
+              <div class="session__seating-list">
+                <ng-container *ngFor="let seat of getSeatLabels(session)">
+                  <span class="session__seating-list-item">
+                    {{ seat }}
+                  </span>
+                </ng-container>
+              </div>
+            </ng-container>
+          </div>
+        </div>
+      </li>
+    </ul>
+    <div *ngIf="showSeatingInModal && cart.hasSeating" class="invitations-seats">
+      <div class="view-seats">
+        <div class="view-seats__title">
+          <div class="only-in-mobile">
+            {{ 'invitations.seatSelection' | translate }}
+          </div>
+        </div>
+        <div class="view-seats__button">
+          <button
+            (click)="openSeatingModal()"
+            [disabled]="!this.hasSeating"
+            class="box-office-content__button box-office-content__button--outline box-office-content__button--purple"
+            data-testid="cart-seats-button"
+          >
+            {{ 'invitations.viewSeats' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-template>

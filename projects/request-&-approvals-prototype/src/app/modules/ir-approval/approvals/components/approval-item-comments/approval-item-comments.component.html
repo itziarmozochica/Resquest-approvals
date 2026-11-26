@@ -1,0 +1,238 @@
+<section class="item-comments" [attr.data-testid]="'approval-item-comments-' + itemId()">
+  <p class="item-comments__visually-hidden" role="status" aria-live="polite" data-testid="approval-item-comments-mention-announcement">
+    {{ mentionAnnouncement() }}
+  </p>
+  @if (loading()) {
+    <p class="item-comments__status" role="status" data-testid="approval-item-comments-loading">
+      {{ 'approvals.detail.comments.loading' | translate }}
+    </p>
+  } @else {
+    @if (loadFailed()) {
+      <div class="item-comments__load-error">
+        <p class="item-comments__status item-comments__status--error" role="alert" data-testid="approval-item-comments-load-error">
+          {{ 'approvals.detail.comments.loadError' | translate }}
+        </p>
+        <ignt-button
+          variant="secondary"
+          size="small"
+          [label]="'approvals.detail.comments.retry' | translate"
+          (click)="retryLoad()"
+          data-testid="approval-item-comments-retry"
+        ></ignt-button>
+      </div>
+    } @else if (thread().length === 0) {
+      <p class="item-comments__status" data-testid="approval-item-comments-empty">
+        {{ 'approvals.detail.comments.empty' | translate }}
+      </p>
+    }
+  }
+  @if (refreshFailed()) {
+    <div class="item-comments__load-error">
+      <p class="item-comments__status item-comments__status--error" role="alert" data-testid="approval-item-comments-refresh-error">
+        {{ 'approvals.detail.comments.refreshError' | translate }}
+      </p>
+      <ignt-button
+        variant="secondary"
+        size="small"
+        [label]="'approvals.detail.comments.retry' | translate"
+        (click)="reload()"
+        data-testid="approval-item-comments-refresh-retry"
+      ></ignt-button>
+    </div>
+  }
+  @if (!loading() && thread().length > 0) {
+    <ol class="item-comments__thread" data-testid="approval-item-comments-thread">
+      @for (entry of thread(); track entry.comment.id) {
+        <li class="item-comments__comment" data-testid="approval-item-comment">
+          <span class="item-comments__avatar" aria-hidden="true" data-testid="approval-item-comment-initials">{{ entry.initials }}</span>
+          <div class="item-comments__content">
+            <div class="item-comments__meta">
+              <span class="item-comments__author" [attr.title]="entry.comment.authorEmail" data-testid="approval-item-comment-author">{{
+                entry.comment.authorName
+              }}</span>
+              @if (entry.comment.editedAt) {
+                <span class="item-comments__edited" data-testid="approval-item-comment-edited">{{
+                  'approvals.detail.comments.edited' | translate
+                }}</span>
+              }
+              <time
+                class="item-comments__date"
+                [attr.datetime]="entry.displayedAt.toISOString()"
+                data-testid="approval-item-comment-date"
+                >{{ entry.displayedAt | date: 'short' }}</time
+              >
+              @if (entry.isRejectionReason) {
+                <ignt-tag sentiment="danger" variant="outline" data-testid="approval-item-comment-rejection-reason">
+                  {{ 'approvals.detail.comments.rejectionReason' | translate }}
+                </ignt-tag>
+              }
+              @if (entry.isEditable && editingId() === null) {
+                <ignt-button
+                  class="item-comments__edit"
+                  [id]="editButtonId(entry.comment.id)"
+                  variant="tertiary"
+                  sentiment="neutral"
+                  size="small"
+                  [label]="'approvals.detail.comments.edit' | translate"
+                  [leadingIcon]="editIcon"
+                  (click)="startEdit(entry.comment)"
+                  [attr.data-testid]="'approval-item-comment-edit-' + entry.comment.id"
+                />
+              }
+            </div>
+            @if (editingId() === entry.comment.id) {
+              <div class="item-comments__editor" data-testid="approval-item-comment-editor">
+                <div class="item-comments__field">
+                  <ignt-textarea-field
+                    #editorField
+                    [id]="editorId(entry.comment.id)"
+                    [label]="'approvals.detail.comments.editLabel' | translate"
+                    [rows]="3"
+                    [maxlength]="maxLength"
+                    [formControl]="editControl"
+                    (keydown)="onEditorKeydown($event)"
+                    (keyup)="onFieldKeyup($event, 'editor')"
+                    (click)="refreshMentionQuery('editor')"
+                    (blurred)="onFieldBlur('editor')"
+                  />
+                  @if (isEditMentionPickerOpen()) {
+                    <ng-container [ngTemplateOutlet]="mentionPicker" />
+                  }
+                </div>
+                <div class="item-comments__actions">
+                  <ignt-button
+                    variant="secondary"
+                    size="small"
+                    [label]="'approvals.detail.comments.cancelEdit' | translate"
+                    [disabled]="savingEdit()"
+                    (click)="cancelEdit()"
+                    data-testid="approval-item-comment-edit-cancel"
+                  />
+                  <ignt-button
+                    variant="primary"
+                    size="small"
+                    [label]="'approvals.detail.comments.save' | translate"
+                    [disabled]="!canSaveEdit()"
+                    [loading]="savingEdit()"
+                    (click)="saveEdit()"
+                    data-testid="approval-item-comment-edit-save"
+                  />
+                </div>
+              </div>
+            } @else {
+              <p class="item-comments__body" data-testid="approval-item-comment-body">
+                @for (segment of entry.segments; track $index) {
+                  @if (segment.mention) {
+                    <span class="item-comments__mention" data-testid="approval-item-comment-mention">{{ segment.text }}</span>
+                  } @else {
+                    <span>{{ segment.text }}</span>
+                  }
+                }
+              </p>
+              @if (entry.unnotifiedMentions.length > 0) {
+                <div class="item-comments__mention-notices" [id]="mentionNoticesId(entry.comment.id)">
+                  @for (mention of entry.unnotifiedMentions; track mention.email) {
+                    <ignt-alert
+                      showCloseButton
+                      sentiment="warning"
+                      [id]="mentionNoticeId(entry.comment.id, mention.email)"
+                      [description]="'approvals.detail.comments.mentionWithoutAccess' | translate: { name: mention.name }"
+                      [closeButtonAriaLabel]="'approvals.detail.comments.dismissMentionAccess' | translate"
+                      [attr.data-testid]="'approval-item-comment-mention-notice-' + mention.email"
+                      (closeAlert)="dismissMentionAccess(entry.comment.id, mention)"
+                    >
+                      <ng-template #igntAlertActions>
+                        <ignt-button
+                          class="item-comments__mention-add"
+                          variant="secondary"
+                          size="small"
+                          [label]="'approvals.detail.comments.addMentionAccess' | translate"
+                          [loading]="mention.isAdding"
+                          [disabled]="mention.isAdding || mention.isDismissing || isMentionAccessAddBlocked()"
+                          (click)="addMentionAccess(entry.comment.id, mention)"
+                          [attr.data-testid]="'approval-item-comment-mention-add-' + mention.email"
+                        />
+                      </ng-template>
+                    </ignt-alert>
+                  }
+                </div>
+              }
+            }
+          </div>
+        </li>
+      }
+    </ol>
+  }
+
+  @if (canPost() && !loadFailed()) {
+    <div class="item-comments__composer" data-testid="approval-item-comments-composer">
+      <div class="item-comments__field">
+        <ignt-textarea-field
+          #composerField
+          [id]="composerId()"
+          [label]="'approvals.detail.comments.placeholder' | translate"
+          [rows]="3"
+          [maxlength]="maxLength"
+          [formControl]="bodyControl"
+          (keydown)="onComposerKeydown($event)"
+          (keyup)="onFieldKeyup($event, 'composer')"
+          (click)="refreshMentionQuery('composer')"
+          (blurred)="onFieldBlur('composer')"
+        />
+        @if (isMentionPickerOpen()) {
+          <ng-container [ngTemplateOutlet]="mentionPicker" />
+        }
+      </div>
+      <div class="item-comments__actions">
+        <ignt-button
+          variant="primary"
+          size="small"
+          [label]="'approvals.detail.comments.submit' | translate"
+          [trailingIcon]="sendIcon"
+          [disabled]="!canSubmit()"
+          [loading]="submitting()"
+          (click)="submit()"
+          data-testid="approval-item-comments-submit"
+        ></ignt-button>
+      </div>
+    </div>
+  }
+</section>
+
+<ng-template #mentionPicker>
+  <ul
+    class="item-comments__mentions"
+    [id]="mentionListId()"
+    role="listbox"
+    [attr.aria-label]="'approvals.detail.comments.mentionsLabel' | translate"
+    data-testid="approval-item-comments-mentions"
+    (pointerdown)="onMentionListPointerdown($event)"
+    (mousedown)="onMentionListMousedown($event)"
+  >
+    @for (option of mentionOptions(); track option.person.email; let index = $index) {
+      <li
+        class="item-comments__mention-option"
+        role="option"
+        [id]="mentionOptionId(index)"
+        [class.item-comments__mention-option--active]="index === activeMentionIndex()"
+        [attr.aria-selected]="index === activeMentionIndex()"
+        [attr.data-testid]="'approval-item-comments-mention-' + option.person.email"
+        (click)="onMentionOptionClick(option.person)"
+      >
+        <span class="item-comments__avatar item-comments__avatar--small" aria-hidden="true">{{ option.initials }}</span>
+        <span class="item-comments__mention-name">{{ option.person.name }}</span>
+        <span class="item-comments__mention-email">{{ option.person.email }}</span>
+        @if (option.isWithoutAccess) {
+          <ignt-tag
+            class="item-comments__mention-no-access"
+            sentiment="warning"
+            variant="outline"
+            [attr.data-testid]="'approval-item-comments-mention-no-access-' + option.person.email"
+          >
+            {{ 'approvals.detail.comments.noAccess' | translate }}
+          </ignt-tag>
+        }
+      </li>
+    }
+  </ul>
+</ng-template>

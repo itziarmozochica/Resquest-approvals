@@ -1,0 +1,86 @@
+@let section = vm();
+@let grid = columnGrid();
+@let party = columnParty();
+
+@if (section.kind === 'custom' && section.frame === 'loading') {
+  <div class="spinner-container">
+    <div class="spinner">
+      <ignt-icon class="loader" name="spinner" variant="solid" size="display" [spin]="true" />
+    </div>
+  </div>
+} @else if (section.kind === 'custom' && grid !== null) {
+  <div
+    class="main-content__tab-custom-tabs oss-hierarchy-tiles-host"
+    [class.oss-hierarchy-tiles-host--mobile-breadcrumb]="isMobile() && grid.breadcrumbs.length > 1"
+  >
+    <fzt-breadcrumbs
+      [breadcrumbs]="grid.breadcrumbs"
+      [isMobile]="isMobile()"
+      [translations]="translations()"
+      (breadcrumbNavigated)="breadcrumbNavigated.emit($event)"
+    />
+    <fzt-tile-grid
+      class="oss-hierarchy-tiles--custom-tab"
+      [isMobile]="isMobile()"
+      [isTablet]="isTablet()"
+      [translations]="translations()"
+      [vm]="grid"
+      (tileAdd)="tileAdd.emit($event)"
+      (tileTapped)="tileTapped.emit($event)"
+    />
+  </div>
+} @else if (section.kind !== 'custom') {
+  <div class="tickets-oss-section">
+    @if (showDateSelectorSlot()) {
+      <div class="date-selector">
+        <ng-container [ngTemplateOutlet]="dateSelectorTemplate()" />
+      </div>
+    }
+    <div class="ticket-selector" [class.ticket-selector--tickets]="section.kind === 'tickets' || section.kind === 'party-members'">
+      @if (section.frame === 'placeholder') {
+        <ng-container [ngTemplateOutlet]="placeholderTemplate()" />
+      } @else if (section.kind === 'seating' && section.frame === 'ready') {
+        <ng-container [ngTemplateOutlet]="seatingTemplate()" />
+      } @else if (party !== null) {
+        <div class="ticket-selector ticket-selector--grid ticket-selector--party" data-testid="oss-party-ticket-selector">
+          <fzt-category-chips
+            class="ticket-selector__levels"
+            [vm]="party.categoryChips"
+            (categorySelected)="partyCategorySelected.emit($event)"
+          />
+          <fzt-party-tile-grid
+            [isMobile]="isMobile()"
+            [isTablet]="isTablet()"
+            [translations]="translations()"
+            [vm]="party.grid"
+            (selectMembersRequested)="partySelectMembersRequested.emit()"
+            (startTimeTapped)="partyStartTimeTapped.emit($event)"
+          />
+          <div class="ticket-selector__taxes-included" [hidden]="!party.showTaxesIncluded">
+            <span> * {{ translations().taxesIncluded }}</span>
+          </div>
+        </div>
+      } @else if (grid !== null) {
+        <div class="ticket-selector ticket-selector--grid" [attr.data-testid]="grid.testId">
+          @if (grid.levels.length > 0) {
+            <fzt-explode-levels class="ticket-selector__levels" [rows]="grid.levels" (levelSelected)="levelSelected.emit($event)" />
+          }
+          <fzt-tile-grid
+            class="oss-hierarchy-tiles--tickets-tab"
+            [isMobile]="isMobile()"
+            [isTablet]="isTablet()"
+            [translations]="translations()"
+            [vm]="grid"
+            (tileAdd)="tileAdd.emit($event)"
+            (tileTapped)="tileTapped.emit($event)"
+          />
+          @if (grid.showTaxesIncluded) {
+            <div class="ticket-selector__taxes-included">
+              <span> * {{ translations().taxesIncluded }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+}

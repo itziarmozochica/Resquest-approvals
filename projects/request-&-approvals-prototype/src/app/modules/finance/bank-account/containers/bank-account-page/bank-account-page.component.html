@@ -1,0 +1,539 @@
+<div class="bank-account-page">
+  <header class="bank-account-page__header">
+    <span class="bank-account-page__breadcrumb">{{ 'menu.finance' | translate }} /</span>
+    <div class="bank-account-page__title-row">
+      <h1 class="bank-account-page__title">{{ 'finance.bankAccount.title' | translate }}</h1>
+      @if (status(); as currentStatus) {
+        <ignt-tag
+          [sentiment]="statusTagSentiment()"
+          variant="outline"
+          [attr.data-status]="currentStatus"
+          data-testid="bank-account-status-tag"
+        >
+          {{ 'finance.bankAccount.status.' + currentStatus | translate }}
+        </ignt-tag>
+      }
+    </div>
+    <p class="bank-account-page__description">{{ 'finance.bankAccount.description' | translate }}</p>
+  </header>
+
+  @if (isLoading()) {
+    <div class="bank-account-page__loading" data-testid="bank-account-loading">
+      {{ 'common.loading' | translate }}
+    </div>
+  } @else {
+    <div class="bank-account-page__banner">
+      @switch (status()) {
+        @case (bankAccountRequestStatus.PENDING_REQUEST) {
+          @if (showReviewActions()) {
+            <ignt-alert
+              sentiment="warning"
+              [title]="'finance.bankAccount.banner.pendingReviewerTitle' | translate"
+              [description]="'finance.bankAccount.banner.pendingReviewerDescription' | translate"
+              data-testid="bank-account-pending-reviewer-banner"
+            >
+              <ng-template #igntAlertActions>
+                <div class="bank-account-page__banner-actions">
+                  <ignt-button
+                    data-testid="approve-request-button"
+                    variant="primary"
+                    [label]="'finance.bankAccount.actions.approve' | translate"
+                    (click)="onApprove()"
+                  />
+                  <ignt-button
+                    data-testid="reject-request-button"
+                    sentiment="danger"
+                    variant="secondary"
+                    [label]="'finance.bankAccount.actions.reject' | translate"
+                    (click)="onReject()"
+                  />
+                </div>
+              </ng-template>
+            </ignt-alert>
+          } @else {
+            <ignt-alert
+              sentiment="info"
+              [title]="'finance.bankAccount.banner.pendingPartnerTitle' | translate"
+              [description]="'finance.bankAccount.banner.pendingPartnerDescription' | translate"
+              data-testid="bank-account-pending-partner-banner"
+            ></ignt-alert>
+          }
+        }
+        @case (bankAccountRequestStatus.NO_ACTIVE_BANK_ACCOUNT) {
+          @if (showResendAction()) {
+            <ignt-alert
+              sentiment="info"
+              [title]="'finance.bankAccount.banner.missingAccountReviewerTitle' | translate"
+              [description]="'finance.bankAccount.banner.missingAccountReviewerDescription' | translate"
+              data-testid="bank-account-missing-account-reviewer-banner"
+            >
+              <ng-template #igntAlertActions>
+                <div class="bank-account-page__banner-actions">
+                  <ignt-button
+                    data-testid="resend-required-email-button"
+                    size="small"
+                    variant="primary"
+                    [label]="'finance.bankAccount.actions.resend' | translate"
+                    (click)="onResend()"
+                  />
+                </div>
+              </ng-template>
+            </ignt-alert>
+          } @else if (!canManageBankAccount && !isResendCheckPending()) {
+            <ignt-alert
+              sentiment="info"
+              [title]="'finance.bankAccount.banner.noManagePermissionTitle' | translate"
+              [description]="'finance.bankAccount.banner.noManagePermissionDescription' | translate"
+              data-testid="bank-account-no-manage-permission-banner"
+            ></ignt-alert>
+          }
+        }
+        @case (bankAccountRequestStatus.APPROVED_REQUEST) {
+          <ignt-alert
+            sentiment="positive"
+            [title]="'finance.bankAccount.banner.approvedTitle' | translate"
+            [description]="'finance.bankAccount.banner.approvedDescription' | translate"
+            data-testid="bank-account-approved-banner"
+          ></ignt-alert>
+        }
+        @case (bankAccountRequestStatus.REJECTED_REQUEST) {
+          <ignt-alert
+            sentiment="danger"
+            [title]="'finance.bankAccount.banner.rejectedTitle' | translate"
+            data-testid="bank-account-rejected-banner"
+          >
+            <ng-template #igntAlertContent>
+              <div class="bank-account-page__rejection">
+                @if (requestState()?.lastBankAccountRequest?.rejectionCategory; as rejectionCategory) {
+                  <p class="bank-account-page__rejection-category">
+                    {{ 'finance.bankAccount.rejectionCategories.' + (rejectionCategory | lowercase) | translate }}
+                  </p>
+                }
+                @if (requestState()?.lastBankAccountRequest?.rejectionComment; as rejectionComment) {
+                  <p class="bank-account-page__rejection-comment">"{{ rejectionComment }}"</p>
+                }
+                <p class="bank-account-page__rejection-hint">{{ 'finance.bankAccount.banner.rejectedDescription' | translate }}</p>
+              </div>
+            </ng-template>
+          </ignt-alert>
+        }
+      }
+    </div>
+
+    @if (bankAccounts().length > 0) {
+      <section class="bank-account-page__accounts" data-testid="bank-account-list">
+        <h2 class="bank-account-page__section-title">{{ 'finance.bankAccount.accounts.title' | translate }}</h2>
+        <ul class="bank-account-page__account-list">
+          @for (account of bankAccounts(); track account.id) {
+            <li class="bank-account-page__account" [attr.data-testid]="'bank-account-row-' + account.id">
+              <div class="bank-account-page__account-summary">
+                <button
+                  ignt-icon-button
+                  size="small"
+                  sentiment="secondary"
+                  [icon]="['fal', isBankAccountExpanded(account.id) ? 'chevron-down' : 'chevron-right']"
+                  [attr.data-testid]="'toggle-bank-account-' + account.id"
+                  [attr.aria-expanded]="isBankAccountExpanded(account.id)"
+                  [attr.aria-controls]="'bank-account-details-' + account.id"
+                  [attr.aria-label]="'finance.bankAccount.accounts.toggleDetails' | translate: { account: describeAccount(account) }"
+                  (click)="onToggleBankAccount(account.id)"
+                ></button>
+                <span class="bank-account-page__account-identity">
+                  <span class="bank-account-page__account-identifier">{{ describeAccount(account) }}</span>
+                  <span class="bank-account-page__account-meta">
+                    {{ 'finance.bankAccount.schemes.' + account.scheme | translate }}
+                    @if (account.currency) {
+                      · {{ account.currency }}
+                    }
+                  </span>
+                </span>
+                @if (showDeactivateAction()) {
+                  <ignt-button
+                    [attr.data-testid]="'deactivate-bank-account-button-' + account.id"
+                    sentiment="danger"
+                    variant="secondary"
+                    [label]="'finance.bankAccount.actions.deactivateThis' | translate"
+                    (click)="onDeactivate(account)"
+                  />
+                }
+              </div>
+              @if (isBankAccountExpanded(account.id)) {
+                <div class="bank-account-page__account-details" [attr.id]="'bank-account-details-' + account.id">
+                  <div class="bank-account-page__grid">
+                    <div class="bank-account-page__detail">
+                      <span class="bank-account-page__detail-label">{{ 'finance.bankAccount.fields.country' | translate }}</span>
+                      <span class="bank-account-page__detail-value">{{ countryLabelOf(account) }}</span>
+                    </div>
+                    @if (account.currency) {
+                      <div class="bank-account-page__detail">
+                        <span class="bank-account-page__detail-label">{{ 'finance.bankAccount.fields.currency' | translate }}</span>
+                        <span class="bank-account-page__detail-value">{{ account.currency }}</span>
+                      </div>
+                    }
+                    <div class="bank-account-page__detail">
+                      <span class="bank-account-page__detail-label">{{ 'finance.bankAccount.fields.scheme' | translate }}</span>
+                      <span class="bank-account-page__detail-value">{{ 'finance.bankAccount.schemes.' + account.scheme | translate }}</span>
+                    </div>
+                    @for (row of detailRowsOf(account); track row.name) {
+                      <div class="bank-account-page__detail" [class.bank-account-page__field--full]="row.name === 'iban'">
+                        <span class="bank-account-page__detail-label">{{ 'finance.bankAccount.fields.' + row.labelName | translate }}</span>
+                        <span class="bank-account-page__detail-value">{{
+                          row.translationKey === null ? row.value : (row.translationKey | translate)
+                        }}</span>
+                      </div>
+                    }
+                  </div>
+                  @if (hasCertificate()) {
+                    <div class="bank-account-page__certificate-row" data-testid="bank-account-certificate-row">
+                      <span class="bank-account-page__certificate-name">{{
+                        'finance.bankAccount.certificate.attachedFileName' | translate
+                      }}</span>
+                      <ignt-button
+                        data-testid="download-certificate-button"
+                        variant="tertiary"
+                        [label]="'finance.bankAccount.certificate.downloadButton' | translate"
+                        (click)="onDownloadCertificate()"
+                      />
+                    </div>
+                  }
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    @if (showRequestForm()) {
+      <form class="bank-account-page__form" [formGroup]="form" (ngSubmit)="onSubmit()" [attr.aria-busy]="isSubmitting()">
+        <ignt-wrapper-card [elevation]="1">
+          <div class="bank-account-page__card-content">
+            <section class="bank-account-page__section">
+              <h2 class="bank-account-page__section-title">{{ 'finance.bankAccount.sections.location' | translate }}</h2>
+              <div class="bank-account-page__grid">
+                <div class="field bank-account-page__field">
+                  <label class="bank-account-page__select-label" for="countryCode"
+                    >{{ 'finance.bankAccount.fields.country' | translate }} *</label
+                  >
+                  <ng-select
+                    labelForId="countryCode"
+                    formControlName="countryCode"
+                    data-testid="bank-account-country-select"
+                    [clearable]="false"
+                  >
+                    <ng-option value="" [disabled]="true">{{ 'finance.bankAccount.fields.countryPlaceholder' | translate }}</ng-option>
+                    @for (option of countryOptions; track option.value) {
+                      <ng-option [value]="option.value">{{ option.label }}</ng-option>
+                    }
+                  </ng-select>
+                  <ignt-field-error [showError]="form.controls.countryCode.touched && form.controls.countryCode.hasError('required')">
+                    {{ 'form.error.mandatoryField' | translate }}
+                  </ignt-field-error>
+                </div>
+
+                @if (schemeOptions().length > 1) {
+                  <div class="field bank-account-page__field">
+                    <label class="bank-account-page__select-label" for="scheme"
+                      >{{ 'finance.bankAccount.fields.scheme' | translate }} *</label
+                    >
+                    <ng-select
+                      labelForId="scheme"
+                      formControlName="scheme"
+                      data-testid="bank-account-scheme-select"
+                      [clearable]="false"
+                      [searchable]="false"
+                    >
+                      @for (option of schemeOptions(); track option) {
+                        <ng-option [value]="option">{{ 'finance.bankAccount.schemes.' + option | translate }}</ng-option>
+                      }
+                    </ng-select>
+                  </div>
+                } @else {
+                  @if (form.controls.scheme.value; as scheme) {
+                    <div class="field bank-account-page__field">
+                      <span class="form-label field__label--readonly">{{ 'finance.bankAccount.fields.scheme' | translate }}</span>
+                      <div class="field__input--readonly" data-testid="bank-account-scheme-readonly">
+                        {{ 'finance.bankAccount.schemes.' + scheme | translate }}
+                      </div>
+                    </div>
+                  }
+                }
+
+                @if (form.controls.countryCode.value !== '') {
+                  <div class="field bank-account-page__field">
+                    <label class="bank-account-page__select-label" for="currency"
+                      >{{ 'finance.bankAccount.fields.currency' | translate }} *</label
+                    >
+                    <ng-select
+                      labelForId="currency"
+                      formControlName="currency"
+                      data-testid="bank-account-currency-select"
+                      [clearable]="false"
+                    >
+                      @for (option of currencyOptions; track option) {
+                        <ng-option [value]="option">{{ option }}</ng-option>
+                      }
+                    </ng-select>
+                  </div>
+                }
+              </div>
+            </section>
+
+            @if (form.controls.scheme.value !== null) {
+              <section class="bank-account-page__section">
+                <h2 class="bank-account-page__section-title">{{ 'finance.bankAccount.sections.details' | translate }}</h2>
+                <div class="bank-account-page__grid">
+                  @if (isFieldVisible('bsbCode')) {
+                    <ignt-input-field
+                      id="bsbCode"
+                      type="text"
+                      formControlName="bsbCode"
+                      [label]="('finance.bankAccount.fields.bsbCode' | translate) + (isFieldRequired('bsbCode') ? ' *' : '')"
+                      [customFormErrors]="[
+                        { type: 'required', message: 'form.error.mandatoryField' | translate },
+                        { type: 'bsbCodeFormat', message: 'finance.bankAccount.errors.bsbCodeFormat' | translate },
+                      ]"
+                      autocomplete="off"
+                    ></ignt-input-field>
+                  }
+                  @if (isFieldVisible('sortCode')) {
+                    <ignt-input-field
+                      id="sortCode"
+                      type="text"
+                      formControlName="sortCode"
+                      [label]="('finance.bankAccount.fields.sortCode' | translate) + (isFieldRequired('sortCode') ? ' *' : '')"
+                      [customFormErrors]="[
+                        { type: 'required', message: 'form.error.mandatoryField' | translate },
+                        { type: 'sortCodeFormat', message: 'finance.bankAccount.errors.sortCodeFormat' | translate },
+                      ]"
+                      placeholder="60-16-13"
+                      autocomplete="off"
+                    ></ignt-input-field>
+                  }
+                  @if (isFieldVisible('routingNumber')) {
+                    <ignt-input-field
+                      id="routingNumber"
+                      type="text"
+                      formControlName="routingNumber"
+                      [label]="('finance.bankAccount.fields.routingNumber' | translate) + (isFieldRequired('routingNumber') ? ' *' : '')"
+                      [customFormErrors]="[
+                        { type: 'required', message: 'form.error.mandatoryField' | translate },
+                        { type: 'routingNumberFormat', message: 'finance.bankAccount.errors.routingNumberFormat' | translate },
+                        { type: 'routingNumberChecksum', message: 'finance.bankAccount.errors.routingNumberChecksum' | translate },
+                      ]"
+                      autocomplete="off"
+                    ></ignt-input-field>
+                  }
+                  @if (isFieldVisible('clabe')) {
+                    <ignt-input-field
+                      id="clabe"
+                      type="text"
+                      formControlName="clabe"
+                      [label]="('finance.bankAccount.fields.clabe' | translate) + (isFieldRequired('clabe') ? ' *' : '')"
+                      [customFormErrors]="[
+                        { type: 'required', message: 'form.error.mandatoryField' | translate },
+                        { type: 'clabeFormat', message: 'finance.bankAccount.errors.clabeFormat' | translate },
+                        { type: 'clabeChecksum', message: 'finance.bankAccount.errors.clabeChecksum' | translate },
+                      ]"
+                      autocomplete="off"
+                    ></ignt-input-field>
+                  }
+                  @if (isFieldVisible('bankCode')) {
+                    <ignt-input-field
+                      id="bankCode"
+                      type="text"
+                      formControlName="bankCode"
+                      [label]="
+                        ('finance.bankAccount.fields.' + labelNameOf('bankCode') | translate) + (isFieldRequired('bankCode') ? ' *' : '')
+                      "
+                      [customFormErrors]="[
+                        { type: 'required', message: 'form.error.mandatoryField' | translate },
+                        { type: 'bankCodeFormat', message: 'finance.bankAccount.errors.bankCodeFormat' | translate },
+                        { type: 'bankCodePattern', message: 'finance.bankAccount.errors.bankCodePattern' | translate },
+                      ]"
+                      autocomplete="off"
+                    ></ignt-input-field>
+                  }
+                  @if (isFieldVisible('branchCode')) {
+                    <ignt-input-field
+                      id="branchCode"
+                      type="text"
+                      formControlName="branchCode"
+                      [label]="
+                        ('finance.bankAccount.fields.' + labelNameOf('branchCode') | translate) +
+                        (isFieldRequired('branchCode') ? ' *' : '')
+                      "
+                      [customFormErrors]="[
+                        { type: 'required', message: 'form.error.mandatoryField' | translate },
+                        { type: 'branchCodePattern', message: 'finance.bankAccount.errors.branchCodePattern' | translate },
+                      ]"
+                      autocomplete="off"
+                    ></ignt-input-field>
+                  }
+                  @if (isFieldVisible('institutionNumber')) {
+                    <ignt-input-field
+                      id="institutionNumber"
+                      type="text"
+                      formControlName="institutionNumber"
+                      [label]="
+                        ('finance.bankAccount.fields.institutionNumber' | translate) + (isFieldRequired('institutionNumber') ? ' *' : '')
+                      "
+                      [customFormErrors]="[
+                        { type: 'required', message: 'form.error.mandatoryField' | translate },
+                        { type: 'institutionNumberFormat', message: 'finance.bankAccount.errors.institutionNumberFormat' | translate },
+                      ]"
+                      autocomplete="off"
+                    ></ignt-input-field>
+                  }
+                  @if (isFieldVisible('transitNumber')) {
+                    <ignt-input-field
+                      id="transitNumber"
+                      type="text"
+                      formControlName="transitNumber"
+                      [label]="('finance.bankAccount.fields.transitNumber' | translate) + (isFieldRequired('transitNumber') ? ' *' : '')"
+                      [customFormErrors]="[
+                        { type: 'required', message: 'form.error.mandatoryField' | translate },
+                        { type: 'transitNumberFormat', message: 'finance.bankAccount.errors.transitNumberFormat' | translate },
+                      ]"
+                      autocomplete="off"
+                    ></ignt-input-field>
+                  }
+                  @if (isFieldVisible('accountNumber')) {
+                    <ignt-input-field
+                      id="accountNumber"
+                      type="text"
+                      formControlName="accountNumber"
+                      [label]="
+                        ('finance.bankAccount.fields.' + labelNameOf('accountNumber') | translate) +
+                        (isFieldRequired('accountNumber') ? ' *' : '')
+                      "
+                      [customFormErrors]="[
+                        { type: 'required', message: 'form.error.mandatoryField' | translate },
+                        { type: 'accountNumberFormat', message: 'finance.bankAccount.errors.accountNumberFormat' | translate },
+                        { type: 'accountNumberLength', message: 'finance.bankAccount.errors.accountNumberLength' | translate },
+                        { type: 'accountNumberPattern', message: 'finance.bankAccount.errors.accountNumberPattern' | translate },
+                      ]"
+                      autocomplete="off"
+                    ></ignt-input-field>
+                  }
+                  @if (isFieldVisible('iban')) {
+                    <ignt-input-field
+                      id="iban"
+                      type="text"
+                      class="bank-account-page__field--full"
+                      formControlName="iban"
+                      [label]="('finance.bankAccount.fields.iban' | translate) + (isFieldRequired('iban') ? ' *' : '')"
+                      [customFormErrors]="[
+                        { type: 'required', message: 'form.error.mandatoryField' | translate },
+                        { type: 'ibanCountryMismatch', message: 'finance.bankAccount.errors.ibanCountryMismatch' | translate },
+                        { type: 'ibanFormat', message: 'finance.bankAccount.errors.ibanFormat' | translate },
+                        { type: 'ibanChecksum', message: 'finance.bankAccount.errors.ibanChecksum' | translate },
+                        {
+                          type: 'inconsistentIbanForSortCode',
+                          message: 'finance.bankAccount.errors.inconsistentIbanForSortCode' | translate,
+                        },
+                      ]"
+                      autocomplete="off"
+                    ></ignt-input-field>
+                  }
+                  @if (isFieldVisible('accountType')) {
+                    <div class="field bank-account-page__field">
+                      <label class="bank-account-page__select-label" for="accountType"
+                        >{{ 'finance.bankAccount.fields.accountType' | translate }}{{ isFieldRequired('accountType') ? ' *' : '' }}</label
+                      >
+                      <ng-select
+                        labelForId="accountType"
+                        formControlName="accountType"
+                        data-testid="bank-account-account-type-select"
+                        [clearable]="false"
+                        [placeholder]="'finance.bankAccount.fields.accountTypePlaceholder' | translate"
+                        [searchable]="false"
+                      >
+                        @for (option of accountTypes; track option) {
+                          <ng-option [value]="option">{{ 'finance.bankAccount.accountTypes.' + option | translate }}</ng-option>
+                        }
+                      </ng-select>
+                      <ignt-field-error [showError]="form.controls.accountType.touched && form.controls.accountType.hasError('required')">
+                        {{ 'form.error.mandatoryField' | translate }}
+                      </ignt-field-error>
+                    </div>
+                  }
+                  @if (isFieldVisible('swift')) {
+                    <ignt-input-field
+                      id="swift"
+                      type="text"
+                      formControlName="swift"
+                      [label]="('finance.bankAccount.fields.swift' | translate) + (isFieldRequired('swift') ? ' *' : '')"
+                      [helperText]="'finance.bankAccount.fields.swiftHint' | translate"
+                      [customFormErrors]="[
+                        { type: 'required', message: 'form.error.mandatoryField' | translate },
+                        { type: 'swiftFormat', message: 'finance.bankAccount.errors.swiftFormat' | translate },
+                        { type: 'swiftCountryMismatch', message: 'finance.bankAccount.errors.swiftCountryMismatch' | translate },
+                      ]"
+                      autocomplete="off"
+                    ></ignt-input-field>
+                  }
+                </div>
+              </section>
+            }
+            @if (isFormEditable() || hasCertificate()) {
+              <section class="bank-account-page__section">
+                <h2 class="bank-account-page__section-title">{{ 'finance.bankAccount.sections.certificate' | translate }} *</h2>
+                @if (isFormEditable()) {
+                  <p class="bank-account-page__certificate-description">
+                    {{ 'finance.bankAccount.certificate.description' | translate }}
+                  </p>
+                  <ignt-file-upload
+                    [accept]="certificateAcceptedTypes"
+                    [label]="'finance.bankAccount.certificate.dropzoneLabel' | translate"
+                    [actionLabel]="'finance.bankAccount.certificate.browseButton' | translate"
+                    [hint]="'finance.bankAccount.certificate.hint' | translate: certificateSizeParams"
+                    (filesRejected)="onCertificateRejected()"
+                    (filesSelected)="onCertificateSelected($event)"
+                  ></ignt-file-upload>
+                }
+                @if (hasCertificate()) {
+                  <div class="bank-account-page__certificate-row" data-testid="bank-account-certificate-row">
+                    <span class="bank-account-page__certificate-name">{{
+                      certificateFileName() ?? ('finance.bankAccount.certificate.attachedFileName' | translate)
+                    }}</span>
+                    <div class="bank-account-page__certificate-actions">
+                      <ignt-button
+                        data-testid="download-certificate-button"
+                        variant="tertiary"
+                        [label]="'finance.bankAccount.certificate.downloadButton' | translate"
+                        (click)="onDownloadCertificate()"
+                      />
+                      @if (isFormEditable() && (selectedCertificate() !== null || keepPreviousCertificate())) {
+                        <ignt-button
+                          data-testid="remove-certificate-button"
+                          variant="tertiary"
+                          [label]="'finance.bankAccount.certificate.removeButton' | translate"
+                          (click)="onRemoveCertificate()"
+                        />
+                      }
+                    </div>
+                  </div>
+                }
+              </section>
+            }
+
+            @if (isFormEditable()) {
+              <footer class="bank-account-page__footer">
+                <ignt-button
+                  data-testid="submit-bank-account-request-button"
+                  htmlType="submit"
+                  size="large"
+                  variant="primary"
+                  [disabled]="isSubmitting() || !hasCertificate()"
+                  [label]="'finance.bankAccount.actions.submit' | translate"
+                  [loading]="isSubmitting()"
+                />
+              </footer>
+            }
+          </div>
+        </ignt-wrapper-card>
+      </form>
+    }
+  }
+</div>

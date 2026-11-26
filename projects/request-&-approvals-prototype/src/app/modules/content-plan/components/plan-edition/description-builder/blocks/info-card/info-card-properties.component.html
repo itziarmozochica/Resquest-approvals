@@ -1,0 +1,138 @@
+@let cards = infoCards();
+@let card = currentCard();
+<div class="prop">
+  <label class="prop-label">{{ 'planEdition.contentEdition.builder.blocks.infoCard.activeCard' | translate }}</label>
+  <!-- Card selector buttons (1/2/…) intentionally stay enabled regardless
+       of `disabled` — switching between cards is navigation, not edition.
+       Only the trailing "+" (add card) requires the edit permission. -->
+  <div class="prop-segment prop-image-grid-card-tabs" role="tablist">
+    @for (c of cards; track $index; let i = $index) {
+      <button type="button" role="tab" [class.active]="infoCardTab() === i" (click)="infoCardTab.set(i)">
+        {{ i + 1 }}
+      </button>
+    }
+    @if (cards.length < INFO_CARD_MAX) {
+      <button
+        type="button"
+        class="prop-segment-add"
+        [attr.aria-label]="'planEdition.contentEdition.builder.blocks.infoCard.addCardAria' | translate"
+        [disabled]="disabled()"
+        (click)="addInfoCard()"
+      >
+        +
+      </button>
+    }
+  </div>
+</div>
+<div class="prop-tabs-section">
+  <div class="prop-tabs-section-head">
+    <div class="prop-tabs-section-head-text">
+      <span class="prop-tabs-section-eyebrow">{{ 'planEdition.contentEdition.builder.blocks.shared.cardContent' | translate }}</span>
+      <h3 class="prop-tabs-section-heading">
+        {{ 'planEdition.contentEdition.builder.blocks.shared.cardLabel' | translate: { index: infoCardTab() + 1 } }}
+      </h3>
+    </div>
+    @if (cards.length > 1) {
+      <button
+        igntButton
+        variant="danger"
+        sentiment="tertiary"
+        size="small"
+        type="button"
+        [disabled]="disabled()"
+        (click)="removeInfoCard()"
+      >
+        <span class="ms material-symbols-outlined">delete</span>
+        {{ 'planEdition.contentEdition.builder.blocks.infoCard.deleteCard' | translate }}
+      </button>
+    }
+  </div>
+  <div class="prop-tabs-section-fields">
+    <div class="prop" [class.prop--missing]="isMissing('imageSrc')">
+      <app-db-prop-label [contract]="FIELDS" field="imageSrc" />
+      <app-db-local-image-upload
+        [previewUrl]="card.imageSrc"
+        [uploadCallback]="uploadImageCallback()"
+        [disabled]="disabled()"
+        (urlChange)="updateCard({ imageSrc: $event })"
+        (cleared)="updateCard({ imageSrc: '' })"
+      ></app-db-local-image-upload>
+    </div>
+    <div class="prop" [class.prop--missing]="isMissing('heading')">
+      <app-db-prop-label [contract]="FIELDS" field="heading" />
+      <input
+        type="text"
+        [placeholder]="'planEdition.contentEdition.builder.blocks.infoCard.headingPlaceholder' | translate"
+        [value]="card.heading"
+        [disabled]="disabled()"
+        [attr.aria-invalid]="isMissing('heading') ? true : null"
+        (input)="updateCard({ heading: $any($event.target).value })"
+      />
+    </div>
+    <div class="prop" [class.prop--missing]="isMissing('price')">
+      <app-db-prop-label [contract]="FIELDS" field="price" />
+      <input
+        type="text"
+        [placeholder]="'planEdition.contentEdition.builder.blocks.infoCard.pricePlaceholder' | translate"
+        [value]="card.price"
+        [disabled]="disabled()"
+        [attr.aria-invalid]="isMissing('price') ? true : null"
+        (input)="updateCard({ price: $any($event.target).value })"
+      />
+    </div>
+    <div class="prop" [class.prop--missing]="isMissing('ctaLabel')">
+      <app-db-prop-label [contract]="FIELDS" field="ctaLabel" />
+      <input
+        type="text"
+        [placeholder]="'planEdition.contentEdition.builder.blocks.infoCard.buttonLabelPlaceholder' | translate"
+        [value]="card.ctaLabel"
+        [disabled]="disabled()"
+        [attr.aria-invalid]="isMissing('ctaLabel') ? true : null"
+        (input)="updateCard({ ctaLabel: $any($event.target).value })"
+      />
+    </div>
+    <div class="prop">
+      <app-db-prop-label [contract]="FIELDS" field="accentColor" />
+      <ignt-color-picker
+        [value]="card.accentColor"
+        [defaultHex]="INFO_CARD_ACCENT_DEFAULT_HEX"
+        [presets]="INFO_CARD_ACCENT_PRESETS"
+        [ariaLabel]="'planEdition.contentEdition.builder.blocks.infoCard.accentColor' | translate"
+        [disabled]="disabled()"
+        (valueChange)="updateCard({ accentColor: $event })"
+      />
+    </div>
+    <div class="prop">
+      <app-db-prop-label [contract]="FIELDS" field="badge" />
+      <input
+        type="text"
+        [placeholder]="'planEdition.contentEdition.builder.blocks.infoCard.badgePlaceholder' | translate"
+        [value]="card.badge"
+        [disabled]="disabled()"
+        (input)="updateCard({ badge: $any($event.target).value })"
+      />
+    </div>
+    <div class="prop" [class.prop--missing]="isMissing('bulletPointsText')">
+      <app-db-prop-label [contract]="FIELDS" field="bulletPointsText" />
+      <textarea
+        rows="5"
+        [placeholder]="'planEdition.contentEdition.builder.blocks.infoCard.bulletPointsPlaceholder' | translate"
+        [value]="card.bulletPointsText"
+        [disabled]="disabled()"
+        [attr.aria-invalid]="isMissing('bulletPointsText') ? true : null"
+        (input)="updateCard({ bulletPointsText: $any($event.target).value })"
+      ></textarea>
+    </div>
+    <div class="prop">
+      <label class="prop-label">{{ 'planEdition.contentEdition.builder.blocks.infoCard.highlightCard' | translate }}</label>
+      <div class="prop-segment">
+        <button type="button" [class.active]="card.highlighted" [disabled]="disabled()" (click)="updateCard({ highlighted: true })">
+          {{ 'planEdition.contentEdition.builder.blocks.shared.on' | translate }}
+        </button>
+        <button type="button" [class.active]="!card.highlighted" [disabled]="disabled()" (click)="updateCard({ highlighted: false })">
+          {{ 'planEdition.contentEdition.builder.blocks.shared.off' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

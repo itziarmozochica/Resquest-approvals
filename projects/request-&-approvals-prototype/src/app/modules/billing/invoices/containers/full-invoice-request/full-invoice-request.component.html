@@ -1,0 +1,155 @@
+<div class="full-invoice-request">
+  <h2 class="full-invoice-request__title">{{ 'invoicing.fullInvoice.title' | translate }}</h2>
+  <p class="full-invoice-request__subtitle">{{ 'invoicing.fullInvoice.subtitle' | translate }}</p>
+
+  <form [formGroup]="form" class="full-invoice-request__form" (ngSubmit)="submit()" [attr.aria-busy]="isLoading()">
+    <ignt-input-field
+      id="legalName"
+      type="text"
+      formControlName="legalName"
+      [label]="('invoicing.form.invoicingInfo.nameCompanyName' | translate) + ' *'"
+      [customFormErrors]="[
+        { type: 'required', message: 'invoicing.form.validationError.required' | translate },
+        { type: 'pattern', message: 'invoicing.form.validationError.required' | translate },
+      ]"
+      autocomplete="organization"
+    ></ignt-input-field>
+
+    <fieldset class="field document-type">
+      <legend class="document-type__label">{{ ('invoicing.fullInvoice.fields.customerType' | translate) + ' *' }}</legend>
+      @for (option of documentTypeOptions(); track option.value) {
+        <ignt-radio
+          [id]="'documentType-' + option.value"
+          name="documentType"
+          [value]="option.value"
+          [label]="option.labelKey | translate"
+          [checked]="form.controls['documentType'].value === option.value"
+          (change)="onDocumentTypeSelected(option.value)"
+        ></ignt-radio>
+      }
+    </fieldset>
+
+    <div class="field">
+      <app-country-code-selector
+        [hasErrors]="!!(form.get('country')?.invalid && form.get('country')?.touched)"
+        (selected)="onCountrySelected($event)"
+        [selectedOption]="form.controls['country'].value"
+        [required]="true"
+      ></app-country-code-selector>
+    </div>
+
+    <ignt-input-field
+      id="taxId"
+      type="text"
+      formControlName="taxId"
+      [label]="('invoicing.form.invoicingInfo.taxID' | translate) + (countryBlocks().taxIdOptional ? '' : ' *')"
+      [customFormErrors]="[
+        { type: 'required', message: 'invoicing.form.validationError.required' | translate },
+        { type: 'pattern', message: 'invoicing.form.validationError.required' | translate },
+      ]"
+      placeholder="A36738931"
+      autocomplete="off"
+    ></ignt-input-field>
+
+    <ignt-input-field
+      id="locality"
+      type="text"
+      formControlName="locality"
+      [label]="('invoicing.form.invoicingInfo.location' | translate) + (countryBlocks().showItalyFields ? ' *' : '')"
+      [customFormErrors]="[
+        { type: 'required', message: 'invoicing.form.validationError.required' | translate },
+        { type: 'pattern', message: 'invoicing.form.validationError.required' | translate },
+      ]"
+      autocomplete="address-level2"
+    ></ignt-input-field>
+
+    <ignt-input-field
+      id="region"
+      type="text"
+      formControlName="region"
+      [label]="('invoicing.form.invoicingInfo.region' | translate) + (countryBlocks().addressOptional ? '' : ' *')"
+      [customFormErrors]="[
+        { type: 'required', message: 'invoicing.form.validationError.required' | translate },
+        { type: 'pattern', message: 'invoicing.form.validationError.required' | translate },
+      ]"
+      autocomplete="address-level1"
+    ></ignt-input-field>
+
+    <ignt-input-field
+      id="address"
+      type="text"
+      formControlName="address"
+      [label]="('invoicing.form.invoicingInfo.address' | translate) + (countryBlocks().addressOptional ? '' : ' *')"
+      [customFormErrors]="[
+        { type: 'required', message: 'invoicing.form.validationError.required' | translate },
+        { type: 'pattern', message: 'invoicing.form.validationError.required' | translate },
+      ]"
+      autocomplete="address-line1"
+    ></ignt-input-field>
+
+    <ignt-input-field
+      id="postalCode"
+      type="text"
+      formControlName="postalCode"
+      [label]="('invoicing.form.invoicingInfo.postalCode' | translate) + (countryBlocks().addressOptional ? '' : ' *')"
+      [customFormErrors]="[
+        { type: 'required', message: 'invoicing.form.validationError.required' | translate },
+        { type: 'pattern', message: 'invoicing.form.validationError.required' | translate },
+      ]"
+      autocomplete="postal-code"
+    ></ignt-input-field>
+
+    @if (countryBlocks().showItalyFields) {
+      <ignt-input-field
+        id="sdiCodiceDestinatario"
+        type="text"
+        formControlName="sdiCodiceDestinatario"
+        [label]="'invoicing.fullInvoice.fields.sdi' | translate"
+        autocomplete="off"
+      ></ignt-input-field>
+    }
+
+    @if (countryBlocks().showMexicoFields) {
+      <ignt-input-field
+        id="fiscalRegimeCode"
+        type="text"
+        formControlName="fiscalRegimeCode"
+        [label]="('invoicing.fullInvoice.fields.fiscalRegimeCode' | translate) + ' *'"
+        [customFormErrors]="[
+          { type: 'required', message: 'invoicing.form.validationError.required' | translate },
+          { type: 'pattern', message: 'invoicing.form.validationError.required' | translate },
+        ]"
+        autocomplete="off"
+      ></ignt-input-field>
+      <ignt-input-field
+        id="mxCfdiUse"
+        type="text"
+        formControlName="mxCfdiUse"
+        [label]="('invoicing.fullInvoice.fields.mxCfdiUse' | translate) + ' *'"
+        [customFormErrors]="[
+          { type: 'required', message: 'invoicing.form.validationError.required' | translate },
+          { type: 'pattern', message: 'invoicing.form.validationError.required' | translate },
+        ]"
+        [helperText]="'invoicing.fullInvoice.fields.mxCfdiUseHint' | translate"
+        placeholder="S01"
+        autocomplete="off"
+      ></ignt-input-field>
+    }
+
+    @if (canSaveForFuture()) {
+      <label class="checkbox" for="saveForFuture">
+        <input id="saveForFuture" type="checkbox" formControlName="saveForFuture" />
+        <span>{{ 'invoicing.fullInvoice.saveForFuture' | translate }}</span>
+      </label>
+    }
+
+    <ignt-button
+      htmlType="submit"
+      sentiment="neutral"
+      fill
+      class="submit-button"
+      [label]="submitButtonLabelKey | translate"
+      [disabled]="isLoading()"
+    />
+  </form>
+</div>

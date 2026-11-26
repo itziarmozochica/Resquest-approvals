@@ -1,0 +1,87 @@
+<div class="editor-item editor-item--keyvalue">
+  <div class="editor-item__content">
+    <div class="editor-item__label">{{ 'whitelabelEditor.items.' + item().key | translate }}</div>
+    @if (item().key | editorItemHint; as hint) {
+      <p class="editor-item__hint">{{ hint }}</p>
+    }
+  </div>
+
+  @if (!isConfigBound()) {
+    <p class="editor-item__hint" data-testid="editor-item-keyvalue-not-bound">{{ 'whitelabelEditor.itemNotBound' | translate }}</p>
+  } @else if (!isConfigLoaded()) {
+    <p class="editor-item__hint" data-testid="editor-item-keyvalue-not-loaded">
+      {{ 'whitelabelEditor.keyValueItem.notLoaded' | translate }}
+    </p>
+  } @else {
+    <div class="editor-item-keyvalue__rows" data-testid="editor-item-keyvalue-rows">
+      @for (row of rows(); track row.id; let index = $index) {
+        <div class="editor-item-keyvalue__entry">
+          <div class="editor-item-keyvalue__row">
+            <ignt-input-field
+              class="editor-item-keyvalue__cell"
+              data-testid="editor-item-keyvalue-key"
+              [id]="'editor-item-keyvalue-key-' + item().key + '-' + row.id"
+              [label]="keyLabel()"
+              [ngModel]="row.key"
+              (ngModelChange)="onKeyChanged(row.id, $event)"
+            />
+            <ignt-input-field
+              class="editor-item-keyvalue__cell"
+              data-testid="editor-item-keyvalue-value"
+              [id]="'editor-item-keyvalue-value-' + item().key + '-' + row.id"
+              [label]="valueLabel()"
+              [ngModel]="row.value"
+              (ngModelChange)="onValueChanged(row.id, $event)"
+            />
+            <button
+              type="button"
+              ignt-icon-button
+              size="small"
+              sentiment="tertiary"
+              class="editor-item-keyvalue__remove"
+              data-testid="editor-item-keyvalue-remove"
+              [icon]="['fal', 'xmark']"
+              [attr.aria-label]="'whitelabelEditor.keyValueItem.removeAriaLabel' | translate: { index: index + 1 }"
+              (click)="onRemoveRow(row.id)"
+            ></button>
+          </div>
+
+          <ignt-field-error data-testid="editor-item-keyvalue-duplicate" [showError]="isDuplicateKey(row.id)">
+            {{ 'whitelabelEditor.keyValueItem.duplicateKey' | translate }}
+          </ignt-field-error>
+
+          <ignt-field-error data-testid="editor-item-keyvalue-nameless" [showError]="isNamelessRow(row.id)">
+            {{ 'whitelabelEditor.keyValueItem.namelessRow' | translate }}
+          </ignt-field-error>
+        </div>
+      } @empty {
+        <p class="editor-item__hint" data-testid="editor-item-keyvalue-empty">{{ 'whitelabelEditor.keyValueItem.empty' | translate }}</p>
+      }
+    </div>
+
+    <ignt-button
+      variant="secondary"
+      size="small"
+      data-testid="editor-item-keyvalue-add"
+      [label]="'whitelabelEditor.keyValueItem.addRow' | translate"
+      [leadingIcon]="addIcon"
+      (click)="onAddRow()"
+    />
+  }
+
+  @if (hasEdits()) {
+    <div class="editor-item__footer">
+      <span class="editor-item__status editor-item__status--pending" data-testid="editor-item-keyvalue-unsaved">
+        {{ 'whitelabelEditor.unsavedChanges' | translate }}
+      </span>
+      <ignt-button
+        variant="tertiary"
+        sentiment="neutral"
+        size="small"
+        data-testid="editor-item-keyvalue-discard"
+        [label]="'common.undo' | translate"
+        (click)="discardEdits()"
+      />
+    </div>
+  }
+</div>

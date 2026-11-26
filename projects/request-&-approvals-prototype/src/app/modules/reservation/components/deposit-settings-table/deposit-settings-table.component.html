@@ -1,0 +1,105 @@
+<div class="scrollable-table">
+  <app-table
+    [type]="TableType.FZ_TABLE"
+    [scrollable]="true"
+    [headers]="tableHeaders"
+    [orderBy]="currentSortOrder"
+    [hasActions]="false"
+    (updateOrderByEmit)="updateOrderParam($event)"
+  >
+    <tr
+      *ngFor="let depositSetting of depositSettings; trackBy: trackByDepositSettingId"
+      data-testid="scrollable-table-row"
+      class="scrollable-table__row scrollable-table__row--link"
+      (click)="onEditClick(depositSetting)"
+    >
+      <ng-container *ngTemplateOutlet="tableRow; context: { depositSetting }"></ng-container>
+    </tr>
+  </app-table>
+
+  @if (depositSettings.length === 0) {
+    <div data-testid="deposit-settings-table-no-results" class="deposit-settings-table__no-results">
+      <fa-icon class="icon-empty" [icon]="['far', 'receipt']"></fa-icon>
+      <div>{{ 'depositSettings.noResults' | translate }}</div>
+    </div>
+  }
+</div>
+
+<ng-template #tableRow let-depositSetting="depositSetting">
+  <td class="scrollable-table__channel scrollable-table__row-cell fz-table__cell" data-testid="scrollable-table-channel">
+    <span class="scrollable-table__column-text">{{ depositSetting.channel.name }}</span>
+  </td>
+
+  <td class="scrollable-table__deposit-type scrollable-table__row-cell fz-table__cell" data-testid="scrollable-table-deposit-type">
+    <span class="scrollable-table__column-text">
+      {{ 'depositSettings.types.' + depositSetting.type | translate }}
+    </span>
+  </td>
+
+  <td class="scrollable-table__amount scrollable-table__row-cell fz-table__cell" data-testid="scrollable-table-amount">
+    <span class="scrollable-table__column-text">
+      <ng-container *ngIf="depositSetting.type === 'percentage'; else fixedAmount"> {{ depositSetting.amount }}% </ng-container>
+      <ng-template #fixedAmount>
+        {{ depositSetting.amount | currency: planCurrencyOrDefault : 'symbol-narrow' }}
+      </ng-template>
+    </span>
+  </td>
+
+  @if (areRulesVisible) {
+    <td class="scrollable-table__conditions scrollable-table__row-cell fz-table__cell" data-testid="scrollable-table-conditions">
+      <span class="scrollable-table__column-text">
+        @if (depositSetting.rules.length === 0) {
+          {{ 'depositSettings.table.rules.none' | translate }}
+        } @else {
+          <span class="deposit-settings-table__rules">
+            @for (rule of depositSetting.rules; track rule.ruleType + rule.operator) {
+              @if (!$first) {
+                <span class="deposit-settings-table__rules-separator">{{ 'depositSettings.table.rules.or' | translate }}</span>
+              }
+              <span class="deposit-settings-table__rule">
+                {{
+                  'depositSettings.table.rules.' + rule.ruleType + '.' + rule.operator
+                    | translate: { currency: planCurrencyOrDefault, value: rule.value }
+                }}
+              </span>
+            }
+          </span>
+        }
+      </span>
+    </td>
+  }
+
+  <td class="scrollable-table__created-at scrollable-table__row-cell fz-table__cell" data-testid="scrollable-table-created-at">
+    <span class="scrollable-table__column-text">
+      {{ depositSetting.createdAt | momentDate: 'd MMM. yyyy - h:mm a' }}
+    </span>
+  </td>
+
+  <td class="scrollable-table__payment-window scrollable-table__row-cell fz-table__cell" data-testid="scrollable-table-payment-window">
+    <span class="scrollable-table__column-text">
+      {{ depositSetting.paymentWindowHours }} {{ 'reservation.checkout.paymentSelector.timeLeft.hours' | translate }}
+    </span>
+  </td>
+
+  <td class="scrollable-table__actions scrollable-table__row-cell fz-table__cell" data-testid="scrollable-table-actions">
+    <button
+      *ngIf="isDeleting(depositSetting.id)"
+      ignt-icon-button
+      size="small"
+      sentiment="tertiary"
+      [icon]="['fas', 'spinner']"
+      [attr.aria-label]="'depositSettings.actions.delete' | translate"
+      class="loader"
+    ></button>
+    <button
+      *ngIf="!isDeleting(depositSetting.id)"
+      ignt-icon-button
+      size="small"
+      sentiment="tertiary"
+      variant="danger"
+      [icon]="['fas', 'trash-alt']"
+      (click)="$event.stopPropagation(); onDeleteClick(depositSetting.id)"
+      [attr.aria-label]="'depositSettings.actions.delete' | translate"
+    ></button>
+  </td>
+</ng-template>

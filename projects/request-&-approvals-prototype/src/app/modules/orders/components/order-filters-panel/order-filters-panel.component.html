@@ -1,0 +1,241 @@
+@if (filtersReady()) {
+  <div class="order-filters-panel">
+    <div class="order-filters-panel__search" role="search" [attr.aria-label]="'orders.filtersPanel.searchPlaceholder' | translate">
+      <div
+        class="order-filters-panel__search__input-wrapper"
+        data-testid="order-id-search-wrapper"
+        (keydown)="allowOnlyDigits($event)"
+        (input)="onOrderIdInput($event)"
+        (paste)="onOrderIdPaste($event)"
+      >
+        <ignt-input-field
+          class="order-filters-panel__search__field"
+          [disabled]="disableFilters()"
+          [id]="'order-filters-panel-search'"
+          [label]="'orders.filtersPanel.searchPlaceholder' | translate"
+          [leadIcon]="['far', 'search']"
+          type="text"
+          [maxlength]="maxOrderIdLength"
+          [ngModel]="orderIdInput()"
+          (ngModelChange)="changeOrderId($event)"
+          [placeholder]="'orders.filtersPanel.searchPlaceholder' | translate"
+        ></ignt-input-field>
+        @if (orderIdInput().length > 0 && !disableFilters()) {
+          <button
+            type="button"
+            class="order-filters-panel__search__icon-clear"
+            [attr.aria-label]="'common.clearAll' | translate"
+            (click)="clearOrderId($event)"
+          >
+            <ignt-icon name="times" variant="solid" aria-hidden="true"></ignt-icon>
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="order-filters-panel__actions">
+      <button
+        igntButton
+        [sentiment]="'tertiary'"
+        [variant]="'default'"
+        [size]="'large'"
+        [fill]="false"
+        [leadingIcon]="['fas', 'sliders-h']"
+        [attr.aria-expanded]="showFilters()"
+        aria-controls="order-filters-panel-sheet"
+        [attr.disabled]="disableFilters() ? '' : null"
+        (click)="openFilters()"
+        data-testid="order-filters-panel-button"
+      >
+        {{
+          activeFiltersCount() > 0
+            ? ('orders.filtersPanel.filterButtonWithFilters' | translate: { count: activeFiltersCount() })
+            : ('orders.filtersPanel.filterButton' | translate)
+        }}
+      </button>
+    </div>
+    <div class="order-filters-panel__trailing-actions">
+      <ng-content select="[orderFiltersPanelTrailingActions]" />
+    </div>
+  </div>
+}
+
+<ng-template #filtersPanelTemplate>
+  <ignt-dialog-header focusCloseButton>{{ 'orders.filtersPanel.sheetTitle' | translate }}</ignt-dialog-header>
+
+  <ignt-dialog-content>
+    <div
+      class="order-filters-panel__sheet"
+      id="order-filters-panel-sheet"
+      role="region"
+      [attr.aria-label]="'orders.filtersPanel.sheetTitle' | translate"
+      data-testid="order-filters-panel-sheet"
+    >
+      <div class="order-filters-panel__sheet-content">
+        <section class="order-filters-panel__sheet-group">
+          <h3 class="order-filters-panel__section-title">{{ 'orders.filtersPanel.userDetails' | translate }}</h3>
+
+          <div class="order-filters-panel__field">
+            <ignt-input-field
+              [label]="'orders.filterLabels.fullName' | translate"
+              [disabled]="disableFilters()"
+              type="text"
+              [ngModel]="sliderFilters().fullName ?? ''"
+              (ngModelChange)="changeFullName($event)"
+              [placeholder]="'orders.filterLabels.fullnameFilter' | translate"
+              [maxlength]="maxFullNameLength"
+              id="order-filters-panel-full-name"
+              data-testid="order-filters-panel-full-name"
+            ></ignt-input-field>
+          </div>
+        </section>
+
+        <section class="order-filters-panel__sheet-group">
+          <h3 class="order-filters-panel__section-title">{{ 'orders.filtersPanel.purchaseDetails' | translate }}</h3>
+
+          @if (hiddenChannel() === false) {
+            <div class="order-filters-panel__field">
+              <ignt-typeahead
+                [class.order-filters-panel__field--disabled]="disableFilters()"
+                [selectAllLabel]="'orders.channelFilterAll' | translate"
+                [fieldLabel]="'orders.filterLabels.channelType' | translate"
+                [options]="channelTypeOptions()"
+                [selectedOption]="sliderChannelTypeOption()"
+                [editable]="false"
+                (selected)="selectChannelType($event)"
+                data-testid="order-filters-channel-type"
+              ></ignt-typeahead>
+            </div>
+
+            @if (showChannelNameSelector()) {
+              <div class="order-filters-panel__field">
+                <ignt-typeahead
+                  [class.order-filters-panel__field--disabled]="disableFilters()"
+                  [selectAllLabel]="'orders.channelFilterAll' | translate"
+                  [fieldLabel]="'orders.filterLabels.channelName' | translate"
+                  [options]="channelNameOptions()"
+                  [selectedOption]="sliderChannelOption()"
+                  [editable]="false"
+                  (selected)="selectChannel($event)"
+                  data-testid="order-filters-channel"
+                ></ignt-typeahead>
+              </div>
+            }
+          }
+
+          <div class="order-filters-panel__field">
+            <app-date-range
+              class="order-filters-panel__date-range__control"
+              [disabled]="disableFilters()"
+              [class.order-filters-panel__field--disabled]="disableFilters()"
+              [class.order-filters-panel__date-range__control--empty]="
+                !sliderFilters().purchaseDateRange?.startDate && !sliderFilters().purchaseDateRange?.endDate
+              "
+              [initialDateShown]="false"
+              [queryDateRange]="sliderFilters().purchaseDateRange ?? null"
+              [maxDateRange]="maxDateRange"
+              [allowClearDate]="true"
+              (selected)="selectPurchaseDateRange($event)"
+              data-testid="order-filters-purchase-date-range"
+            ></app-date-range>
+          </div>
+
+          @if (isOrderSearchByCardLast4DigitsEnabled) {
+            <div class="order-filters-panel__field">
+              <ignt-input-field
+                [label]="'orders.filterLabels.paymentCardNumberLast4Digits' | translate"
+                [disabled]="disableFilters()"
+                [class]="paymentCardDigitsInvalid() ? 'field--danger' : ''"
+                type="text"
+                inputmode="numeric"
+                [ngModel]="sliderPaymentCardNumberLast4DigitsInput()"
+                (ngModelChange)="changePaymentCardNumberLast4Digits($event)"
+                [placeholder]="'orders.filterLabels.paymentCardNumberLast4DigitsHelper' | translate"
+                [helperText]="paymentCardDigitsInvalid() ? ('orders.filterLabels.paymentCardNumberLast4DigitsError' | translate) : ''"
+                [maxlength]="maxCardDigitsLength"
+                id="order-filters-panel-payment-card-digits"
+                data-testid="order-filters-panel-payment-card-digits"
+              ></ignt-input-field>
+            </div>
+          }
+        </section>
+
+        <section class="order-filters-panel__sheet-group">
+          <h3 class="order-filters-panel__section-title">{{ 'orders.filtersPanel.eventDetails' | translate }}</h3>
+
+          <div class="order-filters-panel__field">
+            <app-date-range
+              class="order-filters-panel__date-range__control"
+              [disabled]="disableFilters()"
+              [class.order-filters-panel__field--disabled]="disableFilters()"
+              [class.order-filters-panel__date-range__control--empty]="
+                !sliderFilters().eventDateRange?.startDate && !sliderFilters().eventDateRange?.endDate
+              "
+              [initialDateShown]="false"
+              [queryDateRange]="sliderFilters().eventDateRange ?? null"
+              [maxDateRange]="maxDateRange"
+              [allowClearDate]="true"
+              (selected)="selectEventDateRange($event)"
+              data-testid="order-filters-event-date-range"
+            ></app-date-range>
+          </div>
+
+          <div class="order-filters-panel__field">
+            <ignt-input-field
+              [label]="'orders.filterLabels.ticketType' | translate"
+              [disabled]="disableFilters()"
+              type="text"
+              [ngModel]="sliderFilters().ticketTypeSearch ?? ''"
+              (ngModelChange)="changeTicketTypeSearch($event)"
+              [placeholder]="'orders.filterLabels.ticketTypeFilter' | translate"
+              [maxlength]="maxTicketTypeSearchLength"
+              id="order-filters-panel-ticket-type"
+              data-testid="order-filters-panel-ticket-type"
+            ></ignt-input-field>
+          </div>
+
+          @if (showSeats()) {
+            <div class="order-filters-panel__field">
+              <ignt-input-field
+                [label]="'orders.filterLabels.seatLabel' | translate"
+                [disabled]="disableFilters()"
+                type="text"
+                [ngModel]="sliderFilters().seatLabelSearch ?? ''"
+                (ngModelChange)="changeSeatLabelSearch($event)"
+                [placeholder]="'orders.filterLabels.seatLabelFilter' | translate"
+                [maxlength]="maxSeatLabelSearchLength"
+                id="order-filters-panel-seat-label"
+                data-testid="order-filters-panel-seat-label"
+              ></ignt-input-field>
+            </div>
+          }
+        </section>
+      </div>
+    </div>
+  </ignt-dialog-content>
+
+  <ignt-dialog-footer hideCancelButton>
+    <button
+      igntButton
+      [sentiment]="'tertiary'"
+      [variant]="'default'"
+      [size]="'large'"
+      [fill]="false"
+      (click)="clearFilters()"
+      data-testid="order-filters-panel-clear"
+    >
+      {{ 'orders.filtersPanel.clearFilters' | translate }}
+    </button>
+    <button
+      igntButton
+      [sentiment]="'primary'"
+      [variant]="'default'"
+      [size]="'large'"
+      [fill]="false"
+      (click)="applyFilters()"
+      data-testid="order-filters-panel-apply"
+    >
+      {{ 'orders.filtersPanel.applyFilters' | translate }}
+    </button>
+  </ignt-dialog-footer>
+</ng-template>

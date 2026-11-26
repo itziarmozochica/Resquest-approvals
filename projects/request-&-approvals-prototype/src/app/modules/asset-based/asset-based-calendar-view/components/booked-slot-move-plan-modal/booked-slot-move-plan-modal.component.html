@@ -1,0 +1,152 @@
+<ignt-dialog-header data-testid="booked-slot-move-plan-modal-title">
+  <span class="booked-slot-move-plan-modal__heading">
+    <span class="booked-slot-move-plan-modal__icon" aria-hidden="true">
+      <ignt-icon name="list-alt" variant="light"></ignt-icon>
+    </span>
+    {{ 'bookedSlots.movePlanModal.title' | translate }}
+  </span>
+</ignt-dialog-header>
+
+<ignt-dialog-content class="booked-slot-move-plan-modal__body">
+  <p class="booked-slot-move-plan-modal__description" data-testid="booked-slot-move-plan-modal-description">
+    {{ 'bookedSlots.movePlanModal.description' | translate }}
+  </p>
+
+  @if (requiresPackDecision) {
+    <div class="booked-slot-move-plan-modal__question" data-testid="booked-slot-move-plan-modal-pack-question">
+      <p class="booked-slot-move-plan-modal__question-title">{{ 'bookedSlots.movePlanModal.packQuestion' | translate }}</p>
+      <ignt-option-tile
+        class="booked-slot-move-plan-modal__choice"
+        data-testid="booked-slot-move-plan-modal-move-pack"
+        iconName="arrows-split-up-and-left"
+        [selected]="movePack()"
+        [title]="'bookedSlots.movePlanModal.packMoveAll' | translate"
+        [description]="'bookedSlots.movePlanModal.packMoveAllHint' | translate"
+        (tileClick)="onSelectPackScope(true)"
+      ></ignt-option-tile>
+      <ignt-option-tile
+        class="booked-slot-move-plan-modal__choice"
+        data-testid="booked-slot-move-plan-modal-move-single"
+        iconName="arrows-v"
+        [selected]="!movePack()"
+        [title]="'bookedSlots.movePlanModal.packMoveOne' | translate"
+        [description]="'bookedSlots.movePlanModal.packMoveOneHint' | translate"
+        (tileClick)="onSelectPackScope(false)"
+      ></ignt-option-tile>
+    </div>
+  }
+
+  @if (steps().length > 0) {
+    @if (drawing(); as planDrawing) {
+      <app-booked-slot-move-plan-drawing [drawing]="planDrawing"></app-booked-slot-move-plan-drawing>
+    }
+
+    <ol class="booked-slot-move-plan-modal__steps" data-testid="booked-slot-move-plan-modal-steps">
+      @for (step of steps(); track step.position) {
+        <li
+          class="booked-slot-move-plan-modal__step booked-slot-move-plan-modal__step--{{ step.kind }}"
+          [class.booked-slot-move-plan-modal__step--requested]="step.isRequested"
+          data-testid="booked-slot-move-plan-modal-step"
+        >
+          <span class="booked-slot-move-plan-modal__step-position" aria-hidden="true">{{ step.position }}</span>
+
+          <span class="booked-slot-move-plan-modal__step-glyph" aria-hidden="true">
+            <svg
+              viewBox="0 0 12 12"
+              width="15"
+              height="15"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path [attr.d]="glyphPathByKind[step.kind]"></path>
+            </svg>
+          </span>
+
+          <span class="booked-slot-move-plan-modal__step-main">
+            <span class="booked-slot-move-plan-modal__step-label" igntTooltip [tooltipLabel]="step.label">{{ step.label }}</span>
+            <span class="booked-slot-move-plan-modal__step-asset">
+              @if (step.hasAssetChange) {
+                <span class="booked-slot-move-plan-modal__step-previous-asset">{{ step.originAssetName }}</span>
+                <ignt-icon name="arrow-right" variant="light" aria-hidden="true"></ignt-icon>
+                <span class="booked-slot-move-plan-modal__step-new-asset">{{ step.destinationAssetName }}</span>
+              } @else {
+                {{ step.destinationAssetName }}
+              }
+              @if (step.isRequested) {
+                <span class="booked-slot-move-plan-modal__step-requested-tag" data-testid="booked-slot-move-plan-modal-step-requested">
+                  {{ 'bookedSlots.movePlanModal.youMoved' | translate }}
+                </span>
+              }
+            </span>
+          </span>
+
+          <span class="booked-slot-move-plan-modal__step-when">
+            <span class="booked-slot-move-plan-modal__step-values">
+              @if (step.hasValueChange) {
+                <span class="booked-slot-move-plan-modal__step-previous-value">{{ step.previousValue }}</span>
+                <ignt-icon
+                  class="booked-slot-move-plan-modal__step-arrow"
+                  name="arrow-right"
+                  variant="light"
+                  aria-hidden="true"
+                ></ignt-icon>
+              }
+              <span class="booked-slot-move-plan-modal__step-new-value">{{ step.newValue }}</span>
+            </span>
+            <span class="booked-slot-move-plan-modal__step-movement" data-testid="booked-slot-move-plan-modal-step-movement">
+              {{ step.movementKey | translate: step.movementParams }}
+            </span>
+          </span>
+        </li>
+      }
+    </ol>
+  } @else {
+    <ol class="booked-slot-move-plan-modal__list" data-testid="booked-slot-move-plan-modal-list">
+      @for (row of rows(); track row.position) {
+        <li
+          class="booked-slot-move-plan-modal__item"
+          [class.booked-slot-move-plan-modal__item--requested]="row.isRequested"
+          data-testid="booked-slot-move-plan-modal-item"
+        >
+          <span class="booked-slot-move-plan-modal__position" aria-hidden="true">{{ row.position }}</span>
+          <span class="booked-slot-move-plan-modal__label" igntTooltip [tooltipLabel]="row.label">{{ row.label }}</span>
+          @if (row.changesCustomerTime) {
+            <span class="booked-slot-move-plan-modal__times">
+              <span class="booked-slot-move-plan-modal__previous-time">{{ row.previousTime }}</span>
+              <ignt-icon class="booked-slot-move-plan-modal__arrow" name="arrow-right" variant="light" aria-hidden="true"></ignt-icon>
+              <span class="booked-slot-move-plan-modal__new-time">{{ row.newTime }}</span>
+            </span>
+          } @else {
+            <span class="booked-slot-move-plan-modal__unchanged" data-testid="booked-slot-move-plan-modal-unchanged">
+              {{ 'bookedSlots.movePlanModal.timeUnchanged' | translate }}
+            </span>
+          }
+        </li>
+      }
+    </ol>
+  }
+</ignt-dialog-content>
+
+<ignt-dialog-footer [hideCancelButton]="true">
+  <div class="booked-slot-move-plan-modal__footer">
+    <ignt-button
+      class="booked-slot-move-plan-modal__action"
+      data-testid="apply-booked-slot-move-plan"
+      variant="primary"
+      sentiment="brand"
+      [label]="'bookedSlots.movePlanModal.apply' | translate"
+      (click)="onApply()"
+    ></ignt-button>
+    <ignt-button
+      class="booked-slot-move-plan-modal__action"
+      data-testid="cancel-booked-slot-move-plan"
+      variant="tertiary"
+      sentiment="neutral"
+      [label]="'bookedSlots.movePlanModal.cancel' | translate"
+      (click)="onCancel()"
+    ></ignt-button>
+  </div>
+</ignt-dialog-footer>

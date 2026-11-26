@@ -1,0 +1,131 @@
+<div class="content">
+  <div class="content__title" data-testid="order-title" translate>
+    {{ 'boxOffice.order.details.thankYou' }}
+  </div>
+
+  <div class="order-detail">
+    <p translate>{{ 'boxOffice.order.details.purchaseConfirmed' }}</p>
+    <p class="order-detail__id" data-testid="order-id">
+      {{ 'boxOffice.order.details.orderId' | translate: { orderId: order?.externalId } }}
+    </p>
+  </div>
+
+  <div class="box-office-content__buttons">
+    <p class="box-office-content__label" translate>{{ 'boxOffice.order.details.selectDifferentEvent' }}</p>
+    <div class="box-office-content__buttons only-in-desktop">
+      <div class="box-office-content__buttons-group">
+        <ng-container *ngTemplateOutlet="deliveryNoteButton"></ng-container>
+        <ng-container *ngTemplateOutlet="validateButton"></ng-container>
+      </div>
+      <div class="box-office-content__buttons-group">
+        <ng-container *ngTemplateOutlet="printReceiptButton"></ng-container>
+        <button
+          igntButton
+          sentiment="secondary"
+          [fill]="true"
+          data-testid="order-show-ticket-button"
+          *ngIf="!isDualScreen && !hasViewTicketDisabled"
+          [disabled]="agreementBlocked()"
+          (click)="clickOnShowTicket()"
+        >
+          <span>{{ 'boxOffice.order.details.viewTickets' | translate }}</span>
+        </button>
+        <ng-container *ngTemplateOutlet="goToOrderDetailButton"></ng-container>
+        <button igntButton [fill]="true" data-testid="order-new-order-button" (click)="clickOnNewOrder()">
+          <span>{{ 'boxOffice.order.details.newOrder' | translate }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="only-in-mobile print-buttons">
+    <ng-container *ngTemplateOutlet="deliveryNoteButton"></ng-container>
+    <ng-container *ngTemplateOutlet="validateButton"></ng-container>
+    <ng-container *ngTemplateOutlet="printReceiptButton"></ng-container>
+    <button
+      class="box-office-content__button box-office-content__button--outline"
+      (click)="clickOnPrintTicket()"
+      *ngIf="isMobilePos"
+      [disabled]="agreementBlocked()"
+    >
+      <span>{{ 'boxOffice.order.adyenPrinter.buttons.printTickets' | translate }}</span>
+    </button>
+    <ng-container *ngTemplateOutlet="goToOrderDetailButton"></ng-container>
+  </div>
+
+  @if (agreementBlocked()) {
+    <ignt-alert
+      class="order-detail__agreement-notice"
+      role="alert"
+      data-testid="agreement-block-notice"
+      sentiment="info"
+      [title]="'boxOffice.order.agreementBlock.title' | translate"
+      [description]="'boxOffice.order.agreementBlock.notice' | translate"
+    >
+      <ng-template #igntAlertActions>
+        @if (showAgreementAction()) {
+          <button
+            igntButton
+            type="button"
+            size="small"
+            sentiment="secondary"
+            data-testid="open-agreement-list"
+            (click)="openAgreementList.emit()"
+          >
+            {{ 'boxOffice.order.agreementBlock.viewAgreements' | translate }}
+          </button>
+        }
+      </ng-template>
+    </ignt-alert>
+  }
+</div>
+
+<ng-template #deliveryNoteButton>
+  <button
+    class="box-office-content__button box-office-content__button--outline"
+    data-testid="order-delivery-note-button"
+    *ngIf="order?.reservationId"
+    (click)="clickOnDeliveryNote()"
+    [disabled]="loadingDeliveryNote"
+  >
+    <fa-icon
+      *ngIf="loadingDeliveryNote"
+      [icon]="['fad', 'spinner-third']"
+      class="attendees-list-results-total-buttons__download-icon"
+    ></fa-icon>
+    <span>{{ 'reservations.deliveryNote' | translate }}</span>
+  </button>
+</ng-template>
+
+<ng-template #printReceiptButton>
+  <button
+    igntButton
+    sentiment="secondary"
+    [fill]="true"
+    data-testid="order-print-receipt-button"
+    *ngIf="hasAdyenDeviceConfig"
+    (click)="clickOnPrintReceipt()"
+  >
+    <span>{{ 'boxOffice.order.adyenPrinter.buttons.printReceipt' | translate }}</span>
+  </button>
+</ng-template>
+
+<ng-template #validateButton>
+  <button
+    igntButton
+    sentiment="secondary"
+    [fill]="true"
+    data-testid="order-validate-ticket-button"
+    (click)="clickOnValidateTicket()"
+    *ngIf="showValidateButton"
+    [disabled]="agreementBlocked()"
+  >
+    <span>{{ 'common.validate' | translate }}</span>
+  </button>
+</ng-template>
+
+<ng-template #goToOrderDetailButton>
+  <button igntButton sentiment="secondary" [fill]="true" data-testid="order-go-to-order-detail-button" (click)="clickOnGoToOrderDetail()">
+    <span>{{ 'boxOffice.order.details.goToOrderDetailButton' | translate }}</span>
+  </button>
+</ng-template>

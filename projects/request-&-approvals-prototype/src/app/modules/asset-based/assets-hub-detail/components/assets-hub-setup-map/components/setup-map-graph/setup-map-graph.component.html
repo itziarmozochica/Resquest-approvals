@@ -1,0 +1,307 @@
+<div class="setup-map-graph-panel">
+  <div #scrollContainer class="setup-map-graph-scroll" data-testid="setup-map-graph-scroll">
+    <div class="setup-map-graph-sizer" [style.width.px]="sizerWidth()" [style.height.px]="sizerHeight()">
+      <div class="setup-map-graph-zoomable" [style.width.px]="canvasWidth()" [style.transform]="zoomTransform()">
+        <div class="setup-map-graph-header">
+          @if (hasGroups()) {
+            <span class="setup-map-graph-header__col" [style.left.px]="groupColumnX()" [style.width.px]="nodeWidth" translate>
+              assetsHubs.detail.setupMap.columns.capacityGroups
+            </span>
+          }
+          @if (hasPacks()) {
+            <span class="setup-map-graph-header__col" [style.left.px]="packColumnX()" [style.width.px]="nodeWidth" translate>
+              assetsHubs.detail.setupMap.columns.packs
+            </span>
+          }
+          <span class="setup-map-graph-header__col" [style.left.px]="activityColumnX()" [style.width.px]="nodeWidth" translate>
+            assetsHubs.detail.setupMap.columns.activities
+          </span>
+          <span class="setup-map-graph-header__col" [style.left.px]="assetColumnX()" [style.width.px]="nodeWidth" translate>
+            assetsHubs.detail.setupMap.columns.assets
+          </span>
+        </div>
+
+        <div class="setup-map-graph" [style.width.px]="canvasWidth()" [style.height.px]="canvasHeight()">
+          <svg
+            class="setup-map-graph__edges"
+            [attr.width]="canvasWidth()"
+            [attr.height]="canvasHeight()"
+            [attr.viewBox]="'0 0 ' + canvasWidth() + ' ' + canvasHeight()"
+            aria-hidden="true"
+            focusable="false"
+          >
+            @for (edge of edgeViews(); track edge.key) {
+              <path
+                class="setup-map-edge"
+                data-testid="setup-map-edge"
+                [class.setup-map-edge--active]="edge.state === 'active'"
+                [class.setup-map-edge--dim]="edge.state === 'dim'"
+                [attr.d]="edge.path"
+                [style.d]="edge.pathCss"
+              ></path>
+            }
+          </svg>
+
+          @for (view of groupViews(); track view.node.id) {
+            <div
+              role="button"
+              tabindex="0"
+              class="setup-map-node setup-map-node--group"
+              data-testid="setup-map-group-node"
+              [class.setup-map-node--selected]="view.state === 'selected'"
+              [class.setup-map-node--connected]="view.state === 'connected'"
+              [class.setup-map-node--dim]="view.state === 'dim'"
+              [class.setup-map-node--orphan]="view.node.isOrphan"
+              [style.transform]="'translateY(' + view.top + 'px)'"
+              [style.left.px]="view.left"
+              [style.width.px]="nodeWidth"
+              [attr.aria-pressed]="view.state === 'selected'"
+              (click)="onNodeClick(setupMapNodeKind.group, view.node.id)"
+              (keydown.enter)="onNodeClick(setupMapNodeKind.group, view.node.id)"
+              (keydown.space)="$event.preventDefault(); onNodeClick(setupMapNodeKind.group, view.node.id)"
+            >
+              <span class="setup-map-node__sr-kind" translate>assetsHubs.detail.setupMap.a11y.nodeGroup</span>
+              <span class="setup-map-node__name" [title]="view.node.name">{{ view.node.name }}</span>
+              <span class="setup-map-node__plan" [title]="view.node.planName">
+                <ignt-icon class="setup-map-node__plan-icon" name="ticket" variant="regular" size="caption" aria-hidden="true"></ignt-icon>
+                <span class="setup-map-node__plan-name">{{ view.node.planName }}</span>
+              </span>
+              @if (view.node.isOrphan) {
+                <span class="setup-map-node__status">
+                  <ignt-icon
+                    class="setup-map-node__status-icon"
+                    name="triangle-exclamation"
+                    variant="regular"
+                    size="caption"
+                    aria-hidden="true"
+                  ></ignt-icon>
+                  <span translate>assetsHubs.detail.setupMap.node.notConnected</span>
+                </span>
+              }
+            </div>
+          }
+
+          @for (view of packViews(); track view.node.id) {
+            <div
+              role="button"
+              tabindex="0"
+              class="setup-map-node setup-map-node--pack"
+              data-testid="setup-map-pack-node"
+              [class.setup-map-node--selected]="view.state === 'selected'"
+              [class.setup-map-node--connected]="view.state === 'connected'"
+              [class.setup-map-node--dim]="view.state === 'dim'"
+              [class.setup-map-node--orphan]="view.node.isOrphan"
+              [style.transform]="'translateY(' + view.top + 'px)'"
+              [style.left.px]="view.left"
+              [style.width.px]="nodeWidth"
+              [attr.aria-pressed]="view.state === 'selected'"
+              (click)="onNodeClick(setupMapNodeKind.pack, view.node.id)"
+              (keydown.enter)="onNodeClick(setupMapNodeKind.pack, view.node.id)"
+              (keydown.space)="$event.preventDefault(); onNodeClick(setupMapNodeKind.pack, view.node.id)"
+            >
+              <span class="setup-map-node__sr-kind" translate>assetsHubs.detail.setupMap.a11y.nodePack</span>
+              <span class="setup-map-node__name" [title]="view.node.name">{{ view.node.name }}</span>
+              <span class="setup-map-node__footer">
+                <span class="setup-map-node__status">
+                  @if (view.node.isOrphan) {
+                    <ignt-icon
+                      class="setup-map-node__status-icon"
+                      name="triangle-exclamation"
+                      variant="regular"
+                      size="caption"
+                      aria-hidden="true"
+                    ></ignt-icon>
+                    <span translate>assetsHubs.detail.setupMap.node.notConnected</span>
+                  } @else {
+                    <span>
+                      {{
+                        (view.node.connectionCount === 1
+                          ? 'assetsHubs.detail.setupMap.node.activitiesGroupedOne'
+                          : 'assetsHubs.detail.setupMap.node.activitiesGroupedMany'
+                        ) | translate: { count: view.node.connectionCount }
+                      }}
+                    </span>
+                  }
+                </span>
+                <button
+                  ignt-icon-button
+                  type="button"
+                  class="setup-map-node__view"
+                  size="small"
+                  sentiment="tertiary"
+                  data-testid="setup-map-pack-view"
+                  [icon]="['fas', 'search']"
+                  [attr.aria-label]="'assetsHubs.detail.setupMap.node.viewSchedulingFor' | translate: { name: view.node.name }"
+                  (click)="$event.stopPropagation(); schedulePreview.emit(view.node.id)"
+                  (keydown)="$event.stopPropagation()"
+                ></button>
+              </span>
+            </div>
+          }
+
+          @for (view of activityViews(); track view.node.id) {
+            <div
+              role="button"
+              tabindex="0"
+              class="setup-map-node setup-map-node--activity"
+              data-testid="setup-map-activity-node"
+              [class.setup-map-node--selected]="view.state === 'selected'"
+              [class.setup-map-node--connected]="view.state === 'connected'"
+              [class.setup-map-node--dim]="view.state === 'dim'"
+              [class.setup-map-node--orphan]="view.node.isOrphan"
+              [style.transform]="'translateY(' + view.top + 'px)'"
+              [style.left.px]="view.left"
+              [style.width.px]="nodeWidth"
+              [attr.aria-pressed]="view.state === 'selected'"
+              (click)="onNodeClick(setupMapNodeKind.activity, view.node.id)"
+              (keydown.enter)="onNodeClick(setupMapNodeKind.activity, view.node.id)"
+              (keydown.space)="$event.preventDefault(); onNodeClick(setupMapNodeKind.activity, view.node.id)"
+            >
+              <span class="setup-map-node__sr-kind" translate>assetsHubs.detail.setupMap.a11y.nodeActivity</span>
+              <span class="setup-map-node__name" [title]="view.node.name">{{ view.node.name }}</span>
+              <span class="setup-map-node__meta">
+                @if (view.node.durationMode === activityDurationMode.PerPerson) {
+                  <span class="setup-map-node__badge setup-map-node__badge--type" translate
+                    >assetsHubs.detail.setupMap.node.durationPerPerson</span
+                  >
+                } @else {
+                  <span class="setup-map-node__badge setup-map-node__badge--type" translate
+                    >assetsHubs.detail.setupMap.node.durationFixed</span
+                  >
+                }
+                <span class="setup-map-node__badge">
+                  {{ 'assetsHubs.detail.setupMap.node.durationMinutes' | translate: { minutes: view.node.durationMinutes } }}
+                </span>
+                @if (view.node.isExclusiveHire) {
+                  <span class="setup-map-node__badge setup-map-node__badge--accent" translate
+                    >assetsHubs.detail.setupMap.node.exclusiveHire</span
+                  >
+                }
+              </span>
+              <span class="setup-map-node__status">
+                @if (view.node.isOrphan) {
+                  <ignt-icon
+                    class="setup-map-node__status-icon"
+                    name="triangle-exclamation"
+                    variant="regular"
+                    size="caption"
+                    aria-hidden="true"
+                  ></ignt-icon>
+                  <span translate>assetsHubs.detail.setupMap.node.notConnected</span>
+                } @else {
+                  <span>
+                    {{
+                      (view.node.connectionCount === 1
+                        ? 'assetsHubs.detail.setupMap.node.assetsConnectedOne'
+                        : 'assetsHubs.detail.setupMap.node.assetsConnectedMany'
+                      ) | translate: { count: view.node.connectionCount }
+                    }}
+                  </span>
+                }
+              </span>
+            </div>
+          }
+
+          @for (view of assetViews(); track view.node.id) {
+            <div
+              role="button"
+              tabindex="0"
+              class="setup-map-node setup-map-node--asset"
+              data-testid="setup-map-asset-node"
+              [class.setup-map-node--selected]="view.state === 'selected'"
+              [class.setup-map-node--connected]="view.state === 'connected'"
+              [class.setup-map-node--dim]="view.state === 'dim'"
+              [class.setup-map-node--orphan]="view.node.isOrphan"
+              [style.transform]="'translateY(' + view.top + 'px)'"
+              [style.left.px]="view.left"
+              [style.width.px]="nodeWidth"
+              [attr.aria-pressed]="view.state === 'selected'"
+              (click)="onNodeClick(setupMapNodeKind.asset, view.node.id)"
+              (keydown.enter)="onNodeClick(setupMapNodeKind.asset, view.node.id)"
+              (keydown.space)="$event.preventDefault(); onNodeClick(setupMapNodeKind.asset, view.node.id)"
+            >
+              <span class="setup-map-node__sr-kind" translate>assetsHubs.detail.setupMap.a11y.nodeAsset</span>
+              <span class="setup-map-node__name" [title]="view.node.name">{{ view.node.name }}</span>
+              <span class="setup-map-node__meta">
+                @if (view.node.availabilityStrategy === availabilityStrategy.byPeopleCount) {
+                  <span class="setup-map-node__badge setup-map-node__badge--type" translate
+                    >assetsHubs.detail.setupMap.node.strategyPerPerson</span
+                  >
+                  <span class="setup-map-node__badge">
+                    {{ 'assetsHubs.detail.setupMap.node.capacityPeople' | translate: { capacity: view.node.capacity.maxPartySize } }}
+                  </span>
+                } @else {
+                  <span class="setup-map-node__badge setup-map-node__badge--type" translate
+                    >assetsHubs.detail.setupMap.node.strategyGroups</span
+                  >
+                  <span class="setup-map-node__badge">
+                    {{
+                      'assetsHubs.detail.setupMap.node.capacityParties'
+                        | translate: { parties: view.node.capacity.numParties, size: view.node.capacity.maxPartySize }
+                    }}
+                  </span>
+                }
+              </span>
+              <span class="setup-map-node__status">
+                @if (view.node.isOrphan) {
+                  <ignt-icon
+                    class="setup-map-node__status-icon"
+                    name="triangle-exclamation"
+                    variant="regular"
+                    size="caption"
+                    aria-hidden="true"
+                  ></ignt-icon>
+                  <span translate>assetsHubs.detail.setupMap.node.notConnected</span>
+                } @else {
+                  <span>
+                    {{
+                      (view.node.connectionCount === 1
+                        ? 'assetsHubs.detail.setupMap.node.activitiesConnectedOne'
+                        : 'assetsHubs.detail.setupMap.node.activitiesConnectedMany'
+                      ) | translate: { count: view.node.connectionCount }
+                    }}
+                  </span>
+                }
+              </span>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="setup-map-zoom-controls">
+    <button
+      ignt-icon-button
+      type="button"
+      size="small"
+      sentiment="tertiary"
+      data-testid="setup-map-zoom-out"
+      [icon]="['fas', 'minus']"
+      [attr.aria-label]="'assetsHubs.detail.setupMap.zoom.out' | translate"
+      [disabled]="!canZoomOut()"
+      (click)="zoomOut()"
+    ></button>
+    <ignt-button
+      variant="tertiary"
+      sentiment="neutral"
+      size="small"
+      class="setup-map-zoom-controls__level"
+      data-testid="setup-map-zoom-reset"
+      [label]="zoomPercent() + '%'"
+      [ariaLabel]="'assetsHubs.detail.setupMap.zoom.resetLevel' | translate: { percent: zoomPercent() }"
+      (click)="resetZoom()"
+    ></ignt-button>
+    <button
+      ignt-icon-button
+      type="button"
+      size="small"
+      sentiment="tertiary"
+      data-testid="setup-map-zoom-in"
+      [icon]="['fas', 'plus']"
+      [attr.aria-label]="'assetsHubs.detail.setupMap.zoom.in' | translate"
+      [disabled]="!canZoomIn()"
+      (click)="zoomIn()"
+    ></button>
+  </div>
+</div>

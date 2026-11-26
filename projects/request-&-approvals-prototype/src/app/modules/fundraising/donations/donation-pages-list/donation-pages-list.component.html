@@ -1,0 +1,108 @@
+<section class="main-wrapper" [attr.aria-label]="'menu.fundraisingDonationPages' | translate">
+  <app-fundraising-page-title [section]="'menu.fundraising' | translate" [title]="'menu.fundraisingDonationPages' | translate">
+    @if (hasDonationPagesCreated() === true) {
+      <button
+        igntButton
+        [sentiment]="'primary'"
+        [variant]="'default'"
+        [size]="'large'"
+        [fill]="false"
+        (click)="onCreateDonationPage()"
+        data-testid="donation-pages-list-create-button"
+      >
+        {{ 'fundraising.donationPages.list.createButton' | translate }}
+      </button>
+    }
+  </app-fundraising-page-title>
+
+  @if (hasDonationPagesCreated() === false) {
+    <app-empty-state-action
+      [title]="'fundraising.donationPages.emptyState.title' | translate"
+      [subtitle]="'fundraising.donationPages.emptyState.subtitle' | translate"
+      [buttonLabel]="'fundraising.donationPages.emptyState.createButton' | translate"
+      buttonTestId="donation-pages-list-empty-state-create-button"
+      (actionClick)="onCreateDonationPage()"
+    />
+  } @else {
+    <div class="donation-pages-list" [attr.aria-busy]="isLoading()" aria-live="polite">
+      <div class="donation-pages-list__header">
+        <div class="donation-pages-list__search">
+          <div class="donation-pages-list__search-input-wrapper">
+            <ignt-input-field
+              class="donation-pages-list__search-input"
+              [label]="'fundraising.donationPages.list.searchPlaceholder' | translate"
+              [ngModel]="searchValue()"
+              (ngModelChange)="onSearchChange($event)"
+              id="donation-pages-list-search-input"
+              data-testid="donation-pages-list-search-input"
+            >
+            </ignt-input-field>
+            <ignt-icon class="donation-pages-list__search-icon" name="search" variant="regular" aria-hidden="true"></ignt-icon>
+          </div>
+        </div>
+        <app-pagination-range
+          [currentPage]="currentPage()"
+          [pageSize]="10"
+          [totalCount]="totalCount()"
+          (nextPage)="onNextPage()"
+          (previousPage)="onPreviousPage()"
+        />
+      </div>
+
+      <ignt-table [data]="donationPages()" [isLoading]="isLoading()" class="donation-pages-list__table">
+        <ignt-table-column key="title" [header]="'fundraising.donationPages.list.headers.donationTitle' | translate" columnType="primary">
+          <ng-template [igntTableColumnTemplateType]="donationPages()[0]" let-item="item">
+            <a igntLink size="small" sentiment="primary" [routerLink]="['/fundraising/donation-pages', item.id]">{{ item.title }}</a>
+          </ng-template>
+        </ignt-table-column>
+
+        <ignt-table-column key="urlSlug" [header]="'fundraising.donationPages.list.headers.urlSlug' | translate">
+          <ng-template [igntTableColumnTemplateType]="donationPages()[0]" let-item="item">
+            <a igntLink size="small" sentiment="primary" [routerLink]="['/fundraising/donation-pages', item.id]">
+              {{ item.urlSlug }}
+            </a>
+          </ng-template>
+        </ignt-table-column>
+
+        <ignt-table-column key="createdAt" [header]="'fundraising.donationPages.list.headers.creationDate' | translate">
+          <ng-template [igntTableColumnTemplateType]="donationPages()[0]" let-item="item">
+            <time [attr.datetime]="item.createdAt | date: 'yyyy-MM-dd'">
+              {{ item.createdAt | momentDate: 'MMM d, yyyy' }}
+            </time>
+          </ng-template>
+        </ignt-table-column>
+
+        <ignt-table-column key="status" [header]="'fundraising.donationPages.list.headers.status' | translate">
+          <ng-template [igntTableColumnTemplateType]="donationPages()[0]" let-item="item">
+            <ignt-tag [sentiment]="getDonationPageStatusSentiment(item.status)" [variant]="'outline'">
+              {{ 'fundraising.donationPages.list.status.' + item.status | translate }}
+            </ignt-tag>
+          </ng-template>
+        </ignt-table-column>
+
+        <ignt-table-column [header]="'fundraising.donationPages.list.headers.actions' | translate" columnType="action">
+          <ng-template [igntTableColumnTemplateType]="donationPages()[0]" let-item="item">
+            <div class="donation-pages-list__cell-actions__inner">
+              <ignt-button-dropdown
+                [options]="getDropdownActionsOptions(item)"
+                [size]="'small'"
+                [sentiment]="'tertiary'"
+                [align]="'right'"
+                [leadingIcon]="['fas', 'ellipsis-v']"
+                [trailingIconClosed]="null"
+                [trailingIconOpened]="null"
+                class="donation-pages-list__cell-actions"
+                [attr.aria-label]="('fundraising.donationPages.list.actionsFor' | translate) + ' ' + item.title"
+                (optionClick)="onDropdownOptionClick($event, item)"
+                data-testid="donation-pages-list-actions-dropdown"
+              >
+              </ignt-button-dropdown>
+            </div>
+          </ng-template>
+        </ignt-table-column>
+      </ignt-table>
+    </div>
+  }
+</section>
+
+<app-confirmation-dialog />

@@ -1,0 +1,110 @@
+<div class="lateral-slider-body__wrapper manage-time-slot-tiers__body">
+  <div class="manage-time-slot-tiers__description" data-testid="manage-time-slot-tiers-description">
+    {{ 'sessions.pricing.manageTiers.description' | translate }}
+  </div>
+
+  <div class="manage-time-slot-tiers__tiers">
+    @if (isLoadingTiers()) {
+      <div class="manage-time-slot-tiers__loader" data-testid="manage-time-slot-tiers-loader">
+        <ignt-icon aria-hidden="true" class="loader" name="spinner" variant="solid" [spin]="true"></ignt-icon>
+      </div>
+    }
+    @for (tier of tiers(); track tier.id) {
+      <app-shared-timeline-item
+        class="manage-time-slot-tiers__tier"
+        data-testid="manage-time-slot-tiers-tier-item"
+        [style.--tier-color]="tier.color"
+        [id]="'tier-' + tier.id"
+        [title]="tier.name"
+        [initialExpanded]="true"
+        [showIcon]="false"
+      >
+        <ng-template #headerActions>
+          <button
+            type="button"
+            class="manage-time-slot-tiers__delete-button"
+            [class.manage-time-slot-tiers__delete-button--disabled]="!isTierDeletable(tier) || isDeletingTier()"
+            [disabled]="!isTierDeletable(tier) || isDeletingTier()"
+            [attr.aria-label]="'sessions.pricing.manageTiers.deleteTier' | translate"
+            (click)="deleteTier(tier)"
+            data-testid="manage-time-slot-tiers-tier-delete"
+          >
+            <ignt-icon name="trash" variant="solid" aria-hidden="true"></ignt-icon>
+          </button>
+        </ng-template>
+        <ng-template #expandedContent>
+          <div class="manage-time-slot-tiers__tier-row" data-testid="manage-time-slot-tiers-tier-time-slots-row">
+            <span>{{ 'sessions.pricing.manageTiers.timeSlotsCount' | translate: { count: tier.timeSlotsCount } }}</span>
+            <a
+              routerLink="/sessions/schedule"
+              queryParamsHandling="preserve"
+              (click)="closeManageTiers()"
+              data-testid="manage-time-slot-tiers-tier-time-slots-link"
+            >
+              {{ 'sessions.pricing.manageTiers.viewDetails' | translate }}
+            </a>
+          </div>
+          <div class="manage-time-slot-tiers__tier-row" data-testid="manage-time-slot-tiers-tier-price-lists-row">
+            <span>{{ 'sessions.pricing.manageTiers.priceListsCount' | translate: { count: tier.priceListsCount } }}</span>
+            <a
+              routerLink="/inventory/pricing/overview/list"
+              queryParamsHandling="preserve"
+              (click)="closeManageTiers()"
+              data-testid="manage-time-slot-tiers-tier-price-lists-link"
+            >
+              {{ 'sessions.pricing.manageTiers.viewDetails' | translate }}
+            </a>
+          </div>
+        </ng-template>
+      </app-shared-timeline-item>
+    }
+  </div>
+
+  @if (isAddingTier()) {
+    <div class="manage-time-slot-tiers__add-form" data-testid="manage-time-slot-tiers-add-form">
+      <ignt-typeahead
+        class="manage-time-slot-tiers__add-form-typeahead"
+        [fieldLabel]="'sessions.pricing.manageTiers.tierName' | translate"
+        [emptyLabel]="'sessions.pricing.manageTiers.selectTierName' | translate"
+        [editable]="false"
+        [options]="selectableTierOptions()"
+        [selectedOption]="selectedNewTierOption()"
+        (selected)="onSelectNewTierOption($event)"
+        data-testid="manage-time-slot-tiers-add-form-typeahead"
+      ></ignt-typeahead>
+
+      <div class="manage-time-slot-tiers__add-form-actions">
+        <button
+          igntButton
+          type="button"
+          sentiment="secondary"
+          size="small"
+          (click)="cancelAddTier()"
+          data-testid="manage-time-slot-tiers-add-form-cancel"
+        >
+          {{ 'sessions.pricing.manageTiers.cancel' | translate }}
+        </button>
+        <button
+          igntButton
+          type="button"
+          sentiment="primary"
+          size="small"
+          [disabled]="!selectedNewTierOption() || isSavingTier()"
+          (click)="confirmAddTier()"
+          data-testid="manage-time-slot-tiers-add-form-confirm"
+        >
+          {{ 'sessions.pricing.manageTiers.addTier' | translate }}
+        </button>
+      </div>
+    </div>
+  } @else {
+    <button
+      type="button"
+      class="manage-time-slot-tiers__add-button"
+      (click)="onAddNewTierClick()"
+      data-testid="manage-time-slot-tiers-add-new-tier-button"
+    >
+      {{ 'sessions.pricing.manageTiers.addNewTier' | translate }} <ignt-icon name="plus-circle" variant="solid"></ignt-icon>
+    </button>
+  }
+</div>

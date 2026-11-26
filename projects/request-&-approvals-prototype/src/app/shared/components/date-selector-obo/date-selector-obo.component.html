@@ -1,0 +1,419 @@
+<div class="date-time-selector" [class.date-time-selector--all-step]="!isOneStepFlow" [class.date-time-selector--oss]="isOneStopShop">
+  <article class="date-time-selector__dates">
+    @if (
+      shouldShowTitle &&
+      !isOneStopShop &&
+      (displaySessionSelectorType !== sessionSelectorTypeEnum.BY_TIMELESS_SESSION || (enableTimelessExtendedSelectors && hasMultipleDates))
+    ) {
+      <h3 class="date-time-selector__title" [ngClass]="{ 'mb-0': hideDateSelector }">
+        {{ titleText | translate }}
+      </h3>
+    }
+    <div *ngIf="shouldShowDateSelector" class="date-selector-obo__date-picker-row">
+      <ng-container *ngIf="!showSkeletonAvailability; else skeletonAvailability">
+        <ignt-date-picker-input
+          #availabilityDatePicker
+          class="availability-from-date"
+          [label]="'reservations.showAvailabilityFrom' | translate"
+          [attr.data-testid]="'date-selector-invitation'"
+          (changeDate)="handleShowAvailabilityFromDatePickerChanges($event)"
+          [startDate]="selectedAvailabilityFromDate"
+          [timezone]="timezone"
+          [isOneStopShop]="isOneStopShop"
+        >
+        </ignt-date-picker-input>
+      </ng-container>
+      <ng-content select="[dateSelectorTrailing]"></ng-content>
+    </div>
+
+    <ng-container *ngIf="showSkeletonDates">
+      <ng-container *ngTemplateOutlet="skeletonDates"></ng-container>
+    </ng-container>
+    <div
+      *ngIf="!showSkeletonDates"
+      class="tile-wrapper tile-wrapper--row"
+      data-testid="dates-selector-container"
+      [hidden]="
+        hideDateSelector ||
+        (displaySessionSelectorType === sessionSelectorTypeEnum.BY_TIMELESS_SESSION &&
+          (!enableTimelessExtendedSelectors || !hasMultipleDates))
+      "
+    >
+      <ng-container *ngIf="displayedSessionType === sessionAvailabilitySummaryByDateType.Regular">
+        <ng-container
+          *ngFor="
+            let sessionAvailabilityByDate of datesAvailability?.length > 0 ? datesAvailability : regularSessionAvailabilitySummaryByDate
+          "
+        >
+          <ng-container
+            *ngTemplateOutlet="
+              datesAvailability?.length > 0 ? dateAvailability : date;
+              context: {
+                sessionAvailabilityByDate: sessionAvailabilityByDate,
+                label1: (sessionAvailabilityByDate.date | date: 'EEE' : timezone : locale),
+                label2: formatLocalDate(sessionAvailabilityByDate.date),
+              }
+            "
+          ></ng-container>
+        </ng-container>
+      </ng-container>
+      <div *ngIf="showLoadMoreButton" class="tile-wrapper__item tile tile--icon-action" (click)="onLoadMoreClick()">
+        <fa-icon [icon]="['fal', 'calendar-plus']" [fixedWidth]="true" *ngIf="!loading"></fa-icon>
+        <div class="ignt-loader" *ngIf="loading"></div>
+      </div>
+    </div>
+  </article>
+
+  <ng-container *ngIf="!showSkeletonSessions; else skeletonSessions">
+    <article
+      data-testid="hours-selector-container"
+      *ngIf="
+        selectedSession &&
+        ((displaySessionSelectorType !== sessionSelectorTypeEnum.BY_TIMELESS_SESSION &&
+          displaySessionSelectorType !== sessionSelectorTypeEnum.BY_DATE) ||
+          (enableTimelessExtendedSelectors &&
+            displaySessionSelectorType === sessionSelectorTypeEnum.BY_TIMELESS_SESSION &&
+            hasMultipleTimeSlotsOnSelectedSession))
+      "
+      class="date-time-selector__hours"
+    >
+      <!-- Desktop Layout -->
+      <div class="only-in-desktop">
+        <ng-container *ngIf="$any(selectedSession).morningSessions?.length > 0">
+          <div class="time-selector">
+            <ng-container
+              *ngTemplateOutlet="
+                hourBlockDescription;
+                context: {
+                  title: 'boxOffice.morning',
+                  description: !hideSessionDuration && !isOperatingDayGrouping ? 'boxOffice.morningHours' : '',
+                  timeRangeSection: 'morning',
+                  timeRangeSessions: $any(selectedSession).morningSessions,
+                  isSessionsRangeVisible:
+                    openedTimeRangeSections.has('morning') || isSelectedSessionInHoursRange($any(selectedSession).morningSessions),
+                }
+              "
+            ></ng-container>
+            <div
+              class="tile-wrapper tile-wrapper--grid"
+              data-testid="morning-session"
+              *ngIf="openedTimeRangeSections.has('morning') || isSelectedSessionInHoursRange($any(selectedSession).morningSessions)"
+            >
+              <ng-container *ngFor="let sessionAvailabilityByDatetime of $any(selectedSession).morningSessions">
+                <ng-container
+                  *ngTemplateOutlet="
+                    hour;
+                    context: {
+                      session: sessionAvailabilityByDatetime,
+                      ticketTypes: ticketTypes,
+                      label: sessionAvailabilityByDatetime.datetime | momentDate: 'H:mm' : timezone,
+                    }
+                  "
+                ></ng-container>
+              </ng-container>
+            </div>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="$any(selectedSession).afternoonSessions?.length > 0">
+          <div class="time-selector">
+            <ng-container
+              *ngTemplateOutlet="
+                hourBlockDescription;
+                context: {
+                  title: 'boxOffice.afternoon',
+                  description: !hideSessionDuration && !isOperatingDayGrouping ? 'boxOffice.afternoonHours' : '',
+                  timeRangeSection: 'afternoon',
+                  timeRangeSessions: $any(selectedSession).afternoonSessions,
+                  isSessionsRangeVisible:
+                    openedTimeRangeSections.has('afternoon') || isSelectedSessionInHoursRange($any(selectedSession).afternoonSessions),
+                }
+              "
+            ></ng-container>
+            <div
+              class="tile-wrapper tile-wrapper--grid"
+              data-testid="afternoon-session"
+              *ngIf="openedTimeRangeSections.has('afternoon') || isSelectedSessionInHoursRange($any(selectedSession).afternoonSessions)"
+            >
+              <ng-container *ngFor="let sessionAvailabilityByDatetime of $any(selectedSession).afternoonSessions">
+                <ng-container
+                  *ngTemplateOutlet="
+                    hour;
+                    context: {
+                      session: sessionAvailabilityByDatetime,
+                      ticketTypes: ticketTypes,
+                      label: sessionAvailabilityByDatetime.datetime | momentDate: 'H:mm' : timezone,
+                    }
+                  "
+                ></ng-container>
+              </ng-container>
+            </div>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="$any(selectedSession).eveningSessions?.length > 0">
+          <div class="time-selector">
+            <ng-container
+              *ngTemplateOutlet="
+                hourBlockDescription;
+                context: {
+                  title: 'boxOffice.evening',
+                  description: !hideSessionDuration && !isOperatingDayGrouping ? 'boxOffice.eveningHours' : '',
+                  timeRangeSection: 'evening',
+                  timeRangeSessions: $any(selectedSession).eveningSessions,
+                  isSessionsRangeVisible:
+                    openedTimeRangeSections.has('evening') || isSelectedSessionInHoursRange($any(selectedSession).eveningSessions),
+                }
+              "
+            ></ng-container>
+            <div
+              class="tile-wrapper tile-wrapper--grid"
+              data-testid="evening-session"
+              *ngIf="openedTimeRangeSections.has('evening') || isSelectedSessionInHoursRange($any(selectedSession).eveningSessions)"
+            >
+              <ng-container *ngFor="let sessionAvailabilityByDatetime of $any(selectedSession).eveningSessions">
+                <ng-container
+                  *ngTemplateOutlet="
+                    hour;
+                    context: {
+                      session: sessionAvailabilityByDatetime,
+                      ticketTypes: ticketTypes,
+                      label: sessionAvailabilityByDatetime.datetime | momentDate: 'H:mm' : timezone,
+                    }
+                  "
+                ></ng-container>
+              </ng-container>
+            </div>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="$any(selectedSession).nightSessions?.length > 0">
+          <div class="time-selector">
+            <ng-container
+              *ngTemplateOutlet="
+                hourBlockDescription;
+                context: {
+                  title: 'boxOffice.night',
+                  description: !hideSessionDuration && !isOperatingDayGrouping ? 'boxOffice.nightHours' : '',
+                  timeRangeSection: 'night',
+                  timeRangeSessions: $any(selectedSession).nightSessions,
+                  isSessionsRangeVisible:
+                    openedTimeRangeSections.has('night') || isSelectedSessionInHoursRange($any(selectedSession).nightSessions),
+                }
+              "
+            ></ng-container>
+            <div
+              class="tile-wrapper tile-wrapper--grid"
+              data-testid="night-session"
+              *ngIf="openedTimeRangeSections.has('night') || isSelectedSessionInHoursRange($any(selectedSession).nightSessions)"
+            >
+              <ng-container *ngFor="let sessionAvailabilityByDatetime of $any(selectedSession).nightSessions">
+                <ng-container
+                  *ngTemplateOutlet="
+                    hour;
+                    context: {
+                      session: sessionAvailabilityByDatetime,
+                      ticketTypes: ticketTypes,
+                      label: sessionAvailabilityByDatetime.datetime | momentDate: 'H:mm' : timezone,
+                    }
+                  "
+                ></ng-container>
+              </ng-container>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+
+      <!-- Mobile Layout -->
+      <div class="only-in-mobile">
+        <ignt-tabs #tabs [hasExtraLine]="true" [selectedIndex]="selectedTabIndex" (selectedIndexChange)="changeTabIndex($event)">
+          <ignt-tabs-item *ngIf="$any(selectedSession).morningSessions?.length > 0" [label]="'boxOffice.morning' | translate">
+            <div class="tile-wrapper tile-wrapper--row-date" data-testid="morning-session">
+              <ng-container *ngFor="let sessionAvailabilityByDatetime of $any(selectedSession).morningSessions">
+                <ng-container
+                  *ngTemplateOutlet="
+                    hour;
+                    context: {
+                      session: sessionAvailabilityByDatetime,
+                      ticketTypes: ticketTypes,
+                      label: sessionAvailabilityByDatetime.datetime | momentDate: 'H:mm' : timezone,
+                    }
+                  "
+                ></ng-container>
+              </ng-container>
+            </div>
+          </ignt-tabs-item>
+          <ignt-tabs-item *ngIf="$any(selectedSession).afternoonSessions?.length > 0" [label]="'boxOffice.afternoon' | translate">
+            <div class="tile-wrapper tile-wrapper--row-date" data-testid="afternoon-session">
+              <ng-container *ngFor="let sessionAvailabilityByDatetime of $any(selectedSession).afternoonSessions">
+                <ng-container
+                  *ngTemplateOutlet="
+                    hour;
+                    context: {
+                      session: sessionAvailabilityByDatetime,
+                      ticketTypes: ticketTypes,
+                      label: sessionAvailabilityByDatetime.datetime | momentDate: 'H:mm' : timezone,
+                    }
+                  "
+                ></ng-container>
+              </ng-container>
+            </div>
+          </ignt-tabs-item>
+          <ignt-tabs-item *ngIf="$any(selectedSession).eveningSessions?.length > 0" [label]="'boxOffice.evening' | translate">
+            <div class="tile-wrapper tile-wrapper--row-date" data-testid="evening-session">
+              <ng-container *ngFor="let sessionAvailabilityByDatetime of $any(selectedSession).eveningSessions">
+                <ng-container
+                  *ngTemplateOutlet="
+                    hour;
+                    context: {
+                      session: sessionAvailabilityByDatetime,
+                      ticketTypes: ticketTypes,
+                      label: sessionAvailabilityByDatetime.datetime | momentDate: 'H:mm' : timezone,
+                    }
+                  "
+                ></ng-container>
+              </ng-container>
+            </div>
+          </ignt-tabs-item>
+          <ignt-tabs-item *ngIf="$any(selectedSession).nightSessions?.length > 0" [label]="'boxOffice.night' | translate">
+            <div class="tile-wrapper tile-wrapper--row-date" data-testid="night-session">
+              <ng-container *ngFor="let sessionAvailabilityByDatetime of $any(selectedSession).nightSessions">
+                <ng-container
+                  *ngTemplateOutlet="
+                    hour;
+                    context: {
+                      session: sessionAvailabilityByDatetime,
+                      ticketTypes: ticketTypes,
+                      label: sessionAvailabilityByDatetime.datetime | momentDate: 'H:mm' : timezone,
+                    }
+                  "
+                ></ng-container>
+              </ng-container>
+            </div>
+          </ignt-tabs-item>
+        </ignt-tabs>
+      </div>
+    </article>
+
+    <div
+      *ngIf="
+        isOneStopShop &&
+        !selectedSession &&
+        (!regularSessionAvailabilitySummaryByDate || regularSessionAvailabilitySummaryByDate?.length === 0)
+      "
+      class="box-office-content__no-results"
+      data-testid="no-sessions-available"
+    >
+      <fa-icon class="box-office-content__no-results__icon" [icon]="['fal', 'sensor-alert']"></fa-icon>
+      <p class="box-office-content__no-results__text" translate>boxOffice.noSessionsAvailable</p>
+    </div>
+  </ng-container>
+</div>
+
+<ng-template #dateAvailability let-sessionAvailabilityByDate="sessionAvailabilityByDate" let-label1="label1" let-label2="label2">
+  <button
+    class="tile-wrapper__item tile"
+    data-testid="date-item"
+    [class.selected]="isDateAvailabilitySelected(sessionAvailabilityByDate)"
+    [class.tile--selected]="isDateAvailabilitySelected(sessionAvailabilityByDate)"
+    [class.tile--disabled]="isDateAvailabilityDisabled(sessionAvailabilityByDate)"
+    (click)="selectDateAvailability(sessionAvailabilityByDate)"
+  >
+    <span class="tile__label">{{ label1 }} </span>
+    <span class="tile__label">{{ label2 }}</span>
+  </button>
+</ng-template>
+
+<ng-template #date let-sessionAvailabilityByDate="sessionAvailabilityByDate" let-label1="label1" let-label2="label2">
+  <button
+    class="tile-wrapper__item tile"
+    data-testid="date-item"
+    [class.tile--selected]="isDateSelected(sessionAvailabilityByDate)"
+    [class.tile--disabled]="isDateDisabled(sessionAvailabilityByDate)"
+    (click)="selectDate(sessionAvailabilityByDate)"
+  >
+    <span class="tile__label">{{ label1 }} </span>
+    <span class="tile__label">{{ label2 }}</span>
+  </button>
+</ng-template>
+
+<ng-template
+  #hourBlockDescription
+  let-title="title"
+  let-description="description"
+  let-timeRangeSection="timeRangeSection"
+  let-timeRangeSessions="timeRangeSessions"
+  let-isSessionsRangeVisible="isSessionsRangeVisible"
+>
+  <div
+    class="time-selector__hour-block"
+    data-testid="toggle-sessions-range-button"
+    [ngClass]="{ 'time-selector__hour__block--disabled': timeRangeSessions && isSelectedSessionInHoursRange(timeRangeSessions) }"
+    (click)="toggleTimeRangeSection(timeRangeSection, timeRangeSessions)"
+  >
+    <span>
+      <strong>{{ title | translate }}</strong
+      ><ng-container *ngIf="description"> - {{ description | translate }}</ng-container>
+    </span>
+    <button
+      class="icon-button icon-button--small icon-button--sharp-tertiary"
+      [disabled]="timeRangeSessions && isSelectedSessionInHoursRange(timeRangeSessions)"
+    >
+      <fa-icon [icon]="['fas', isSessionsRangeVisible ? 'chevron-up' : 'chevron-down']"></fa-icon>
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #hour let-session="session" let-ticketTypes="ticketTypes" let-label="label">
+  <button
+    class="tile-wrapper__item tile"
+    data-testid="hour-item"
+    [class.selected]="isSessionSelected(session, ticketTypes)"
+    [class.tile--selected]="isSessionSelected(session, ticketTypes)"
+    [class.tile--disabled]="isSessionDisabled(session, ticketTypes)"
+    [class.tile--with-caption]="showCapacity && session.capacity !== null"
+    (click)="selectHour(session)"
+  >
+    {{ label }}
+    <div *ngIf="showCapacity && session.capacity !== null" class="tile-caption" data-testid="hour-capacity">
+      {{ session.capacity }}
+      <fa-icon [icon]="['fal', 'ticket-alt']"></fa-icon>
+    </div>
+  </button>
+</ng-template>
+
+<ng-template #skeletonAvailability>
+  <div class="skeleton__availability">
+    <ignt-skeleton-base [height]="56" width="100%" [animation]="true" [white]="useWhiteSkeleton()"></ignt-skeleton-base>
+  </div>
+</ng-template>
+
+<ng-template #skeletonDates>
+  <div class="skeleton__dates">
+    <ignt-skeleton-base *ngFor="let item of [1, 2, 3]" [height]="56" [animation]="true" [white]="useWhiteSkeleton()"></ignt-skeleton-base>
+  </div>
+</ng-template>
+
+<ng-template #skeletonSessions>
+  <div class="skeleton__sessions">
+    <div *ngIf="isMobile()" class="skeleton__tabs">
+      <ignt-skeleton-base
+        *ngFor="let width of skeletonTabWidths"
+        [height]="15"
+        [width]="width + 'px'"
+        [animation]="true"
+      ></ignt-skeleton-base>
+    </div>
+    <ignt-skeleton-base *ngIf="!isMobile()" [height]="20" width="100%" [animation]="true" [white]="useWhiteSkeleton()"></ignt-skeleton-base>
+    <div [ngClass]="{ skeleton__hours: !isMobile() && !isTablet(), skeleton__dates: isMobile() || isTablet() }">
+      <ignt-skeleton-base
+        *ngFor="let item of [1, 2, 3]"
+        [height]="isMobile() || isTablet() ? 62 : 56"
+        [animation]="true"
+        [white]="useWhiteSkeleton()"
+      ></ignt-skeleton-base>
+    </div>
+    <ignt-skeleton-base *ngIf="!isMobile()" [height]="20" width="100%" [animation]="true" [white]="useWhiteSkeleton()"></ignt-skeleton-base>
+    <ignt-skeleton-base *ngIf="!isMobile()" [height]="20" width="100%" [animation]="true" [white]="useWhiteSkeleton()"></ignt-skeleton-base>
+  </div>
+</ng-template>

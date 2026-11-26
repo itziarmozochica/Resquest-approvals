@@ -1,0 +1,182 @@
+<app-page-title [title]="'depositSettings.title' | translate" class="new-design" />
+<app-search-bar
+  (searchEmitter)="loadNewSearch($event)"
+  [mandatoryFilters]="mandatoryFilters"
+  [showVenue]="false"
+  [showChannels]="false"
+  [showPlan]="true"
+/>
+
+@if (!filtersSelected() && !isLoadingAny()) {
+  <ng-container [ngTemplateOutlet]="noFilters"></ng-container>
+} @else if (filtersSelected() && notAllowedReason() === 'partner' && !isLoadingAny()) {
+  <ng-container [ngTemplateOutlet]="partnerNotAllowed"></ng-container>
+} @else if (filtersSelected() && notAllowedReason() === 'country' && !isLoadingAny()) {
+  <ng-container [ngTemplateOutlet]="countryNotAllowed"></ng-container>
+} @else if (filtersSelected() && unfilteredDepositSettings && unfilteredDepositSettings.length === 0 && !isLoadingAny() && !errorState()) {
+  <ng-container [ngTemplateOutlet]="noResults"></ng-container>
+} @else if (isLoadingAny()) {
+  <ng-container [ngTemplateOutlet]="loading"></ng-container>
+} @else if (errorState() && filtersSelected() && !isLoadingAny()) {
+  <ng-container [ngTemplateOutlet]="error"></ng-container>
+} @else if (filtersSelected() && !isLoadingAny() && !errorState() && unfilteredDepositSettings && unfilteredDepositSettings.length > 0) {
+  <div class="deposit-settings-management__wrapper-card">
+    <ignt-wrapper-card [fullHeight]="true" [radii]="isMobile() ? 0 : 16" [type]="isMobile() ? 'borderless' : 'default'">
+      <div class="deposit-settings-management__wrapper-card-content">
+        <div class="deposit-settings-management">
+          <div class="deposit-settings-management__actions-toolbar">
+            <div class="deposit-settings-management__title-section">
+              <label class="deposit-settings-management__channel-selector cell field cell--fill-lg cell--expanded">
+                <ignt-icon class="deposit-settings-management__channel-selector__icon" name="search" variant="regular"></ignt-icon>
+                <input
+                  data-testid="deposit-settings-management-channel-selector"
+                  #searchTerm
+                  type="search"
+                  class="field__input deposit-settings-management__channel-selector__input"
+                  [value]="channelSearchTerm() ?? ''"
+                  (input)="selectChannelOption($event)"
+                  [placeholder]="'depositSettings.form.channel' | translate"
+                />
+                <ignt-icon class="deposit-settings-management__channel-selector__icon-clear" name="times" variant="light"></ignt-icon>
+
+                <span class="field__label">{{ 'depositSettings.form.channel' | translate }}</span>
+              </label>
+            </div>
+            <div *ngIf="!isMobile()">
+              <button igntButton data-testid="create-deposit-setting-button" (click)="onCreateDepositSetting()">
+                {{ 'depositSettings.createButton' | translate }}
+              </button>
+            </div>
+          </div>
+
+          <app-deposit-settings-table
+            data-testid="deposit-settings-table"
+            class="deposit-settings"
+            [depositSettings]="depositSettings"
+            [isLoading]="isLoadingAny()"
+            [deletingDepositId]="deletingDepositId()"
+            [planCurrency]="planCurrency()"
+            [areRulesVisible]="isB2cDepositsEnabled()"
+            (editClicked)="onEditDepositSetting($event)"
+            (deleteClicked)="onDeleteDepositSetting($event)"
+            (sortChanged)="onSortChanged($event)"
+          />
+        </div>
+      </div>
+    </ignt-wrapper-card>
+  </div>
+}
+
+@if (
+  isMobile() && !isLoadingAny() && !errorState() && filtersSelected() && unfilteredDepositSettings && unfilteredDepositSettings.length > 0
+) {
+  <bottom-slider [buttonsTemplate]="actionButtonsTemplate"></bottom-slider>
+  <ng-template #actionButtonsTemplate>
+    <button igntButton data-testid="create-deposit-setting-button" (click)="onCreateDepositSetting()">
+      {{ 'depositSettings.createButton' | translate }}
+    </button>
+  </ng-template>
+}
+
+<ng-template #noFilters>
+  <div data-testid="deposit-settings-no-filters" class="deposit-settings-management__no-filters">
+    <h5>{{ 'depositSettings.noFiltersMessage' | translate }}</h5>
+    <p class="deposit-settings-management__no-filters-description">{{ 'depositSettings.noFiltersMessageDescription' | translate }}</p>
+    <h5 class="deposit-settings-management__no-filters-banners-title">{{ 'depositSettings.noFiltersMessageBanners.title' | translate }}</h5>
+    <div class="deposit-settings-management__no-filters-banners">
+      <ignt-wrapper-card
+        [fullHeight]="true"
+        [radii]="16"
+        type="borderless"
+        [elevation]="2"
+        class="deposit-settings-management__no-filters-banner"
+      >
+        <div class="deposit-settings-management__no-filters-banner-content">
+          <ignt-icon name="cog" variant="light" size="h1" />
+          <p>
+            {{ 'depositSettings.noFiltersMessageBanners.config' | translate }}
+          </p>
+        </div>
+      </ignt-wrapper-card>
+      <ignt-wrapper-card
+        [fullHeight]="true"
+        [radii]="16"
+        type="borderless"
+        [elevation]="2"
+        class="deposit-settings-management__no-filters-banner"
+      >
+        <div class="deposit-settings-management__no-filters-banner-content">
+          <ignt-icon variant="light" name="shield-check" size="h1" />
+          <p>
+            {{ 'depositSettings.noFiltersMessageBanners.secured' | translate }}
+          </p>
+        </div>
+      </ignt-wrapper-card>
+      <ignt-wrapper-card
+        [fullHeight]="true"
+        [radii]="16"
+        type="borderless"
+        [elevation]="2"
+        class="deposit-settings-management__no-filters-banner"
+      >
+        <div class="deposit-settings-management__no-filters-banner-content">
+          <ignt-icon variant="light" name="hand-holding-usd" size="h1" />
+          <p>
+            {{ 'depositSettings.noFiltersMessageBanners.amount' | translate }}
+          </p>
+        </div>
+      </ignt-wrapper-card>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #loading>
+  <div data-testid="deposit-settings-loading" class="reservations-list__spinner">
+    <ignt-icon class="loader" name="spinner" variant="solid" [spin]="true" size="h1" />
+  </div>
+</ng-template>
+
+<ng-template #noResults>
+  <div data-testid="deposit-settings-no-results" class="deposit-settings-management__no-results">
+    <h5 class="deposit-settings-management__empty-title">
+      {{ 'depositSettings.emptyState.title' | translate: { eventName: eventName() } }}
+    </h5>
+    <p class="deposit-settings-management__empty-subtitle">
+      {{ 'depositSettings.emptyState.subtitle' | translate: { eventName: eventName() } }}
+    </p>
+    <button igntButton data-testid="create-first-deposit-setting-button" (click)="onCreateDepositSetting()">
+      {{ 'depositSettings.createButton' | translate }}
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #partnerNotAllowed>
+  <div data-testid="deposit-settings-partner-not-allowed" class="deposit-settings-management__no-results">
+    <p class="deposit-settings-management__empty-subtitle">
+      {{ 'depositSettings.form.errors.partnerNotAllowed' | translate }}
+    </p>
+  </div>
+</ng-template>
+
+<ng-template #countryNotAllowed>
+  <div data-testid="deposit-settings-country-not-allowed" class="deposit-settings-management__no-results">
+    <h5 class="deposit-settings-management__empty-title">
+      {{ 'depositSettings.form.errors.countryNotAllowedTitle' | translate }}
+    </h5>
+    <p class="deposit-settings-management__empty-subtitle">
+      {{ 'depositSettings.form.errors.countryNotAllowed' | translate: { cityName: selectedCityName() ?? '' } }}
+    </p>
+  </div>
+</ng-template>
+
+<ng-template #error>
+  <div data-testid="deposit-settings-error" class="reservations-list__error">
+    <span class="reservations-list__error-text">
+      <fa-icon class="reservation-list__error-icon" [icon]="['fal', 'exclamation-triangle']" />
+      {{ 'errors.generic' | translate }}
+    </span>
+    <button data-testid="deposit-settings-retry" sentiment="secondary" igntButton [leadingIcon]="['fas', 'repeat']" (click)="retryLoad()">
+      {{ 'reservations.retryButton' | translate }}
+    </button>
+  </div>
+</ng-template>

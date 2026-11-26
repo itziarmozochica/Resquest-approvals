@@ -1,0 +1,49 @@
+<div class="prop">
+  <div class="prop-tabs-section-head-text">
+    <span class="prop-tabs-section-eyebrow">{{ 'planEdition.contentEdition.builder.blocks.shared.cardContent' | translate }}</span>
+    <h4 class="prop-tabs-section-heading">
+      {{ 'planEdition.contentEdition.builder.blocks.shared.cardLabel' | translate: { index: imageGridCardTab() + 1 } }}
+    </h4>
+  </div>
+  <!-- Card selector buttons (1/2/3/4) intentionally stay enabled regardless
+       of `disabled` — switching between cards is navigation, not edition. -->
+  <div class="prop-segment prop-image-grid-card-tabs" role="tablist">
+    @for (item of imageGridItems(); track item.id; let n = $index) {
+      <button type="button" role="tab" [class.active]="imageGridCardTab() === n" (click)="imageGridCardTab.set(n)">
+        {{ n + 1 }}
+      </button>
+    }
+  </div>
+</div>
+<div class="prop" [class.prop--missing]="isMissing('src')">
+  <app-db-prop-label [contract]="FIELDS" field="src" />
+  <app-db-local-image-upload
+    [previewUrl]="currentGridItem().src"
+    [uploadCallback]="uploadImageCallback()"
+    [disabled]="disabled()"
+    (urlChange)="setGridItemSrc($event)"
+    (cleared)="clearGridItemSrc()"
+  ></app-db-local-image-upload>
+</div>
+<div class="prop" [class.prop--missing]="isMissing('title')">
+  <app-db-prop-label [contract]="FIELDS" field="title" />
+  <input
+    type="text"
+    [placeholder]="'planEdition.contentEdition.builder.blocks.imageGrid.titleFieldPlaceholder' | translate"
+    [value]="currentGridItem().title"
+    [disabled]="disabled()"
+    [attr.aria-invalid]="isMissing('title') ? true : null"
+    (input)="setGridItemTitle($any($event.target).value)"
+  />
+</div>
+<div class="prop" [class.prop--missing]="isMissing('body')">
+  <app-db-prop-label [contract]="FIELDS" field="body" />
+  <app-db-expandable-rich-text-editor
+    class="prop-rich-text"
+    data-testid="image-grid-body"
+    [labelKey]="'planEdition.contentEdition.builder.blocks.imageGrid.editBody'"
+    [content]="currentGridItem().body"
+    [disabled]="disabled()"
+    (contentChange)="setGridItemBody($event)"
+  ></app-db-expandable-rich-text-editor>
+</div>

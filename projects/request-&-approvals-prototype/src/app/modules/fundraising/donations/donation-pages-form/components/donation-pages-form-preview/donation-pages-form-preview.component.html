@@ -1,0 +1,177 @@
+<div class="donation-pages-preview">
+  <div class="donation-pages-preview__wrapper">
+    <div class="donation-pages-preview__hero">
+      @if (showHeroImage()) {
+        <img
+          class="donation-pages-preview__hero-image"
+          [src]="contentValue().heroImageUrl"
+          alt=""
+          aria-hidden="true"
+          (error)="onHeroImageError()"
+        />
+      } @else {
+        <div class="donation-pages-preview__hero-placeholder"></div>
+      }
+    </div>
+
+    <div class="donation-pages-preview__body">
+      <h3 class="donation-pages-preview__title">
+        {{ title() || ('fundraising.donationPages.form.preview.titlePlaceholder' | translate) }}
+      </h3>
+      <p class="donation-pages-preview__subtitle">
+        {{ subtitle() || ('fundraising.donationPages.form.preview.descriptionPlaceholder' | translate) }}
+      </p>
+
+      @if (settings().allowRecurringDonations) {
+        <div class="donation-pages-preview__cadence">
+          @for (frequency of enabledFrequencies(); track frequency) {
+            <ignt-pill
+              [fluid]="true"
+              [label]="getCadenceLabel(frequency)"
+              [isActive]="selectedCadence() === frequency"
+              [value]="frequency"
+              size="medium"
+              (statusChange)="onCadenceSelect($event)"
+            />
+          }
+        </div>
+      }
+
+      <div class="donation-pages-preview__preset-amounts">
+        <div class="donation-pages-preview__preset-amounts__row">
+          @for (pill of presetPills(); track pill.key) {
+            <div class="donation-pages-preview__preset-amounts__container">
+              <button
+                type="button"
+                class="donation-pages-preview__preset-amounts__option"
+                [class.donation-pages-preview__preset-amounts__option--selected]="activePillValue() === pill.key"
+                (click)="onPillSelect(pill.key)"
+              >
+                <div class="donation-pages-preview__preset-amounts__option-amount-container">
+                  @if (pill.amountLabel !== '—') {
+                    <span class="donation-pages-preview__preset-amounts__option-currency">{{ currencySymbol() }}</span>
+                  }
+                  <span class="donation-pages-preview__preset-amounts__option-amount">{{ pill.amountLabel }}</span>
+                </div>
+              </button>
+              @if (pill.impactText) {
+                <span class="donation-pages-preview__preset-amounts__option-impact">{{ pill.impactText }}</span>
+              }
+            </div>
+          }
+        </div>
+
+        @if (settings().allowCustomAmounts) {
+          <div class="donation-pages-preview__preset-amounts__container--custom">
+            <button
+              type="button"
+              class="donation-pages-preview__preset-amounts__option"
+              (click)="onPillSelect('custom')"
+              [class.donation-pages-preview__preset-amounts__option--selected]="activePillValue() === 'custom'"
+            >
+              <span class="donation-pages-preview__preset-amounts__option-amount">
+                {{ 'fundraising.donationPages.form.preview.customButton' | translate }}
+              </span>
+            </button>
+            @if (showCustomImpactText()) {
+              <span class="donation-pages-preview__preset-amounts__option-impact">{{ customImpactText() }}</span>
+            }
+          </div>
+        }
+      </div>
+
+      <button class="donation-pages-preview__cta" type="button" igntButton sentiment="primary" variant="default" size="large" [fill]="true">
+        {{ ctaButtonText() || ('fundraising.donationPages.form.preview.donatePlaceholder' | translate) }}
+      </button>
+
+      <div class="donation-pages-preview__powered-by">
+        <img ngSrc="assets/images/logos/fever-powered-by.svg" alt="Powered by fever" width="96" height="13" />
+
+        <span class="donation-pages-preview__powered-by__secure">
+          <ignt-icon class="donation-pages-preview__powered-by__secure-icon" name="shield-check" variant="solid" aria-hidden="true" />
+          {{ 'fundraising.donationPages.form.preview.secureMessage' | translate }}
+        </span>
+      </div>
+
+      @if (showRecurringLegalText()) {
+        <p class="donation-pages-preview__recurring-legal-text">
+          {{ recurringLegalText() || ('fundraising.donationPages.form.contentTranslations.callToAction.recurringLegalNote' | translate) }}
+        </p>
+      }
+
+      @if (incentiveTitle()) {
+        <div class="donation-pages-preview__divider"></div>
+
+        <div class="donation-pages-preview__section-header">
+          <ignt-icon class="donation-pages-preview__section-header__icon" name="heart" variant="light" aria-hidden="true" />
+          <h4 class="donation-pages-preview__section-header__title">
+            {{ incentiveTitle() }}
+          </h4>
+        </div>
+
+        <div class="donation-pages-preview__impact">
+          @for (card of incentiveCards(); track $index; let cardIndex = $index) {
+            @if (card.title || card.description || card.imageUrl || cardIndex === 0) {
+              <div class="donation-pages-preview__impact-card">
+                @if (card.imageUrl) {
+                  <img class="donation-pages-preview__impact-image" [ngSrc]="card.imageUrl" [alt]="card.title" width="285" height="190" />
+                } @else {
+                  <div class="donation-pages-preview__impact-image-placeholder" aria-hidden="true"></div>
+                }
+                <div class="donation-pages-preview__impact-card-content">
+                  @if (card.title || cardIndex === 0) {
+                    <h5 class="donation-pages-preview__impact-card-title">
+                      {{ card.title || ('fundraising.donationPages.form.contentTranslations.whyDonate.cardTitle' | translate) }}
+                    </h5>
+                  }
+                  @if (card.description || cardIndex === 0) {
+                    <p class="donation-pages-preview__impact-card-description">
+                      {{ card.description || ('fundraising.donationPages.form.contentTranslations.whyDonate.cardDescription' | translate) }}
+                    </p>
+                  }
+                </div>
+              </div>
+            }
+          }
+        </div>
+      }
+
+      @if (showContactSection()) {
+        <div class="donation-pages-preview__divider"></div>
+
+        <div class="donation-pages-preview__section-header">
+          <ignt-icon class="donation-pages-preview__section-header__icon" name="message-dots" variant="light" aria-hidden="true" />
+          <h4 class="donation-pages-preview__section-header__title">
+            {{ 'fundraising.donationPages.form.preview.largerDonations.title' | translate }}
+          </h4>
+        </div>
+
+        <div class="donation-pages-preview__contact">
+          <p class="donation-pages-preview__contact-description">
+            {{ 'fundraising.donationPages.form.preview.largerDonations.description' | translate: { min: settings().min } }}
+          </p>
+          @if (settings().contactEmail) {
+            <ignt-pill
+              class="donation-pages-preview__contact-info"
+              [label]="settings().contactEmail"
+              [isActive]="false"
+              [value]="settings().contactEmail"
+            />
+          }
+          @if (settings().contactPhone) {
+            <ignt-pill
+              class="donation-pages-preview__contact-info"
+              [label]="settings().contactPhone"
+              [isActive]="false"
+              [value]="settings().contactPhone"
+            />
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <p class="donation-pages-preview__footer-hint">
+    {{ 'fundraising.donationPages.form.preview.footerHint' | translate }}
+  </p>
+</div>

@@ -1,0 +1,163 @@
+<div class="modify-reservation-ticket-selector">
+  @if (initialLoading()) {
+    <div class="modify-reservation-ticket-selector__loading" data-testid="ticket-selector-loading">
+      <ignt-icon name="spinner" variant="solid" size="caption" [spin]="true" aria-hidden="true" />
+    </div>
+  } @else {
+    @for (group of ticketGroups(); track group.startDate) {
+      <div class="modify-reservation-ticket-selector__group" data-testid="ticket-group">
+        <div class="modify-reservation-ticket-selector__group__header" data-testid="ticket-group-header">
+          <div class="modify-reservation-ticket-selector__group__header__left">
+            @if (group.isShopProduct) {
+              <ignt-icon name="shop" variant="light" size="caption" />
+              <span data-testid="ticket-group-products-title">{{ 'reservation.shopProducts.productsGroupTitle' | translate }}</span>
+            } @else {
+              <ignt-icon name="calendar" variant="light" size="caption" />
+              <span>{{ group.startDate | momentDate: 'MMM dd yyyy, HH:mm' : group.timezone : locale }}</span>
+              @if (group.isNew) {
+                <ignt-tag
+                  class="modify-reservation-ticket-selector__group__new-tag"
+                  sentiment="positive"
+                  variant="outline"
+                  data-testid="ticket-group-new-tag"
+                >
+                  {{ 'reservations.modify.newTicket' | translate }}
+                </ignt-tag>
+              }
+            }
+          </div>
+          @if (!group.isShopProduct) {
+            <div class="modify-reservation-ticket-selector__group__header__right">
+              <ignt-button
+                variant="tertiary"
+                size="small"
+                [leadingIcon]="{ name: 'calendar', variant: 'light' }"
+                [label]="'reservations.modify.reschedule' | translate"
+                (click)="onReschedule(group)"
+              />
+            </div>
+          }
+        </div>
+
+        @for (line of group.lines; track line.sessionId + '_' + line.sessionTypeId) {
+          @let qtyCtrl = quantityFormControl(line);
+          <div
+            class="modify-reservation-ticket-selector__line"
+            [class.modify-reservation-ticket-selector__line--changed]="!line.isNew && line.currentQuantity !== line.originalQuantity"
+            data-testid="ticket-line"
+          >
+            @let priceTotal = lineTotalPrice(line);
+            @let feeTotal = lineTotalFees(line);
+            <div class="modify-reservation-ticket-selector__line__info">
+              <div class="modify-reservation-ticket-selector__line__title-row">
+                <span class="modify-reservation-ticket-selector__line__title" data-testid="ticket-line-title">
+                  {{ line.title }}
+                </span>
+                <span class="modify-reservation-ticket-selector__line__price" data-testid="ticket-line-price">
+                  {{ priceTotal?.amount ?? 0 | currency: priceTotal?.currency ?? line.currency : 'symbol' : '1.2-2' : locale }}
+                </span>
+              </div>
+              <div class="modify-reservation-ticket-selector__line__fee-row">
+                <span class="modify-reservation-ticket-selector__line__fee" data-testid="ticket-line-fee">
+                  {{ 'reservations.modify.bookingFeePerTicketType' | translate }}:
+                  {{ line.surchargePerTicket | currency: line.currency : 'symbol' : '1.2-2' : locale }}
+                </span>
+                <span class="modify-reservation-ticket-selector__line__fee-total" data-testid="ticket-line-total-fee">
+                  {{ feeTotal?.amount ?? 0 | currency: feeTotal?.currency ?? line.currency : 'symbol' : '1.2-2' : locale }}
+                </span>
+              </div>
+            </div>
+
+            <div class="modify-reservation-ticket-selector__line__actions">
+              <div class="modify-reservation-ticket-selector__line__quantity">
+                <div class="modify-reservation-ticket-selector__line__quantity-wrapper">
+                  <button
+                    ignt-icon-button
+                    variant="danger"
+                    sentiment="tertiary"
+                    size="medium"
+                    [icon]="['fal', 'trash-alt']"
+                    class="modify-reservation-ticket-selector__line__quantity__btn modify-reservation-ticket-selector__line__quantity__btn--remove"
+                    data-testid="ticket-line-remove"
+                    [attr.aria-label]="'reservations.modify.removeTicketType' | translate"
+                    (click)="removeLine(line)"
+                  ></button>
+                  <button
+                    ignt-icon-button
+                    sentiment="primary"
+                    size="small"
+                    [icon]="['fal', 'minus']"
+                    [disabled]="!canDecrementQuantity(line)"
+                    class="modify-reservation-ticket-selector__line__quantity__btn"
+                    data-testid="ticket-line-decrement"
+                    (click)="decrementQuantity(line)"
+                  ></button>
+                  <div class="modify-reservation-ticket-selector__line__quantity-field" data-testid="ticket-line-quantity">
+                    <ignt-input-field
+                      appInputMobileBehavior
+                      [id]="'ticket-line-quantity-' + line.sessionId + '_' + line.sessionTypeId"
+                      [class]="'field--text-centered'"
+                      label=""
+                      type="text"
+                      inputmode="numeric"
+                      placeholder="0"
+                      [formControl]="qtyCtrl"
+                      [customFormErrors]="quantityCustomFormErrors(line)"
+                      [hideErrorLabels]="true"
+                      (beforeinput)="preventInvalidCharacters($event)"
+                      (blurred)="onQuantityInputBlur(qtyCtrl, line)"
+                    />
+                  </div>
+                  <button
+                    ignt-icon-button
+                    sentiment="primary"
+                    size="small"
+                    [icon]="['fal', 'plus']"
+                    [disabled]="!canIncrementQuantity(line)"
+                    class="modify-reservation-ticket-selector__line__quantity__btn"
+                    data-testid="ticket-line-increment"
+                    (click)="incrementQuantity(line)"
+                  ></button>
+                </div>
+              </div>
+            </div>
+
+            @if (qtyCtrl.errors) {
+              <div class="modify-reservation-ticket-selector__line__error" data-testid="ticket-line-error">
+                @for (error of quantityCustomFormErrors(line); track error.type) {
+                  <ignt-field-error [formControlValue]="qtyCtrl" [errorName]="error.type">
+                    {{ error.message }}
+                  </ignt-field-error>
+                }
+              </div>
+            }
+
+            <div class="modify-reservation-ticket-selector__line__originally">
+              @if (!line.isNew && line.currentQuantity !== line.originalQuantity) {
+                <span class="modify-reservation-ticket-selector__line__originally__label" data-testid="ticket-line-originally">
+                  {{ 'reservations.modify.originally' | translate }}: {{ line.originalQuantity }}
+                </span>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    } @empty {
+      <div class="modify-reservation-ticket-selector__empty" data-testid="ticket-selector-empty">
+        <ignt-icon
+          class="modify-reservation-ticket-selector__empty__icon"
+          name="calendar"
+          variant="solid"
+          size="display"
+          aria-hidden="true"
+        />
+        <p class="modify-reservation-ticket-selector__empty__title">
+          {{ 'reservations.modify.emptyReservationTitle' | translate }}
+        </p>
+        <p class="modify-reservation-ticket-selector__empty__description">
+          {{ 'reservations.modify.emptyReservationDescription' | translate }}
+        </p>
+      </div>
+    }
+  }
+</div>

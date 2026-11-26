@@ -1,0 +1,214 @@
+@use 'foundations' as foundations;
+
+// Every field stacks: label on top, control underneath. Without this the enum dropdown — an
+// inline-level host, unlike the block-level input fields — sits next to its own label.
+.immersive-field {
+  display: grid;
+  gap: foundations.$space-1-5;
+}
+
+.immersive-field--enum {
+  justify-items: start;
+}
+
+.immersive-field--number {
+  max-width: 20rem;
+}
+
+.immersive-field__head {
+  align-items: center;
+  display: flex;
+  gap: foundations.$space-2;
+  justify-content: space-between;
+}
+
+.immersive-field__label {
+  align-items: center;
+  color: foundations.$color-text-subtle;
+  display: inline-flex;
+  font: foundations.$font-caption-bold;
+  gap: foundations.$space-1-5;
+}
+
+.immersive-field__gap-icon {
+  color: var(--fz-translation-status-warning);
+}
+
+.immersive-field__hint {
+  display: inline-flex;
+  line-height: 0;
+}
+
+.immersive-field__hint-icon {
+  color: foundations.$color-text-subtle;
+}
+
+// The rich editor has no DS helper slot, so the fixed-copy line mirrors the textarea field's own.
+.immersive-field__helper {
+  color: foundations.$color-text-main;
+  font: foundations.$font-caption-regular;
+}
+
+.immersive-field__toggle-row {
+  align-items: center;
+  display: flex;
+  gap: foundations.$space-3;
+}
+
+.immersive-field__toggle-label {
+  color: foundations.$color-text-main;
+  font: foundations.$font-small-regular;
+}
+
+// The status icons sit beside the label, never inside it: a click on them must not reach the switch.
+.immersive-field__toggle-header {
+  align-items: center;
+  display: inline-flex;
+  gap: foundations.$space-1-5;
+}
+
+// The switch keeps its natural width; the revealed input takes the rest of the row.
+.immersive-field__switch-row {
+  align-items: center;
+  display: flex;
+  gap: foundations.$space-3;
+}
+
+// `min-width: 0` lets the revealed input shrink to the row instead of widening the panel.
+.immersive-field__switch-input {
+  flex: 1;
+  min-width: 0;
+}
+
+// The token input takes the row; the translations trigger keeps its own width beside it.
+.immersive-field__token-row {
+  align-items: flex-start;
+  display: flex;
+  gap: foundations.$space-2;
+
+  > .immersive-field__token-input {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.immersive-field__enum-dropdown {
+  max-width: 20rem;
+}
+
+// An unsaved edit shows on the control itself, the same accent the translations aside uses for
+// its dirty rows.
+:host ::ng-deep .immersive-field--dirty .input-field__input,
+:host ::ng-deep .immersive-field--dirty textarea,
+:host ::ng-deep .immersive-field--dirty .ProseMirror {
+  border-color: foundations.$color-text-accent;
+}
+
+// Icon-only and quiet at rest: on a row that already carries a label, a hint and a control, the
+// colour is the signal. The count rides along as the button label; the aria-label says it all.
+.immersive-field__translations {
+  flex: none;
+}
+
+:host ::ng-deep .immersive-field__translations .button {
+  color: foundations.$color-text-subtle;
+  font-variant-numeric: tabular-nums;
+}
+
+// A small button draws its icon at 14px, where the A · 文 glyph stops reading as "languages". Only
+// the glyph grows; the button keeps the small footprint of the row.
+:host ::ng-deep .immersive-field__translations .button__icon {
+  --ignt-icon-size: #{foundations.$size-h3};
+}
+
+:host ::ng-deep .immersive-field__translations--partial .button {
+  color: var(--fz-translation-status-warning);
+}
+
+:host ::ng-deep .immersive-field__translations--none .button {
+  color: foundations.$palette-danger-500;
+}
+
+// `ignt-input-field` sizes its trail icon for a labelled input. With `label=""` the input is only
+// `$size-8` tall, so the touch-area-sized button hangs out of the box unless it shrinks to match.
+:host ::ng-deep .immersive-field__media-input .field__icon--trail {
+  block-size: foundations.$size-8;
+  inline-size: foundations.$size-8;
+  inset-block-start: 0;
+}
+
+// The trail icon only ever renders for `ok`/`stored`, where it is the preview eye — a status glyph
+// that happens to be clickable, not a button that needs to look like one: no hover disc, no brand
+// blue, plain text colour. `checking`/`invalid`/`broken` never reach the DS trail icon at all; see
+// `.immersive-field__media-status` below.
+:host ::ng-deep .immersive-field__media-input .field__icon--trail.icon-button {
+  color: foundations.$color-text-main;
+  cursor: default;
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background: none;
+    color: foundations.$color-text-main;
+  }
+
+  // The glyph lives in ignt-icon-button's own template and carries the sentiment colour itself,
+  // so it has to be told to follow the button.
+  .icon-button__icon,
+  &:hover:not(:disabled) .icon-button__icon,
+  &:disabled .icon-button__icon {
+    color: inherit;
+  }
+}
+
+:host ::ng-deep .immersive-field__media-input:is([data-media-status='stored'], [data-media-status='ok']) .field__icon--trail.icon-button {
+  cursor: pointer;
+}
+
+// `checking`/`invalid`/`broken` have no DS trail icon to hang a status off: this glyph sits over
+// the same trail-icon footprint instead, `aria-hidden` because the error text (`.immersive-field__
+// media-error`, `aria-live="polite"`) is the one accessible carrier of the message. It needs no
+// `aria-disabled` either — it was never interactive to begin with.
+.immersive-field__media-input {
+  position: relative;
+}
+
+.immersive-field__media-status {
+  align-items: center;
+  block-size: foundations.$size-8;
+  display: flex;
+  inline-size: foundations.$size-8;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  justify-content: center;
+  pointer-events: none;
+  position: absolute;
+}
+
+.immersive-field__media-input:is([data-media-status='invalid'], [data-media-status='broken']) .immersive-field__media-status {
+  color: var(--fz-translation-status-warning);
+}
+
+.immersive-field__media-input[data-media-status='checking'] .immersive-field__media-status {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: immersive-field-media-spin 1s linear infinite;
+  }
+}
+
+@keyframes immersive-field-media-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// The glyph sits over the trail-icon footprint, so typed text must not run under it.
+:host
+  ::ng-deep
+  .immersive-field__media-input:is([data-media-status='checking'], [data-media-status='invalid'], [data-media-status='broken'])
+  .field__input {
+  padding-inline-end: foundations.$space-10;
+}
+
+.immersive-field__media-error {
+  color: var(--fz-translation-status-warning);
+  font: foundations.$font-caption-regular;
+}

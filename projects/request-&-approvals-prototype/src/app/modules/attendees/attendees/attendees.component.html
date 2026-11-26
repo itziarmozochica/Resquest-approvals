@@ -1,0 +1,228 @@
+<app-refresh-bar
+  class="attendees-page__refresh-bar"
+  [class.attendees-page__refresh-bar--idle]="!isCalendarRefreshing()"
+  [isRefreshing]="isCalendarRefreshing()"
+/>
+
+<section class="main-wrapper attendees-page" [attr.aria-label]="'menu.attendeesList' | translate">
+  @let filters = currentFilters();
+  @let sessionsState = sessionsState$ | async;
+  @let ticketCount = ticketCount$ | async;
+  @let emptyMessageKey = (emptyMessageKey$ | async) ?? emptyMessageKeys.noFilters;
+  @let hasPlanAndPlace = !!filters?.selectedPlan?.id && !!filters?.selectedPlace?.id;
+  @let isListView = selectedView() === viewModes.list;
+
+  <app-event-selection-band data-testid="attendees-selectors" [summary]="selectorsLabel() || ('attendees.searchFilters' | translate)">
+    <app-search-bar
+      data-testid="attendees-search-bar"
+      [screen]="screen.attendeesList"
+      [searchOnChange]="true"
+      [showVenue]="true"
+      (searchEmitter)="filters$.next($event)"
+    ></app-search-bar>
+  </app-event-selection-band>
+
+  <div class="attendees-page__title">
+    <div class="attendees-page__title-content">
+      <span class="attendees-page__section">{{ 'menu.events' | translate }}</span>
+      <h1 class="attendees-page__heading" data-testid="page-title">{{ 'menu.attendeesList' | translate }}</h1>
+    </div>
+    @if (isListView && hasPlanAndPlace) {
+      <div class="attendees-page__actions">
+        <app-attendees-ticket-count
+          data-testid="attendees-ticket-count"
+          [collapseAttendanceOnMobile]="true"
+          [tickets]="ticketCount?.tickets"
+          [addons]="ticketCount?.addons"
+        >
+          <app-attendees-download-document-dropdown
+            data-testid="all-attendees-document-download-selector"
+            [enableDateRangeSelector]="true"
+            [selectedDateRange]="selectedDateRange$ | async"
+            [timezone]="filters?.timezone"
+            [downloadType]="downloadTypes.total"
+            [zIndex]="1050"
+          ></app-attendees-download-document-dropdown>
+        </app-attendees-ticket-count>
+        @if (printFolioZeroEnabled) {
+          <ignt-button
+            variant="secondary"
+            size="large"
+            data-testid="attendees-print-folio-zero"
+            [label]="'attendees.folioZero.printButton' | translate"
+            (click)="openFolioZeroSheet(filters)"
+          />
+        }
+      </div>
+    }
+  </div>
+
+  <div class="attendees-page__filters">
+    <div class="attendees-page__views">
+      <ignt-tabs
+        class="attendees-page__view-tabs"
+        data-testid="attendees-view-tabs"
+        [hasExtraLine]="false"
+        [selectedIndex]="selectedViewIndex()"
+        (selectedIndexChange)="onViewIndexChange($event)"
+      >
+        <ignt-tabs-item data-testid="attendees-calendar-view-option" [label]="'attendees.calendarView' | translate" />
+        <ignt-tabs-item data-testid="attendees-calendar-list-option" [label]="'attendees.listView' | translate" />
+      </ignt-tabs>
+      @if (calendarUpdatedAt() || isCalendarOffline()) {
+        <app-refresh-status
+          class="attendees-page__refresh-status"
+          [updatedAt]="calendarUpdatedAt()"
+          [isOffline]="isCalendarOffline()"
+          [timezone]="filters?.timezone"
+        />
+      }
+    </div>
+    @if (isListView) {
+      <app-attendees-date-range
+        data-testid="attendees-date-range"
+        [isDisabled]="!hasPlanAndPlace"
+        [timezone]="filters?.timezone"
+        [dateRange]="selectedDateRange$ | async"
+        (dateRangeChange)="updateSelectedRangeQueryParams($event)"
+      ></app-attendees-date-range>
+    }
+  </div>
+
+  <div class="attendees-page__content">
+    <div class="attendees-page__table" [attr.aria-busy]="sessionsState?.status === sessionsStatus.loading" aria-live="polite">
+      @if (isListView) {
+        <app-attendees-sessions-table
+          data-testid="attendees-sessions-table-container"
+          [days]="sessionsState?.days ?? []"
+          [dayActions]="dayActionsTemplate"
+          [displayAddons]="!!(shouldIncludeAddons$ | async)"
+          [emptyMessage]="emptyMessageKey | translate"
+          [filterConfig]="filterConfig()"
+          [isLoading]="sessionsState?.status === sessionsStatus.loading"
+          [timeSlotActions]="timeSlotActionsTemplate"
+          [timezone]="filters?.timezone ?? 'UTC'"
+          (filterClearAll)="onFilterClearAll()"
+          (filterClosed)="onFilterClosed($event)"
+          (filterPillRemoved)="onFilterPillRemoved($event)"
+          (timeSlotSelected)="onTimeSlotSelected($event)"
+        />
+      } @else {
+        <app-attendees-calendar
+          class="attendees-page__calendar"
+          data-testid="attendees-calendar"
+          [filters]="filters$ | async"
+          [showPrintFolioZero]="printFolioZeroEnabled"
+          [timeSlotsRequest]="timeSlotsRequest$ | async"
+          [selectedDateRange]="calendarSelectedDateRange$ | async"
+          [selectedTimeSlotId]="(selectedTimeSlot$ | async)?.id"
+          [shouldIncludeAddons]="shouldIncludeAddons$ | async"
+          [showTimeSlotsWithNoSales]="showTimeSlotsWithNoSales$ | async"
+          [showAttendancePercentage]="showAttendancePercentage$ | async"
+          [hideFilterControls]="isMobile()"
+          (printFolioZeroClick)="openFolioZeroSheet($event)"
+          (selectedDateRangeChange)="updateSelectedRangeQueryParams($event)"
+          (shouldIncludeAddonsChange)="updateShouldIncludeParams($event)"
+          (showTimeSlotsWithNoSalesChange)="updateShowTimeslotWithNoSalesQueryParams($event)"
+          (showAttendancePercentageChange)="updateShowAttendancePercentageQueryParams($event)"
+        >
+          <ng-container ngProjectAs="[attendeesCalendarExtra]">
+            @if (isMobile()) {
+              @let activeFilterCount = calendarActiveFilterCount();
+              <ignt-button
+                data-testid="attendees-calendar-filters-button"
+                size="small"
+                [variant]="activeFilterCount > 0 ? 'primary' : 'tertiary'"
+                [disabled]="!hasPlanAndPlace"
+                [leadingIcon]="filterIcon"
+                [label]="
+                  activeFilterCount > 0
+                    ? ('common.filter.activeButtonLabel' | translate: { count: activeFilterCount })
+                    : ('common.filter.label' | translate)
+                "
+                (click)="openCalendarFilters()"
+              />
+            }
+          </ng-container>
+        </app-attendees-calendar>
+      }
+    </div>
+
+    @if (isDesktop$ | async) {
+      <div class="attendees-page__time-slot-summary" [class.attendees-page__time-slot-summary--selected]="!!(selectedTimeSlot$ | async)">
+        <ng-container *ngTemplateOutlet="timeSlotSummary; context: { displayClose: true }"></ng-container>
+      </div>
+    }
+  </div>
+
+  <div class="attendees-page__help-topic" appHideWrapperOnHelpTopicClose>
+    <app-help-topic-banner
+      [message]="'helpTopics.attendees.message' | translate"
+      [ctaLabel]="'helpTopics.generic.cta.label' | translate"
+      [ctaLink]="'helpTopics.attendees.cta.href' | translate"
+    ></app-help-topic-banner>
+  </div>
+</section>
+
+@if (!(isDesktop$ | async)) {
+  <app-lateral-slider
+    data-testid="attendees-lateral-slider"
+    class="attendees-page__lateral-slider"
+    [showDetails]="selectedTimeSlot$ | async"
+    [contentTemplate]="timeSlotSummary"
+    (closeSlider)="clearSelectedTimeSlot()"
+  ></app-lateral-slider>
+}
+
+<ng-template #folioZeroPanelTemplate>
+  @if (folioZeroFilters(); as filters) {
+    <app-folio-zero-print-side-sheet [filters]="filters" [panelGeneration]="folioZeroPanelGeneration()" />
+  }
+</ng-template>
+
+<ng-template #dayActionsTemplate let-day>
+  @if (day.attendeesCount > 0) {
+    <app-attendees-download-document-dropdown
+      data-testid="attendees-sessions-table-day-documents"
+      [selectedDateRange]="{ startsAtFrom: day.startsAt, startsAtTo: day.downloadRangeEnd }"
+      [enableDateRangeSelector]="false"
+      [attendeesCount]="day.attendeesCount"
+      [downloadType]="downloadTypes.day"
+      [zIndex]="1050"
+    ></app-attendees-download-document-dropdown>
+  }
+</ng-template>
+
+<ng-template #timeSlotActionsTemplate let-timeSlot>
+  @if (timeSlot.attendeesCount > 0) {
+    <app-attendees-download-document-dropdown
+      data-testid="attendees-sessions-table-time-slot-documents"
+      [selectedDateRange]="{ startsAtFrom: timeSlot.startsAt, startsAtTo: timeSlot.downloadRangeEnd }"
+      [attendeesCount]="timeSlot.attendeesCount"
+      [downloadType]="downloadTypes.timeSlot"
+      [zIndex]="1050"
+    ></app-attendees-download-document-dropdown>
+  }
+  @if (timeSlot.hasSeating) {
+    <app-attendees-seating-map
+      data-testid="attendees-sessions-table-time-slot-seating"
+      [mainPlanId]="currentFilters()?.selectedPlan?.id ?? null"
+      [sessionIds]="timeSlot.sessionIds"
+    ></app-attendees-seating-map>
+  }
+</ng-template>
+
+<ng-template #timeSlotSummary let-displayClose="displayClose">
+  @let summaryFilters = currentFilters();
+  <app-attendees-time-slot-summary
+    data-testid="attendees-time-slot-summary"
+    class="time-slot-summary"
+    [displayClose]="displayClose"
+    [planId]="summaryFilters?.selectedPlan?.id"
+    [placeId]="summaryFilters?.selectedPlace?.id"
+    [timezone]="summaryFilters?.timezone"
+    [timeSlot]="selectedTimeSlot$ | async"
+    [displayAddons]="shouldIncludeAddons$ | async"
+    (close)="clearSelectedTimeSlot()"
+  ></app-attendees-time-slot-summary>
+</ng-template>

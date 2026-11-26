@@ -1,0 +1,193 @@
+@if (store.isQueued()) {
+  <section class="review-confirm-step__queued wrapper-card" data-testid="review-confirm-queued" role="status">
+    <ignt-icon class="review-confirm-step__queued-icon" name="circle-check" variant="solid" />
+    <h3 class="review-confirm-step__queued-title">{{ 'orders.bulkPartialRefunds.reviewConfirm.queued.title' | translate }}</h3>
+    <p class="review-confirm-step__queued-detail">{{ 'orders.bulkPartialRefunds.reviewConfirm.queued.detail' | translate }}</p>
+    <p class="review-confirm-step__queued-reference" data-testid="review-confirm-queued-reference">
+      {{ 'orders.bulkPartialRefunds.reviewConfirm.queued.reference' | translate: { jobId: store.job().data?.jobId } }}
+    </p>
+  </section>
+} @else {
+  @if (store.job().error !== null) {
+    <ignt-alert
+      class="review-confirm-step__job-error"
+      data-testid="review-confirm-job-error"
+      sentiment="danger"
+      [description]="'orders.bulkPartialRefunds.reviewConfirm.queued.error.description' | translate"
+      [title]="'orders.bulkPartialRefunds.reviewConfirm.queued.error.title' | translate"
+    />
+  }
+
+  <div
+    class="review-confirm-step"
+    [class.review-confirm-step--updating]="store.preview().isLoading"
+    [attr.aria-busy]="store.preview().isLoading"
+    data-testid="review-confirm-step"
+  >
+    <section class="review-confirm-step__card wrapper-card">
+      <header class="review-confirm-step__section-header">
+        <h3 class="review-confirm-step__section-title">{{ 'orders.bulkPartialRefunds.reviewConfirm.choices.title' | translate }}</h3>
+      </header>
+
+      <app-partial-refund-choices
+        [currencies]="choiceCurrencies()"
+        [includeSurcharge]="store.includeSurcharge()"
+        [mode]="store.mode()"
+        [reason]="store.reason()"
+        [selectionLabel]="
+          'orders.bulkPartialRefunds.reviewConfirm.choices.ticketsValue'
+            | translate
+              : {
+                  slots: store.selectedTimeSlotCount() | number,
+                  tickets: store.selectedTicketCount() | number,
+                }
+        "
+        [value]="store.value()"
+      />
+    </section>
+
+    @if (showDoubleRefundAcknowledgment()) {
+      <section class="review-confirm-step__acknowledge wrapper-card" data-testid="review-confirm-acknowledge">
+        <ignt-alert
+          sentiment="warning"
+          [description]="'orders.bulkPartialRefunds.reviewConfirm.doubleRefund.detail' | translate"
+          [title]="'orders.bulkPartialRefunds.reviewConfirm.doubleRefund.title' | translate"
+        />
+
+        <ignt-checkbox
+          class="review-confirm-step__acknowledge-box"
+          [checked]="store.doubleRefundAcknowledged()"
+          [dataTestId]="'review-confirm-acknowledge-box'"
+          [disabled]="store.preview().isLoading"
+          [label]="'orders.bulkPartialRefunds.reviewConfirm.doubleRefund.acknowledge' | translate"
+          (change)="onDoubleRefundAcknowledgedChange($event)"
+        />
+
+        @if (store.preview().isLoading) {
+          <p class="review-confirm-step__updating" data-testid="review-confirm-updating" role="status">
+            <ignt-icon aria-hidden="true" name="spinner" variant="solid" [spin]="true" />
+            {{ 'orders.bulkPartialRefunds.reviewConfirm.updating' | translate }}
+          </p>
+        }
+      </section>
+    }
+
+    @if (store.preview().error !== null) {
+      <ignt-alert
+        data-testid="review-confirm-error"
+        sentiment="danger"
+        [description]="'orders.bulkPartialRefunds.defineRefund.summary.error.description' | translate"
+        [title]="'orders.bulkPartialRefunds.defineRefund.summary.error.title' | translate"
+      />
+    } @else if (store.preview().data !== null) {
+      @if (store.hasMultipleCurrencies()) {
+        <section class="review-confirm-step__currencies wrapper-card">
+          <header class="review-confirm-step__section-header">
+            <h3 class="review-confirm-step__section-title">
+              {{ 'orders.bulkPartialRefunds.reviewConfirm.currencies.title' | translate }}
+            </h3>
+          </header>
+
+          <ul class="review-confirm-step__currency-cards" data-testid="review-confirm-currency-cards">
+            @for (total of store.refundTotals(); track total.currency) {
+              <li class="review-confirm-step__currency-card">
+                <div class="review-confirm-step__currency-heading">
+                  <p class="review-confirm-step__currency-code">{{ total.currency }}</p>
+                  <p class="review-confirm-step__currency-tickets">
+                    {{ 'orders.bulkPartialRefunds.counts.tickets' | translate: { count: total.ticketsCount | number } }}
+                  </p>
+                </div>
+
+                <div class="review-confirm-step__currency-figure">
+                  <p class="review-confirm-step__currency-amount">{{ total.amount | currency: total.currency : 'symbol-narrow' }}</p>
+                  <p class="review-confirm-step__currency-caption">
+                    {{ 'orders.bulkPartialRefunds.reviewConfirm.currencies.toRefund' | translate }}
+                  </p>
+                </div>
+              </li>
+            }
+          </ul>
+
+          <ignt-alert
+            data-testid="review-confirm-currency-note"
+            sentiment="info"
+            [description]="'orders.bulkPartialRefunds.reviewConfirm.currencies.note' | translate"
+          />
+        </section>
+      }
+
+      @for (section of store.preview().data?.sections ?? []; track section.currency) {
+        <section class="review-confirm-step__section wrapper-card" [attr.data-testid]="'review-confirm-section-' + section.currency">
+          <header class="review-confirm-step__section-header">
+            <h3 class="review-confirm-step__section-title">
+              @if (store.hasMultipleCurrencies()) {
+                {{ section.currency }}
+              } @else {
+                {{ 'orders.bulkPartialRefunds.reviewConfirm.table.title' | translate }}
+              }
+            </h3>
+
+            <p class="review-confirm-step__grouping">{{ 'orders.bulkPartialRefunds.reviewConfirm.table.grouping' | translate }}</p>
+          </header>
+
+          <app-partial-refund-rows-table
+            class="review-confirm-step__rows-table"
+            [includeSurcharge]="store.previewedIncludeSurcharge()"
+            [section]="section"
+          />
+        </section>
+      }
+
+      @if (excluded().length > 0) {
+        <section class="review-confirm-step__excluded wrapper-card" data-testid="review-confirm-excluded">
+          <header class="review-confirm-step__section-header">
+            <div class="review-confirm-step__excluded-heading">
+              <h3 class="review-confirm-step__section-title">
+                {{ 'orders.bulkPartialRefunds.reviewConfirm.excluded.title' | translate }}
+              </h3>
+              <p class="review-confirm-step__grouping">
+                {{
+                  'orders.bulkPartialRefunds.reviewConfirm.excluded.subtitle'
+                    | translate: { orders: excludedOrders() | number, tickets: excludedTickets() | number }
+                }}
+              </p>
+            </div>
+
+            @if (exportableOrders().length > 0) {
+              <ignt-button
+                data-testid="review-confirm-download-excluded"
+                sentiment="neutral"
+                variant="secondary"
+                [label]="'orders.bulkPartialRefunds.reviewConfirm.excluded.download' | translate"
+                (click)="downloadExcluded()"
+              />
+            }
+          </header>
+
+          <ul class="review-confirm-step__excluded-list">
+            @for (group of excluded(); track group.code) {
+              <li class="review-confirm-step__excluded-item">
+                <p class="review-confirm-step__excluded-count">
+                  {{ 'orders.bulkPartialRefunds.counts.tickets' | translate: { count: group.ticketsCount | number } }}
+                  <span class="review-confirm-step__excluded-orders">{{
+                    'orders.bulkPartialRefunds.counts.orders' | translate: { count: group.ordersCount | number }
+                  }}</span>
+                </p>
+                <p class="review-confirm-step__excluded-reason">{{ group.reason }}</p>
+              </li>
+            }
+          </ul>
+        </section>
+      }
+
+      <ignt-alert
+        data-testid="review-confirm-cannot-undo"
+        sentiment="danger"
+        [description]="
+          'orders.bulkPartialRefunds.reviewConfirm.confirm.cannotUndoDetail' | translate: { tickets: store.refundTicketCount() | number }
+        "
+        [title]="'orders.bulkPartialRefunds.reviewConfirm.confirm.cannotUndo' | translate"
+      />
+    }
+  </div>
+}

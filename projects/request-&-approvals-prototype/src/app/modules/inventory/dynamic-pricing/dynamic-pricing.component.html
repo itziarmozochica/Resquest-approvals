@@ -1,0 +1,160 @@
+<ng-container *ngIf="planId$ | async; else noFilters">
+  <ng-container *ngIf="vm$ | async as vm; else loadingTemplate">
+    <ng-container *ngIf="vm.isEditingLimitedByADP">
+      <ignt-alert
+        data-testid="dynamic-pricing-editing-disabled-banner"
+        [title]="'sessions.dynamicPricing.disabledPriceEditingWarningTitle' | translate"
+        [description]="'sessions.dynamicPricing.disabledPriceEditingWarningDescription' | translate"
+        sentiment="danger"
+      ></ignt-alert>
+    </ng-container>
+    <ng-container *ngIf="!vm.loading; else loadingTemplate">
+      <ng-container *ngIf="vm.dynamicPricingRules.length > 0; else noResults">
+        <header class="table-header">
+          <div class="table-header__context-row">
+            <div class="table-header__intro">
+              <h3 class="table-header__title">{{ 'inventory.dynamicPricing.families.title' | translate }}</h3>
+              <p class="table-header__message">{{ 'inventory.dynamicPricing.families.description' | translate }}</p>
+            </div>
+            @if (!isFamilyCopyEnabled) {
+              <ignt-button
+                variant="primary"
+                size="large"
+                data-testid="new-family-button"
+                [label]="'inventory.dynamicPricing.families.newFamilyButton' | translate"
+                (click)="onCreateFamily()"
+              ></ignt-button>
+            } @else {
+              <ignt-button
+                variant="primary"
+                size="large"
+                data-testid="new-family-button"
+                [label]="'inventory.dynamicPricing.families.newFamilyButton' | translate"
+                [trailingIcon]="familyMenuIcon"
+                [igntMenuTriggerFor]="newFamilyMenu"
+              ></ignt-button>
+
+              <ng-template #newFamilyMenu>
+                <ignt-menu class="new-family-menu">
+                  <ignt-menu-item
+                    data-testid="new-family-from-scratch"
+                    [label]="'inventory.dynamicPricing.families.newFamilyFromScratch' | translate"
+                    (triggered)="onCreateFamily()"
+                  />
+                  <ignt-menu-item
+                    data-testid="new-family-copy-structure"
+                    [label]="'inventory.dynamicPricing.families.newFamilyCopyFrom' | translate"
+                    (triggered)="onCopyFamilyStructure()"
+                  />
+                </ignt-menu>
+              </ng-template>
+            }
+          </div>
+
+          <div class="table-header__toolbar-row">
+            <div class="table-header__actions">
+              <button
+                *ngIf="hasGraphableRules(vm.dynamicPricingRules)"
+                class="button button--secondary button--small"
+                data-testid="view-topology-button"
+                (click)="openTopology()"
+              >
+                {{ 'inventory.dynamicPricingGraph.viewButton' | translate }}
+              </button>
+              <button
+                class="button button--small button--secondary"
+                data-testid="new-action-rule-button"
+                [disabled]="effectiveEditingLimited$ | async"
+                (click)="onOpenAddDynamicPricingRuleForm()"
+              >
+                {{ 'sessions.dynamicPricing.rules.createButton' | translate }}
+              </button>
+            </div>
+          </div>
+        </header>
+        <app-occupancy-scope />
+        <app-dynamic-pricing-families
+          [families]="vm.families"
+          [isEditingLimited]="(effectiveEditingLimited$ | async) ?? false"
+          (editRule)="editItem($event)"
+          (archiveRule)="archiveItem($event)"
+        ></app-dynamic-pricing-families>
+      </ng-container>
+    </ng-container>
+
+    <ng-container *ngIf="vm.planId">
+      <app-lateral-slider
+        [showDetails]="isAddDynamicPricingRuleFormOpen$ | async"
+        [title]="
+          (editDynamicPricingRule$ | async)
+            ? ('sessions.dynamicPricing.rules.form.titleEdit' | translate)
+            : ('sessions.dynamicPricing.rules.form.titleCreate' | translate)
+        "
+        [contentTemplate]="newListForm"
+        (closeSlider)="onFormClose()"
+      ></app-lateral-slider>
+
+      <ng-template #newListForm>
+        <app-dynamic-pricing-rule-form
+          *ngIf="isAddDynamicPricingRuleFormOpen$ | async"
+          [planId]="vm.planId"
+          [dynamicPricingRule]="editDynamicPricingRule$ | async"
+          (cancel)="onFormClose()"
+          (save)="onSave(vm.planId, $event)"
+        >
+        </app-dynamic-pricing-rule-form>
+      </ng-template>
+    </ng-container>
+  </ng-container>
+</ng-container>
+
+<ng-template #loadingTemplate>
+  <div class="spinner" data-testid="spinner">
+    <ignt-icon class="loader" name="spinner" variant="solid" size="display" [spin]="true"></ignt-icon>
+  </div>
+</ng-template>
+
+<ng-template #noFilters>
+  <div class="empty-filters" data-testid="no-filters">
+    <ignt-icon class="empty-filters__icon" name="sort-alt" variant="regular" size="h3"></ignt-icon>
+    <div>
+      {{ 'sessions.dynamicPricing.noFilters' | translate }}
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #noResults>
+  <div class="empty-case" data-testid="no-results">
+    <h3 class="empty-case__message">
+      {{ 'sessions.dynamicPricing.header' | translate }}
+    </h3>
+    <div class="empty-case__actions">
+      <ignt-button
+        variant="primary"
+        data-testid="new-family-button-when-empty"
+        [label]="'inventory.dynamicPricing.families.newFamilyButton' | translate"
+        (click)="onCreateFamily()"
+      ></ignt-button>
+      <ignt-button
+        variant="secondary"
+        data-testid="new-action-rule-button-when-empty"
+        [label]="'sessions.dynamicPricing.rules.createButton' | translate"
+        [disabled]="effectiveEditingLimited$ | async"
+        (click)="onOpenAddDynamicPricingRuleForm()"
+      ></ignt-button>
+    </div>
+    <img class="empty-case__image" src="assets/images/sessions-rules/empty-case-01-default.svg" />
+  </div>
+</ng-template>
+
+<ng-template #topologyModal let-modal>
+  <div class="modal-header topology-modal__header">
+    <h4 class="modal-title">{{ 'inventory.dynamicPricingGraph.title' | translate }}</h4>
+    <button type="button" class="topology-modal__close" aria-label="Close" (click)="modal.dismiss()">
+      <ignt-icon name="times" variant="regular" size="h4"></ignt-icon>
+    </button>
+  </div>
+  <div class="modal-body topology-modal__body">
+    <app-dynamic-pricing-graph></app-dynamic-pricing-graph>
+  </div>
+</ng-template>

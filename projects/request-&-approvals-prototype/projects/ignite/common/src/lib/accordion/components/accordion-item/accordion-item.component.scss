@@ -1,0 +1,203 @@
+@use 'foundations' as foundations;
+
+// Nested accordions share this component's emulated encapsulation attribute, so a descendant
+// combinator here would leak into inner instances through `__body`. Every rule below is
+// therefore either (a) a single compound selector — intentionally per-item, and correct for
+// nested instances too — or (b) a strict `>` chain rooted at `:host` or `.ignt-accordion-item`.
+// Do not "simplify" a `>` into a descendant space.
+
+:host {
+  display: block;
+}
+
+.ignt-accordion-item {
+  // Hairline between glued rows. The group draws the outer frame, so every row after the
+  // first carries its own top border and the rows read as one continuous surface with no
+  // gaps. `plain` is chrome-less, so it gets none.
+  &--band,
+  &--card,
+  &--list,
+  &--panel {
+    border-top: 1px solid foundations.$color-border-main;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: foundations.$space-2;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    // Part of the button reset, and load-bearing: without it the header keeps the UA default
+    // `400 13.3333px Arial`, which is neither a token nor the system font stack. `__title`
+    // overrides it per variant, but the projected leading and trailing slots have no font of
+    // their own, so they would render consumer content in Arial at a size no token defines.
+    font: inherit;
+    cursor: pointer;
+    text-align: start;
+    user-select: none;
+
+    // Inset outline: headers touch the group edge and `overflow: hidden` on the group's
+    // frame would clip an outset ring.
+    &:focus-visible {
+      outline: foundations.$outline-accessibility;
+      outline-offset: calc(-1 * #{foundations.$size-1});
+    }
+  }
+
+  &__chevron {
+    flex-shrink: 0;
+    color: foundations.$color-text-subtle;
+
+    @media (prefers-reduced-motion: no-preference) {
+      transition: transform 0.2s ease;
+    }
+
+    // The angle comes from `chevronByVariant` through the custom property, so making the
+    // chevron variant-specific never touches this rule.
+    &--expanded {
+      transform: rotate(var(--ignt-accordion-item-chevron-rotation, 90deg));
+    }
+  }
+
+  &__title {
+    color: foundations.$color-text-main;
+  }
+
+  &__trailing {
+    display: inline-flex;
+    align-items: center;
+    gap: foundations.$space-2;
+    margin-inline-start: auto;
+  }
+
+  &--card {
+    padding: foundations.$space-4;
+    background: foundations.$palette-neutral-100;
+
+    &.ignt-accordion-item--expanded {
+      background: foundations.$color-background-main;
+    }
+
+    > .ignt-accordion-item__header > .ignt-accordion-item__title {
+      font: foundations.$font-base-bold;
+    }
+
+    > .ignt-accordion-item__body {
+      margin-top: foundations.$space-4;
+      padding-top: foundations.$space-4;
+      border-top: 1px solid foundations.$color-border-main;
+    }
+  }
+
+  &--plain {
+    > .ignt-accordion-item__header > .ignt-accordion-item__title {
+      font: foundations.$font-h3;
+    }
+
+    > .ignt-accordion-item__body {
+      margin-top: foundations.$space-4;
+    }
+  }
+
+  &--band {
+    > .ignt-accordion-item__header {
+      padding: foundations.$space-3 foundations.$space-4;
+      background: foundations.$palette-neutral-50;
+
+      @media (prefers-reduced-motion: no-preference) {
+        transition: background-color 0.2s ease;
+      }
+
+      &:hover {
+        background: foundations.$palette-neutral-100;
+      }
+
+      // Compact by design, but still a header: `small-bold` keeps the 14px while restoring
+      // the 600 the other variants carry. At `small-regular` this was the only title in the
+      // system rendering at body-text weight, on an element that is a button.
+      > .ignt-accordion-item__title {
+        font: foundations.$font-small-bold;
+      }
+    }
+
+    > .ignt-accordion-item__body {
+      padding: foundations.$space-4;
+      border-top: 1px solid foundations.$color-border-main;
+    }
+  }
+
+  // `size="base"` cannot carry this on its own: `@ignite/icon` binds an `ignt-icon--size-base`
+  // class that its own stylesheet never defines, so base-sized icons fall through to the
+  // parent font size — here the header button's 13.33px UA default. Every variant asking for
+  // `size: 'base'` in `chevronByVariant` therefore sets it here, until that is fixed.
+  &--list,
+  &--panel {
+    > .ignt-accordion-item__header > .ignt-accordion-item__chevron {
+      font-size: foundations.$size-base;
+    }
+  }
+
+  &--list {
+    > .ignt-accordion-item__header {
+      padding: foundations.$space-3 foundations.$space-4;
+      background: foundations.$color-background-main;
+
+      @media (prefers-reduced-motion: no-preference) {
+        transition: background-color 0.2s ease;
+      }
+
+      &:hover {
+        background: foundations.$palette-neutral-50;
+      }
+
+      > .ignt-accordion-item__title {
+        font: foundations.$font-base-bold;
+      }
+    }
+
+    > .ignt-accordion-item__body {
+      padding: foundations.$space-6;
+      border-top: 1px solid foundations.$color-border-main;
+    }
+  }
+
+  // Parity variant for the legacy `ignt-expansion-panel`, for screens migrating off it with
+  // no visual diff: same 16px padding inside the group's frame, a body separated by a plain
+  // 8px gap with no divider, no background lift on expand, and the chevron parked at the end
+  // swapping glyphs instead of rotating (see `chevronByVariant`). Deliberately a separate
+  // block rather than tweaks to `card`, so neither design bleeds into the other.
+  &--panel {
+    padding: foundations.$space-4;
+
+    > .ignt-accordion-item__header {
+      // The trailing slot already carries `margin-inline-start: auto`, so ordering the
+      // chevron last is all it takes to park it at the end — no `justify-content` needed,
+      // and trailing content still sits just before it.
+      > .ignt-accordion-item__chevron {
+        order: 1;
+        // The legacy panel never tinted its chevron: it inherited the ambient text colour,
+        // which in token terms is the title's own colour rather than the subtle grey the
+        // other variants use.
+        color: foundations.$color-text-main;
+      }
+
+      > .ignt-accordion-item__title {
+        font: foundations.$font-base-bold;
+      }
+    }
+
+    > .ignt-accordion-item__body {
+      margin-top: foundations.$space-2;
+    }
+  }
+}
+
+// The first row of a group carries no hairline — the group's own border already draws it.
+// `:host` scopes this to the item's own root element, so items nested inside another
+// accordion reset independently of the outer group.
+:host(:first-of-type) > .ignt-accordion-item {
+  border-top: 0;
+}

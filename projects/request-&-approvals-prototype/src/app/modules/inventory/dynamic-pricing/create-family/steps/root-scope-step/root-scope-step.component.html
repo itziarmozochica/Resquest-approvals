@@ -1,0 +1,249 @@
+<div class="root-scope-step">
+  @if (isCopyMode()) {
+    <section class="root-scope-step__section" data-testid="copy-source-section">
+      <h3 class="root-scope-step__section-title">
+        {{ 'inventory.dynamicPricing.families.wizard.copy.sourceHeading' | translate }}
+      </h3>
+      <ignt-typeahead
+        class="root-scope-step__price-list"
+        data-testid="copy-source-select"
+        [fieldLabel]="'inventory.dynamicPricing.families.wizard.copy.sourceLabel' | translate"
+        [options]="copySourceOptions()"
+        [selectedOption]="selectedCopySourceOption()"
+        [editable]="false"
+        (selected)="onCopySourceSelected($event)"
+      ></ignt-typeahead>
+    </section>
+  }
+
+  <section class="root-scope-step__section">
+    <h3 class="root-scope-step__section-title">
+      {{ 'inventory.dynamicPricing.families.wizard.basicSettings.selectHeading' | translate }}
+    </h3>
+    <ignt-typeahead
+      class="root-scope-step__price-list"
+      data-testid="price-list-select"
+      [fieldLabel]="'inventory.dynamicPricing.families.wizard.basicSettings.priceListLabel' | translate"
+      [options]="priceListOptions()"
+      [selectedOption]="selectedOption()"
+      [editable]="false"
+      (selected)="onPriceListSelected($event)"
+    ></ignt-typeahead>
+  </section>
+
+  @if (selectedPriceList()) {
+    @if (hasNoPrices()) {
+      <div class="root-scope-step__banner root-scope-step__banner--error" data-testid="no-prices-banner">
+        <ignt-icon class="root-scope-step__banner-icon" name="exclamation-triangle" variant="light"></ignt-icon>
+        <div class="root-scope-step__banner-text">
+          <span class="root-scope-step__banner-title">
+            {{ 'inventory.dynamicPricing.families.wizard.basicSettings.noPricesTitle' | translate }}
+          </span>
+          <span class="root-scope-step__banner-body">
+            {{ 'inventory.dynamicPricing.families.wizard.basicSettings.noPricesBody' | translate }}
+          </span>
+        </div>
+      </div>
+    } @else {
+      <div class="root-scope-step__banner" data-testid="inherited-banner">
+        <ignt-icon class="root-scope-step__banner-icon" name="info-circle" variant="light"></ignt-icon>
+        <div class="root-scope-step__banner-text">
+          <span class="root-scope-step__banner-title">
+            {{ 'inventory.dynamicPricing.families.wizard.basicSettings.inheritedTitle' | translate }}
+          </span>
+          <span class="root-scope-step__banner-body">
+            {{ 'inventory.dynamicPricing.families.wizard.basicSettings.inheritedBody' | translate }}
+          </span>
+        </div>
+      </div>
+
+      <section class="root-scope-step__section">
+        <h3 class="root-scope-step__section-title">
+          {{ 'inventory.dynamicPricing.families.wizard.basicSettings.channelsHeading' | translate }}
+        </h3>
+        @if (appliesToAllChannels()) {
+          <span class="root-scope-step__all-channels" data-testid="all-channels">
+            {{ 'inventory.dynamicPricing.families.wizard.basicSettings.allChannels' | translate }}
+          </span>
+        } @else {
+          <div class="root-scope-step__channels" data-testid="channels">
+            @for (channel of channels(); track channel.id) {
+              <ignt-tag variant="outline" sentiment="sharp" [attr.data-testid]="'channel-pill-' + channel.id">{{ channel.name }}</ignt-tag>
+            }
+          </div>
+        }
+      </section>
+
+      @if (timeSlots().length > 0) {
+        <section class="root-scope-step__section" data-testid="time-slots">
+          <h3 class="root-scope-step__section-title">
+            {{ 'inventory.dynamicPricing.families.wizard.basicSettings.timeSlotsHeading' | translate }}
+          </h3>
+          @for (slot of timeSlots(); track $index) {
+            <div class="root-scope-step__time-slot" [attr.data-testid]="'time-slot-' + ($index + 1)">
+              <span class="root-scope-step__label">
+                {{ 'inventory.dynamicPricing.families.wizard.basicSettings.datesHeading' | translate }}
+              </span>
+              <div class="root-scope-step__fields">
+                <span class="root-scope-step__field" data-testid="start-date">
+                  <span class="root-scope-step__field-caption">
+                    {{ 'inventory.dynamicPricing.families.wizard.basicSettings.startDateLabel' | translate }}
+                  </span>
+                  <span class="root-scope-step__field-value">{{ slot.startDate | date: 'dd MMM yyyy' : 'UTC' }}</span>
+                </span>
+                <span class="root-scope-step__field" data-testid="end-date">
+                  <span class="root-scope-step__field-caption">
+                    {{ 'inventory.dynamicPricing.families.wizard.basicSettings.endDateLabel' | translate }}
+                  </span>
+                  <span class="root-scope-step__field-value">{{ slot.endDate | date: 'dd MMM yyyy' : 'UTC' }}</span>
+                </span>
+              </div>
+
+              <span class="root-scope-step__label">
+                {{ 'inventory.dynamicPricing.families.wizard.basicSettings.daysOfWeekLabel' | translate }}
+              </span>
+              <div class="root-scope-step__weekdays">
+                @for (day of weekDays; track day) {
+                  <span
+                    class="root-scope-step__weekday"
+                    [class.root-scope-step__weekday--active]="isWeekDayIncluded(slot, day)"
+                    [attr.data-testid]="'weekday-' + day"
+                  >
+                    {{ 'sessions.pricing.newListForm.timeslots.weekDays.labels.' + day | translate }}
+                  </span>
+                }
+              </div>
+
+              <span class="root-scope-step__label">
+                {{ 'inventory.dynamicPricing.families.wizard.basicSettings.timesHeading' | translate }}
+              </span>
+              <div class="root-scope-step__fields">
+                <span class="root-scope-step__field" data-testid="start-time">
+                  <span class="root-scope-step__field-caption">
+                    {{ 'inventory.dynamicPricing.families.wizard.basicSettings.firstTimeSlotLabel' | translate }}
+                  </span>
+                  <span class="root-scope-step__field-value">{{ slot.startTime }}</span>
+                </span>
+                <span class="root-scope-step__field" data-testid="end-time">
+                  <span class="root-scope-step__field-caption">
+                    {{ 'inventory.dynamicPricing.families.wizard.basicSettings.lastTimeSlotLabel' | translate }}
+                  </span>
+                  <span class="root-scope-step__field-value">{{ slot.endTime }}</span>
+                </span>
+              </div>
+            </div>
+          }
+        </section>
+      }
+
+      @if (validityPeriods().length > 0) {
+        <section class="root-scope-step__section" data-testid="validity-period">
+          <h3 class="root-scope-step__section-title">
+            {{ 'inventory.dynamicPricing.families.wizard.basicSettings.validityPeriodHeading' | translate }}
+          </h3>
+          @for (validity of validityPeriods(); track $index) {
+            <div class="root-scope-step__fields" [attr.data-testid]="'validity-range-' + ($index + 1)">
+              <span class="root-scope-step__field" data-testid="validity-start">
+                <span class="root-scope-step__field-caption">
+                  {{ 'inventory.dynamicPricing.families.wizard.basicSettings.startDateLabel' | translate }}
+                </span>
+                <span class="root-scope-step__field-value">{{ validity.from | momentDate: 'dd MMM yyyy' : timezone() }}</span>
+              </span>
+              <span class="root-scope-step__field" data-testid="validity-end">
+                <span class="root-scope-step__field-caption">
+                  {{ 'inventory.dynamicPricing.families.wizard.basicSettings.endDateLabel' | translate }}
+                </span>
+                <span class="root-scope-step__field-value">{{ validity.to | momentDate: 'dd MMM yyyy' : timezone() }}</span>
+              </span>
+            </div>
+          }
+        </section>
+      }
+
+      @if (priceRows().length > 0) {
+        <section class="root-scope-step__section" data-testid="prices">
+          <h3 class="root-scope-step__section-title">
+            {{ 'inventory.dynamicPricing.families.wizard.basicSettings.pricesHeading' | translate }}
+          </h3>
+          <p class="root-scope-step__section-hint" data-testid="scope-hint">
+            {{ 'inventory.dynamicPricing.families.wizard.basicSettings.scopeHint' | translate }}
+          </p>
+          <div class="root-scope-step__toggles">
+            <ignt-checkbox
+              dataTestId="see-surcharge"
+              [checked]="showSurcharge()"
+              [label]="'inventory.dynamicPricing.families.wizard.basicSettings.seeSurcharge' | translate"
+              (change)="showSurcharge.set($event)"
+            ></ignt-checkbox>
+            <ignt-checkbox
+              dataTestId="see-strike-through"
+              [checked]="showStrikethrough()"
+              [label]="'inventory.dynamicPricing.families.wizard.basicSettings.seeStrikeThrough' | translate"
+              (change)="showStrikethrough.set($event)"
+            ></ignt-checkbox>
+          </div>
+
+          <div class="root-scope-step__prices">
+            @if (hasNoIncludedProducts()) {
+              <div class="root-scope-step__banner root-scope-step__banner--error" data-testid="no-included-products-banner">
+                <ignt-icon class="root-scope-step__banner-icon" name="exclamation-triangle" variant="light"></ignt-icon>
+                <div class="root-scope-step__banner-text">
+                  <span class="root-scope-step__banner-body">
+                    {{ 'inventory.dynamicPricing.families.wizard.basicSettings.scopeEmpty' | translate }}
+                  </span>
+                </div>
+              </div>
+            }
+
+            @for (row of priceRows(); track row.sessionTypeId) {
+              <div class="root-scope-step__price-row" [attr.data-testid]="'price-row-' + row.sessionTypeId">
+                <span class="root-scope-step__product" [attr.data-testid]="'product-included-' + row.sessionTypeId">
+                  <ignt-checkbox
+                    [checked]="isProductIncluded(row.sessionTypeId)"
+                    [disabled]="isCopying()"
+                    [label]="row.label"
+                    (change)="onProductIncludedChange(row.sessionTypeId, $event)"
+                  ></ignt-checkbox>
+                </span>
+                <span class="root-scope-step__price-cells">
+                  @if (showStrikethrough()) {
+                    <span class="root-scope-step__field" data-testid="cell-strikethrough">
+                      <span class="root-scope-step__field-caption">
+                        {{ 'inventory.dynamicPricing.families.wizard.basicSettings.strikeThroughColumn' | translate }}
+                      </span>
+                      <span class="root-scope-step__field-value root-scope-step__field-value--strike">
+                        {{ row.strikethrough ? (row.strikethrough.amount | currency: currency()) : '—' }}
+                      </span>
+                    </span>
+                  }
+                  <span class="root-scope-step__field" data-testid="cell-price">
+                    <span class="root-scope-step__field-caption">
+                      {{ 'inventory.dynamicPricing.families.wizard.basicSettings.priceColumn' | translate }}
+                    </span>
+                    <span class="root-scope-step__field-value root-scope-step__field-value--price">
+                      {{ row.price.amount | currency: currency() }}
+                    </span>
+                  </span>
+                  @if (showSurcharge()) {
+                    <span class="root-scope-step__field" data-testid="cell-surcharge-fixed">
+                      <span class="root-scope-step__field-caption">
+                        {{ 'inventory.dynamicPricing.families.wizard.basicSettings.surchargeFixedColumn' | translate }}
+                      </span>
+                      <span class="root-scope-step__field-value">{{ row.surchargeFixed.amount | currency: currency() }}</span>
+                    </span>
+                    <span class="root-scope-step__field" data-testid="cell-surcharge-variable">
+                      <span class="root-scope-step__field-caption">
+                        {{ 'inventory.dynamicPricing.families.wizard.basicSettings.surchargeVariableColumn' | translate }}
+                      </span>
+                      <span class="root-scope-step__field-value">{{ (row.surchargeVariable ?? 0) + '%' }}</span>
+                    </span>
+                  }
+                </span>
+              </div>
+            }
+          </div>
+        </section>
+      }
+    }
+  }
+</div>

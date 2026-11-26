@@ -1,0 +1,189 @@
+@use 'foundations' as foundations;
+@use 'foundations/font/font-properties' as font-properties;
+@use 'foundations/font/font-sizes' as font-sizes;
+@use 'foundations/font/font-leadings' as font-leadings;
+@use 'components/navigation/aside-menu/tokens' as aside-menu;
+@use 'components/navigation/headerbar/tokens' as headerbar;
+@import 'abstracts/all';
+
+$summary-width: 450px;
+
+/* White page under the header, as the unified order list paints it, instead of the app's grey. */
+:host {
+  position: relative;
+  background: foundations.$color-background-main;
+  display: block;
+  min-height: calc(100dvh - #{headerbar.$dimensions-height});
+
+  @include media-breakpoint-up(aside-menu.$breakpoint-menu) {
+    min-height: calc(100dvh - #{headerbar.$dimensions-height-large});
+  }
+}
+
+.attendees-page {
+  display: flex;
+  flex-direction: column;
+  gap: foundations.$space-6;
+  min-width: 0;
+
+  @include media-breakpoint-down(md) {
+    gap: foundations.$space-4;
+    padding: foundations.$space-4;
+  }
+
+  &__title {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: foundations.$space-4;
+
+    @include media-breakpoint-down(md) {
+      flex-direction: column;
+      align-items: start;
+    }
+  }
+
+  &__title-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  &__section {
+    color: foundations.$color-text-main;
+    font-size: font-sizes.$size-small;
+    font-weight: font-properties.$weight-regular;
+    line-height: font-leadings.$leading-small;
+  }
+
+  &__heading {
+    margin: 0;
+    color: foundations.$color-text-main;
+    font-size: font-sizes.$size-h3;
+    font-weight: font-properties.$weight-bold;
+    line-height: font-leadings.$leading-h3;
+  }
+
+  &__actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: foundations.$space-4;
+
+    @include media-breakpoint-down(md) {
+      width: 100%;
+      justify-content: flex-start;
+    }
+  }
+
+  &__filters {
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-4;
+  }
+
+  /* The tabs and the last update share one underline, and the update text sits on the tab labels' baseline. */
+  &__views {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: foundations.$space-4;
+    border-block-end: foundations.$size-px solid foundations.$color-border-main;
+  }
+
+  &__view-tabs {
+    flex: none;
+    /* Each tab draws its own bottom border; sit it on the row's underline instead of one pixel above it. */
+    margin-block-end: calc(-1 * #{foundations.$size-px});
+  }
+
+  &__refresh-status {
+    flex: none;
+    min-width: 0;
+
+    /* Same size as the tab labels, which ignt-tabs shrinks to caption on mobile. */
+    @include media-breakpoint-down(md) {
+      ::ng-deep .refresh-status {
+        font: foundations.$font-caption-regular;
+      }
+    }
+  }
+
+  /* The view switch has no tab content: drop the padded panel ignt-tabs renders under it anyway. */
+  &__view-tabs ::ng-deep .tabs_content {
+    display: none;
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: row;
+    min-height: 0;
+  }
+
+  &__table {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* No display here: the calendar lays out its filters and week as a column with its own gap. */
+  &__calendar {
+    width: 100%;
+    min-height: 600px;
+  }
+
+  /* Runs along the top edge of the page, under the header bar, while the sessions are read again. */
+  &__refresh-bar {
+    display: block;
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: 1;
+    overflow: hidden;
+
+    /* The idle segment parks just outside the bar and bleeds one pixel at its edge. */
+    &--idle {
+      visibility: hidden;
+    }
+  }
+
+  &__time-slot-summary {
+    min-width: 0;
+    max-width: 0;
+    opacity: 0;
+    overflow: hidden;
+    /* The gap lives here, not on the row, so the closed summary leaves no space at the right of the table. */
+    margin-inline-start: 0;
+    transition:
+      min-width 200ms,
+      max-width 200ms,
+      margin-inline-start 200ms,
+      padding-inline-start 200ms,
+      opacity 200ms ease-in;
+
+    /* The divider sits in the middle of the gap, as the line between the list and the summary did before the redesign. */
+    &--selected {
+      min-width: calc(#{$summary-width} + #{foundations.$space-4} + #{foundations.$size-px});
+      max-width: calc(#{$summary-width} + #{foundations.$space-4} + #{foundations.$size-px});
+      margin-inline-start: foundations.$space-4;
+      padding-inline-start: foundations.$space-4;
+      border-inline-start: foundations.$size-px solid foundations.$color-border-main;
+      opacity: 1;
+    }
+  }
+
+  &__lateral-slider {
+    .time-slot-summary {
+      padding: 1px;
+    }
+  }
+}
+
+.time-slot-summary {
+  max-height: 100%;
+  width: 100%;
+}

@@ -1,0 +1,179 @@
+@use 'foundations' as foundations;
+@use 'foundations/font/font-properties' as font-properties;
+@mixin chip($background, $border, $text) {
+  display: inline-flex;
+  gap: foundations.$space-1;
+  align-items: center;
+  padding: foundations.$size-px2 foundations.$space-2;
+  color: $text;
+  font: foundations.$font-caption-regular;
+  white-space: nowrap;
+  background-color: $background;
+  border: foundations.$size-px solid $border;
+  border-radius: foundations.$radii-1;
+}
+
+// The card is also the horizontal scroll container, so the table may exceed it (see the floor set
+// on `.ignt-table__table` below) without the page itself scrolling sideways.
+.google-maps-domains-table {
+  display: flex;
+  flex-direction: column;
+  padding: foundations.$space-4 foundations.$space-5 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  background-color: foundations.$color-background-main;
+  border: foundations.$size-px solid foundations.$color-border-main;
+  border-radius: foundations.$radii-2;
+
+  &__host {
+    font-family: monospace;
+    word-break: break-all;
+  }
+
+  &__status-cell {
+    display: inline-flex;
+    flex-direction: column;
+    gap: foundations.$space-1;
+    align-items: flex-start;
+  }
+
+  // The neutral chip is the floor every badge starts from; each state below changes only what its
+  // own meaning needs, so a status with no rule of its own still reads as a badge and not as text.
+  &__status {
+    @include chip(foundations.$color-background-subtle-weak, foundations.$color-border-main, foundations.$color-text-subtle);
+
+    font-weight: font-properties.$weight-bold;
+
+    // The map renders for this host.
+    &--registered {
+      color: foundations.$palette-positive-800;
+      background-color: foundations.$color-background-positive-weak;
+      border-color: foundations.$color-border-positive-medium;
+    }
+
+    // Nothing of this host is on the key, so its storefront map does not render: the one state the
+    // operator is here to fix.
+    &--notRegistered {
+      color: foundations.$palette-danger-800;
+      background-color: foundations.$color-background-danger-weak;
+      border-color: foundations.$color-border-danger-medium;
+    }
+
+    // Some entries are there and some are not: finishable, so it asks for attention rather than alarm.
+    &--partiallyRegistered {
+      color: foundations.$color-text-warning;
+      background-color: foundations.$color-background-warning-weak;
+      border-color: foundations.$color-border-warning-medium;
+    }
+
+    // Wants attention like the partial state, dashed because the page does not know the truth yet.
+    &--unconfirmed {
+      color: foundations.$color-text-warning;
+      background-color: foundations.$color-background-warning-weak;
+      border-color: foundations.$color-border-warning-medium;
+      border-style: dashed;
+    }
+
+    // Covered through another entry on the key: informational, and nothing to do here.
+    &--coveredBySharedDomain {
+      color: foundations.$color-text-accent;
+      background-color: foundations.$color-background-accent-weak;
+      border-color: foundations.$color-border-accent-medium;
+    }
+
+    // Managed centrally: the firmer border says settled, not wrong.
+    &--protected {
+      border-color: foundations.$color-border-main-contrast;
+    }
+
+    // No referrer can be derived from this host at all.
+    &--unsupportedHost {
+      border-style: dashed;
+    }
+
+    // Neither state is a fact about the host: one is a status this build does not know, the other
+    // an environment with no key. Both drop the fill so they read as an absence.
+    &--unknown {
+      background-color: transparent;
+      border-style: dashed;
+    }
+
+    &--notConfigured {
+      background-color: transparent;
+    }
+
+    &--busy {
+      color: foundations.$color-text-accent;
+      background-color: foundations.$color-background-accent-weak;
+      border-color: foundations.$color-border-accent-medium;
+    }
+  }
+
+  &__error {
+    margin: 0;
+    padding: foundations.$space-2 foundations.$space-3;
+    color: foundations.$color-text-danger;
+    font-size: foundations.$size-caption;
+    line-height: 1.55;
+    background-color: foundations.$color-background-danger-weak;
+    border: foundations.$size-px solid foundations.$color-border-danger-medium;
+    border-radius: foundations.$radii-1;
+  }
+
+  &__actions {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    gap: foundations.$space-1;
+    align-items: center;
+    justify-content: flex-end;
+    width: 100%;
+  }
+
+  &__action {
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+
+  &__read-only {
+    color: foundations.$color-text-warning;
+    font-size: foundations.$size-caption;
+    white-space: normal;
+  }
+}
+
+// The card is the scroll container (the block above), so this box must not be: nested scroll
+// containers on the same axis mean the inner one swallows the gesture. `visible` is also what lets
+// the table's own width reach the card, which is what has to overflow for the card to scroll.
+:host ::ng-deep .ignt-table__scroll {
+  overflow-x: visible;
+}
+
+// The floor under the host column, which `table-layout: fixed` would otherwise squeeze to whatever
+// the two sized columns leave over. The card scrolls below this floor instead. The value comes in
+// as a custom property from the component, where the widths it is derived from live.
+:host ::ng-deep .ignt-table__table {
+  min-width: var(--google-maps-domains-table-min-width);
+}
+
+:host ::ng-deep .ignt-table__header-row .ignt-table__header-cell {
+  padding: 0;
+  text-align: start;
+}
+
+:host ::ng-deep .ignt-table__header-row .ignt-table__header-cell:not(.ignt-table__header-cell--align-right),
+:host ::ng-deep .ignt-table__row:not(.ignt-table__row--empty) .ignt-table__cell:not(.ignt-table__cell--actions) {
+  padding-inline-end: foundations.$space-4;
+}
+
+// The library pins every row to one fixed height, which clips a badge sitting above an error note.
+// Padding replaces it, so a row is as tall as the tallest cell in it.
+:host ::ng-deep .ignt-table__row:not(.ignt-table__row--empty) .ignt-table__cell {
+  padding: foundations.$space-2 0;
+}
+
+:host ::ng-deep .ignt-table__row:not(.ignt-table__row--empty):hover {
+  .ignt-table__cell,
+  .ignt-table__cell--primary {
+    background: foundations.$palette-neutral-white;
+  }
+}

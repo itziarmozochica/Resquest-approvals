@@ -1,0 +1,95 @@
+<div class="calendar-tag-filter">
+  <app-multi-select
+    class="calendar-tag-filter__select field"
+    data-testid="calendar-tag-filter-select"
+    [options]="selectOptions()"
+    [selectedOptions]="selectedOptions()"
+    [placeholder]="'bookedSlots.tagFilter.placeholder' | translate"
+    [searchPlaceholder]="'bookedSlots.tagFilter.placeholder' | translate"
+    [selectedSummaryText]="summaryText()"
+    [displayInPlaceMaximum]="2"
+    [defaultOrdering]="false"
+    [optionTemplate]="tagOption"
+    [headerTemplate]="hasSelection() ? selectionSummary : null"
+    (selected)="onSelected($event)"
+  ></app-multi-select>
+  @if (hasSelection()) {
+    <span class="calendar-tag-filter__overlay" data-testid="calendar-tag-filter-overlay">
+      <ng-container [ngTemplateOutlet]="selectionSummary" />
+    </span>
+    <button
+      ignt-icon-button
+      type="button"
+      class="calendar-tag-filter__clear"
+      data-testid="calendar-tag-filter-clear"
+      sentiment="tertiary"
+      size="small"
+      [attr.aria-label]="'bookedSlots.tagFilter.clear' | translate"
+      [icon]="clearIcon"
+      (click)="onClear()"
+    ></button>
+    <span class="visually-hidden" data-testid="calendar-tag-filter-selected-label">{{
+      'bookedSlots.tagFilter.selectedTags' | translate: { names: selectedNames() }
+    }}</span>
+  }
+  <span class="visually-hidden" aria-live="polite" data-testid="calendar-tag-filter-count-label">
+    @if (hasSelection()) {
+      {{
+        (matchCount() === 1 ? 'bookedSlots.tagFilter.matchCountOne' : 'bookedSlots.tagFilter.matchCountMany')
+          | translate: { count: matchCount() }
+      }}
+    }
+  </span>
+</div>
+
+<ng-template #tagOption let-option let-isSelected="isSelected">
+  @if (rowsById().get(option.id); as row) {
+    <span class="calendar-tag-filter__option" data-testid="calendar-tag-filter-option">
+      <span class="calendar-tag-filter__check" aria-hidden="true">
+        @if (isSelected) {
+          <ignt-icon name="check" size="caption" variant="solid" />
+        }
+      </span>
+      <span class="calendar-tag-filter__name" data-testid="calendar-tag-filter-option-name">{{ row.name }}</span>
+      <span
+        class="calendar-tag-filter__chip calendar-tag-filter__chip--{{ row.color }}"
+        aria-hidden="true"
+        data-testid="calendar-tag-filter-option-chip"
+      >
+        <ignt-icon class="calendar-tag-filter__chip-glyph" size="caption" variant="solid" [name]="row.icon" />
+      </span>
+    </span>
+  }
+</ng-template>
+
+<ng-template #selectionSummary>
+  <span class="calendar-tag-filter__summary">
+    <span class="calendar-tag-filter__chips" data-testid="calendar-tag-filter-chips">
+      @if (chips().isLabelled) {
+        <span class="calendar-tag-filter__chips-label" aria-hidden="true" data-testid="calendar-tag-filter-chips-label">{{
+          'bookedSlots.tagFilter.label' | translate
+        }}</span>
+      }
+      @for (row of chips().visible; track row.id) {
+        <span
+          class="calendar-tag-filter__chip calendar-tag-filter__chip--{{ row.color }}"
+          aria-hidden="true"
+          data-testid="calendar-tag-filter-selected-chip"
+        >
+          <ignt-icon class="calendar-tag-filter__chip-glyph" size="caption" variant="solid" [name]="row.icon" />
+        </span>
+      }
+      @if (chips().hiddenCount > 0) {
+        <span
+          class="calendar-tag-filter__tag-more"
+          aria-hidden="true"
+          data-testid="calendar-tag-filter-tag-more"
+          igntTooltip
+          [tooltipLabel]="chips().hiddenNames"
+          >+{{ chips().hiddenCount }}</span
+        >
+      }
+    </span>
+    <span class="calendar-tag-filter__count" aria-hidden="true" data-testid="calendar-tag-filter-count">{{ matchCount() }}</span>
+  </span>
+</ng-template>

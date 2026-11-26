@@ -1,0 +1,220 @@
+<div class="question-base-fields__type-display">
+  <label class="question-base-fields__label">{{ 'customerQuestionsCatalog.sidepanel.type' | translate }}</label>
+  @if (typeSelectable()) {
+    <div class="question-base-fields__type-pills" data-testid="type-picker">
+      @for (type of availableTypes(); track type) {
+        <app-question-type-tags [type]="type" checkable [checked]="selectedType() === type" (checkedChange)="selectType(type)" />
+      }
+    </div>
+  } @else {
+    <app-question-type-tags [type]="selectedType()" />
+  }
+</div>
+
+<ignt-input-field
+  label="{{ 'customerQuestionsCatalog.sidepanel.titleField' | translate }}"
+  placeholder="{{ 'customerQuestionsCatalog.sidepanel.titlePlaceholder' | translate }}"
+  [formControl]="titleControl"
+  [readonly]="!editable()"
+/>
+
+<ignt-textarea-field
+  label="{{ 'customerQuestionsCatalog.sidepanel.description' | translate }}"
+  placeholder="{{ 'customerQuestionsCatalog.sidepanel.descriptionPlaceholder' | translate }}"
+  [formControl]="descriptionControl"
+  [readonly]="!editable()"
+/>
+
+@if (isChoiceType()) {
+  <div class="question-base-fields__section" data-testid="choices-section">
+    <div class="question-base-fields__section-header">
+      <h3 class="question-base-fields__section-title">{{ 'customerQuestionsCatalog.sidepanel.choices' | translate }}</h3>
+      <p class="question-base-fields__section-description">
+        {{
+          (editable()
+            ? 'customerQuestionsCatalog.sidepanel.choicesDescriptionEdit'
+            : 'customerQuestionsCatalog.sidepanel.choicesDescription'
+          ) | translate
+        }}
+      </p>
+    </div>
+
+    @if (choiceViews().length === 0) {
+      <div class="question-base-fields__empty-choices" data-testid="no-choices">
+        <ignt-icon name="list" variant="solid" />
+        <span>{{ 'customerQuestionsCatalog.sidepanel.noChoices' | translate }}</span>
+      </div>
+    }
+
+    <div class="question-base-fields__choices" cdkDropList [cdkDropListDisabled]="!editable()" (cdkDropListDropped)="onChoiceDrop($event)">
+      @for (view of choiceViews(); track view.node.type === 'leaf' ? view.node.leaf.id : view.node.cluster.id) {
+        <div class="question-base-fields__choice-item" cdkDrag [cdkDragDisabled]="!view.node.draggable">
+          @if (view.node.type === 'leaf') {
+            <div class="question-base-fields__choice-card">
+              <div class="question-base-fields__choice-header">
+                @if (view.node.draggable) {
+                  <button
+                    ignt-icon-button
+                    cdkDragHandle
+                    sentiment="tertiary"
+                    size="small"
+                    [icon]="['fas', 'grip-vertical']"
+                    [attr.aria-label]="'customerQuestionsCatalog.sidepanel.reorder' | translate"
+                  ></button>
+                }
+                <span class="question-base-fields__choice-title">
+                  {{ 'customerQuestionsCatalog.sidepanel.choice' | translate }} {{ view.order }}
+                </span>
+                @if (editable()) {
+                  <button
+                    ignt-icon-button
+                    sentiment="tertiary"
+                    size="small"
+                    [icon]="['fal', 'trash-alt']"
+                    [attr.aria-label]="'customerQuestionsCatalog.sidepanel.removeChoice' | translate"
+                    (click)="removeChoice(view.node.leaf.id)"
+                  ></button>
+                }
+              </div>
+              <ng-container *ngTemplateOutlet="choiceFields; context: { choice: view.node.leaf.value }" />
+            </div>
+          } @else {
+            <div class="question-base-fields__choice-group">
+              <div class="question-base-fields__choice-group-header">
+                @if (view.node.draggable) {
+                  <button
+                    ignt-icon-button
+                    cdkDragHandle
+                    sentiment="tertiary"
+                    size="small"
+                    [icon]="['fas', 'grip-vertical']"
+                    [attr.aria-label]="'customerQuestionsCatalog.sidepanel.reorder' | translate"
+                  ></button>
+                }
+                <div class="question-base-fields__choice-group-info">
+                  <span class="question-base-fields__choice-group-name">
+                    {{ 'customerQuestionsCatalog.sidepanel.group' | translate }} {{ view.groupNumber }}
+                  </span>
+                  <span class="question-base-fields__choice-group-hint">
+                    {{ 'customerQuestionsCatalog.sidepanel.groupHint' | translate: { count: view.node.cluster.leaves.length } }}
+                  </span>
+                </div>
+                @if (editable()) {
+                  <button
+                    ignt-icon-button
+                    sentiment="tertiary"
+                    size="small"
+                    [icon]="['fal', 'trash-alt']"
+                    [attr.aria-label]="'customerQuestionsCatalog.sidepanel.removeGroup' | translate"
+                    (click)="removeGroup(view.node.cluster.id)"
+                  ></button>
+                }
+              </div>
+
+              <div class="question-base-fields__choice-group-items">
+                @if (view.node.cluster.leaves.length === 0) {
+                  <p class="question-base-fields__choice-group-empty">{{ 'customerQuestionsCatalog.sidepanel.groupEmpty' | translate }}</p>
+                }
+                @for (leaf of view.node.cluster.leaves; track leaf.id) {
+                  <div class="question-base-fields__choice-card question-base-fields__choice-card--grouped">
+                    <div class="question-base-fields__choice-header">
+                      <span class="question-base-fields__choice-title">
+                        {{ 'customerQuestionsCatalog.sidepanel.choice' | translate }} {{ view.order }}
+                      </span>
+                      @if (editable()) {
+                        <button
+                          ignt-icon-button
+                          sentiment="tertiary"
+                          size="small"
+                          [icon]="['fal', 'trash-alt']"
+                          [attr.aria-label]="'customerQuestionsCatalog.sidepanel.removeChoice' | translate"
+                          (click)="removeChoiceInGroup(view.node.cluster.id, leaf.id)"
+                        ></button>
+                      }
+                    </div>
+                    <ng-container *ngTemplateOutlet="choiceFields; context: { choice: leaf.value }" />
+                  </div>
+                }
+
+                @if (editable()) {
+                  <ignt-button
+                    class="question-base-fields__group-add-choice"
+                    variant="tertiary"
+                    size="small"
+                    [label]="'customerQuestionsCatalog.sidepanel.addChoice' | translate"
+                    [leadingIcon]="{ name: 'plus-circle', variant: 'solid' }"
+                    (click)="addChoiceInGroup(view.node.cluster.id)"
+                  />
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    @if (editable()) {
+      <div class="question-base-fields__choice-actions">
+        <ignt-button
+          variant="tertiary"
+          size="small"
+          [label]="'customerQuestionsCatalog.sidepanel.addChoice' | translate"
+          [leadingIcon]="{ name: 'plus-circle', variant: 'solid' }"
+          (click)="addChoice()"
+        />
+        <ignt-button
+          variant="tertiary"
+          size="small"
+          [label]="'customerQuestionsCatalog.sidepanel.createGroup' | translate"
+          [leadingIcon]="{ name: 'plus-circle', variant: 'solid' }"
+          (click)="addGroup()"
+        />
+      </div>
+    }
+  </div>
+}
+
+<ng-template #choiceFields let-choice="choice">
+  <div class="question-base-fields__choice-fields">
+    <ignt-input-field
+      label="{{ 'customerQuestionsCatalog.sidepanel.choiceTitle' | translate }}"
+      placeholder="{{ 'customerQuestionsCatalog.sidepanel.choicePlaceholder' | translate }}"
+      [formControl]="choice.labelControl"
+      [readonly]="!editable()"
+    />
+    @if (choice.includeAdditionalQuestion()) {
+      <div class="question-base-fields__choice-additional">
+        <ignt-input-field
+          class="question-base-fields__choice-additional-field"
+          label="{{ 'customerQuestionsCatalog.sidepanel.additionalQuestion' | translate }}"
+          placeholder="{{ 'customerQuestionsCatalog.sidepanel.additionalQuestionPlaceholder' | translate }}"
+          [formControl]="choice.additionalControl"
+          [readonly]="!editable()"
+        />
+        @if (editable()) {
+          <button
+            ignt-icon-button
+            sentiment="tertiary"
+            size="small"
+            [icon]="['fal', 'trash-alt']"
+            [attr.aria-label]="'customerQuestionsCatalog.sidepanel.removeAdditionalQuestion' | translate"
+            (click)="removeAdditionalQuestion(choice)"
+          ></button>
+        }
+      </div>
+    } @else if (editable()) {
+      <div class="question-base-fields__choice-additional-action">
+        <ignt-button
+          variant="tertiary"
+          size="small"
+          [label]="'customerQuestionsCatalog.sidepanel.addAdditionalQuestion' | translate"
+          [leadingIcon]="{ name: 'plus-circle', variant: 'solid' }"
+          (click)="addAdditionalQuestion(choice)"
+        />
+        <span class="question-base-fields__choice-additional-hint">{{
+          'customerQuestionsCatalog.sidepanel.additionalQuestionHint' | translate
+        }}</span>
+      </div>
+    }
+  </div>
+</ng-template>

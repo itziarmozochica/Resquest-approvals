@@ -1,0 +1,241 @@
+<app-page-title [title]="'menu.businesses' | translate" class="new-design"></app-page-title>
+<div class="main-wrapper business-management">
+  <ignt-wrapper-card [mobileBorderless]="true">
+    <div class="business-management__container">
+      <ng-container *ngTemplateOutlet="businessList"></ng-container>
+      <div class="content__buttons only-in-desktop"></div>
+    </div>
+  </ignt-wrapper-card>
+
+  <div class="business-management__help-topic" appHideWrapperOnHelpTopicClose>
+    <app-help-topic-banner
+      [message]="'helpTopics.businesses.message' | translate"
+      [ctaLabel]="'helpTopics.generic.cta.label' | translate"
+      [ctaLink]="'helpTopics.businesses.cta.href' | translate"
+    ></app-help-topic-banner>
+  </div>
+</div>
+
+<div class="only-in-mobile">
+  <bottom-slider class="business-management__buttons" [buttonsTemplate]="buttonsTemplate"> </bottom-slider>
+</div>
+<ng-template #businessList>
+  <div class="business-management__search-bar">
+    <div class="business-management__filters" data-testid="business-management-filters">
+      <ignt-input-field
+        data-testid="table-search-search-bar-input"
+        #search
+        type="text"
+        [value]="searchParam"
+        [placeholder]="'filters.searchByNameOrEmail' | translate"
+        [label]="'filters.searchByNameOrEmail' | translate"
+        (input)="searchSubject.next($event)"
+        [(ngModel)]="searchParam"
+      />
+      <ignt-typeahead
+        id="filter-by-business-type"
+        [emptyLabel]="'reservations.businessSelector.businessType' | translate"
+        [fieldLabel]="'reservations.businessSelector.businessType' | translate"
+        [selectAllLabel]="'filters.filterByBusinessType' | translate"
+        [options]="businessTypeOptionsFilters"
+        [editable]="false"
+        (selected)="selectBusinessTypeFilter($event)"
+      >
+      </ignt-typeahead>
+      <ignt-typeahead
+        id="filter-by-channel"
+        data-testid="filter-by-channel"
+        [emptyLabel]="'businessManagement.customChannel' | translate"
+        [fieldLabel]="'businessManagement.customChannel' | translate"
+        [selectAllLabel]="'filters.filterByChannel' | translate"
+        [options]="channelOptionsFilters"
+        [editable]="false"
+        (selected)="selectChannelFilter($event)"
+      >
+      </ignt-typeahead>
+    </div>
+    <div class="business-management__actions">
+      @if (canExportBusinesses) {
+        <div class="only-in-desktop">
+          <ignt-button
+            variant="secondary"
+            size="large"
+            [trailingIcon]="{ name: 'file-download', variant: 'solid' }"
+            [loading]="loadingDownloadBusinesses"
+            [label]="'common.download' | translate"
+            (click)="downloadBusinesses()"
+            data-testid="reservation-export-button"
+          ></ignt-button>
+        </div>
+      }
+      @if (showAddBusinessView) {
+        <div class="only-in-desktop">
+          <ignt-button
+            class="business-management__button"
+            [label]="'businessManagement.addBusiness' | translate"
+            (click)="addNewBusiness()"
+            data-testid="business-management-add-business-button"
+          ></ignt-button>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="fz-table table fz-table--striped">
+    <div class="fz-table__header business-management-table__header" data-testid="business-management-table-header">
+      <div class="fz-table__row">
+        <div class="fz-table__cell item__big-columns">
+          {{ 'businessManagement.name' | translate }}
+        </div>
+        <div class="fz-table__cell item__small-columns">
+          {{ 'businessManagement.type' | translate }}
+        </div>
+        <div class="fz-table__cell item__small-columns">
+          {{ 'businessManagement.contact' | translate }}
+        </div>
+        <div class="fz-table__cell item__small-columns">
+          {{ 'businessManagement.address' | translate }}
+        </div>
+        <div class="fz-table__cell item__small-columns">
+          {{ 'businessManagement.customChannel' | translate }}
+        </div>
+        <div class="fz-table__cell item__small-columns">
+          {{ 'userManagement.permissions' | translate }}
+        </div>
+        @if (canUnlinkBusiness) {
+          <div class="fz-table__cell item__actions-column" data-testid="business-management-table-actions-header">
+            {{ 'common.actions' | translate }}
+          </div>
+        }
+      </div>
+    </div>
+    <div class="fz-table__body business-management-table__body" data-testid="business-management-table-data">
+      <td
+        [attr.colspan]="7"
+        *ngIf="!isLoadingBusinesses && totalBusinesses === 0"
+        class="table-screen-content__no-results"
+        data-testid="table-screen-content-no-results"
+      >
+        <ignt-icon name="sensor-alert" variant="light" class="table-screen-content__no-results-icon"></ignt-icon>
+        <p class="table-screen-content__no-results-text">
+          {{ (hasActiveFilters ? 'businessManagement.noSearchResults' : 'businessManagement.noResults') | translate }}
+        </p>
+      </td>
+      <td
+        [attr.colspan]="7"
+        *ngIf="!isLoadingBusinesses && totalBusinesses !== 0 && businesses?.length === 0"
+        class="table-screen-content__no-results"
+        data-testid="table-screen-content-no-results"
+      >
+        <ignt-icon name="sensor-alert" variant="light" class="table-screen-content__no-results-icon"></ignt-icon>
+        <p class="table-screen-content__no-results-text" translate>businessManagement.noSearchResults</p>
+      </td>
+      <ng-container *ngFor="let business of businesses">
+        <div class="fz-table__row" data-testid="business-management-row" (click)="clickOnBusiness(business.id)">
+          <div class="fz-table__cell table__row--name item__big-columns">
+            <div class="item__small-row" data-testid="business-management-table-full-name">
+              <strong>
+                {{ business.name }}
+              </strong>
+            </div>
+            <div class="item__small-row" data-testid="business-management-table-tax-id">
+              <ignt-icon *ngIf="business.taxIdentificationNumber" name="address-card" variant="light"></ignt-icon>
+              <span> {{ business.taxIdentificationNumber }}</span>
+            </div>
+            <div class="item__small-row business-management-table__email" data-testid="business-management-table-email">
+              <ignt-icon name="envelope" variant="light"></ignt-icon>
+              <span> {{ business.email }}</span>
+            </div>
+          </div>
+          <div class="fz-table__cell item__small-columns">
+            <span
+              class="scrollable-table__column-text business-type business-type--{{ business.type }}"
+              data-testid="business-management-table-type"
+            >
+              {{ 'businessManagement.' + business.type | translate }}
+            </span>
+          </div>
+          <div class="fz-table__cell item__md-column contact" data-testid="business-management-table-contact">
+            <ignt-icon class="item__small-row icon" name="phone" variant="light"></ignt-icon>
+            <div>
+              <div class="item__small-row" data-testid="business-management-table-contact-name">
+                <span
+                  ><strong>{{ business.contactName }}</strong></span
+                >
+              </div>
+              <div class="item__small-row" data-testid="business-management-table-contact-phone">
+                {{ business.phone }}
+              </div>
+            </div>
+          </div>
+          <div class="fz-table__cell table__row--name item__md-column" data-testid="business-management-table-address">
+            <ignt-icon *ngIf="business.address" class="table__row--name icon" name="house" variant="light"></ignt-icon>
+            {{ business.address }}
+          </div>
+          <div class="fz-table__cell table__row--name item__small-columns" data-testid="business-management-table-custom-channel">
+            @if (business.hasCustomChannel) {
+              {{ business.channel }}
+            } @else {
+              {{ 'businessManagement.customChannelNotSet' | translate }}
+            }
+          </div>
+          <div class="fz-table__cell item__small-columns">
+            <ignt-tag
+              data-testid="business-management-table-reservations"
+              [variant]="'outline'"
+              [sentiment]="business.isManager ? 'positive' : 'danger'"
+              [startIcon]="business.isManager ? ['fal', 'shield-check'] : ['fal', 'ban']"
+            >
+              {{ 'common.' + (business.isManager ? 'enabled' : 'disabled') | translate }}
+            </ignt-tag>
+          </div>
+          @if (canUnlinkBusiness) {
+            <div class="fz-table__cell item__actions-column business-management-table__actions">
+              <ignt-button
+                variant="tertiary"
+                size="small"
+                [loading]="unlinkingBusinessId === business.id"
+                [disabled]="unlinkingBusinessId !== null"
+                [leadingIcon]="{ name: 'unlink', variant: 'regular' }"
+                [label]="'businessManagement.unlink.label' | translate"
+                [ariaLabel]="'businessManagement.unlink.action' | translate"
+                [title]="'businessManagement.unlink.action' | translate"
+                (click)="unlinkBusiness(business, $event)"
+                data-testid="business-management-unlink-business-button"
+              ></ignt-button>
+            </div>
+          }
+        </div>
+      </ng-container>
+      <td [attr.colspan]="7" *ngIf="isLoadingBusinesses" class="table-screen-content__spinner">
+        <ignt-icon name="spinner" variant="solid" size="display" class="loader"></ignt-icon>
+      </td>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #buttonsTemplate>
+  <ng-container>
+    @if (canExportBusinesses) {
+      <ignt-button
+        class="business-management__button"
+        fill
+        variant="secondary"
+        [trailingIcon]="{ name: 'file-download', variant: 'solid' }"
+        [loading]="loadingDownloadBusinesses"
+        [label]="'common.download' | translate"
+        (click)="downloadBusinesses()"
+        data-testid="business-management-download-businesses-button"
+      ></ignt-button>
+    }
+    @if (showAddBusinessView) {
+      <ignt-button
+        class="business-management__button"
+        fill
+        [label]="'businessManagement.addBusiness' | translate"
+        (click)="addNewBusiness()"
+        data-testid="business-management-add-business-button"
+      ></ignt-button>
+    }
+  </ng-container>
+</ng-template>

@@ -1,0 +1,91 @@
+<div class="lead-activity-timeline">
+  <header class="lead-activity-timeline__header">
+    <h3 class="lead-activity-timeline__title">{{ 'leads.detail.activity.title' | translate }}</h3>
+    @if (canLogActivity()) {
+      <ignt-button
+        data-testid="lead-activity-timeline-add"
+        size="small"
+        variant="secondary"
+        [leadingIcon]="addActivityIcon"
+        [loading]="isCreating()"
+        [label]="'leads.detail.activity.create.action' | translate"
+        (click)="onAddActivity()"
+      />
+    }
+  </header>
+
+  <app-lead-activity-timeline-filters [options]="filterOptions" [selectedTypes]="selectedTypes()" (typesChange)="onTypesChange($event)" />
+
+  @if (isLoading()) {
+    <div class="lead-activity-timeline__status" data-testid="lead-activity-timeline-loading">
+      <ignt-icon class="lead-activity-timeline__spinner" name="spinner" size="display" variant="solid" aria-hidden="true" [spin]="true" />
+    </div>
+  } @else if (hasError()) {
+    <div class="lead-activity-timeline__status" data-testid="lead-activity-timeline-error">
+      <p class="lead-activity-timeline__status-text">{{ 'errors.generic' | translate }}</p>
+      <ignt-button
+        data-testid="lead-activity-timeline-retry"
+        size="small"
+        variant="secondary"
+        [label]="'common.retry' | translate"
+        (click)="onRetry()"
+      />
+    </div>
+  } @else if (isFilteredEmpty()) {
+    <div class="lead-activity-timeline__status" data-testid="lead-activity-timeline-empty-for-category">
+      <p class="lead-activity-timeline__status-text">{{ 'leads.detail.activity.emptyForCategory' | translate }}</p>
+    </div>
+  } @else if (activities().length === 0) {
+    <div class="lead-activity-timeline__status" data-testid="lead-activity-timeline-empty">
+      <p class="lead-activity-timeline__status-text">{{ 'leads.detail.activity.empty' | translate }}</p>
+    </div>
+  } @else {
+    @if (isPartial()) {
+      <p class="lead-activity-timeline__notice" data-testid="lead-activity-timeline-partial">
+        {{ 'leads.detail.activity.partial' | translate }}
+        <ignt-button
+          data-testid="lead-activity-timeline-partial-retry"
+          size="small"
+          variant="tertiary"
+          [label]="'common.retry' | translate"
+          (click)="onRetry()"
+        />
+      </p>
+    } @else if (isCapped()) {
+      <p class="lead-activity-timeline__notice" data-testid="lead-activity-timeline-capped">
+        {{ 'leads.detail.activity.capped' | translate: { count: activityLimit } }}
+      </p>
+    }
+
+    <ul class="lead-activity-timeline__list">
+      @for (activity of visibleActivities(); track activity.id) {
+        <li class="lead-activity-timeline__item" data-testid="lead-activity-timeline-item">
+          <div class="lead-activity-timeline__item-icon" aria-hidden="true">
+            <ignt-icon size="sm" variant="light" [name]="getIconName(activity.type)" />
+          </div>
+          <div class="lead-activity-timeline__item-body">
+            <span class="lead-activity-timeline__item-heading">
+              <span class="lead-activity-timeline__item-title">{{ activity.title }}</span>
+              @if (activity.direction) {
+                <ignt-tag data-testid="lead-activity-timeline-direction-tag" sentiment="sharp" [variant]="'outline'">
+                  {{ 'leads.detail.activity.directions.' + activity.direction | translate }}
+                </ignt-tag>
+              }
+              @if (activity.authorName) {
+                <span class="lead-activity-timeline__item-author" data-testid="lead-activity-timeline-author">
+                  {{ 'leads.detail.activity.byAuthor' | translate: { author: activity.authorName } }}
+                </span>
+              }
+            </span>
+            @if (activity.content) {
+              <span class="lead-activity-timeline__item-description">{{ activity.content }}</span>
+            }
+          </div>
+          <time class="lead-activity-timeline__item-date" [attr.datetime]="activity.relatedDatetime">
+            {{ activity.relatedDatetime | date: 'mediumDate' }} · {{ activity.relatedDatetime | date: 'shortTime' }}
+          </time>
+        </li>
+      }
+    </ul>
+  }
+</div>

@@ -1,0 +1,71 @@
+@if (firstPageError(); as loadError) {
+  <div class="audit-item-history__error" data-testid="audit-item-history-error">
+    <ignt-alert sentiment="danger" role="alert" [description]="loadError.messageKey | translate"></ignt-alert>
+    <ignt-button
+      variant="secondary"
+      size="small"
+      [label]="'audit.changeLog.retry' | translate"
+      data-testid="audit-item-history-retry"
+      (click)="onRetry()"
+    />
+  </div>
+}
+
+@if (isFirstLoad()) {
+  <p class="audit-item-history__status" aria-live="polite" data-testid="audit-item-history-loading">
+    {{ 'audit.changeLog.loading' | translate }}
+  </p>
+} @else if (isEmpty()) {
+  <p class="audit-item-history__status" data-testid="audit-item-history-empty">{{ 'audit.itemHistory.empty' | translate }}</p>
+}
+
+<div class="audit-item-history__list" [class.audit-item-history__list--reloading]="isLoading() && !isFirstLoad()">
+  @for (group of dayGroups(); track group.day) {
+    <section class="audit-item-history__day" [attr.aria-labelledby]="'audit-item-history-day-' + group.day">
+      <h4 class="audit-item-history__day-header" [id]="'audit-item-history-day-' + group.day" data-testid="audit-item-history-day">
+        {{ group.labelKey | translate: group.labelParams }}
+      </h4>
+      <ul class="audit-item-history__rows">
+        @for (changeRow of group.rows; track changeRow.change.changeId) {
+          <li class="audit-item-history__row">
+            <app-audit-change-row
+              [row]="changeRow"
+              [allScopesLabelKey]="allScopesLabelKey"
+              [i18nPrefix]="i18nPrefix"
+              [detailOpen]="openDetailIds().has(changeRow.change.changeId)"
+              [technicalOpen]="openTechnicalIds().has(changeRow.change.changeId)"
+              [businessEntries]="businessEntries()[changeRow.change.changeId] ?? null"
+              [allEntries]="allEntries()[changeRow.change.changeId] ?? null"
+              [restoreDisabled]="restoringChangeId() !== null"
+              [restoreHidden]="!restorableIds().has(changeRow.change.changeId)"
+              (restore)="onRestore(changeRow)"
+              (detailToggle)="onDetailToggle(changeRow.change.changeId)"
+              (technicalToggle)="onTechnicalToggle(changeRow.change.changeId)"
+              (moreBusinessEntries)="onMoreBusinessEntries(changeRow.change.changeId)"
+              (moreTechnicalEntries)="onMoreTechnicalEntries(changeRow.change.changeId)"
+            ></app-audit-change-row>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+</div>
+
+@if (loadMoreError(); as loadError) {
+  <div class="audit-item-history__error" data-testid="audit-item-history-load-more-error">
+    <ignt-alert sentiment="danger" role="alert" [description]="loadError.messageKey | translate"></ignt-alert>
+    <ignt-button
+      variant="secondary"
+      size="small"
+      [label]="'audit.changeLog.retry' | translate"
+      data-testid="audit-item-history-load-more-retry"
+      (click)="onRetry()"
+    />
+  </div>
+} @else if (isLoadingMore()) {
+  <p class="audit-item-history__status" aria-live="polite" data-testid="audit-item-history-loading-more">
+    {{ 'audit.changeLog.loadingMore' | translate }}
+  </p>
+} @else if (isEnd()) {
+  <p class="audit-item-history__status" data-testid="audit-item-history-end">{{ 'audit.changeLog.end' | translate }}</p>
+}

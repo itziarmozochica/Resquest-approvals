@@ -1,0 +1,241 @@
+<div class="schedule-weekdays" data-testid="schedule-step-weekdays">
+  <h4 class="schedule-weekdays__subtitle">{{ 'informationRequests.schedule.weekdays.selling' | translate }}</h4>
+  <div class="schedule-weekdays__toggles">
+    @for (wd of weekdays(); track wd.dow) {
+      <button
+        type="button"
+        class="schedule-weekdays__toggle"
+        [class.schedule-weekdays__toggle--on]="wd.open"
+        [attr.aria-pressed]="wd.open"
+        (click)="toggleWeekday(wd.dow)"
+        [attr.data-testid]="'schedule-weekdays-toggle-' + wd.dow"
+      >
+        {{ wd.label }}
+      </button>
+    }
+  </div>
+
+  <label class="schedule-weekdays__field schedule-weekdays__duration">
+    <span>{{ 'informationRequests.schedule.weekdays.durationLabel' | translate }}</span>
+    <input
+      type="number"
+      min="1"
+      class="form-control"
+      [class.schedule-weekdays__invalid]="durationInvalid()"
+      [value]="duration() ?? ''"
+      (input)="setDuration($any($event.target).value)"
+      data-testid="schedule-weekdays-duration"
+    />
+  </label>
+
+  <div class="schedule-weekdays__session-head">
+    <div>
+      <h4 class="schedule-weekdays__subtitle">{{ 'informationRequests.schedule.weekdays.sessions' | translate }}</h4>
+      <p class="schedule-weekdays__hint">{{ 'informationRequests.schedule.weekdays.sessionsHint' | translate }}</p>
+    </div>
+    @if (openWeekdays().length) {
+      <button
+        type="button"
+        class="schedule-weekdays__bulk-open"
+        (click)="openWeekDaysGenerator()"
+        data-testid="schedule-weekdays-generate-open"
+      >
+        {{ 'informationRequests.schedule.weekdays.generateDays' | translate }}
+      </button>
+    }
+  </div>
+
+  <div class="schedule-weekdays__days" data-testid="schedule-weekdays-days">
+    @for (wd of openWeekdays(); track wd.dow) {
+      @let slots = slotsFor(wd.key);
+      @let collapsed = isDayCollapsed(wd.key);
+      <article
+        class="schedule-weekdays__day"
+        [class.schedule-weekdays__invalid]="dayInvalid(wd.key)"
+        [attr.data-testid]="'schedule-weekdays-day-' + wd.dow"
+      >
+        <header class="schedule-weekdays__day-head">
+          <button
+            type="button"
+            class="schedule-weekdays__disclosure"
+            (click)="toggleDayCollapsed(wd.key)"
+            [attr.aria-expanded]="!collapsed"
+            [attr.data-testid]="'schedule-weekdays-collapse-' + wd.dow"
+          >
+            <span class="schedule-weekdays__chevron">{{ collapsed ? '▾' : '▴' }}</span>
+            {{ wd.label }}
+          </button>
+        </header>
+
+        @if (!collapsed) {
+          @if (slots.length) {
+            <div class="schedule-weekdays__slots" [attr.data-testid]="'schedule-weekdays-slots-' + wd.dow">
+              @for (slot of slots; track slot.id; let i = $index) {
+                <div class="schedule-weekdays__slot" [attr.data-testid]="'schedule-weekdays-slot-' + wd.dow + '-' + i">
+                  <label class="schedule-weekdays__field">
+                    <span>{{ 'informationRequests.schedule.weekdays.start' | translate }}</span>
+                    <input
+                      type="time"
+                      class="form-control"
+                      [class.schedule-weekdays__invalid]="slotStartInvalid(slot)"
+                      [value]="slot.start"
+                      (input)="setSlotStart(wd.key, slot.id, $any($event.target).value)"
+                    />
+                  </label>
+                  <label class="schedule-weekdays__field">
+                    <span>{{ 'informationRequests.schedule.weekdays.slotDemand' | translate }}</span>
+                    <select class="form-select" (change)="setSlotTier(wd.key, slot.id, $any($event.target).value)">
+                      @for (tier of tierOptionsFor(slot.productIds); track tier) {
+                        <option [value]="tier" [selected]="tier === slot.tier">{{ tier || 'Standard' }}</option>
+                      }
+                    </select>
+                  </label>
+                  <div class="schedule-weekdays__field schedule-weekdays__slot-products">
+                    <span>{{ 'informationRequests.schedule.weekdays.slotProducts' | translate }}</span>
+                    <div class="schedule-weekdays__product-chips" [class.schedule-weekdays__invalid]="slotProductsInvalid(slot)">
+                      @for (product of products(); track product.id) {
+                        <button
+                          type="button"
+                          class="schedule-weekdays__product-chip"
+                          [class.schedule-weekdays__product-chip--on]="slotHasProduct(slot, product.id)"
+                          [attr.aria-pressed]="slotHasProduct(slot, product.id)"
+                          (click)="toggleSlotProduct(wd.key, slot.id, product.id)"
+                        >
+                          {{ product.name }}
+                        </button>
+                      }
+                    </div>
+                  </div>
+                  <button type="button" class="schedule-weekdays__slot-remove" (click)="removeSlot(wd.key, slot.id)">
+                    {{ 'informationRequests.schedule.weekdays.removeSlot' | translate }}
+                  </button>
+                </div>
+              }
+            </div>
+          }
+
+          <div class="schedule-weekdays__day-actions">
+            <button
+              type="button"
+              class="schedule-weekdays__bulk-open"
+              (click)="addSlot(wd.key)"
+              [attr.data-testid]="'schedule-weekdays-add-slot-' + wd.dow"
+            >
+              {{ 'informationRequests.schedule.weekdays.addOneSlot' | translate }}
+            </button>
+            <button
+              type="button"
+              class="schedule-weekdays__bulk-open"
+              (click)="openSingleDayGenerator(wd.key)"
+              [attr.data-testid]="'schedule-weekdays-add-multiple-' + wd.dow"
+            >
+              {{ 'informationRequests.schedule.weekdays.addMultipleSlots' | translate }}
+            </button>
+          </div>
+        }
+      </article>
+    }
+  </div>
+
+  @if (generator.open()) {
+    @let isDays = generatorMode() === 'days';
+    <div class="schedule-weekdays__backdrop" [attr.data-testid]="isDays ? 'schedule-weekdays-generate' : 'schedule-weekdays-recurrence'">
+      <section class="schedule-weekdays__dialog" role="dialog" aria-modal="true">
+        <header class="schedule-weekdays__dialog-head">
+          <h5 class="schedule-weekdays__dialog-title">
+            {{
+              (isDays ? 'informationRequests.schedule.weekdays.generateTitle' : 'informationRequests.schedule.weekdays.recurrenceTitle')
+                | translate
+            }}
+          </h5>
+          <button type="button" class="schedule-weekdays__dialog-close" (click)="closeGenerator()" aria-label="Close">✕</button>
+        </header>
+        <div class="schedule-weekdays__dialog-body">
+          @if (isDays) {
+            <section>
+              <strong>{{ 'informationRequests.schedule.weekdays.generateApplyToDays' | translate }}</strong>
+              <div class="schedule-weekdays__bulk-days">
+                @for (wd of openWeekdays(); track wd.dow) {
+                  <button
+                    type="button"
+                    class="schedule-weekdays__bulk-day"
+                    [class.schedule-weekdays__bulk-day--on]="isGenerateDow(wd.key)"
+                    [attr.aria-pressed]="isGenerateDow(wd.key)"
+                    (click)="toggleGenerateDow(wd.key)"
+                    [attr.data-testid]="'schedule-weekdays-generate-day-' + wd.dow"
+                  >
+                    {{ wd.label }}
+                  </button>
+                }
+              </div>
+            </section>
+          }
+          <div class="schedule-weekdays__bulk-grid">
+            <label>
+              <span>{{ 'informationRequests.schedule.weekdays.from' | translate }}</span>
+              <input type="time" class="form-control" [value]="generator.from()" (input)="generator.from.set($any($event.target).value)" />
+            </label>
+            <label>
+              <span>{{ 'informationRequests.schedule.weekdays.to' | translate }}</span>
+              <input type="time" class="form-control" [value]="generator.to()" (input)="generator.to.set($any($event.target).value)" />
+            </label>
+            <label>
+              <span>{{ 'informationRequests.schedule.weekdays.each' | translate }}</span>
+              <input
+                type="number"
+                min="1"
+                class="form-control"
+                [value]="generator.each() ?? ''"
+                (input)="generator.each.set(+$any($event.target).value || null)"
+              />
+            </label>
+            <label>
+              <span>{{ 'informationRequests.schedule.weekdays.slotDemand' | translate }}</span>
+              <select class="form-select" (change)="generator.tier.set($any($event.target).value)">
+                @for (tier of tierOptionsFor(generator.productIds()); track tier) {
+                  <option [value]="tier" [selected]="tier === generator.tier()">{{ tier || 'Standard' }}</option>
+                }
+              </select>
+            </label>
+          </div>
+          @if (products().length) {
+            <section class="schedule-weekdays__bulk-tiers">
+              <strong>{{ 'informationRequests.schedule.weekdays.slotProducts' | translate }}</strong>
+              <div class="schedule-weekdays__product-chips">
+                @for (product of products(); track product.id) {
+                  <button
+                    type="button"
+                    class="schedule-weekdays__product-chip"
+                    [class.schedule-weekdays__product-chip--on]="hasProduct(product.id)"
+                    [attr.aria-pressed]="hasProduct(product.id)"
+                    (click)="toggleProduct(product.id)"
+                  >
+                    {{ product.name }}
+                  </button>
+                }
+              </div>
+            </section>
+          }
+          @if (generator.error()) {
+            <p class="schedule-weekdays__error" [attr.data-testid]="isDays ? 'schedule-weekdays-generate-error' : null">
+              {{ generator.error() | translate }}
+            </p>
+          }
+        </div>
+        <footer class="schedule-weekdays__dialog-foot">
+          <button type="button" class="schedule-weekdays__secondary" (click)="closeGenerator()">
+            {{ 'informationRequests.schedule.weekdays.cancel' | translate }}
+          </button>
+          <button
+            type="button"
+            class="schedule-weekdays__bulk-apply"
+            (click)="applyGenerator()"
+            [attr.data-testid]="isDays ? 'schedule-weekdays-generate-apply' : 'schedule-weekdays-recurrence-apply'"
+          >
+            {{ 'informationRequests.schedule.weekdays.apply' | translate }}
+          </button>
+        </footer>
+      </section>
+    </div>
+  }
+</div>

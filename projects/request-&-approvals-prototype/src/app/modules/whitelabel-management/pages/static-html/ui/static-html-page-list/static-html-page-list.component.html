@@ -1,0 +1,122 @@
+<section class="static-html-page-list">
+  <header class="static-html-page-list__header">
+    <h2 class="static-html-page-list__title" id="static-html-page-list-title">{{ 'staticHtml.list.title' | translate }}</h2>
+    <span class="static-html-page-list__count">{{ countKey() | translate: { count: pages().length } }}</span>
+  </header>
+
+  @if (rows().length) {
+    <!--
+      A listbox, not a list of buttons: exactly one page is open in the editor at a time, and
+      `aria-selected` is the only thing that says so to a reader. Selection does not follow focus,
+      because picking a page swaps what the editor holds — the arrows walk the rail, Enter picks.
+    -->
+    <ul
+      class="static-html-page-list__items"
+      role="listbox"
+      aria-labelledby="static-html-page-list-title"
+      data-testid="static-html-page-list"
+    >
+      @for (row of rows(); track row.index) {
+        <li
+          class="static-html-page-list__item static-html-page-list__item--{{ row.tone }}"
+          role="option"
+          data-testid="static-html-page-list-item"
+          [attr.aria-selected]="row.isSelected"
+          [attr.tabindex]="row.index === tabbableIndex() ? 0 : -1"
+          [class.static-html-page-list__item--selected]="row.isSelected"
+          (click)="pageSelected.emit(row.index)"
+          (focus)="onFocus(row.index)"
+          (keydown)="onKeydown($event, row.index)"
+        >
+          <!-- Colour is the shorthand; the status line under the path is what actually says it. -->
+          <span class="static-html-page-list__dot" aria-hidden="true"></span>
+
+          <span class="static-html-page-list__path">{{ row.path }}</span>
+
+          <span class="static-html-page-list__status"> {{ row.localeCode }} · {{ row.statusKey | translate: row.statusParams }} </span>
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="static-html-page-list__empty">{{ 'staticHtml.list.empty' | translate }}</p>
+  }
+
+  <!--
+    The footer is the add form and nothing else — the button that opens it, the fields, and the note
+    explaining why no locale can be picked for a new page — so a read-only visit does without the
+    whole of it rather than with a disabled version. Choosing a page above is untouched: that is a
+    read, and it is how a viewer gets to see anything at all.
+  -->
+  @if (!isReadOnly()) {
+    <footer class="static-html-page-list__footer">
+      @if (isAdding()) {
+        <div class="static-html-page-list__add">
+          <div class="static-html-page-list__field">
+            <span class="static-html-page-list__label">{{ 'staticHtml.list.newLocale' | translate }}</span>
+            <ng-select
+              bindLabel="label"
+              bindValue="slug"
+              labelForId="static-html-new-locale"
+              [clearable]="false"
+              [items]="localeChoices()"
+              [ngModel]="newLocaleSlug()"
+              [ngModelOptions]="{ standalone: true }"
+              [searchable]="false"
+              (ngModelChange)="newLocaleSlug.set($event)"
+            ></ng-select>
+          </div>
+
+          <ignt-input-field
+            id="static-html-new-slug"
+            [label]="'staticHtml.list.newSlug' | translate"
+            [ngModel]="newSlug()"
+            [ngModelOptions]="{ standalone: true }"
+            [placeholder]="'staticHtml.list.newSlugPlaceholder' | translate"
+            (keyup.enter)="add()"
+            (ngModelChange)="newSlug.set($event)"
+          />
+
+          <!-- The slug is a URL, so it is shown as one while it is still being typed. -->
+          @if (canAdd()) {
+            <p class="static-html-page-list__preview">
+              <code>{{ newServedPath() }}</code>
+            </p>
+          }
+
+          <div class="static-html-page-list__add-actions">
+            <ignt-button
+              size="small"
+              data-testid="static-html-add-page"
+              [disabled]="!canAdd()"
+              [label]="'staticHtml.list.add' | translate"
+              (click)="add()"
+            />
+            <ignt-button
+              sentiment="neutral"
+              size="small"
+              variant="tertiary"
+              data-testid="static-html-cancel-page"
+              [label]="'staticHtml.list.cancel' | translate"
+              (click)="cancelAdd()"
+            />
+          </div>
+        </div>
+      } @else {
+        <ignt-button
+          class="static-html-page-list__new"
+          sentiment="neutral"
+          size="small"
+          variant="secondary"
+          data-testid="static-html-new-page"
+          [label]="'staticHtml.list.newPage' | translate"
+          [leadingIcon]="addIcon"
+          (click)="isAdding.set(true)"
+        />
+      }
+
+      @if (!locales().length) {
+        <p class="static-html-page-list__empty">{{ 'staticHtml.list.noLocales' | translate }}</p>
+      }
+    </footer>
+  }
+</section>

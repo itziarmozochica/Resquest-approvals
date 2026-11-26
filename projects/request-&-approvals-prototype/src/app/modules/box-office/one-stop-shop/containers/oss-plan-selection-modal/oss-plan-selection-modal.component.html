@@ -1,0 +1,120 @@
+<ignt-dialog-header [hideCloseButton]="!hasCloseButton()" data-testid="plan-selection-modal">
+  {{ 'oneStopShop.planSelectionModal.title' | translate }}
+</ignt-dialog-header>
+<ignt-dialog-content>
+  <ng-container *ngTemplateOutlet="planContent"></ng-container>
+</ignt-dialog-content>
+
+<ng-template #planContent>
+  <div class="oss-plan-selection-modal__content">
+    <div class="oss-plan-selection-header">
+      <h2 class="oss-plan-selection-header-title">
+        🎟️ <span>{{ 'oneStopShop.planSelectionModal.header.title' | translate }}</span>
+      </h2>
+      <p class="oss-plan-selection-header-subtitle">
+        {{ 'oneStopShop.planSelectionModal.header.subtitle' | translate }}
+      </p>
+    </div>
+
+    <section class="plan-selection">
+      @if (!isLoadingPlans()) {
+        @if (shouldShowCitySelector()) {
+          <div class="plan-selection__section">
+            <label class="plan-selection__label">
+              {{ 'oneStopShop.planSelectionModal.selectCity' | translate }}
+            </label>
+            @if (shouldShowCitySearch()) {
+              <div class="city-search">
+                <label class="field">
+                  <ignt-input-field
+                    #citySearchInput
+                    [formControl]="citySearchFormControl"
+                    [label]="'oneStopShop.planSelectionModal.citySearchLabel' | translate"
+                    [placeholder]="'oneStopShop.planSelectionModal.citySearchPlaceholder' | translate"
+                    type="search"
+                    data-testid="city-search-input"
+                    (keydown.enter)="onCitySearchEnterKey()"
+                  ></ignt-input-field>
+                  <ignt-icon class="field__icon field__icon--lead" name="search" variant="light" aria-hidden="true" />
+                </label>
+              </div>
+            }
+            <div class="tile-wrapper">
+              @for (city of filteredCityOptions(); track city.id) {
+                <ng-container *ngTemplateOutlet="cityTile; context: { $implicit: city }"></ng-container>
+              }
+            </div>
+          </div>
+        }
+
+        @if (shouldShowPlanSection()) {
+          <div #planSection class="plan-selection__section">
+            <label class="plan-selection__label">
+              {{ 'oneStopShop.planSelectionModal.selectEventAndVenue' | translate }}
+            </label>
+            @if (shouldShowPlanSearch()) {
+              <div class="plan-search">
+                <label class="field">
+                  <ignt-input-field
+                    #planSearchInput
+                    [formControl]="planSearchFormControl"
+                    [label]="'oneStopShop.planSelectionModal.planSearchLabel' | translate"
+                    [placeholder]="'oneStopShop.planSelectionModal.planSearchPlaceholder' | translate"
+                    type="search"
+                    data-testid="plan-search-input"
+                    (keydown.enter)="onPlanSearchEnterKey()"
+                  ></ignt-input-field>
+                  <ignt-icon class="field__icon field__icon--lead" name="search" variant="light" aria-hidden="true" />
+                </label>
+              </div>
+            }
+            <div class="tile-wrapper tile-wrapper--wrap">
+              @for (plan of filteredPlanOptions(); track plan.id) {
+                <ng-container *ngTemplateOutlet="planTile; context: { $implicit: plan }"></ng-container>
+              }
+            </div>
+          </div>
+        }
+      } @else {
+        <div class="plan-selection__loading">
+          <ignt-icon name="spinner" variant="solid" size="display" [spin]="true" aria-hidden="true" />
+        </div>
+      }
+    </section>
+  </div>
+</ng-template>
+
+<ng-template #cityTile let-city>
+  <button
+    type="button"
+    class="tile"
+    data-testid="city-tile"
+    [class.tile--selected]="selectedCitySignal()?.id === city.id"
+    (click)="selectCity(city)"
+  >
+    <div class="tile__label" [title]="city.title">{{ city.title }}</div>
+  </button>
+</ng-template>
+
+<ng-template #planTile let-plan>
+  <button
+    type="button"
+    class="tile tile--large tile--fill"
+    data-testid="plan-tile"
+    [class.tile--selected]="selectedPlan?.id === plan.id"
+    [class.tile--disabled]="isPlanInteractionDisabled(plan)"
+    [disabled]="isPlanInteractionDisabled(plan)"
+    (click)="selectPlan(plan)"
+  >
+    <div class="tile__image--large">
+      <img [src]="plan.image" alt="{{ plan.title }}" />
+    </div>
+    <div class="tile__info--large">
+      <div class="tile__label--large" [title]="plan.title">{{ plan.title }}</div>
+      <div class="tile__subtitle--large">
+        <ignt-icon name="landmark" variant="light" size="sm" class="tile__subtitle-icon--large" aria-hidden="true" />
+        <span>{{ plan.place }}</span>
+      </div>
+    </div>
+  </button>
+</ng-template>

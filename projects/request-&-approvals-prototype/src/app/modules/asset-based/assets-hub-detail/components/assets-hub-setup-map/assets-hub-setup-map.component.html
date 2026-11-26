@@ -1,0 +1,107 @@
+<div class="setup-map-tab">
+  @if (isLoading()) {
+    <div class="setup-map-tab__state" role="status" data-testid="setup-map-loading">
+      <ignt-icon name="spinner" variant="solid" size="h4" [spin]="true"></ignt-icon>
+      <p class="setup-map-tab__state-text" translate>assetsHubs.detail.setupMap.loading</p>
+    </div>
+  } @else if (hasError()) {
+    <div class="setup-map-tab__state" role="alert" data-testid="setup-map-error">
+      <ignt-icon name="triangle-exclamation" variant="regular" size="h3" aria-hidden="true"></ignt-icon>
+      <p class="setup-map-tab__state-title" translate>assetsHubs.detail.setupMap.error.title</p>
+      <p class="setup-map-tab__state-text" translate>assetsHubs.detail.setupMap.error.description</p>
+      <ignt-button
+        [label]="'assetsHubs.detail.setupMap.error.retry' | translate"
+        variant="secondary"
+        sentiment="neutral"
+        size="small"
+        data-testid="setup-map-retry"
+        (click)="reload()"
+      ></ignt-button>
+    </div>
+  } @else if (isEmpty()) {
+    <div class="setup-map-tab__state" data-testid="setup-map-empty">
+      <ignt-icon name="circle-info" variant="light" size="h3" aria-hidden="true"></ignt-icon>
+      <p class="setup-map-tab__state-title" translate>assetsHubs.detail.setupMap.empty.title</p>
+      <p class="setup-map-tab__state-text" translate>assetsHubs.detail.setupMap.empty.description</p>
+    </div>
+  } @else {
+    <p class="setup-map-tab__description" translate>assetsHubs.detail.setupMap.description</p>
+
+    <app-setup-map-summary
+      data-testid="setup-map-summary"
+      [groupCount]="graph().groups.length"
+      [packCount]="graph().packs.length"
+      [activityCount]="graph().activities.length"
+      [assetCount]="graph().assets.length"
+      [connectionCount]="connectionCount()"
+      [orphanActivityCount]="graph().orphanActivityCount"
+      [orphanAssetCount]="graph().orphanAssetCount"
+    ></app-setup-map-summary>
+
+    <div class="setup-map-tab__toolbar">
+      <ul class="setup-map-tab__legend">
+        <li class="setup-map-tab__legend-item">
+          <span class="setup-map-tab__legend-swatch setup-map-tab__legend-swatch--selected"></span>
+          <span translate>assetsHubs.detail.setupMap.legend.selected</span>
+        </li>
+        <li class="setup-map-tab__legend-item">
+          <span class="setup-map-tab__legend-swatch setup-map-tab__legend-swatch--connected"></span>
+          <span translate>assetsHubs.detail.setupMap.legend.connected</span>
+        </li>
+        <li class="setup-map-tab__legend-item">
+          <span class="setup-map-tab__legend-swatch setup-map-tab__legend-swatch--orphan"></span>
+          <span translate>assetsHubs.detail.setupMap.legend.orphan</span>
+        </li>
+      </ul>
+
+      @if (selectedNodeInfo(); as info) {
+        <div class="setup-map-tab__selection" data-testid="setup-map-selection">
+          <span class="setup-map-tab__selection-text">
+            {{
+              (info.connectionCount === 1
+                ? 'assetsHubs.detail.setupMap.selection.labelOne'
+                : 'assetsHubs.detail.setupMap.selection.labelMany'
+              ) | translate: { name: info.name, count: info.connectionCount }
+            }}
+          </span>
+          <ignt-button
+            [label]="'assetsHubs.detail.setupMap.selection.clear' | translate"
+            variant="tertiary"
+            size="small"
+            data-testid="setup-map-clear-selection"
+            (click)="clearSelection()"
+          ></ignt-button>
+        </div>
+      } @else {
+        <span class="setup-map-tab__hint" translate>assetsHubs.detail.setupMap.selection.hint</span>
+      }
+    </div>
+
+    <app-setup-map-graph
+      data-testid="setup-map-graph"
+      [groups]="graph().groups"
+      [packs]="graph().packs"
+      [activities]="graph().activities"
+      [assets]="graph().assets"
+      [edges]="graph().edges"
+      [packEdges]="graph().packEdges"
+      [groupPackEdges]="graph().groupPackEdges"
+      [groupActivityEdges]="graph().groupActivityEdges"
+      [selectedKey]="selectedKey()"
+      [highlightedKeys]="highlightedKeys()"
+      (nodeToggle)="onNodeToggle($event)"
+      (schedulePreview)="openSchedulePreview($event)"
+    ></app-setup-map-graph>
+
+    <p class="setup-map-tab__sr-only" aria-live="polite" data-testid="setup-map-live-region">
+      @if (selectedNodeInfo(); as info) {
+        {{
+          (info.connectionCount === 1 ? 'assetsHubs.detail.setupMap.a11y.selectionOne' : 'assetsHubs.detail.setupMap.a11y.selectionMany')
+            | translate: { name: info.name, count: info.connectionCount }
+        }}
+      } @else if (selectedNode() === null && hasToggledNode()) {
+        {{ 'assetsHubs.detail.setupMap.a11y.selectionCleared' | translate }}
+      }
+    </p>
+  }
+</div>

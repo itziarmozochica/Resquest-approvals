@@ -1,0 +1,163 @@
+<ignt-dialog-header>
+  {{ 'fundraising.patronDetails.activityTimeline.activityDialog.title' | translate }}
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <form [formGroup]="activityForm" class="dialog__content" (ngSubmit)="submit()" data-testid="patron-dialog-activity">
+    <div class="dialog__content__fields-wrapper">
+      <div class="dialog__content__field">
+        <app-multi-select
+          [options]="activityTypeOptions()"
+          [selectedOptions]="selectedActivityType"
+          [placeholder]="'fundraising.patronDetails.activityTimeline.activityDialog.fields.type' | translate"
+          [searchPlaceholder]="'common.selectsPlaceholder' | translate"
+          [maxSelectedOptions]="1"
+          [displayInPlaceMaximum]="1"
+          (selected)="onActivityTypeChange($event)"
+          data-testid="patron-dialog-activity-type-select"
+          class="dialog__content__field__selector"
+        ></app-multi-select>
+      </div>
+
+      @if (isDirectionSelectorVisible()) {
+        <div class="dialog__content__field">
+          <app-multi-select
+            [options]="directionOptions"
+            [selectedOptions]="selectedDirection"
+            [placeholder]="'fundraising.patronDetails.activityTimeline.activityDialog.fields.direction' | translate"
+            [searchPlaceholder]="'common.selectsPlaceholder' | translate"
+            [maxSelectedOptions]="1"
+            [displayInPlaceMaximum]="1"
+            (selected)="onDirectionChange($event)"
+            data-testid="patron-dialog-activity-direction-select"
+            class="dialog__content__field__selector"
+          ></app-multi-select>
+        </div>
+      }
+
+      <div class="dialog__content__field">
+        <ignt-date-picker-input
+          id="related-date-input"
+          data-testid="patron-dialog-activity-related-date-input"
+          type="date"
+          [label]="'fundraising.patronDetails.activityTimeline.activityDialog.fields.relatedDate' | translate"
+          [timezone]="timezone"
+          [startDate]="activityForm.get('relatedDate')?.value"
+          (changeDate)="onRelatedDateChange($event)"
+        ></ignt-date-picker-input>
+      </div>
+
+      <div class="dialog__content__field">
+        <ignt-input-field
+          id="activityName"
+          formControlName="activityName"
+          [label]="'fundraising.patronDetails.activityTimeline.activityDialog.fields.subject' | translate"
+          data-testid="patron-dialog-activity-name-input"
+        ></ignt-input-field>
+      </div>
+
+      @if (isOutcomeFieldVisible()) {
+        <div class="dialog__content__field">
+          <ignt-input-field
+            id="outcome"
+            formControlName="outcome"
+            [label]="'fundraising.patronDetails.activityTimeline.activityDialog.fields.outcome' | translate"
+            data-testid="patron-dialog-activity-outcome-input"
+          ></ignt-input-field>
+        </div>
+      }
+
+      @if (isLocationParticipantsVisible()) {
+        <div class="dialog__content__field">
+          <ignt-input-field
+            id="location"
+            formControlName="location"
+            [label]="'fundraising.patronDetails.activityTimeline.activityDialog.fields.location' | translate"
+            data-testid="patron-dialog-activity-location-input"
+          ></ignt-input-field>
+        </div>
+        <div class="dialog__content__field">
+          <ignt-input-field
+            id="participants"
+            formControlName="participants"
+            [label]="'fundraising.patronDetails.activityTimeline.activityDialog.fields.participants' | translate"
+            data-testid="patron-dialog-activity-participants-input"
+          ></ignt-input-field>
+        </div>
+      }
+    </div>
+
+    <div class="dialog__content__field">
+      <ignt-textarea-field
+        id="content"
+        formControlName="content"
+        [label]="contentFieldLabel() | translate"
+        [rows]="3"
+        data-testid="patron-dialog-activity-content-textarea"
+      ></ignt-textarea-field>
+    </div>
+
+    <div class="dialog__content__field">
+      <ignt-checkbox
+        id="hasFollowUp"
+        formControlName="hasFollowUp"
+        [label]="'fundraising.patronDetails.activityTimeline.activityDialog.fields.followUpToggle' | translate"
+        dataTestId="patron-dialog-activity-follow-up-checkbox"
+      ></ignt-checkbox>
+    </div>
+
+    @if (activityForm.get('hasFollowUp')?.value) {
+      <div class="dialog__content__field">
+        <ignt-input-field
+          id="nextAction"
+          formControlName="nextAction"
+          [label]="'fundraising.patronDetails.activityTimeline.activityDialog.fields.nextAction' | translate"
+          data-testid="patron-dialog-activity-next-action-input"
+        ></ignt-input-field>
+      </div>
+
+      <div class="dialog__date-time-row">
+        <div class="dialog__date-time-row__fields-wrapper">
+          <ignt-date-picker-input
+            id="next-action-date-input"
+            class="date-input dialog__date-time-row__date-input"
+            data-testid="patron-dialog-activity-next-action-date-input"
+            type="date"
+            [label]="'fundraising.patronDetails.activityTimeline.activityDialog.fields.followUpDate' | translate"
+            [timezone]="timezone"
+            [startDate]="activityForm.get('nextActionDate')?.value"
+            (changeDate)="onNextActionDateChange($event)"
+          ></ignt-date-picker-input>
+          <div class="dialog__date-time-row__fields-wrapper__divider"></div>
+          <label class="dialog__date-time-row__time-input-wrapper">
+            <input
+              type="time"
+              id="next-action-time-input"
+              class="dialog__date-time-row__time-input"
+              data-testid="patron-dialog-activity-next-action-time-input"
+              formControlName="nextActionTime"
+            />
+            <span class="dialog__date-time-row__time-input-label">
+              {{ 'fundraising.patronDetails.activityTimeline.activityDialog.fields.followUpTime' | translate }}
+            </span>
+          </label>
+        </div>
+      </div>
+    }
+
+    @if (isSubmitting()) {
+      <div class="dialog__content__loading" aria-hidden="true">
+        <ignt-icon name="spinner" variant="solid" [spin]="true" size="h3" />
+      </div>
+    }
+  </form>
+</ignt-dialog-content>
+
+<ignt-dialog-footer [hideCancelButton]="true">
+  <button type="button" igntButton sentiment="tertiary" (click)="dismiss()" [disabled]="isSubmitting()">
+    {{ 'common.cancel' | translate }}
+  </button>
+  <button type="button" igntButton sentiment="primary" (click)="submit()" [disabled]="activityForm.invalid || isSubmitting()">
+    {{ 'common.create' | translate }}
+  </button>
+</ignt-dialog-footer>

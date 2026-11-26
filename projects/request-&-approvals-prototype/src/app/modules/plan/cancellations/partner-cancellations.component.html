@@ -1,0 +1,212 @@
+@if (!embedded) {
+  <app-page-title [title]="'partnerCancellations.title' | translate" class="new-design"></app-page-title>
+  <app-search-bar
+    (searchEmitter)="loadNewSearch($event)"
+    [preselectActiveCity]="false"
+    [mandatoryFilters]="mandatoryFilters"
+  ></app-search-bar>
+}
+
+<div [class]="embedded ? '' : 'main-wrapper'">
+  <div [class]="embedded ? '' : 'wrapper-card wrapper-card--elevation-100 wrapper-card--custom-mobile'">
+    <app-table
+      [headers]="headers"
+      [type]="TableType.FZ_TABLE"
+      [hasActions]="false"
+      [scrollable]="true"
+      class="cancellations-table"
+      data-testid="cancellations-table"
+    >
+      @if (!isLoading() && !hasError()) {
+        @for (cancellation of cancellations(); track trackById($index, cancellation)) {
+          <tr
+            class="cancellations-table__row"
+            [class.cancellations-table__row--expanded]="isExpanded(cancellation.id)"
+            data-testid="cancellations-table-row"
+            (click)="toggleExpanded(cancellation)"
+          >
+            <td class="cancellations-table__caret">
+              <span class="cancellations-table__caret-icon" [class.cancellations-table__caret-icon--open]="isExpanded(cancellation.id)"
+                >›</span
+              >
+            </td>
+            @if (showEventColumn) {
+              <td>
+                <a
+                  class="cancellations-table__row__event-link"
+                  data-testid="cancellations-table-row-event"
+                  (click)="$event.stopPropagation(); openInCalendar(cancellation)"
+                  >{{ cancellation.mainPlanId }}</a
+                >
+              </td>
+            }
+            <td>{{ cancellation.requestedAt | momentDate: 'yyyy-MM-dd HH:mm' : timezone() }}</td>
+            <td>
+              <span class="cancellations-table__row__user__fullname">{{ cancellation.requesterName }}</span>
+              <br />
+              <span class="cancellations-table__row__user__email">{{ cancellation.requesterEmail }}</span>
+            </td>
+            <td>{{ reasonLabelKey(cancellation.cancellationReason) | translate }}</td>
+            <td>{{ compensationLabelKey(cancellation.compensationType) | translate }}</td>
+            <td class="cancellations-table__row__num">{{ countLabel(cancellation.orderCount) }}</td>
+            <td class="cancellations-table__row__num">{{ countLabel(cancellation.ticketCount) }}</td>
+            <td>
+              <ignt-tag [sentiment]="statusSentiment(cancellation.status)" data-testid="cancellations-table-row-status">
+                {{ statusLabelKey(cancellation.status) | translate }}
+              </ignt-tag>
+            </td>
+          </tr>
+
+          @if (isExpanded(cancellation.id)) {
+            <tr class="cancellations-table__details-row" data-testid="cancellations-table-details">
+              <td [attr.colspan]="columnCount">
+                <div class="cancellations-table__details">
+                  @if (detailFor(cancellation.id); as detail) {
+                    <span class="cancellations-table__details-title">{{ 'partnerCancellations.detail.detailsTitle' | translate }}</span>
+                    <dl class="cancellations-table__detail-grid">
+                      <dt>{{ 'partnerCancellations.detail.cancelledAt' | translate }}</dt>
+                      <dd>{{ detail.cancelledAt | momentDate: 'yyyy-MM-dd HH:mm' : timezone() }}</dd>
+                      <dt>{{ 'partnerCancellations.detail.requestedBy' | translate }}</dt>
+                      <dd>
+                        {{ detail.requesterName }} <span class="cancellations-table__muted">{{ detail.requesterEmail }}</span>
+                      </dd>
+                      <dt>{{ 'partnerCancellations.detail.reason' | translate }}</dt>
+                      <dd>{{ reasonLabelKey(detail.cancellationReason) | translate }}</dd>
+                      <dt>{{ 'partnerCancellations.detail.compensation' | translate }}</dt>
+                      <dd>{{ compensationDescriptionKey(detail.compensationType) | translate }}</dd>
+                      @if (detail.comments) {
+                        <dt>{{ 'partnerCancellations.detail.comments' | translate }}</dt>
+                        <dd>{{ detail.comments }}</dd>
+                      }
+                    </dl>
+
+                    <span class="cancellations-table__details-title">{{
+                      'partnerCancellations.detail.affectedTimeSlots' | translate
+                    }}</span>
+                    <table class="cancellations-table__detail-table" data-testid="cancellations-affected-time-slots">
+                      <thead>
+                        <tr>
+                          <th>{{ 'partnerCancellations.detail.timeSlot' | translate }}</th>
+                          <th class="cancellations-table__detail-num">{{ 'partnerCancellations.detail.productTypes' | translate }}</th>
+                          <th class="cancellations-table__detail-num">{{ 'partnerCancellations.detail.ordersCancelled' | translate }}</th>
+                          <th class="cancellations-table__detail-num">{{ 'partnerCancellations.detail.ticketsCancelled' | translate }}</th>
+                          <th class="cancellations-table__detail-num">{{ 'partnerCancellations.detail.addOnsCancelled' | translate }}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (slot of detail.timeSlots; track $index) {
+                          <tr>
+                            <td>{{ slot.startsAt ? (slot.startsAt | momentDate: 'yyyy-MM-dd HH:mm' : timezone()) : '—' }}</td>
+                            <td class="cancellations-table__detail-num">{{ countLabel(slot.productTypesCount) }}</td>
+                            <td class="cancellations-table__detail-num">{{ countLabel(slot.orderCount) }}</td>
+                            <td class="cancellations-table__detail-num">{{ countLabel(slot.ticketCount) }}</td>
+                            <td class="cancellations-table__detail-num">{{ countLabel(slot.addOnCount) }}</td>
+                          </tr>
+                        }
+                        <tr class="cancellations-table__detail-total">
+                          <td>{{ 'partnerCancellations.detail.total' | translate }}</td>
+                          <td class="cancellations-table__detail-num">{{ countLabel(detail.totals.productTypesCount) }}</td>
+                          <td class="cancellations-table__detail-num">{{ countLabel(detail.totals.orderCount) }}</td>
+                          <td class="cancellations-table__detail-num">{{ countLabel(detail.totals.ticketCount) }}</td>
+                          <td class="cancellations-table__detail-num">{{ countLabel(detail.totals.addOnCount) }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    <span class="cancellations-table__details-title">{{ 'partnerCancellations.detail.breakdownTitle' | translate }}</span>
+                    @for (slot of detail.timeSlots; track $index) {
+                      <div class="cancellations-table__breakdown-slot">
+                        <span class="cancellations-table__breakdown-slot-title">
+                          {{ slot.startsAt ? (slot.startsAt | momentDate: 'yyyy-MM-dd HH:mm' : timezone()) : '—' }}
+                        </span>
+                        <table class="cancellations-table__detail-table">
+                          <thead>
+                            <tr>
+                              <th>{{ 'partnerCancellations.detail.productType' | translate }}</th>
+                              <th class="cancellations-table__detail-num">
+                                {{ 'partnerCancellations.detail.ticketsCancelled' | translate }}
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (entry of slot.breakdown; track $index) {
+                              <tr>
+                                <td>{{ entry.productTypeName }}</td>
+                                <td class="cancellations-table__detail-num">{{ entry.ticketCount }}</td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    }
+
+                    <span class="cancellations-table__details-title">{{ 'partnerCancellations.pipelineTitle' | translate }}</span>
+                    @if (detail.jobSummary; as summary) {
+                      @if (summary.jobs.length > 0) {
+                        @for (job of summary.jobs; track job.id) {
+                          <div class="cancellations-table__job" data-testid="cancellations-table-job">
+                            <span class="cancellations-table__job-label">{{ jobLabel(job.type) }}</span>
+                            @if (isNoOp(job.status)) {
+                              <span class="cancellations-table__job-noop" data-testid="cancellations-table-job-noop">
+                                {{ 'partnerCancellations.jobNoAction' | translate }}
+                              </span>
+                            } @else {
+                              <app-progress-bar
+                                class="cancellations-table__job-bar"
+                                [percentage]="job.progressPercentage"
+                                [sentiment]="job.status === 'FAILED' ? 'danger' : 'primary'"
+                              ></app-progress-bar>
+                            }
+                          </div>
+                        }
+                      } @else {
+                        <span class="cancellations-table__muted">{{ 'partnerCancellations.noJobSummary' | translate }}</span>
+                      }
+                    } @else {
+                      <span class="cancellations-table__muted">{{ 'partnerCancellations.noJobSummary' | translate }}</span>
+                    }
+                  } @else if (isDetailLoading(cancellation.id)) {
+                    <span class="cancellations-table__muted">{{ 'partnerCancellations.loading' | translate }}</span>
+                  } @else {
+                    <span class="cancellations-table__muted">{{ 'partnerCancellations.detailError' | translate }}</span>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        }
+      }
+    </app-table>
+
+    @if (isLoading()) {
+      <div class="cancellations-table__no-results" data-testid="cancellations-loading">
+        <ignt-icon class="loader" name="spinner" variant="solid" [spin]="true" size="display"></ignt-icon>
+      </div>
+    } @else if (hasError()) {
+      <div class="cancellations-table__no-results" data-testid="cancellations-error">
+        {{ 'partnerCancellations.error' | translate }}
+      </div>
+    } @else if (noEventSelected()) {
+      <div class="cancellations-table__no-results" data-testid="cancellations-no-event">
+        {{ 'partnerCancellations.selectEvent' | translate }}
+      </div>
+    } @else if (cancellations().length === 0) {
+      <div class="cancellations-table__no-results" data-testid="cancellations-empty">
+        {{ 'partnerCancellations.empty' | translate }}
+      </div>
+    }
+
+    @if (totalCount() > 0) {
+      <div class="cancellations__pagination-container" data-testid="cancellations-pagination-container">
+        <app-pagination-with-numbers
+          (numPageSelected)="onPageSelected($event)"
+          [totalCountResults]="totalCount()"
+          [selectedPage]="selectedPage()"
+          [pageSize]="pageSize"
+          [previousPage]="prevPage()"
+          [nextPage]="nextPage()"
+        ></app-pagination-with-numbers>
+      </div>
+    }
+  </div>
+</div>

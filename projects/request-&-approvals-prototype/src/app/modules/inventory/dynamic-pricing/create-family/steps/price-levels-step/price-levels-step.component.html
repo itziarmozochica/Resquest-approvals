@@ -1,0 +1,227 @@
+<div class="price-levels-step">
+  @if (copyReport(); as report) {
+    <ignt-alert
+      class="price-levels-step__copy-summary"
+      data-testid="copy-summary"
+      [sentiment]="report.overridesDropped > 0 || report.productsMatched < report.productsInBase ? 'warning' : 'info'"
+      [title]="'inventory.dynamicPricing.families.wizard.copy.summaryTitle' | translate"
+      [description]="
+        'inventory.dynamicPricing.families.wizard.copy.summaryBody'
+          | translate
+            : {
+                levels: report.levels,
+                rules: report.rules,
+                overridesApplied: report.overridesApplied,
+                overridesTotal: report.overridesApplied + report.overridesDropped,
+                productsMatched: report.productsMatched,
+                productsInBase: report.productsInBase,
+              }
+      "
+    ></ignt-alert>
+  }
+
+  @if (blankLevelNames().length > 0) {
+    <ignt-alert
+      class="price-levels-step__copy-summary"
+      data-testid="copy-blank-levels"
+      sentiment="danger"
+      [title]="'inventory.dynamicPricing.families.wizard.copy.unpricedTitle' | translate"
+      [description]="'inventory.dynamicPricing.families.wizard.copy.unpricedBody' | translate: { levels: blankLevelNames().join(', ') }"
+    ></ignt-alert>
+  }
+
+  <span class="price-levels-step__heading">
+    {{ 'inventory.dynamicPricing.families.wizard.priceLevels.levelsHeading' | translate }}
+  </span>
+
+  <span class="price-levels-step__subheading">
+    {{ 'inventory.dynamicPricing.families.wizard.priceLevels.levelsQuestion' | translate }}
+  </span>
+
+  <div class="price-levels-step__generator" [formGroup]="form">
+    <div class="price-levels-step__controls">
+      <div class="price-levels-step__inline">
+        <span>{{ 'inventory.dynamicPricing.families.wizard.priceLevels.generatePrefix' | translate }}</span>
+        <ignt-input-field
+          class="price-levels-step__number price-levels-step__number--count"
+          type="number"
+          formControlName="count"
+          data-testid="levels-count"
+          [label]="'inventory.dynamicPricing.families.wizard.priceLevels.generateCountLabel' | translate"
+          [customFormErrors]="[
+            { type: 'required', message: 'form.error.mandatoryField' | translate },
+            { type: 'min', message: 'inventory.dynamicPricing.families.wizard.priceLevels.countError' | translate },
+            { type: 'pattern', message: 'inventory.dynamicPricing.families.wizard.priceLevels.countError' | translate },
+          ]"
+        />
+        <span>{{ 'inventory.dynamicPricing.families.wizard.priceLevels.generateLevelsWord' | translate }}</span>
+      </div>
+
+      <span class="price-levels-step__divider" aria-hidden="true"></span>
+
+      <div class="price-levels-step__inline">
+        <span>{{ 'inventory.dynamicPricing.families.wizard.priceLevels.eachLevel' | translate }}</span>
+        <ignt-input-field
+          class="price-levels-step__number"
+          type="number"
+          formControlName="value"
+          data-testid="levels-value"
+          [label]="valueFieldLabelKey(form.controls.rule.value) | translate"
+          [customFormErrors]="[
+            { type: 'required', message: 'form.error.mandatoryField' | translate },
+            { type: 'min', message: 'inventory.dynamicPricing.families.wizard.priceLevels.negativeValue' | translate },
+          ]"
+        />
+        <ignt-typeahead
+          class="price-levels-step__rule"
+          data-testid="levels-rule"
+          [fieldLabel]="'inventory.dynamicPricing.families.wizard.priceLevels.tableTypeHeader' | translate"
+          [options]="ruleOptions()"
+          [selectedOption]="ruleOptionFor(form.controls.rule.value)"
+          [editable]="false"
+          (selected)="onGeneratorRuleSelected($event)"
+        ></ignt-typeahead>
+      </div>
+    </div>
+
+    <ignt-button
+      class="price-levels-step__create"
+      variant="secondary"
+      sentiment="brand"
+      size="small"
+      data-testid="levels-create"
+      [label]="'inventory.dynamicPricing.families.wizard.priceLevels.generateCreate' | translate"
+      [trailingIcon]="createIcon"
+      (click)="onCreate()"
+    ></ignt-button>
+  </div>
+
+  <div class="price-levels-step__hint" data-testid="value-hint">
+    <ignt-icon class="price-levels-step__hint-icon" name="info-circle" variant="light"></ignt-icon>
+    @if (isFlatRateSelected()) {
+      <span>{{ 'inventory.dynamicPricing.families.wizard.priceLevels.flatRateHint' | translate }}</span>
+    } @else {
+      <span>{{ 'inventory.dynamicPricing.families.wizard.priceLevels.valueRangeHint' | translate }}</span>
+    }
+  </div>
+
+  @if (packPricingError()) {
+    <div class="price-levels-step__hint price-levels-step__hint--error" data-testid="pack-pricing-error">
+      <ignt-icon class="price-levels-step__hint-icon" name="exclamation-triangle" variant="light"></ignt-icon>
+      <span>{{ 'inventory.dynamicPricing.families.wizard.priceLevels.packFlatRateUnavailable' | translate }}</span>
+    </div>
+  }
+
+  @if (negativePriceError()) {
+    <div class="price-levels-step__hint price-levels-step__hint--error" data-testid="negative-price-error">
+      <ignt-icon class="price-levels-step__hint-icon" name="exclamation-triangle" variant="light"></ignt-icon>
+      <span>{{ 'inventory.dynamicPricing.families.wizard.priceLevels.negativePriceError' | translate }}</span>
+    </div>
+  }
+
+  @if (autoLevels.length > 0) {
+    <div class="price-levels-step__table" data-testid="levels-table">
+      <div class="price-levels-step__table-head">
+        <span>{{ 'inventory.dynamicPricing.families.wizard.priceLevels.tableLevelHeader' | translate }}</span>
+        <span>{{ 'inventory.dynamicPricing.families.wizard.priceLevels.tableNameHeader' | translate }}</span>
+        <span>{{ 'inventory.dynamicPricing.families.wizard.priceLevels.tableValueHeader' | translate }}</span>
+        <span>{{ 'inventory.dynamicPricing.families.wizard.priceLevels.tableTypeHeader' | translate }}</span>
+      </div>
+
+      @for (row of autoLevels.controls; track row; let i = $index) {
+        <div class="price-levels-step__table-row" [formGroup]="row" [attr.data-testid]="'level-row-' + (i + 1)">
+          <span class="price-levels-step__table-index">{{ i + 1 }}</span>
+          <ignt-input-field
+            class="price-levels-step__table-name"
+            type="text"
+            formControlName="name"
+            [attr.data-testid]="'level-name-' + (i + 1)"
+            [label]="'inventory.dynamicPricing.families.wizard.priceLevels.tableNameHeader' | translate"
+            [placeholder]="'inventory.dynamicPricing.families.wizard.priceLevels.levelName' | translate: { n: i + 1 }"
+            [customFormErrors]="[{ type: 'required', message: 'form.error.mandatoryField' | translate }]"
+          />
+          <ignt-input-field
+            class="price-levels-step__table-offset"
+            type="number"
+            formControlName="offset"
+            [attr.data-testid]="'level-offset-' + (i + 1)"
+            [label]="valueFieldLabelKey(row.controls.rule.value) | translate"
+            [customFormErrors]="[{ type: 'required', message: 'form.error.mandatoryField' | translate }]"
+          />
+          <ignt-typeahead
+            class="price-levels-step__table-mode"
+            [attr.data-testid]="'level-rule-' + (i + 1)"
+            [fieldLabel]="'inventory.dynamicPricing.families.wizard.priceLevels.tableTypeHeader' | translate"
+            [options]="ruleOptions()"
+            [selectedOption]="ruleOptionFor(row.controls.rule.value)"
+            [editable]="false"
+            (selected)="onRuleSelected(row, $event)"
+          ></ignt-typeahead>
+        </div>
+      }
+    </div>
+
+    <span class="price-levels-step__matrix-toggle" data-testid="see-price-matrix" (click)="toggleMatrix()">
+      {{ 'inventory.dynamicPricing.families.wizard.priceLevels.seePriceMatrix' | translate }}
+      <ignt-icon [name]="showMatrix() ? 'chevron-up' : 'chevron-down'" variant="light" size="sm"></ignt-icon>
+    </span>
+
+    @if (showMatrix()) {
+      <div class="price-levels-step__matrix" data-testid="price-matrix">
+        <div class="price-levels-step__grid" [style.grid-template-columns]="matrixColumns()">
+          <span class="price-levels-step__corner"></span>
+          <div class="price-levels-step__col-head price-levels-step__col-head--base" data-testid="matrix-col-base">
+            <span class="price-levels-step__col-caption">
+              {{ 'inventory.dynamicPricing.families.wizard.priceLevels.tableNameHeader' | translate }}
+            </span>
+            <span class="price-levels-step__col-name">{{ baseName() }}</span>
+          </div>
+          @for (level of levelsView(); track $index; let j = $index) {
+            <div class="price-levels-step__col-head" [attr.data-testid]="'matrix-col-' + (j + 1)">
+              <span class="price-levels-step__col-caption">
+                {{ 'inventory.dynamicPricing.families.wizard.priceLevels.tableNameHeader' | translate }}
+              </span>
+              <span class="price-levels-step__col-name">{{ level.name }}</span>
+            </div>
+          }
+          <span class="price-levels-step__corner"></span>
+
+          @for (row of baseRows(); track row.sessionTypeId) {
+            <div class="price-levels-step__row-head" [attr.data-testid]="'matrix-product-' + row.sessionTypeId">
+              <ignt-icon class="price-levels-step__product-icon" name="ticket" variant="light"></ignt-icon>
+              <span class="price-levels-step__product-name">{{ row.label }}</span>
+            </div>
+
+            <div class="price-levels-step__cell price-levels-step__cell--base" [attr.data-testid]="'matrix-base-' + row.sessionTypeId">
+              <span class="price-levels-step__col-caption">
+                {{ 'inventory.dynamicPricing.families.wizard.priceLevels.priceCaption' | translate }}
+              </span>
+              <span class="price-levels-step__cell-value">{{ row.basePrice | currency: currency() }}</span>
+            </div>
+
+            @for (level of autoLevels.controls; track level; let j = $index) {
+              <div class="price-levels-step__cell" [attr.data-testid]="'matrix-price-' + (j + 1) + '-' + row.sessionTypeId">
+                <span class="price-levels-step__col-caption">
+                  {{ 'inventory.dynamicPricing.families.wizard.priceLevels.priceCaption' | translate }}
+                </span>
+                @let cellValue = cellPrice(row, j);
+                <span class="price-levels-step__cell-value">{{ cellValue === null ? noPrice : (cellValue | currency: currency()) }}</span>
+              </div>
+            }
+
+            <button
+              class="price-levels-step__edit"
+              ignt-icon-button
+              variant="sharp"
+              sentiment="tertiary"
+              [icon]="editIcon"
+              [attr.data-testid]="'matrix-edit-' + row.sessionTypeId"
+              [attr.aria-label]="'inventory.dynamicPricing.families.wizard.priceLevels.editProduct' | translate"
+              (click)="onEditProduct(row)"
+            ></button>
+          }
+        </div>
+      </div>
+    }
+  }
+</div>

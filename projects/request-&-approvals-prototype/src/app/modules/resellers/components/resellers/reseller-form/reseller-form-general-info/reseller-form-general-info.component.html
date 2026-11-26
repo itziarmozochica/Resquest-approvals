@@ -1,0 +1,270 @@
+<div *ngIf="isLoading" class="table-screen-content__spinner">
+  <fa-icon [icon]="['fas', 'spinner']" [size]="'4x'" class="loader"></fa-icon>
+</div>
+<div *ngIf="error">
+  <p><span translate>errors.ERROR_PERFORMING_ACTION</span></p>
+</div>
+<div *ngIf="!isLoading && !error" [formGroup]="resellerForm" class="reseller-form">
+  <div class="reseller-form__section">
+    <div>
+      <ng-container
+        *ngTemplateOutlet="
+          selectFieldTemplate;
+          context: {
+            label: 'resellers.resellerForm.category' | translate,
+            formControlName: 'category',
+            options: concessionCategoryOptions,
+            disabled: concessionCategoryOptions.length <= 1,
+          }
+        "
+      >
+      </ng-container>
+    </div>
+  </div>
+  <div *ngIf="resellerForm.controls['type'].value" class="reseller-form__section">
+    <div class="reseller-form__stack">
+      <ignt-input-field
+        class="cell cell--fill-md"
+        type="text"
+        formControlName="externalBusinessId"
+        id="externalBusinessId"
+        [label]="'resellers.resellerForm.externalBusinessId' | translate"
+        placeholder="MR-1001"
+      />
+      <ignt-input-field
+        class="cell cell--fill-md"
+        type="text"
+        formControlName="glCode"
+        id="glCode"
+        [label]="'resellers.resellerForm.glCode' | translate"
+        placeholder="overseas_schools"
+      />
+    </div>
+    <ng-container *ngIf="resellerForm.controls['type'].value?.id !== ConcessionTypeEnum.AFFILIATE">
+      <p class="font-base-bold">{{ 'resellers.basicInfo' | translate }}</p>
+      <div class="reseller-form__section">
+        <div class="reseller-form__stack">
+          <ignt-input-field
+            class="cell cell--fill-md"
+            type="text"
+            formControlName="name"
+            [id]="'name_' + ConcessionTypeEnum.B2B_PORTAL"
+            [label]="'resellers.resellerForm.name' | translate"
+            [readonly]="isEditModeEnabled"
+            [customFormErrors]="[
+              {
+                type: 'required',
+                message: 'form.error.mandatoryField' | translate,
+              },
+            ]"
+          />
+          <ignt-input-field
+            class="cell cell--fill-md"
+            type="text"
+            formControlName="contactEmail"
+            [id]="'contactEmail_' + ConcessionTypeEnum.B2B_PORTAL"
+            [label]="'resellers.resellerForm.contactEmail' | translate"
+            [readonly]="isEditModeEnabled"
+            [customFormErrors]="[
+              {
+                type: 'required',
+                message: 'form.error.mandatoryField' | translate,
+              },
+            ]"
+          />
+        </div>
+        <div class="reseller-form__stack">
+          <app-country-code-selector
+            [attr.data-testid]="'business-form__countryCode'"
+            [hasErrors]="resellerForm.controls.countryCode.invalid && resellerForm.controls.countryCode.touched"
+            (selected)="selectCountry(resellerForm.controls.countryCode, $event)"
+            [selectedOption]="resellerForm.controls.countryCode.value"
+            [readonly]="isEditModeEnabled"
+          ></app-country-code-selector>
+          <ignt-input-field
+            class="cell cell--fill-md"
+            type="text"
+            formControlName="contactName"
+            [id]="'contactName_' + ConcessionTypeEnum.B2B_PORTAL"
+            [label]="'resellers.resellerForm.contactName' | translate"
+            [customFormErrors]="[
+              {
+                type: 'required',
+                message: 'form.error.mandatoryField' | translate,
+              },
+            ]"
+          />
+        </div>
+      </div>
+    </ng-container>
+    <ng-container *ngIf="resellerForm.controls['type'].value?.id === ConcessionTypeEnum.AFFILIATE">
+      <p class="font-base-bold">{{ 'resellers.basicInfo' | translate }}</p>
+      <div class="reseller-form__section">
+        <div class="reseller-form__stack">
+          <ignt-input-field
+            class="cell cell--fill-md"
+            type="text"
+            formControlName="name"
+            [id]="'name_' + ConcessionTypeEnum.AFFILIATE"
+            [label]="'resellers.resellerForm.name' | translate"
+            [readonly]="isEditModeEnabled"
+            [customFormErrors]="[
+              {
+                type: 'required',
+                message: 'form.error.mandatoryField' | translate,
+              },
+            ]"
+          />
+          <ignt-input-field
+            class="cell cell--fill-md"
+            type="text"
+            formControlName="contactEmail"
+            [id]="'contactEmail_' + ConcessionTypeEnum.AFFILIATE"
+            [label]="'resellers.resellerForm.contactEmail' | translate"
+            [readonly]="isEditModeEnabled"
+            [customFormErrors]="[
+              {
+                type: 'required',
+                message: 'form.error.mandatoryField' | translate,
+              },
+            ]"
+          />
+          <ignt-input-field
+            class="cell cell--fill-md"
+            type="text"
+            formControlName="website"
+            [id]="'website_' + ConcessionTypeEnum.AFFILIATE"
+            [label]="('resellers.resellerForm.website' | translate) + '(' + ('optional' | translate) + ')'"
+            [helperText]="'resellers.resellerForm.websiteHelper' | translate"
+          />
+        </div>
+      </div>
+      <p class="font-base-bold">{{ 'resellers.siteInfo' | translate }}</p>
+      <div class="reseller-form__section">
+        <div class="reseller-form__stack">
+          <ignt-input-field
+            class="cell cell--fill-md"
+            type="text"
+            formControlName="b2cSiteName"
+            [id]="'b2cSiteName_' + ConcessionTypeEnum.AFFILIATE"
+            [label]="'resellers.resellerForm.b2cSiteName' | translate"
+            [helperText]="'resellers.resellerForm.b2cSiteNameHelper' | translate"
+            [customFormErrors]="[
+              {
+                type: 'required',
+                message: 'form.error.mandatoryField' | translate,
+              },
+              {
+                type: 'minlength',
+                message: 'form.error.minLength' | translate: { value: '3' },
+              },
+            ]"
+          />
+          <ignt-input-field
+            class="cell cell--fill-md"
+            type="text"
+            formControlName="trackingCode"
+            [id]="'trackingCode_' + ConcessionTypeEnum.AFFILIATE"
+            [label]="'resellers.resellerForm.trackingCode' | translate"
+            [helperText]="'resellers.resellerForm.trackingCodeHelper' | translate"
+            [readonly]="isEditModeEnabled"
+            [customFormErrors]="[
+              {
+                type: 'required',
+                message: 'form.error.mandatoryField' | translate,
+              },
+              {
+                type: 'noSpecialCharacter',
+                message: 'form.error.noSpecialCharacter' | translate,
+              },
+            ]"
+          />
+          <div class="cell cell--fill-md">
+            <ng-container
+              *ngTemplateOutlet="
+                selectFieldTemplate;
+                context: {
+                  label: 'resellers.resellerForm.domain' | translate,
+                  helperText: 'resellers.resellerForm.domainHelper' | translate,
+                  formControlName: 'application',
+                  options: applicationOptions,
+                  readOnly: isEditModeEnabled,
+                }
+              "
+            >
+            </ng-container>
+          </div>
+        </div>
+
+        <div class="reseller-form__section" *ngIf="shouldShowAffiliateCatalogUrlSelector">
+          <app-affiliate-catalog-url-selector
+            [affiliateCode]="resellerForm.get('trackingCode')?.value"
+            [channelId]="channelId!"
+            [domain]="resellerForm.get('host')?.value"
+            [partnerId]="organization!.id"
+            [resellerId]="resellerId!"
+          />
+        </div>
+      </div>
+    </ng-container>
+
+    <div class="resellers__buttons">
+      <div class="only-in-desktop">
+        <ng-container *ngTemplateOutlet="buttonsTemplate"></ng-container>
+      </div>
+    </div>
+  </div>
+
+  <ng-template
+    #selectFieldTemplate
+    let-formControlName="formControlName"
+    let-label="label"
+    let-options="options"
+    let-readOnly="readOnly"
+    let-disabled="disabled"
+    let-helperText="helperText"
+  >
+    <label *ngIf="readOnly" class="cell field cell--fill-md">
+      <span class="field field__label--readonly">{{ label | translate }} *</span>
+      <div class="field__input--readonly">
+        {{ resellerForm.controls[formControlName].value?.title || '-' }}
+      </div>
+    </label>
+    <ng-container *ngIf="!readOnly">
+      <ignt-typeahead
+        class="cell field cell--fill-md"
+        [options]="options"
+        [customPopupClass]="'dropdown-menu--on-sidebar'"
+        [selectedOption]="resellerForm.controls[formControlName].value"
+        [fieldLabel]="label"
+        [emptyLabel]="'common.selectsPlaceholder' | translate"
+        [editable]="false"
+        [disabled]="disabled"
+        (selected)="selectOption(formControlName, $event)"
+      ></ignt-typeahead>
+      <ng-container *ngIf="helperText && (!resellerForm.controls[formControlName].touched || resellerForm.controls[formControlName].valid)">
+        <span class="field__helper">{{ helperText }}</span>
+      </ng-container>
+    </ng-container>
+  </ng-template>
+
+  <div class="reseller-form__footer only-in-mobile">
+    <bottom-slider [buttonsTemplate]="buttonsTemplate"></bottom-slider>
+  </div>
+
+  <ng-template #buttonsTemplate>
+    <button igntButton data-testid="back-button" (click)="goBack()" [fill]="true" [sentiment]="'tertiary'">
+      {{ 'common.back' | translate }}
+    </button>
+    <button
+      igntButton
+      data-testid="reseller-form__save-button"
+      (click)="saveReseller()"
+      [disabled]="!isLoading && !error && !resellerForm.valid"
+      [loading]="isSaving"
+      [fill]="true"
+    >
+      {{ 'common.save' | translate }}
+    </button>
+  </ng-template>
+</div>

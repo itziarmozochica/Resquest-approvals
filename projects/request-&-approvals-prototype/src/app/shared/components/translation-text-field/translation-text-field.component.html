@@ -1,0 +1,191 @@
+<div class="translation-text-field" [attr.aria-busy]="isTrailIconLoading() || null">
+  @if (showOwnLabel()) {
+    <div class="translation-text-field__label-row">
+      <label class="translation-text-field__label">
+        {{ label() }}
+        @if (required()) {
+          <span> *</span>
+        }
+      </label>
+      @if (tooltip()) {
+        <app-tooltip-icon [tooltip]="tooltip()"></app-tooltip-icon>
+      }
+    </div>
+  }
+
+  <div class="translation-text-field__input-container">
+    <div class="translation-text-field__input-wrapper">
+      @if (showTrailInput()) {
+        <ignt-input-field
+          class="translation-text-field__ignite-input"
+          [label]="''"
+          [ngModel]="value()"
+          [placeholder]="placeholder()"
+          [readonly]="readonly()"
+          [trailIcon]="trailIcon()"
+          [trailIconAriaLabel]="trailIconAriaLabel()"
+          [isTrailIconDisabled]="isTrailIconDisabled()"
+          [isTrailIconLoading]="isTrailIconLoading()"
+          (ngModelChange)="onTrailInputChange($event)"
+          (trailIconClicked)="onTrailIconClick()"
+        />
+      } @else if (type() === 'input') {
+        <input
+          class="translation-text-field__input"
+          [class.translation-text-field__input--readonly]="readonly()"
+          [value]="value()"
+          [placeholder]="placeholder()"
+          [readonly]="readonly()"
+          (input)="onValueChange($event)"
+        />
+      }
+
+      @if (type() === 'textarea') {
+        <textarea
+          class="translation-text-field__textarea"
+          [class.translation-text-field__textarea--readonly]="readonly()"
+          [value]="value()"
+          [placeholder]="placeholder()"
+          [readonly]="readonly()"
+          (input)="onValueChange($event)"
+        ></textarea>
+      }
+
+      @if (type() === 'rich-text') {
+        <div class="translation-text-field__rich-text" [class.translation-text-field__rich-text--with-sparkle]="showTrailRichText()">
+          <ignt-rich-text-editor
+            [formControl]="richTextControl"
+            [features]="features()"
+            [blockElement]="blockElement()"
+            [imageUpload]="uploadFileCallback()"
+            [placeholder]="placeholder()"
+            [preserveWhitespace]="preserveWhitespace()"
+            [readonly]="readonly()"
+          ></ignt-rich-text-editor>
+          @if (showTrailRichText()) {
+            @if (isTrailIconLoading()) {
+              <span
+                class="translation-text-field__sparkle translation-text-field__sparkle--loading"
+                data-testid="translation-text-field-sparkle-spinner"
+                aria-hidden="true"
+              >
+                <ignt-icon name="spinner-third" variant="duotone" size="h3" [spin]="true"></ignt-icon>
+              </span>
+            } @else {
+              <button
+                class="translation-text-field__sparkle"
+                data-testid="translation-text-field-sparkle"
+                ignt-icon-button
+                type="button"
+                sentiment="tertiary"
+                size="small"
+                variant="default"
+                [attr.aria-label]="trailIconAriaLabel()"
+                [disabled]="readonly() || isTrailIconDisabled()"
+                [icon]="trailIcon() ?? ['fas', 'sparkles']"
+                (mousedown)="$event.preventDefault()"
+                (click)="onTrailIconClick()"
+              ></button>
+            }
+          }
+        </div>
+      }
+
+      @if (type() === 'html') {
+        <div class="translation-text-field__html-container">
+          <div class="translation-text-field__html-header">
+            @if (showSourceView()) {
+              <button type="button" class="translation-text-field__html-action-btn" (click)="copyToClipboard(htmlContent())">
+                <ignt-icon name="copy" variant="light" aria-hidden="true"></ignt-icon>
+              </button>
+            }
+            <button
+              type="button"
+              class="translation-text-field__html-action-btn translation-text-field__html-action-btn--source"
+              [class.translation-text-field__html-action-btn--active]="showSourceView()"
+              (click)="toggleSourceView()"
+            >
+              <span class="translation-text-field__source-icon"></span>
+            </button>
+          </div>
+          @if (!showSourceView()) {
+            <div class="translation-text-field__html-content" [innerHTML]="htmlContent()"></div>
+          } @else {
+            <textarea
+              class="translation-text-field__source-textarea translation-text-field__source-textarea--readonly"
+              [value]="htmlContent()"
+              readonly
+            ></textarea>
+          }
+        </div>
+      }
+    </div>
+
+    @if (showWarningIcon() || showCompleteIcon()) {
+      <div class="translation-text-field__status-icons">
+        @if (showWarningIcon()) {
+          <ignt-icon
+            class="translation-text-field__status-icon translation-text-field__status-icon--warning"
+            name="exclamation-triangle"
+            variant="solid"
+            aria-hidden="true"
+          ></ignt-icon>
+        }
+        @if (showCompleteIcon() && !isOptionalComplete()) {
+          <ignt-icon
+            class="translation-text-field__status-icon translation-text-field__status-icon--complete"
+            name="check-circle"
+            variant="solid"
+            aria-hidden="true"
+          ></ignt-icon>
+        }
+        @if (showCompleteIcon() && isOptionalComplete()) {
+          <ignt-icon
+            class="translation-text-field__status-icon translation-text-field__status-icon--complete-optional"
+            name="check-circle"
+            variant="solid"
+            aria-hidden="true"
+          ></ignt-icon>
+        }
+      </div>
+    }
+  </div>
+
+  @if (showRating()) {
+    <div class="translation-text-field__rating" data-testid="translation-text-field-rating">
+      @if (rateLabel().length > 0) {
+        <span class="translation-text-field__rating-label">{{ rateLabel() }}</span>
+      }
+      <button
+        class="translation-text-field__rating-button translation-text-field__rating-button--up"
+        data-testid="translation-text-field-thumbs-up"
+        ignt-icon-button
+        type="button"
+        sentiment="tertiary"
+        size="small"
+        variant="default"
+        [attr.aria-label]="thumbsUpAriaLabel()"
+        [attr.aria-pressed]="rating() === 'up'"
+        [class.translation-text-field__rating-button--selected]="rating() === 'up'"
+        [disabled]="isRatingLocked()"
+        [icon]="['far', 'thumbs-up']"
+        (click)="onRate('up')"
+      ></button>
+      <button
+        class="translation-text-field__rating-button translation-text-field__rating-button--down"
+        data-testid="translation-text-field-thumbs-down"
+        ignt-icon-button
+        type="button"
+        sentiment="tertiary"
+        size="small"
+        variant="default"
+        [attr.aria-label]="thumbsDownAriaLabel()"
+        [attr.aria-pressed]="rating() === 'down'"
+        [class.translation-text-field__rating-button--selected]="rating() === 'down'"
+        [disabled]="isRatingLocked()"
+        [icon]="['far', 'thumbs-down']"
+        (click)="onRate('down')"
+      ></button>
+    </div>
+  }
+</div>

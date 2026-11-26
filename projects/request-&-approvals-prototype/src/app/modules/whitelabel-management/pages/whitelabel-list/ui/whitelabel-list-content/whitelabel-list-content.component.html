@@ -1,0 +1,61 @@
+<div class="intents-header">
+  <div class="intents-header__row">
+    <div class="intents-header__filters">
+      <app-whitelabel-list-filters
+        [nameQuery]="nameQuery()"
+        [stateFilterValue]="stateFilter()"
+        (nameFilterChange)="nameFilterChange.emit($event)"
+        (stateFilterChange)="stateFilterChange.emit($event)"
+      />
+    </div>
+    <div class="intents-header__actions">
+      <ignt-button
+        *permissionBased="'can_manage_whitelabels'"
+        [fill]="isMobile()"
+        [label]="'listWhitelabels.generalSettings.label' | translate"
+        (click)="openGeneralSettings.emit()"
+        data-testid="general-settings-button"
+      />
+      <ignt-button
+        *permissionBased="'can_create_whitelabel'"
+        [fill]="isMobile()"
+        [label]="'listWhitelabels.intents.createIntent' | translate"
+        (click)="createWhitelabel.emit()"
+        data-testid="create-whitelabel-button"
+      />
+    </div>
+  </div>
+</div>
+@if (hasNoResultsAfterFilter()) {
+  <p class="intents-empty-filters" data-testid="whitelabel-list-no-results">
+    {{
+      (noResultsBecauseAllArchived() ? 'listWhitelabels.intents.filters.allArchived' : 'listWhitelabels.intents.filters.noResults')
+        | translate
+    }}
+  </p>
+} @else {
+  <app-table
+    [headers]="tableHeaders"
+    [type]="TableType.FZ_TABLE"
+    class="intents-table"
+    data-testid="intents-table"
+    [scrollable]="true"
+    [hasActions]="false"
+  >
+    @for (row of whitelabels(); track row.id) {
+      <app-whitelabel-list-row [row]="row" (action)="action.emit({ whitelabel: row, action: $event })" />
+    }
+  </app-table>
+  @if (totalFilteredCount() > 0) {
+    <div class="intents-pagination" data-testid="whitelabel-list-pagination">
+      <app-pagination-with-numbers
+        [nextPage]="currentPage() < totalPages() ? currentPage() + 1 : null"
+        [pageSize]="pageSize()"
+        [previousPage]="currentPage() > 1 ? currentPage() - 1 : null"
+        [selectedPage]="currentPage()"
+        [totalCountResults]="totalFilteredCount()"
+        (numPageSelected)="onPageChange($event)"
+      />
+    </div>
+  }
+}

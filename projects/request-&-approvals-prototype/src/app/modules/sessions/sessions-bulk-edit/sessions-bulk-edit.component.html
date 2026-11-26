@@ -1,0 +1,242 @@
+<a class="bulk-edit-back-link" [routerLink]="backLink" queryParamsHandling="preserve">
+  <ignt-icon class="bulk-edit-back-link__icon" name="angle-left" variant="light" [fixedWidth]="true"></ignt-icon>
+  {{ 'sessions.bulkEdit.backToTimeSlotsLink' | translate }}
+</a>
+@if (hasSelectedRequiredFields$ | async) {
+  <form data-testid="bulk-edit-sessions-form" class="bulk-edit-form" [formGroup]="bulkEditForm">
+    <div class="bulk-edit-columns-container">
+      <div class="bulk-edit-column">
+        <fieldset class="bulk-edit-section">
+          <legend class="bulk-edit-section__header">
+            {{ 'sessions.bulkEdit.whatToUpdateHeader' | translate }}
+          </legend>
+
+          <div class="tile-wrapper tile-wrapper--row">
+            <button
+              type="button"
+              class="tile-wrapper__item tile"
+              [class.tile--selected]="updateSelectionType.value === 'capacity'"
+              value="capacity"
+              (click)="toggleUpdateSelectionType(updateSelectionTypeEnum.Capacity)"
+              data-testid="bulk-edit-sessions-capacity-button"
+            >
+              {{ 'sessions.bulkEdit.capacity' | translate }}
+            </button>
+            <button
+              type="button"
+              class="tile-wrapper__item tile"
+              [class.tile--selected]="updateSelectionType.value === 'statusAndVisibility'"
+              value="statusAndVisibility"
+              (click)="toggleUpdateSelectionType(updateSelectionTypeEnum.StatusAndVisibility)"
+              data-testid="bulk-edit-sessions-status-and-visibility-button"
+            >
+              {{ 'sessions.bulkEdit.statusAndVisibility' | translate }}
+            </button>
+            <button
+              type="button"
+              class="tile-wrapper__item tile"
+              [class.tile--selected]="updateSelectionType.value === 'tier'"
+              value="tier"
+              (click)="toggleUpdateSelectionType(updateSelectionTypeEnum.Tier)"
+              data-testid="bulk-edit-sessions-tier-button"
+            >
+              {{ 'sessions.bulkEdit.tier' | translate }}
+            </button>
+            <button
+              type="button"
+              class="tile-wrapper__item tile"
+              [class.tile--selected]="updateSelectionType.value === 'salesWindow'"
+              value="salesWindow"
+              (click)="toggleUpdateSelectionType(updateSelectionTypeEnum.SalesWindow)"
+              data-testid="bulk-edit-sessions-sales-window-button"
+            >
+              {{ 'sessions.bulkEdit.salesWindow' | translate }}
+            </button>
+            @if (hasBulkEditDurationEnabled) {
+              <button
+                igntButton
+                type="button"
+                class="tile-wrapper__item tile"
+                [ngClass]="{ 'tile--selected': updateSelectionType.value === 'duration' }"
+                [value]="'duration'"
+                (click)="toggleUpdateSelectionType(updateSelectionTypeEnum.Duration)"
+                data-testid="bulk-edit-sessions-duration-button"
+              >
+                {{ 'sessions.bulkEdit.duration' | translate }}
+              </button>
+            }
+          </div>
+
+          @if (updateSelectionType.value === 'capacity') {
+            <app-bulk-edit-capacity data-testid="bulk-edit-sessions-capacity" formControlName="capacity"></app-bulk-edit-capacity>
+          }
+
+          @if (updateSelectionType.value === 'statusAndVisibility') {
+            @if (bulkEditForm.get('statusAndVisibility'); as control) {
+              <app-bulk-edit-status-and-visibility
+                data-testid="bulk-edit-sessions-status-and-visibility"
+                formControlName="statusAndVisibility"
+              >
+              </app-bulk-edit-status-and-visibility>
+              @if (control.errors?.['required'] && control.dirty) {
+                <app-form-field-error data-testid="bulk-edit-sessions-status-and-visibility-error">
+                  {{ 'sessions.bulkEdit.statusAndVisibilityError' | translate }}
+                </app-form-field-error>
+              }
+            }
+          }
+
+          @if (updateSelectionType.value === 'tier' && bulkEditForm.get('tierId'); as control) {
+            <app-bulk-edit-tier data-testid="bulk-edit-sessions-tier" formControlName="tierId" [tiers]="(tiers$ | async) ?? []">
+            </app-bulk-edit-tier>
+            @if (control.errors?.['required'] && control.dirty) {
+              <app-form-field-error data-testid="bulk-edit-sessions-tier-error">
+                {{ 'sessions.bulkEdit.tierRequiredError' | translate }}
+              </app-form-field-error>
+            }
+          }
+          @if (updateSelectionType.value === 'salesWindow' && bulkEditForm.get('salesWindow'); as control) {
+            <app-bulk-edit-sales-window
+              data-testid="bulk-edit-sessions-sales-window"
+              formControlName="salesWindow"
+              [availableChannels]="availableChannels"
+              [isChannelisedEnabled]="true"
+              [timezone]="filters?.timezone ?? 'UTC'"
+            >
+            </app-bulk-edit-sales-window>
+            @if (control.errors?.required && control.dirty) {
+              <app-form-field-error data-testid="bulk-edit-sessions-sales-window-error">
+                {{ 'sessions.bulkEdit.salesWindowError' | translate }}
+              </app-form-field-error>
+            }
+            @if (control.errors?.salesWindowDate && control.dirty) {
+              <app-form-field-error role="alert" data-testid="bulk-edit-sessions-sales-window-DATE-error">
+                {{ 'sessions.bulkEdit.salesWindowDateError' | translate }}
+              </app-form-field-error>
+            }
+            @if (control.errors?.salesWindowMixedTypes && control.dirty) {
+              <app-form-field-error role="alert" data-testid="bulk-edit-sessions-sales-window-MIXED-TYPES-error">
+                {{ 'sessions.bulkEdit.salesWindowMixedTypesError' | translate }}
+              </app-form-field-error>
+            }
+          }
+
+          @if (updateSelectionType.value === 'duration') {
+            <app-bulk-edit-duration data-testid="bulk-edit-sessions-duration" formControlName="duration"></app-bulk-edit-duration>
+          }
+        </fieldset>
+
+        @if (updateSelectionType.value !== 'tier') {
+          @if (bulkEditForm.get('sessionTypes'); as control) {
+            <fieldset class="bulk-edit-section">
+              <legend class="bulk-edit-section__header">
+                {{ 'sessions.bulkEdit.whereToApplyHeader' | translate }}
+              </legend>
+              @if (selectedPlanSessionTypesSelectorData$ | async; as sessionTypesSelectorData) {
+                <app-bulk-edit-session-type-selector
+                  data-testid="bulk-edit-sessions-session-type"
+                  formControlName="sessionTypes"
+                  [allowTimeSlotSelection]="sessionTypesSelectorData.hasTimeSlotDefaultCapacity && updateSelectionType.value === 'capacity'"
+                  [appliedValue]="sessionSelectionAppliedValue$ | async"
+                  [sessionTypes]="sessionTypesSelectorData.sessionTypes"
+                  [updateSelectionType]="updateSelectionType.value"
+                >
+                </app-bulk-edit-session-type-selector>
+              } @else {
+                <div class="loader" data-testid="bulk-edit-sessions-spinner">
+                  <ignt-icon name="spinner" variant="solid" [spin]="true"></ignt-icon>
+                </div>
+              }
+              @if (control.errors?.required && control.dirty) {
+                <app-form-field-error data-testid="bulk-edit-sessions-session-type-error">
+                  {{ sessionTypeSelectorErrorMessage$ | async | translate }}
+                </app-form-field-error>
+              }
+            </fieldset>
+          }
+        }
+      </div>
+      <div class="bulk-edit-column bulk-edit-column--narrow">
+        <fieldset class="bulk-edit-section">
+          <legend class="bulk-edit-section__header">
+            {{
+              (updateSelectionType.value === 'tier'
+                ? 'sessions.bulkEdit.selectTimeSlotsForTiersHeader'
+                : 'sessions.bulkEdit.selectTimeSlotsHeader'
+              ) | translate
+            }}
+          </legend>
+
+          <div class="bulk-edit-form-group">
+            <div class="radio-group">
+              <label class="radio-group__label">
+                <input
+                  data-testid="bulk-edit-sessions-select-time-slots-specific"
+                  type="radio"
+                  [formControl]="timeSlotSelectionType"
+                  [value]="timeSlotSelectionTypeOptions.Selected"
+                  name="timeSlotSelectionType"
+                />
+                <span>{{ 'sessions.bulkEdit.selectTimeSlotsSpecificOption' | translate }}</span>
+              </label>
+              <label class="radio-group__label">
+                <input
+                  data-testid="bulk-edit-sessions-select-time-slots-all"
+                  type="radio"
+                  [formControl]="timeSlotSelectionType"
+                  [value]="timeSlotSelectionTypeOptions.All"
+                  name="timeSlotSelectionType"
+                />
+                <span>{{ 'sessions.bulkEdit.selectTimeSlotsAllFutureOption' | translate }}</span>
+              </label>
+            </div>
+
+            <app-time-slots-ranges-selector-multiple
+              data-testid="bulk-edit-sessions-time-slots-selector"
+              formControlName="timeSlotSelection"
+            >
+            </app-time-slots-ranges-selector-multiple>
+
+            <div class="bulk-edit-exclude-dates">
+              <label class="bulk-edit-exclude-dates__checkbox">
+                <input data-testid="bulk-edit-sessions-exclude-dates-enable-checkbox" type="checkbox" [formControl]="enableExcludeDates" />
+                <span> {{ 'sessions.bulkEdit.excludeSpecificDates' | translate }} </span>
+              </label>
+              @if (enableExcludeDates.value) {
+                <app-excluded-dates-list data-testid="bulk-edit-sessions-exclude-dates" formControlName="excludedDates">
+                </app-excluded-dates-list>
+              }
+            </div>
+          </div>
+        </fieldset>
+        <ignt-button
+          [fill]="isMobile()"
+          class="save-button"
+          htmlType="submit"
+          (click)="onBulkEditSubmit()"
+          data-testid="bulk-edit-sessions-save-button"
+          [disabled]="bulkEditForm.invalid || bulkEditForm.pristine"
+          [label]="'sessions.bulkEdit.saveChangesButton' | translate"
+        />
+      </div>
+    </div>
+  </form>
+} @else {
+  <div class="no-filters" data-testid="bulk-edit-sessions-no-filters">
+    <ignt-icon name="sort-alt" variant="solid" class="icon-empty"></ignt-icon>
+    <p class="text-empty" data-testid="sessions-filters-no-selected" translate>sessions.sessionsPerTimeslot.bulkEdit.noFiltersSelected</p>
+  </div>
+}
+
+<ng-template #bulkEditRequestSuccessToastTemplate>
+  <p class="bulk-edit-request-success-toast">
+    {{ 'sessions.bulkEdit.bulkEditRequestSuccessToastTasksLink' | translate }}
+    <a
+      [routerLink]="['/settings/tasks']"
+      [queryParams]="{ planId: filters?.selectedPlan?.id, cityId: filters?.selectedCity?.id }"
+      data-testid="toast-tasks-link"
+    >
+      {{ 'menu.tasks' | translate }}.
+    </a>
+  </p>
+</ng-template>

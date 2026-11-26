@@ -1,0 +1,244 @@
+<div class="create-form" data-testid="create-retail-form">
+  @let translation = translationBase();
+  @if (error() !== null) {
+    <ignt-alert sentiment="danger" [description]="`${translation}.error` | translate" />
+  }
+
+  <div class="create-form__container">
+    <ignt-wrapper-card>
+      <div class="guide-card">
+        <div class="guide-card__info">
+          <h5 class="guide-card__title">{{ `${translation}.venueCard.title` | translate }}</h5>
+          <p class="guide-card__description">{{ `${translation}.venueCard.description` | translate }}</p>
+        </div>
+        @if (catalogGuideUrl(); as guideUrl) {
+          <a
+            igntButton
+            sentiment="secondary"
+            size="small"
+            data-testid="create-form-guide-card-button"
+            target="_blank"
+            rel="noopener noreferrer"
+            [href]="guideUrl"
+          >
+            {{ `${translation}.venueCard.checkoutGuide` | translate }}
+          </a>
+        }
+      </div>
+    </ignt-wrapper-card>
+
+    <div class="create-form__divider"></div>
+
+    <div class="create-form__form-container" [formGroup]="createRetailForm">
+      <form action="" class="form">
+        <div class="form__integration">
+          <div class="form__integration--header">
+            <p class="form__integration--title form__title">{{ `${translation}.integrationDetails.title` | translate }}</p>
+            <p class="form__integration--description form__description">
+              {{ `${translation}.integrationDetails.description` | translate }}
+            </p>
+          </div>
+          <div class="form__integration--fields">
+            <ignt-input-field
+              formControlName="integrationName"
+              data-testid="create-form-integration-name-input"
+              [customFormErrors]="[
+                {
+                  type: 'required',
+                  message: `${translation}.integrationDetails.integrationName.required` | translate,
+                },
+                {
+                  type: 'maxlength',
+                  message: `${translation}.integrationDetails.integrationName.maxLength` | translate,
+                },
+                {
+                  type: 'pattern',
+                  message: `${translation}.integrationDetails.integrationName.pattern` | translate,
+                },
+              ]"
+              [helperText]="`${translation}.integrationDetails.integrationName.helperText` | translate"
+              [label]="`${translation}.integrationDetails.integrationName.label` | translate"
+            />
+
+            @if (isOdooType()) {
+              <div class="form__field">
+                <ignt-typeahead
+                  data-testid="create-form-account-select"
+                  [editable]="false"
+                  [emptyLabel]="`${translation}.integrationDetails.account.placeholder` | translate"
+                  [error]="showAccountError()"
+                  [errorMessage]="
+                    showAccountError() ? (`${translation}.integrationDetails.account.required` | translate) : null
+                  "
+                  [fieldLabel]="`${translation}.integrationDetails.account.label` | translate"
+                  [options]="accountSelectOptions()"
+                  [selectedOption]="selectedAccountOption()"
+                  (selected)="onAccountSelected($event)"
+                  (userInteraction)="onAccountTypeaheadInteraction($event)"
+                />
+              </div>
+
+              <ignt-input-field
+                formControlName="companyId"
+                data-testid="create-form-company-id-input"
+                inputMode="numeric"
+                [customFormErrors]="[
+                  {
+                    type: 'required',
+                    message: `${translation}.integrationDetails.companyId.required` | translate,
+                  },
+                  {
+                    type: 'pattern',
+                    message: `${translation}.integrationDetails.companyId.pattern` | translate,
+                  },
+                ]"
+                [helperText]="`${translation}.integrationDetails.companyId.helperText` | translate"
+                [label]="`${translation}.integrationDetails.companyId.label` | translate"
+              />
+            } @else {
+              <ignt-input-field
+                formControlName="masterCatalogId"
+                data-testid="create-form-master-catalog-id-input"
+                [customFormErrors]="[
+                  {
+                    type: 'required',
+                    message: `${translation}.integrationDetails.masterCatalogId.required` | translate,
+                  },
+                  {
+                    type: 'maxlength',
+                    message: `${translation}.integrationDetails.masterCatalogId.maxLength` | translate,
+                  },
+                  {
+                    type: 'pattern',
+                    message: `${translation}.integrationDetails.masterCatalogId.pattern` | translate,
+                  },
+                ]"
+                [helperText]="
+                  `${translation}.integrationDetails.masterCatalogId.helperText` | translate: { retailType: selectedRetailOptionType() }
+                "
+                [label]="`${translation}.integrationDetails.masterCatalogId.label` | translate"
+              />
+            }
+
+            <div class="form__field">
+              <ignt-typeahead
+                data-testid="create-form-currency-select"
+                [editable]="false"
+                [emptyLabel]="`${translation}.integrationDetails.currency.placeholder` | translate"
+                [error]="showCurrencyError()"
+                [errorMessage]="showCurrencyError() ? (`${translation}.integrationDetails.currency.required` | translate) : null"
+                [fieldLabel]="`${translation}.integrationDetails.currency.label` | translate"
+                [options]="currencySelectOptions"
+                [selectedOption]="selectedCurrencyOption()"
+                (selected)="onCurrencySelected($event)"
+                (userInteraction)="onCurrencyTypeaheadInteraction($event)"
+              />
+              <p class="form__helper" data-testid="create-form-currency-helper">
+                {{ `${translation}.integrationDetails.currency.helperText` | translate }}
+              </p>
+            </div>
+
+            <fz-square-account-currency-field
+              [options]="squareAccountCurrencySelectOptions()"
+              [selectedOption]="selectedSquareAccountCurrencyOption()"
+              [visible]="showSquareAccountCurrency()"
+              (selected)="onSquareAccountCurrencySelected($event)"
+            />
+          </div>
+        </div>
+        <div class="form__warehouse">
+          <div class="form__warehouse--header">
+            <p class="form__warehouse--title form__title">{{ `${translation}.warehouseDetails.title` | translate }}</p>
+            <p class="form__warehouse--description form__description">
+              {{ `${translation}.warehouseDetails.description` | translate }}
+            </p>
+          </div>
+          <div class="form__warehouse--fields" [formGroup]="warehouseForm">
+            <ignt-input-field
+              formControlName="warehouseName"
+              data-testid="create-form-warehouse-name-input"
+              [customFormErrors]="[
+                {
+                  type: 'required',
+                  message: `${translation}.warehouseDetails.warehouseName.required` | translate,
+                },
+                {
+                  type: 'maxlength',
+                  message: `${translation}.warehouseDetails.warehouseName.maxLength` | translate,
+                },
+                {
+                  type: 'pattern',
+                  message: `${translation}.warehouseDetails.warehouseName.pattern` | translate,
+                },
+              ]"
+              [label]="`${translation}.warehouseDetails.warehouseName.label` | translate"
+            />
+            <ignt-input-field
+              formControlName="externalId"
+              data-testid="create-form-external-id-input"
+              [customFormErrors]="[
+                {
+                  type: 'required',
+                  message: `${translation}.warehouseDetails.externalId.required` | translate,
+                },
+                {
+                  type: 'maxlength',
+                  message: `${translation}.warehouseDetails.externalId.maxLength` | translate,
+                },
+                {
+                  type: 'pattern',
+                  message: `${translation}.warehouseDetails.externalId.pattern` | translate,
+                },
+              ]"
+              [label]="`${translation}.warehouseDetails.externalId.label` | translate"
+            />
+            <button
+              type="button"
+              igntButton
+              sentiment="secondary"
+              size="small"
+              data-testid="create-form-add-warehouse-button"
+              [leadingIcon]="['fal', 'plus']"
+              (click)="onAddWarehouse()"
+            >
+              {{ 'common.add' | translate }}
+            </button>
+          </div>
+        </div>
+      </form>
+
+      @if (warehouses().length > 0) {
+        <div class="create-form__warehouse-list">
+          @for (warehouse of warehouses(); track $index) {
+            <div class="warehouse-item" data-testid="create-form-warehouse-item">
+              <div class="warehouse-item--content">
+                <span class="warehouse-item--name">{{ warehouse.name }}</span>
+                <span class="warehouse-item--location">{{ warehouse.externalId }}</span>
+              </div>
+              <button
+                type="button"
+                ignt-icon-button
+                variant="sharp"
+                sentiment="tertiary"
+                size="small"
+                data-testid="create-form-remove-warehouse-button"
+                [attr.aria-label]="`${translation}.warehouseDetails.removeWarehouseAria` | translate"
+                [icon]="['fal', 'trash-alt']"
+                (click)="onRemoveWarehouse($index)"
+              ></button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="create-form__actions">
+    <button type="button" igntButton sentiment="secondary" (click)="onCancel()">
+      {{ 'common.cancel' | translate }}
+    </button>
+    <button type="button" igntButton sentiment="primary" [disabled]="isCreateDisabled()" [loading]="isLoading()" (click)="onCreate()">
+      {{ `${translation}.footerActions.continue` | translate }}
+    </button>
+  </div>
+</div>

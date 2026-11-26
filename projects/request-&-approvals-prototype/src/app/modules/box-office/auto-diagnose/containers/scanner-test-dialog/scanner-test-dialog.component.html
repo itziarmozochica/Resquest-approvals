@@ -1,0 +1,165 @@
+<ignt-dialog-header data-testid="scanner-test-dialog">
+  {{ 'boxOffice.autoDiagnose.scanner.dialog.title' | translate }}
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="scanner-test-dialog">
+    <ignt-progress-stepper
+      class="scanner-test-dialog__stepper"
+      [items]="stepItems()"
+      [currentIndex]="currentIndex()"
+      [allowItemActivate]="false"
+      [showNavigation]="false"
+      [ariaLabel]="'boxOffice.autoDiagnose.scanner.dialog.title' | translate"
+    />
+
+    @if (step() === testStep.brand) {
+      <section class="scanner-test-dialog__step" data-testid="scanner-test-brand-step">
+        <div class="scanner-test-dialog__step-text">
+          <h3 class="scanner-test-dialog__step-title">{{ 'boxOffice.autoDiagnose.scanner.dialog.brand.title' | translate }}</h3>
+          <p class="scanner-test-dialog__step-description">{{ 'boxOffice.autoDiagnose.scanner.dialog.brand.description' | translate }}</p>
+        </div>
+        <app-scanner-brand-picker class="scanner-test-dialog__brands" [brand]="brand()" (brandChange)="selectBrand($event)" />
+      </section>
+    } @else if (step() !== testStep.done) {
+      <section class="scanner-test-dialog__step" data-testid="scanner-test-step" [attr.data-step]="step()">
+        <div class="scanner-test-dialog__step-text">
+          <h3 class="scanner-test-dialog__step-title">
+            {{ 'boxOffice.autoDiagnose.scanner.dialog.' + step() + '.title' | translate: { count: speedScans } }}
+          </h3>
+          <p class="scanner-test-dialog__step-description">
+            {{ 'boxOffice.autoDiagnose.scanner.dialog.' + step() + '.description' | translate }}
+          </p>
+        </div>
+
+        <div class="scanner-test-dialog__code" [class.scanner-test-dialog__code--barcode]="step() !== testStep.qr">
+          @if (step() === testStep.qr) {
+            @if (qrDataUrl(); as qr) {
+              <img class="scanner-test-dialog__qr" data-testid="scanner-test-qr" [src]="qr" [alt]="testCode()" />
+            }
+          } @else {
+            <app-code128-barcode data-testid="scanner-test-barcode" [value]="testCode()" [ariaLabel]="testCode()" />
+          }
+          <span class="scanner-test-dialog__code-text">{{ testCode() }}</span>
+        </div>
+
+        @if (connectionAdvice() === null) {
+          <div class="scanner-test-dialog__live" role="status" aria-live="polite" data-testid="scanner-test-live">
+            @if (step() === testStep.speed && receivedScans() > 0) {
+              <ignt-icon name="check-circle" variant="solid" size="sm" aria-hidden="true" />
+              {{ 'boxOffice.autoDiagnose.scanner.dialog.progress' | translate: { done: receivedScans(), count: speedScans } }}
+            } @else if (receivedScans() > 0) {
+              <ignt-icon name="check-circle" variant="solid" size="sm" aria-hidden="true" />
+              {{ 'boxOffice.autoDiagnose.scanner.dialog.received' | translate }}
+            } @else {
+              <ignt-icon name="spinner" variant="solid" size="sm" aria-hidden="true" [spin]="true" />
+              {{ 'boxOffice.autoDiagnose.scanner.dialog.waiting' | translate }}
+            }
+          </div>
+        }
+
+        @if (connectionAdvice(); as advice) {
+          <ignt-alert
+            data-testid="scanner-test-connection"
+            [attr.data-advice]="advice"
+            [sentiment]="advice === connectionAdviceType.contactSupport ? 'danger' : 'warning'"
+            [title]="'boxOffice.autoDiagnose.scanner.dialog.connection.' + advice + '.title' | translate"
+            [description]="'boxOffice.autoDiagnose.scanner.dialog.connection.' + advice + '.description' | translate"
+            [actionLabel]="'boxOffice.autoDiagnose.scanner.dialog.retry' | translate"
+            (actionClicked)="retryStep()"
+          />
+          <app-scanner-fix-guide
+            [brand]="brand()"
+            [showResetSteps]="true"
+            [showBroadcastSteps]="advice === connectionAdviceType.contactSupport"
+            (brandChange)="selectBrand($event)"
+          />
+        } @else if (isWaitingTooLong()) {
+          <ignt-alert
+            sentiment="info"
+            data-testid="scanner-test-no-scan"
+            [description]="'boxOffice.autoDiagnose.scanner.dialog.noScanHint' | translate"
+            [actionLabel]="'boxOffice.autoDiagnose.scanner.dialog.giveUp' | translate"
+            (actionClicked)="giveUp()"
+          />
+        }
+      </section>
+    } @else if (diagnosis(); as result) {
+      <section class="scanner-test-dialog__result" data-testid="scanner-test-result" [attr.data-status]="resultStatus()">
+        @if (resultPresentation(); as presentation) {
+          <div class="scanner-test-dialog__result-header" role="status" aria-live="polite">
+            <span class="scanner-test-dialog__result-icon" aria-hidden="true">
+              <ignt-icon size="h3" [name]="presentation.icon" [variant]="presentation.iconVariant" />
+            </span>
+            <div>
+              <h3 class="scanner-test-dialog__result-title">
+                {{ 'boxOffice.autoDiagnose.scanner.dialog.result.' + resultStatus() + '.title' | translate }}
+              </h3>
+              <p class="scanner-test-dialog__result-description">
+                {{ 'boxOffice.autoDiagnose.scanner.dialog.result.' + resultStatus() + '.description' | translate }}
+              </p>
+            </div>
+          </div>
+        }
+
+        <app-scanner-check-list [checks]="result.checks" />
+
+        @if (result.receivedSample !== null) {
+          <dl class="scanner-test-dialog__facts">
+            <div class="scanner-test-dialog__fact">
+              <dt>{{ 'boxOffice.autoDiagnose.scanner.dialog.expected' | translate }}</dt>
+              <dd>
+                <code>{{ testCode() }}</code>
+              </dd>
+            </div>
+            <div class="scanner-test-dialog__fact">
+              <dt>{{ 'boxOffice.autoDiagnose.scanner.dialog.receivedSample' | translate }}</dt>
+              <dd>
+                <code data-testid="scanner-test-received">{{ result.receivedSample }}</code>
+              </dd>
+            </div>
+            <div class="scanner-test-dialog__fact">
+              <dt>{{ 'boxOffice.autoDiagnose.scanner.dialog.endsWithEnter' | translate }}</dt>
+              <dd>{{ (result.endsWithEnter ? 'boxOffice.autoDiagnose.yes' : 'boxOffice.autoDiagnose.no') | translate }}</dd>
+            </div>
+          </dl>
+        }
+
+        @if (showSuffixFix() || showBroadcastFix()) {
+          <app-scanner-fix-guide
+            [brand]="brand()"
+            [showSuffixBarcode]="showSuffixFix()"
+            [showBroadcastSteps]="showBroadcastFix()"
+            (brandChange)="selectBrand($event)"
+          />
+        }
+      </section>
+    }
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer hideCancelButton>
+  @if (step() === testStep.brand) {
+    <ignt-button
+      data-testid="scanner-test-brand-continue"
+      [label]="'boxOffice.autoDiagnose.scanner.dialog.brand.continue' | translate"
+      [disabled]="brand() === null"
+      (click)="continueToScan()"
+    />
+  }
+  @if (step() === testStep.done) {
+    <ignt-button
+      variant="secondary"
+      data-testid="scanner-test-restart"
+      [label]="'boxOffice.autoDiagnose.scanner.dialog.runAgain' | translate"
+      [leadingIcon]="{ name: 'redo', variant: 'solid' }"
+      (click)="restart()"
+    />
+  }
+  <ignt-button
+    igntDialogClose
+    variant="tertiary"
+    data-testid="scanner-test-dialog-close"
+    [label]="'boxOffice.autoDiagnose.close' | translate"
+  />
+</ignt-dialog-footer>

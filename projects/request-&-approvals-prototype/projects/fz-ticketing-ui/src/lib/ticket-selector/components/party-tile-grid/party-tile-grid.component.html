@@ -1,0 +1,73 @@
+@let grid = vm();
+
+<div class="party-tile-grid">
+  <div class="party-tile-grid__content">
+    <div #pagedViewport class="party-tile-grid__container">
+      @if (grid.state === 'skeleton') {
+        <div class="party-tile-grid__slide" data-testid="party-tile-grid-skeleton">
+          @for (skeletonTile of skeletonTiles; track skeletonTile) {
+            <div class="party-tile-grid__skeleton-tile">
+              <ignt-skeleton-base width="50%" [animation]="true" [height]="8" />
+              <ignt-skeleton-base [animation]="true" [height]="32" />
+            </div>
+          }
+        </div>
+      } @else if (grid.state === 'awaiting-party') {
+        <div
+          class="party-tile-grid__empty-state party-tile-grid__empty-state--awaiting-party"
+          data-testid="party-select-members-empty-state"
+        >
+          <div
+            class="party-tile-grid__empty-state-copy party-tile-grid__empty-state-copy--till"
+            data-testid="party-select-members-copy-till"
+          >
+            <p class="party-tile-grid__empty-state-title">{{ translations().partySelectMembersTitle }}</p>
+            <p class="party-tile-grid__empty-state-description">{{ translations().partySelectMembersDescription }}</p>
+          </div>
+          <div
+            class="party-tile-grid__empty-state-copy party-tile-grid__empty-state-copy--handheld"
+            data-testid="party-select-members-copy-handheld"
+          >
+            <p class="party-tile-grid__empty-state-title">{{ translations().partySelectMembersHandheldTitle }}</p>
+            <p class="party-tile-grid__empty-state-description">{{ translations().partySelectMembersHandheldDescription }}</p>
+            <ignt-button
+              class="party-tile-grid__empty-state-cta"
+              data-testid="party-select-members-cta"
+              variant="primary"
+              [label]="translations().partySelectMembersCta"
+              [leadingIcon]="{ name: 'user', variant: 'solid' }"
+              (click)="selectMembersRequested.emit()"
+            />
+          </div>
+        </div>
+      } @else if (grid.state === 'no-activities') {
+        <div class="party-tile-grid__empty-state party-tile-grid__empty-state--no-activities" data-testid="party-no-activities-empty-state">
+          <p class="party-tile-grid__empty-state-title">{{ translations().partyNoActivitiesTitle }}</p>
+          <p class="party-tile-grid__empty-state-description">{{ translations().partyNoActivitiesDescription }}</p>
+        </div>
+      } @else {
+        <div #slidesWrapper class="party-tile-grid__slides-wrapper" [class.is-animating]="paging.isAnimating()">
+          @for (slide of slides(); track $index) {
+            <div class="party-tile-grid__slide">
+              @for (tile of slide; track tile.key) {
+                <fzt-party-tile [translations]="translations()" [vm]="tile" (startTimeSelected)="onStartTimeSelected($event)" />
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+  <div
+    class="party-tile-grid__pagination"
+    [class.party-tile-grid__pagination--placeholder]="paging.pages().length <= 1"
+    [attr.aria-hidden]="paging.pages().length > 1 ? null : true"
+  >
+    <fzt-page-dots
+      [pageCount]="paging.pages().length"
+      [selectedIndex]="paging.pageIndex()"
+      [translations]="translations()"
+      (pageSelected)="paging.onPageSelected($event)"
+    />
+  </div>
+</div>

@@ -1,0 +1,214 @@
+<div class="my-ambassador-program-detail" *ngIf="program !== null">
+  <header class="my-ambassador-program-detail__page-header">
+    <button class="my-ambassador-program-detail__back-button" (click)="goBack()" data-testid="my-ambassador-program-detail__back-button">
+      {{ 'common.backToHome' | translate }}
+    </button>
+    <h1 class="my-ambassador-program-detail__page-title">{{ program.title }}</h1>
+  </header>
+
+  <div class="my-ambassador-program-detail__program-header">
+    <div class="my-ambassador-program-detail__program-header-content">
+      <div class="my-ambassador-program-detail__program-header-image" data-testid="my-ambassador-program-detail__program-header-image">
+        <img [src]="program.image" [alt]="program.title" />
+      </div>
+
+      <div class="my-ambassador-program-detail__program-header-info">
+        <div class="my-ambassador-program-detail__program-header-tag" data-testid="my-ambassador-program-detail__program-header-tag">
+          <app-plan-status-tag
+            [status]="program.status"
+            [style]="program.status === 'off_sale' ? 'solid' : 'outline'"
+          ></app-plan-status-tag>
+        </div>
+
+        <h2 class="my-ambassador-program-detail__program-header-title" data-testid="my-ambassador-program-detail__program-header-title">
+          {{ program.title }}
+        </h2>
+
+        <div class="my-ambassador-program-detail__program-header-details">
+          <div
+            class="my-ambassador-program-detail__program-header-details-item"
+            data-testid="my-ambassador-program-detail__program-header-details-item"
+          >
+            <ignt-icon name="map-marker-alt" variant="light"></ignt-icon>
+            <span class="my-ambassador-program-detail__program-header-details-item-text">{{ program.places?.[0]?.name || 'N/A' }}</span>
+          </div>
+          <div class="my-ambassador-program-detail__program-header-details-item">
+            <ignt-icon name="calendar-alt" variant="light"></ignt-icon>
+            <span class="my-ambassador-program-detail__program-header-details-item-text"
+              >{{ program.startsAt | date: 'd MMM yyyy' }} - {{ program.endsAt | date: 'd MMM yyyy' }}</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <button
+        ignt-icon-button
+        size="small"
+        sentiment="tertiary"
+        [icon]="['far', 'ellipsis-h']"
+        class="my-ambassador-program-detail__program-header-actions-mobile"
+        data-testid="my-ambassador-program-detail__program-header-actions-button"
+        [igntMenuTriggerFor]="programActionsMenu"
+        (click)="$event.stopPropagation()"
+      ></button>
+      <ng-template #programActionsMenu>
+        <ignt-menu>
+          <ignt-menu-item
+            value="share"
+            data-testid="my-ambassador-program-detail__program-header-actions-option"
+            [label]="'ambassadorOverview.programs.shareTrackingLink' | translate"
+            (triggered)="shareTrackingLink()"
+          >
+            <ignt-icon name="share" variant="solid" />
+          </ignt-menu-item>
+          <ignt-menu-item
+            value="copy"
+            data-testid="my-ambassador-program-detail__program-header-actions-option"
+            [label]="'common.copy' | translate"
+            (triggered)="copyLink()"
+          >
+            <ignt-icon name="copy" variant="light" />
+          </ignt-menu-item>
+        </ignt-menu>
+      </ng-template>
+      <div class="my-ambassador-program-detail__program-header-actions">
+        <ignt-button
+          size="small"
+          variant="secondary"
+          [label]="'ambassadorOverview.programs.shareTrackingLink' | translate"
+          [trailingIcon]="{ name: 'link', variant: 'light' }"
+          (click)="shareTrackingLink()"
+          data-testid="my-ambassador-program-detail__share-tracking-link-button"
+        />
+        <ignt-button
+          size="small"
+          variant="secondary"
+          [label]="'common.copy' | translate"
+          [trailingIcon]="{ name: 'copy', variant: 'light' }"
+          (click)="copyLink()"
+          data-testid="my-ambassador-program-detail__copy-link-button"
+        />
+      </div>
+    </div>
+  </div>
+
+  <div class="my-ambassador-program-detail__points-section">
+    <ignt-wrapper-card>
+      <div class="my-ambassador-program-detail__points-content">
+        <div class="my-ambassador-program-detail__points-info">
+          <div class="my-ambassador-program-detail__points-icon">
+            <ignt-icon name="sparkles" variant="regular"></ignt-icon>
+          </div>
+          <div class="my-ambassador-program-detail__points-text">
+            <span class="my-ambassador-program-detail__points-text-label">{{ 'ambassadorOverview.programs.youHave' | translate }}</span>
+            <span class="my-ambassador-program-detail__points-text-value" data-testid="my-ambassador-program-detail__points-text-value">
+              {{ userPoints?.current || 0 }}
+            </span>
+            <span class="my-ambassador-program-detail__points-text-label"> {{ 'ambassadorOverview.programs.points' | translate }}</span>
+            <div class="my-ambassador-program-detail__points-text-subtitle">
+              {{ 'ambassadorOverview.programs.seeWhatRewardsYouCanGet' | translate }}
+            </div>
+          </div>
+        </div>
+        <div class="my-ambassador-program-detail__buttons">
+          <ignt-button
+            variant="secondary"
+            [fill]="isMobile()"
+            [label]="'ambassadorOverview.programs.viewRedeemedRewards' | translate"
+            (click)="viewRedeemedRewards(redeemedRewardsTemplate)"
+            data-testid="my-ambassador-program-detail__view-redeemed-rewards-button"
+          />
+          <ignt-button
+            [fill]="isMobile()"
+            [label]="'ambassadorOverview.programs.redeemYourPoints' | translate"
+            [leadingIcon]="{ name: 'gift', variant: 'solid' }"
+            (click)="redeemPoints()"
+            data-testid="my-ambassador-program-detail__redeem-points-button"
+          />
+        </div>
+      </div>
+      <ignt-alert
+        sentiment="warning"
+        [description]="'ambassadorOverview.programs.useYourPointsBefore' | translate: { endDate: userPoints?.endDate | date: 'd MMM yyyy' }"
+      >
+      </ignt-alert>
+    </ignt-wrapper-card>
+  </div>
+
+  <div class="my-ambassador-program-detail__quick-actions">
+    <ignt-info-card
+      variant="router-link"
+      [icon]="['fal', 'chart-line']"
+      [title]="'ambassadorOverview.programs.eventSales' | translate"
+      [description]="'ambassadorOverview.programs.monitorYourPerformance' | translate"
+      [linkText]="'ambassadorOverview.programs.seeDashboard' | translate"
+      [linkUrl]="'/ambassador-programs/dashboard/' + program.plans[0] + '/channel/' + channelId"
+      data-testid="my-ambassador-program-detail__event-sales-card"
+    ></ignt-info-card>
+    <ignt-info-card
+      variant="link"
+      [icon]="['fal', 'globe']"
+      [title]="'ambassadorOverview.programs.viewLive' | translate"
+      [description]="'ambassadorOverview.programs.checkEventDetails' | translate"
+      [linkText]="'ambassadorOverview.programs.goLive' | translate"
+      [linkUrl]="trackingLink() || ''"
+      data-testid="my-ambassador-program-detail__view-in-fever-card"
+    ></ignt-info-card>
+    <ignt-info-card
+      variant="link"
+      [icon]="['fal', 'user-headset']"
+      [title]="'ambassadorOverview.programs.contactSupport' | translate"
+      [description]="'ambassadorOverview.programs.ifYouHaveAnyQuestionsOrTrouble' | translate"
+      [linkText]="'ambassadorOverview.programs.contactSupport' | translate"
+      [linkUrl]="'mailto:' + program.contactSupportEmail"
+      data-testid="my-ambassador-program-detail__contact-support-card"
+    ></ignt-info-card>
+  </div>
+</div>
+
+<ng-template #redeemedRewardsTemplate>
+  <ignt-dialog-header>{{ 'ambassadorOverview.rewards.redeemedRewardsTitle' | translate }}</ignt-dialog-header>
+
+  <ignt-dialog-content (scroll)="onContainerScroll($event)">
+    <div class="my-ambassador-program-detail__list-sheet-content" data-testid="my-ambassador-program-detail__list-sheet-rewards">
+      @if (redeemedRewards().length > 0) {
+        <p data-testid="my-ambassador-program-detail__redeemed-rewards-subtitle">
+          {{ 'ambassadorOverview.rewards.redeemedRewardsSubtitle' | translate }}
+        </p>
+      } @else if (!loadingRedeemedRewards()) {
+        <p data-testid="my-ambassador-program-detail__no-redeemed-rewards-subtitle">
+          {{ 'ambassadorOverview.rewards.noRedeemedRewardsSubtitle' | translate }}
+        </p>
+      }
+      <div class="my-ambassador-program-detail__list-sheet-rewards">
+        @for (redeemedReward of redeemedRewards(); track redeemedReward.id) {
+          <ignt-points-card
+            [points]="redeemedReward.points"
+            [title]="redeemedReward.rewardTitle ?? '' | translate"
+            [pointsText]="'ambassadorOverview.rewards.points' | translate"
+            [isSelected]="false"
+            [validUntil]="redeemedReward.redeemedAt ?? '' | momentDate: 'd MMM yyyy' : program?.places?.[0]?.city?.timeZone ?? ''"
+            [validUntilText]="'ambassadorOverview.rewards.redeemedOn' | translate"
+            (click)="viewRedeemedReward(redeemedReward)"
+            [attr.data-testid]="'my-ambassador-program-detail__redeemed-reward-card-' + redeemedReward.id"
+          ></ignt-points-card>
+        }
+      </div>
+      @if (loadingRedeemedRewards()) {
+        <div class="my-ambassador-program-detail__list-sheet-loading" data-testid="my-ambassador-program-detail__redeemed-rewards-loading">
+          <ignt-icon name="spinner" variant="solid" [spin]="true"></ignt-icon>
+        </div>
+      }
+    </div>
+  </ignt-dialog-content>
+
+  <ignt-dialog-footer hideCancelButton>
+    <ignt-button
+      fill
+      igntDialogClose
+      variant="tertiary"
+      [label]="'common.close' | translate"
+      data-testid="my-ambassador-program-detail__close-redeemed-rewards-button"
+    />
+  </ignt-dialog-footer>
+</ng-template>

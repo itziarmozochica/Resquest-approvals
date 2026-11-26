@@ -1,0 +1,87 @@
+<ignt-dialog-header [hideCloseButton]="true">
+  <div class="fz-assistant-notifications-dialog__header-row">
+    <span class="fz-assistant-notifications-dialog__title">
+      <app-ai-sparkle-icon fill="gradient" size="medium" />
+      {{ 'chatbot.notificationsDialog.title' | translate }}
+    </span>
+    <button
+      type="button"
+      ignt-icon-button
+      sentiment="tertiary"
+      size="small"
+      [icon]="['far', 'xmark']"
+      igntDialogClose
+      [attr.aria-label]="'chatbot.topBar.close' | translate"
+    ></button>
+  </div>
+</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <ng-template #contextTpl>
+    <div
+      class="fz-assistant-notifications-dialog__context"
+      [class.fz-assistant-notifications-dialog__context--embedded]="hasFillingContent()"
+      [class.fz-assistant-notifications-dialog__context--with-header]="notification() !== null"
+    >
+      @if (notification(); as notification) {
+        <app-fz-assistant-notification-header
+          [notification]="notification"
+          [divided]="hasContentBelow()"
+          [shareUrl]="dialogData.shareUrl ?? null"
+          [copied]="copied()"
+          (share)="onShare()"
+        />
+      }
+      @if (isMarkdown()) {
+        <app-fz-assistant-notification-markdown [url]="markdownUrl()" />
+      } @else if (hasAssistantMessages()) {
+        <app-fz-assistant-notification-conversation [messages]="assistantMessages()" />
+      } @else {
+        @if (insightUrl(); as url) {
+          <app-fz-assistant-notification-insight [url]="url" />
+        } @else if (showInsightError()) {
+          <p class="fz-assistant-notifications-dialog__context-error">
+            {{ 'chatbot.notificationsDialog.insightUnavailable' | translate }}
+          </p>
+        }
+      }
+    </div>
+  </ng-template>
+
+  <ng-template #chatTpl>
+    <div class="fz-assistant-notifications-dialog__chat">
+      @if (showInsightActions()) {
+        <app-fz-assistant-notification-actions [actions]="insightActions" (actionSelected)="onInsightAction($event)" />
+      }
+      <app-fz-assistant-chat-surface
+        appearance="dialog"
+        [showHeader]="false"
+        [showSuggestions]="false"
+        [showWelcomeTitle]="false"
+        [initialQuery]="dialogData.initialQuery ?? ''"
+        [inputPlaceholderKey]="'chatbot.notificationsDialog.input.placeholder'"
+      />
+    </div>
+  </ng-template>
+
+  @if (useTabs()) {
+    <ignt-tabs
+      class="fz-assistant-notifications-dialog__tabs"
+      [keepAlive]="true"
+      [selectedIndex]="selectedTabIndex()"
+      (selectedIndexChange)="selectedTabIndex.set($event)"
+    >
+      <ignt-tabs-item [label]="'chatbot.notificationsDialog.tabs.insight' | translate">
+        <ng-container *ngTemplateOutlet="contextTpl" />
+      </ignt-tabs-item>
+      <ignt-tabs-item [label]="'chatbot.notificationsDialog.tabs.chat' | translate">
+        <ng-container *ngTemplateOutlet="chatTpl" />
+      </ignt-tabs-item>
+    </ignt-tabs>
+  } @else {
+    <div class="fz-assistant-notifications-dialog__body">
+      <ng-container *ngTemplateOutlet="contextTpl" />
+      <ng-container *ngTemplateOutlet="chatTpl" />
+    </div>
+  }
+</ignt-dialog-content>

@@ -1,0 +1,75 @@
+<div class="payment-collectors-table">
+  <app-table
+    [type]="TableType.FZ_TABLE"
+    [scrollable]="true"
+    [headers]="headers"
+    [hasActions]="true"
+    [orderBy]="orderBy"
+    (updateOrderByEmit)="updateOrderParam($event)"
+  >
+    <tr
+      *ngFor="let restriction of restrictions"
+      class="payment-collectors-table__row"
+      [class.payment-collectors-table__row--default]="isDefaultRestriction(restriction)"
+      [class.payment-collectors-table__row--clickable]="!isDefaultRestriction(restriction)"
+      (click)="onRowClick(restriction)"
+      data-testid="payment-collectors-table-row"
+    >
+      <ng-container *ngTemplateOutlet="tableRow; context: { restriction }"></ng-container>
+    </tr>
+    <tr *ngIf="restrictions.length === 0" data-testid="payment-collectors-table-empty">
+      <td colspan="7" class="payment-collectors-table__empty">
+        <div class="payment-collectors-table__empty-state">
+          <fa-icon class="payment-collectors-table__empty-icon" [icon]="['fal', 'receipt']" [size]="'2x'"></fa-icon>
+          <p class="payment-collectors-table__empty-title">{{ 'finance.paymentCollectors.emptyState.title' | translate }}</p>
+          <p class="payment-collectors-table__empty-description">{{ 'finance.paymentCollectors.emptyState.description' | translate }}</p>
+        </div>
+      </td>
+    </tr>
+  </app-table>
+</div>
+
+<ng-template #tableRow let-restriction="restriction">
+  <td class="payment-collectors-table__cell payment-collectors-table__cell--primary" [title]="restriction.mainPlanName ?? ''">
+    <span class="payment-collectors-table__cell-text">{{ restriction.mainPlanName ?? '' }}</span>
+  </td>
+  <td class="payment-collectors-table__cell" [title]="restriction.channelName ?? ''">
+    <span class="payment-collectors-table__cell-text">{{ restriction.channelName ?? '' }}</span>
+  </td>
+  <td class="payment-collectors-table__cell" [title]="restriction.paymentGateway ?? ''">
+    <span class="payment-collectors-table__cell-text">{{ restriction.paymentGateway ?? '' }}</span>
+  </td>
+  <td class="payment-collectors-table__cell" [title]="restriction.paymentMethodType ?? ''">
+    <span class="payment-collectors-table__cell-text">{{ restriction.paymentMethodType ?? '' }}</span>
+  </td>
+  <td class="payment-collectors-table__cell" [title]="restriction.channelType ?? ''">
+    <span class="payment-collectors-table__cell-text">{{ restriction.channelType ?? '' }}</span>
+  </td>
+  <td class="payment-collectors-table__cell">
+    <ignt-tag [sentiment]="getCollectorSentiment(restriction.paymentCollector)" variant="outline">
+      {{ restriction.paymentCollector ? (restriction.paymentCollector | titlecase) : 'None' }}
+    </ignt-tag>
+  </td>
+  <td class="payment-collectors-table__actions-cell">
+    <button
+      *ngIf="!isDefaultRestriction(restriction)"
+      class="payment-collectors-table__delete-btn"
+      (click)="onDeleteClick($event, restriction)"
+      data-testid="payment-collectors-delete-btn"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 32 32"
+        fill="none"
+        class="payment-collectors-table__delete-icon"
+      >
+        <path
+          d="M13.5664 9.24219C13.7031 8.94141 14.0039 8.75 14.332 8.75H17.6406C17.9688 8.75 18.2695 8.94141 18.4062 9.24219L18.625 9.625H21.25C21.7148 9.625 22.125 10.0352 22.125 10.5C22.125 10.9922 21.7148 11.375 21.25 11.375H10.75C10.2578 11.375 9.875 10.9922 9.875 10.5C9.875 10.0352 10.2578 9.625 10.75 9.625H13.375L13.5664 9.24219ZM10.7227 12.25H21.25V21C21.25 21.9844 20.457 22.75 19.5 22.75H12.4727C11.5156 22.75 10.7227 21.9844 10.7227 21V12.25ZM12.9102 14.4375V20.5625C12.9102 20.8086 13.1289 21 13.3477 21C13.5938 21 13.7852 20.8086 13.7852 20.5625V14.4375C13.7852 14.2188 13.5938 14 13.3477 14C13.1289 14 12.9102 14.2188 12.9102 14.4375ZM15.5352 14.4375V20.5625C15.5352 20.8086 15.7539 21 15.9727 21C16.2188 21 16.4375 20.8086 16.4375 20.5625V14.4375C16.4375 14.2188 16.2188 14 15.9727 14C15.7539 14 15.5352 14.2188 15.5352 14.4375ZM18.1875 14.4375V20.5625C18.1875 20.8086 18.3789 21 18.625 21C18.8438 21 19.0625 20.8086 19.0625 20.5625V14.4375C19.0625 14.2188 18.8438 14 18.625 14C18.3789 14 18.1875 14.2188 18.1875 14.4375Z"
+          fill="currentColor"
+        />
+      </svg>
+    </button>
+  </td>
+</ng-template>

@@ -1,0 +1,70 @@
+<ignt-dialog-header data-testid="booking-tags-modal-header">{{ 'partnerTags.booking.title' | translate }}</ignt-dialog-header>
+
+<ignt-dialog-content>
+  <div class="booking-tags-modal">
+    <p class="booking-tags-modal__subtitle" data-testid="booking-tags-modal-subtitle">{{ subtitleKey() | translate }}</p>
+
+    @if (isLoading()) {
+      <p class="booking-tags-modal__empty" data-testid="booking-tags-modal-loading">{{ 'partnerTags.booking.loading' | translate }}</p>
+    } @else if (hasLoadError()) {
+      <p class="booking-tags-modal__empty" data-testid="booking-tags-modal-error">{{ 'partnerTags.error.loadFailed' | translate }}</p>
+    } @else if (tags().length === 0) {
+      <p class="booking-tags-modal__empty" data-testid="booking-tags-modal-empty">{{ 'partnerTags.booking.empty' | translate }}</p>
+    } @else {
+      @for (group of groups(); track group.type?.id ?? 'none') {
+        <section [attr.aria-labelledby]="hasTagTypes() ? headingIdOf(group) : null">
+          @if (hasTagTypes()) {
+            <h3 class="booking-tags-modal__group" data-testid="booking-tags-modal-group" [id]="headingIdOf(group)">
+              {{ groupNameOf(group) }}
+            </h3>
+          }
+
+          <ul class="booking-tags-modal__list">
+            @for (tag of group.tags; track tag.id) {
+              <li class="booking-tags-modal__row">
+                <ignt-checkbox
+                  [checked]="isChecked(tag)"
+                  [dataTestId]="'booking-tags-option-' + tag.id"
+                  [disabled]="isSaving() || isLocked(tag)"
+                  (change)="onToggle(tag)"
+                >
+                  <span class="booking-tags-modal__option" [class.booking-tags-modal__option--locked]="isLocked(tag)">
+                    {{ tag.name }}
+
+                    @if (isLocked(tag)) {
+                      <span class="booking-tags-modal__note" [attr.data-testid]="'booking-tags-note-' + tag.id">{{
+                        'partnerTags.booking.ticketTypeNote' | translate
+                      }}</span>
+                    }
+                  </span>
+                </ignt-checkbox>
+
+                <app-tag-chip aria-hidden="true" [tag]="tag" />
+              </li>
+            }
+          </ul>
+        </section>
+      }
+    }
+  </div>
+</ignt-dialog-content>
+
+<ignt-dialog-footer [hideCancelButton]="true">
+  <ignt-button
+    data-testid="booking-tags-modal-cancel"
+    variant="tertiary"
+    [disabled]="isSaving()"
+    [fill]="true"
+    [label]="'common.cancel' | translate"
+    (click)="onCancel()"
+  />
+
+  <ignt-button
+    data-testid="booking-tags-modal-save"
+    [disabled]="isSaving() || isLoading() || hasLoadError()"
+    [fill]="true"
+    [label]="'common.accept' | translate"
+    [loading]="isSaving()"
+    (click)="onSave()"
+  />
+</ignt-dialog-footer>

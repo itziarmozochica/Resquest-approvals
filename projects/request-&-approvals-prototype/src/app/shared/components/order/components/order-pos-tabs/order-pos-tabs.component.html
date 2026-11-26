@@ -1,0 +1,97 @@
+@if (isVisible()) {
+  <section class="order-pos-tabs" [class.order-pos-tabs--detail-page]="orderDetailLayout()" data-testid="order-pos-tabs">
+    <div class="order-pos-tabs__header">
+      <h3 class="order-pos-tabs__title">{{ 'boxOffice.order.posTabs.title' | translate }}</h3>
+      @if (!isEmpty()) {
+        <p class="order-pos-tabs__subtitle">{{ 'boxOffice.order.posTabs.subtitle' | translate }}</p>
+      }
+    </div>
+    @if (isEmpty()) {
+      <div class="order-pos-tabs__empty" data-testid="order-pos-tabs-empty">
+        <p class="order-pos-tabs__empty-text" data-testid="order-pos-tabs-empty-text">
+          {{ 'boxOffice.order.posTabs.emptyState' | translate }}
+        </p>
+        @if (canSyncTabs()) {
+          <ignt-button
+            variant="secondary"
+            size="small"
+            data-testid="order-pos-tabs-create"
+            [label]="'boxOffice.order.posTabs.createTab' | translate"
+            [leadingIcon]="{ name: 'plus', variant: 'regular' }"
+            [loading]="isCreatingTabs()"
+            (click)="createTabs()"
+          />
+        }
+      </div>
+    } @else {
+      <div class="order-pos-tabs__cards">
+        @for (tab of tabs(); track tab.id) {
+          <div class="order-pos-tabs__card" data-testid="order-pos-tabs-card">
+            <div class="order-pos-tabs__card-header">
+              <div class="order-pos-tabs__card-main">
+                <div class="order-pos-tabs__card-title">
+                  <ignt-icon name="utensils" variant="solid" size="base" aria-hidden="true" />
+                  <span class="order-pos-tabs__card-name" data-testid="order-pos-tabs-card-title">
+                    @if (tab.name) {
+                      {{ tab.name }}
+                    } @else {
+                      {{ 'boxOffice.order.posTabs.fallbackTabName' | translate: { externalId: tab.externalId } }}
+                    }
+                  </span>
+                  @if (tab.name) {
+                    <span class="order-pos-tabs__card-external-id" data-testid="order-pos-tabs-card-external-id">
+                      {{ tab.externalId }}
+                    </span>
+                  }
+                </div>
+                <ignt-button
+                  variant="secondary"
+                  size="small"
+                  data-testid="order-pos-tabs-open"
+                  [label]="'boxOffice.order.posTabs.openInPos' | translate"
+                  [trailingIcon]="{ name: 'arrow-up-right-from-square', variant: 'regular' }"
+                  [loading]="tab.isOpening"
+                  (click)="openTab(tab)"
+                />
+              </div>
+              <button
+                class="order-pos-tabs__card-toggle"
+                [class.order-pos-tabs__card-toggle--collapsed]="tab.isCollapsed"
+                data-testid="order-pos-tabs-card-toggle"
+                ignt-icon-button
+                sentiment="tertiary"
+                size="small"
+                variant="sharp"
+                [attr.aria-expanded]="!tab.isCollapsed"
+                [attr.aria-label]="'boxOffice.order.posTabs.toggleDetails' | translate"
+                [icon]="chevronIcon"
+                (click)="toggleTab(tab)"
+              ></button>
+            </div>
+            @if (!tab.isCollapsed && tab.entitlements.length > 0) {
+              <ul class="order-pos-tabs__card-items" data-testid="order-pos-tabs-card-items">
+                @for (entitlement of tab.entitlements; track entitlement.name) {
+                  <li class="order-pos-tabs__card-item" data-testid="order-pos-tabs-card-item">
+                    {{ entitlement.quantity }} x {{ entitlement.name }}
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        }
+      </div>
+      @if (canSyncTabs()) {
+        <div class="order-pos-tabs__actions">
+          <ignt-button
+            variant="secondary"
+            size="small"
+            data-testid="order-pos-tabs-sync"
+            [label]="'boxOffice.order.posTabs.syncTabs' | translate"
+            [loading]="isCreatingTabs()"
+            (click)="createTabs()"
+          />
+        </div>
+      }
+    }
+  </section>
+}

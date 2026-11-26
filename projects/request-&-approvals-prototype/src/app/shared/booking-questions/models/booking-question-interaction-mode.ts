@@ -1,0 +1,4 @@
+export enum BookingQuestionInteractionMode {
+  CONDITIONAL_QUESTION = 'CONDITIONAL_QUESTION',
+  COMPOSITE_QUESTION = 'COMPOSITE_QUESTION',
+}

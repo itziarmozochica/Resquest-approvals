@@ -1,0 +1,53 @@
+<div class="common-session-edit lateral-slider-body__wrapper">
+  <ng-container *ngIf="formLoaded">
+    <form [formGroup]="formGroup" class="common-session-edit__form">
+      <ng-container *ngTemplateOutlet="inputTemplate; context: { fieldName: 'cashRegisterName', fieldType: 'text' }"></ng-container>
+
+      <ng-container
+        *ngIf="cashRegister?.id"
+        [ngTemplateOutlet]="inputTemplate"
+        [ngTemplateOutletContext]="{ fieldName: 'cashRegisterId', fieldType: 'text', readonly: true }"
+      ></ng-container>
+
+      <ng-template #inputTemplate let-fieldName="fieldName" let-fieldType="fieldType" let-readonly="readonly">
+        <div>
+          <div
+            class="form-group"
+            [class.form-group--error]="getControlError(formGroup.get(fieldName))"
+            [class.form-group--readonly]="readonly"
+          >
+            <label [for]="fieldName" class="form-label" translate
+              >{{ 'boxOffice.settings.actions.createCashRegister.' + fieldName + '.label' }}
+            </label>
+            <input
+              [id]="fieldName"
+              [attr.data-testid]="'cashRegister-' + fieldName"
+              class="form-input"
+              [type]="fieldType"
+              [formControlName]="fieldName"
+              [readonly]="readonly"
+              autocomplete="off"
+            />
+          </div>
+          <ng-container *ngTemplateOutlet="validationErrors; context: { error: getControlError(formGroup.get(fieldName)) }"> </ng-container>
+        </div>
+      </ng-template>
+    </form>
+  </ng-container>
+</div>
+<div class="lateral-slider-body__footer">
+  <button igntButton [fill]="true" data-testid="session-save-button" [disabled]="isSaveButtonDisabled()" (click)="save()">
+    {{ (cashRegister?.name ? 'common.save' : 'common.create') | translate }}
+  </button>
+</div>
+
+<ng-template #validationErrors let-error="error">
+  <ng-container *ngIf="error">
+    <div class="form-error" [ngSwitch]="error">
+      <fa-icon class="form-error--icon" [icon]="['fas', 'exclamation-circle']"></fa-icon>
+      <span class="form-error--message" *ngSwitchCase="'required'" data-testid="error-mandatory-field">
+        {{ 'form.error.mandatoryField' | translate }}
+      </span>
+    </div>
+  </ng-container>
+</ng-template>

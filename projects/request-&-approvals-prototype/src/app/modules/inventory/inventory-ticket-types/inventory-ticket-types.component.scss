@@ -1,0 +1,299 @@
+@use 'foundations' as foundations;
+@import 'abstracts/all';
+
+.itt-view-header {
+  display: flex;
+  flex-direction: column;
+  gap: foundations.$space-4;
+  padding: 0 0 foundations.$space-4;
+  width: 100%;
+
+  .header__left-side {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .header__right-side {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: foundations.$space-4;
+    width: 100%;
+
+    .action-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: foundations.$space-4;
+      width: 100%;
+
+      // Steps view: one wrapping row on phones, so the ticket types start higher up.
+      &--wrap {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: foundations.$space-2;
+      }
+    }
+  }
+
+  .change-visualization-order-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+    gap: foundations.$space-2;
+    padding: 0;
+    border: none;
+    background: none;
+    color: foundations.$color-action-background-primary;
+    font: foundations.$font-small-bold;
+    cursor: pointer;
+    text-align: center;
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+  }
+
+  @include media-breakpoint-up(md) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'description actions'
+      'order actions';
+    align-items: start;
+    column-gap: foundations.$space-4;
+    row-gap: foundations.$space-2;
+
+    .header__left-side {
+      grid-area: description;
+    }
+
+    .header__right-side {
+      grid-area: actions;
+      flex-direction: row;
+      align-items: center;
+      width: auto;
+
+      .action-buttons {
+        // DOM order is primary → group → bulk (mobile stack). Reverse for desktop LTR.
+        flex-direction: row-reverse;
+        width: auto;
+      }
+
+      // DOM keeps archived after the CTAs for the mobile stack; restore left placement on desktop.
+      .header__archived-toggle {
+        order: -1;
+      }
+    }
+
+    .change-visualization-order-link {
+      grid-area: order;
+      align-self: start;
+      justify-content: flex-start;
+      text-align: start;
+    }
+  }
+}
+
+.itt-table-wrapper {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.itt-missing-required-fields-alert {
+  display: block;
+  margin-bottom: foundations.$space-4;
+}
+
+.itt-name-search {
+  margin-bottom: foundations.$space-4;
+  width: 100%;
+
+  ignt-input-field {
+    display: block;
+    width: 100%;
+    --ignt-input-no-label-height: #{foundations.$size-14};
+    --ignt-placeholder-color-empty: #{foundations.$color-action-text-disable};
+  }
+
+  @include media-breakpoint-up(md) {
+    max-width: 240px;
+  }
+
+  // Steps view: one toolbar row, full-width search, then the view switch, Reorder and Preview layout (prototype B).
+  &--with-view {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: foundations.$space-3;
+
+    // On a phone the search and Category take a row each; from tablet up the search gives way first, so the
+    // view switch, Reorder and Preview layout stay on one row on a laptop.
+    ignt-input-field,
+    .itt-category-filter {
+      flex: 1 1 100%;
+    }
+
+    @include media-breakpoint-up(md) {
+      max-width: none;
+
+      ignt-input-field {
+        flex: 1 1 160px;
+      }
+
+      .itt-category-filter {
+        flex: 0 0 200px;
+      }
+    }
+  }
+}
+
+.itt-view-switch {
+  display: flex;
+  gap: foundations.$space-2;
+}
+
+.itt-steps-summary {
+  display: block;
+  margin-bottom: foundations.$space-4;
+}
+
+.itt-group-form-slider {
+  // The group form can open from an Ignite dialog, whose CDK overlay uses
+  // tooltip-level stacking. Keep the slider and its scrim above that overlay.
+  ::ng-deep {
+    .scrim {
+      z-index: $zindex-tooltip + 1;
+    }
+
+    .lateral-slider {
+      z-index: $zindex-tooltip + 2;
+    }
+  }
+}
+
+ignt-dialog-content.itt-ticket-type-dialog-content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+
+  app-inventory-ticket-types-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+  }
+}
+
+// Overlay host is attached to the body; pierce so the shell is the outer frame and
+// dialog-content is not a second scroller.
+::ng-deep .ignt-dialog-modal-shell:has(.itt-ticket-type-dialog-content) {
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.itt-bulk-edit-save-error {
+  display: block;
+  flex-shrink: 0;
+  margin-block-end: foundations.$space-4;
+}
+
+.itt-steps-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: foundations.$space-4;
+
+  &__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: foundations.$space-3;
+  }
+
+  &__search {
+    flex: 1 1 240px;
+  }
+
+  &__field {
+    flex: 0 0 240px;
+  }
+
+  &__columns {
+    border: foundations.$dimension-px solid foundations.$color-border-main;
+    border-radius: foundations.$radii-2;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr);
+    overflow: hidden;
+
+    &--list {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  &__column {
+    border-inline-end: foundations.$dimension-px solid foundations.$color-border-main;
+
+    &:last-child {
+      border-inline-end: 0;
+    }
+  }
+
+  &__head {
+    border-bottom: foundations.$dimension-px solid foundations.$color-border-main;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: foundations.$size-12;
+    padding: 0 foundations.$space-4;
+  }
+
+  &__row {
+    border-bottom: foundations.$dimension-px solid foundations.$palette-neutral-100;
+    display: flex;
+    flex-direction: column;
+    gap: foundations.$space-2;
+    justify-content: center;
+    min-height: foundations.$size-14;
+    padding: foundations.$space-2 foundations.$space-4;
+  }
+
+  // Phones: one column, as the steps view.
+  @media (max-width: 899px) {
+    &__columns {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    &__column:not(:first-child) {
+      display: none;
+    }
+
+    &__field {
+      flex: 1 1 100%;
+    }
+  }
+}
+
+.itt-steps-subtitle {
+  margin: 0;
+
+  b {
+    font: foundations.$font-base-bold;
+  }
+
+  &__info {
+    color: foundations.$color-text-subtle;
+    cursor: help;
+    margin-inline-start: foundations.$space-1;
+    vertical-align: middle;
+  }
+}
+
+// Same box as the toolbar it replaces while reordering, so nothing below it moves.
+.itt-steps-sorting {
+  // The toolbar and its gap; the banner carries its own bottom margin, and a wrapping banner makes the slot grow.
+  min-height: calc(#{foundations.$size-14} + #{foundations.$space-4});
+}
