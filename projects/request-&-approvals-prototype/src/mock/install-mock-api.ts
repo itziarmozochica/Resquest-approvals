@@ -1,5 +1,5 @@
 import { mockRoutes, type MockRequest, type MockResponse } from './routes';
-import { USER_ID } from './data';
+import { PARTNER_ID, USER_ID } from './data';
 
 const API_LIKE = /\/(api|api-[a-z-]+|apigw|agents|efr)\/|\/\d\.\d\//;
 const jsonHeaders = 'content-type: application/json\r\n';
@@ -97,11 +97,44 @@ function patchFetch(): void {
   };
 }
 
-/** Pre-seeds the session so the app opens already logged in. */
+/**
+ * Pre-seeds the session so the app opens already logged in, with its one organisation already selected.
+ * Overwritten on every load on purpose: a browser that once ran the real app must not keep a real partner here.
+ */
 function seedSession(): void {
+  const organization: Record<string, unknown> = {
+    id: PARTNER_ID,
+    name: 'Fever Demo Partner',
+    countryCode: 'ES',
+    cityCode: 1023191,
+    type: 'partner',
+    deletedAt: null,
+    userRoleInOrganization: null,
+    category: 'partners',
+  };
+  const partner: Record<string, unknown> = {
+    id: PARTNER_ID,
+    name: 'Fever Demo Partner',
+    email: 'noreply@example.com',
+    brand: { kioskLogoHeader: null, feverzoneLogoHeader: null },
+    type: 'partner',
+    currency: 'EUR',
+    currencies: ['EUR', 'GBP', 'USD'],
+    terminology: null,
+    countryCode: 'ES',
+    hasMemberships: false,
+    hasMemberAccounts: false,
+    isBillingPeriodsActive: false,
+    externalId: null,
+    externalProvider: null,
+  };
   try {
     localStorage.setItem('token', 'mock-token');
     localStorage.setItem('userId', String(USER_ID));
+    localStorage.setItem('selected-organization', JSON.stringify(organization));
+    localStorage.setItem('partner', JSON.stringify(partner));
+    localStorage.setItem('organization_count', '1');
+    localStorage.removeItem('business-as-organization-session');
   } catch {
     // storage blocked: the (mocked) login page still works with any credentials
   }

@@ -22,7 +22,7 @@ cd "projects/r&a-handoff-doc" && python3 -m http.server 6500     # http://localh
 cd "projects/request-&-approvals-prototype" && pnpm exec ng serve --configuration localStaging --port 6400
 ```
 
-Off localhost the button goes to the prototype's folder on GitHub until the prototype is deployed.
+Off localhost the button goes to the prototype's folder on GitHub. When the docs are deployed together with the prototype (docs under `/handoff/`), it goes to `../`, the prototype on the same site.
 
 ## How it works
 
@@ -40,4 +40,4 @@ Off localhost the button goes to the prototype's folder on GitHub until the prot
 
 ## Deploy
 
-Not deployed. Any static host works (`vercel.json` only sets `noindex` on Gap review and Impact).
+Deployed together with the prototype at `/handoff/` (see the prototype's `docs/06-iterating-and-deploying.md`). On its own, any static host works (`vercel.json` only sets `noindex` on Gap review and Impact).

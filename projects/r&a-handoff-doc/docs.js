@@ -10,7 +10,9 @@
   const DOCS = location.origin + '/';
   const PROTO_PROD = 'https://github.com/itziarmozochica/Resquest-approvals/tree/main/projects/request-%26-approvals-prototype';
   const LOCAL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
-  const PROTO = LOCAL ? 'http://localhost:6400/project-management/projects' : PROTO_PROD;
+  // Deployed together with the prototype (docs under "/handoff/"): the prototype is one level up.
+  const COMBINED = /\/handoff\//.test(location.pathname);
+  const PROTO = COMBINED ? '../' : LOCAL ? 'http://localhost:6400/project-management/projects' : PROTO_PROD;
   const JIRA = { site: 'https://example.invalid', pid: '', key: 'KEY', board: 'Requests & Approval', types: [] };
   const figmaUrl = (node) => '#' + node;
 
