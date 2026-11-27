@@ -20,7 +20,7 @@
      build and ship, covering one or more sections. "refs" points a section to the task, on another page, that builds it. */
   // The pages menu: two groups (the calendar's parts, then the project's pages) and one 16px line glyph a page, drawn in
 // currentColor with a 1.3px stroke. Split is the prototype's own glyph (arrows-left-right-to-line), as a line.
-const MENU_GROUPS = [['Project', ['home', 'impact', 'gap', 'versions']]];
+const MENU_GROUPS = [['Screens', ['list', 'filters', 'header']], ['Project', ['home', 'impact', 'gap', 'versions']]];
 const MENU_ICONS = {
   headbar: '<rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 6.2h12"/>',
   toolbar: '<path d="M2 4h6M12 4h2M2 8h1.5M7.5 8H14M2 12h7M13 12h1"/><circle cx="10" cy="4" r="1.6"/><circle cx="5.5" cy="8" r="1.6"/><circle cx="11" cy="12" r="1.6"/>',
@@ -36,12 +36,18 @@ const MENU_ICONS = {
   alerts: '<path d="M4 11V7.4a4 4 0 0 1 8 0V11l1.2 1.6H2.8z"/><path d="M6.7 14.2a1.4 1.4 0 0 0 2.6 0"/>',
   tooltips: '<path d="M3 3h10a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H8.6L6 13.6V11H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/>',
   shortcuts: '<rect x="1.5" y="4" width="13" height="8" rx="1.5"/><path d="M4.2 6.8h.01M6.7 6.8h.01M9.3 6.8h.01M11.8 6.8h.01M5 9.4h6"/>',
+  list: '<path d="M2.5 4h11M2.5 8h11M2.5 12h11"/>',
+  filters: '<path d="M2 4h6M12 4h2M2 8h1.5M7.5 8H14M2 12h7M13 12h1"/><circle cx="10" cy="4" r="1.6"/><circle cx="5.5" cy="8" r="1.6"/><circle cx="11" cy="12" r="1.6"/>',
+  header: '<rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M2 6.2h12"/>',
   home: '<path d="M2.4 7.6 8 2.8l5.6 4.8M4 6.6V13.2h8V6.6"/>',
   impact: '<path d="M2.5 2.5v11h11M5 10.2l2.4-3 2 2L13 4.6"/>',
   gap: '<rect x="2.3" y="3" width="4.6" height="10" rx="1"/><path d="M9.1 3h3.6a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H9.1" stroke-dasharray="1.8 1.6"/>',
   versions: '<circle cx="8" cy="8" r="5.7"/><path d="M8 4.8V8l2.2 1.5"/>'
 };
 const PAGES = [
+    { id: 'list', label: 'List', href: 'list.html', title: 'List', sections: [['table-header', 'Table header'], ['rows', 'Rows']] },
+    { id: 'filters', label: 'Filters', href: 'filters.html', title: 'Filters', sections: [['form-type', 'Form type'], ['status', 'Status'], ['fields', 'Field filters']] },
+    { id: 'header', label: 'Header', href: 'header.html', title: 'Header', sections: [['top-bar', 'Top bar']] },
     { id: 'home', label: 'Home', title: 'Requests & Approval handoff', href: 'index.html', sections: [] },
     { id: 'impact', label: 'Impact', href: 'impact.html', title: 'Impact of Requests & Approval', sections: [
       ['question', 'The question'], ['numbers', 'In numbers'], ['next', 'Next reads']] },
@@ -65,6 +71,12 @@ const PAGES = [
   const ic = (d) => '<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="' + d + '" fill="currentColor"/></svg>';
   const SEARCH = ic('M17.8438 17.1562L13.4062 12.75C14.4062 11.5938 14.9688 10.125 14.9688 8.5C14.9688 4.9375 12.0312 2 8.46875 2C4.875 2 2 4.9375 2 8.5C2 12.0938 4.90625 15 8.46875 15C10.0625 15 11.5312 14.4375 12.6875 13.4375L17.0938 17.875C17.2188 17.9688 17.3438 18 17.5 18C17.625 18 17.75 17.9688 17.8438 17.875C18.0312 17.6875 18.0312 17.3438 17.8438 17.1562ZM8.5 14C5.4375 14 3 11.5312 3 8.5C3 5.46875 5.4375 3 8.5 3C11.5312 3 14 5.46875 14 8.5C14 11.5625 11.5312 14 8.5 14Z');
   const ANGLE_DOWN = '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.9766 10.4219L12.3867 15.4844C12.1758 15.6953 11.8594 15.6953 11.6484 15.4844L5.98828 10.4219C5.74219 10.2109 5.74219 9.85938 5.95313 9.64844C6.16406 9.40234 6.51563 9.40234 6.72656 9.61328L12 14.3242L17.2383 9.61328C17.4492 9.40234 17.8008 9.40234 18.0117 9.64844C18.2227 9.85938 18.2227 10.2109 17.9766 10.4219Z" fill="currentColor"/></svg>';
+
+  // Breadcrumb: Home / current page, in the hero, so any page goes back to the Home in one click
+  if (cur.id !== 'home') {
+    const hd = document.querySelector('header.hero > div');
+    if (hd) hd.insertAdjacentHTML('afterbegin', '<nav class="crumbs" aria-label="Breadcrumb"><a href="index.html">Home</a><span aria-hidden="true">/</span><span aria-current="page">' + esc(cur.title || cur.label) + '</span></nav>');
+  }
   let bar = document.getElementById('topbar');   // each page reserves the bar, so nothing jumps when it fills in
   if (!bar) { bar = document.createElement('header'); bar.id = 'topbar'; document.body.prepend(bar); }
   bar.className = 'topbar';
