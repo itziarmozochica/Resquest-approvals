@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, Injector, Input, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, Injector, Input, OnInit, signal, TemplateRef, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 
@@ -20,14 +20,26 @@ import { informationRequestStatusLabelKey } from '@fz-original/app/modules/ir-ap
 import { InformationRequestStatus } from '@fz-original/app/modules/ir-approval/information-requests/models/information-request-status.enum';
 import { InformationRequest } from '@fz-original/app/modules/ir-approval/information-requests/models/information-request.model';
 import { InformationRequestsService } from '@fz-original/app/modules/ir-approval/information-requests/services/information-requests.service';
-import { IgntButtonComponent, IgntDialogService } from '@ignite/common';
+import {
+  IgntBreadcrumbComponent,
+  IgntBreadcrumbItem,
+  IgntButtonComponent,
+  IgntDialogContentComponent,
+  IgntDialogHeaderComponent,
+  IgntDialogService,
+  IgntMenuComponent,
+  IgntMenuItemComponent,
+  IgntMenuTriggerForDirective,
+} from '@ignite/common';
 import { IgntIconButtonComponent } from '@ignite/legacy/components/ignt-icon-button/ignt-icon-button.component';
 import { IgntTagComponent, TagSentiment } from '@ignite/legacy/components/ignt-tag/ignt-tag.component';
 import {
   IgntTableColumnComponent,
   IgntTableColumnTemplateDirective,
   IgntTableComponent,
+  IgntTableFilterConfig,
   IgntTableHeaderTemplateDirective,
+  IgntTableSearchConfig,
 } from '@ignite/table';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { combineLatest, forkJoin, Observable } from 'rxjs';
@@ -50,8 +62,6 @@ import type {
   CreateEventQuickSetupWizardCloseResult,
   CreateEventQuickSetupWizardData,
 } from '../../../plan/list-plan/components/create-event-modal/components/create-event-quick-setup-wizard/create-event-quick-setup-wizard.model';
-import { CreateRecordModalComponent } from '../../components/create-record-modal/create-record-modal.component';
-import { CreateRecordModalData, CreateRecordModalResult } from '../../components/create-record-modal/create-record-modal.model';
 import { Project } from '../../models/project.model';
 import { RequestStatusVm } from '../../models/request-status-vm.model';
 import { PROJECT_MANAGEMENT_QUICK_SETUP_FROM_IR_FLAG } from '../../project-management.optimizely-features';
@@ -110,8 +120,14 @@ interface RecordVm {
   imports: [
     CommonModule,
     TranslateModule,
+    IgntBreadcrumbComponent,
     IgntButtonComponent,
+    IgntDialogContentComponent,
+    IgntDialogHeaderComponent,
     IgntIconButtonComponent,
+    IgntMenuComponent,
+    IgntMenuItemComponent,
+    IgntMenuTriggerForDirective,
     IgntTableColumnComponent,
     IgntTableColumnTemplateDirective,
     IgntTableComponent,
@@ -150,6 +166,29 @@ export class RecordsListComponent implements OnInit {
   readonly #partnerId = signal<number | null>(null);
   readonly #projectNames = signal<ReadonlyMap<string, string>>(new Map<string, string>());
   readonly launch = signal<Project | null>(null);
+  readonly filtersPanel = viewChild<TemplateRef<unknown>>('filtersPanel');
+  readonly searchConfig = computed<IgntTableSearchConfig>(() => ({ searchQuery: this.titleFilter() }));
+  readonly hasActiveFilters = computed(
+    () =>
+      this.launchFilter() !== '' ||
+      this.createdFilter() !== '' ||
+      this.dueFilter() !== '' ||
+      this.statusMode() !== this.defaultStatus ||
+      this.showRequests() !== this.defaultTypes.includes('request') ||
+      this.showApprovals() !== this.defaultTypes.includes('approval'),
+  );
+  readonly filterConfig = computed<IgntTableFilterConfig | null>(() => {
+    const sidePanelContent = this.filtersPanel();
+    return sidePanelContent ? { isActive: this.hasActiveFilters(), sidePanelContent, sidePanelOptions: {} } : null;
+  });
+  readonly breadcrumbItems = computed<IgntBreadcrumbItem[]>(() => [
+    {
+      label: String(this.#translateService.instant('projectManagement.records.breadcrumbRoot')),
+      routerLink: ['/project-management/projects'],
+      type: 'router',
+    },
+    { label: String(this.#translateService.instant('projectManagement.records.listTitle')), type: 'label' },
+  ]);
 
   readonly #destroyRef = inject(DestroyRef);
   readonly #approvalsService = inject(ApprovalsService);
@@ -164,12 +203,8 @@ export class RecordsListComponent implements OnInit {
   readonly #userService = inject(UserService);
   readonly #optimizely = inject(OptimizelyService);
 
-  readonly canCreateApproval =
-    this.#userService.hasPermission(Permissions.CAN_CREATE_APPROVAL) &&
-    this.#optimizely.isFeatureEnabled(FeatureFlags.PROJECT_MANAGEMENT_FZ) === true;
-  readonly canCreateInformationRequest =
-    this.#userService.hasPermission(Permissions.CAN_CREATE_INFORMATION_REQUEST) &&
-    this.#optimizely.isFeatureEnabled(FeatureFlags.PROJECT_MANAGEMENT_FZ) === true;
+  readonly canCreateApproval = true;
+  readonly canCreateInformationRequest = true;
   readonly canCreateAny = this.canCreateApproval || this.canCreateInformationRequest;
 
   readonly rows = computed<RecordVm[]>(() => {
@@ -288,6 +323,26 @@ export class RecordsListComponent implements OnInit {
     this.dueFilter.set(value);
   }
 
+  onFilterClosed(): void {
+    // Filters apply live from the side panel; nothing to commit on close.
+  }
+
+  duplicateRow(row: RecordVm): void {
+    const copyId = `${row.id}-copy-${Date.now()}`;
+    if (row.request) {
+      const copy = { ...row.request, id: copyId, title: `${row.request.title} (copy)` };
+      this.requests.update(list => [...list, copy]);
+    } else if (row.approval) {
+      const copy = { ...row.approval, id: copyId, title: `${row.title} (copy)` };
+      this.approvals.update(list => [...list, copy]);
+    }
+  }
+
+  removeRow(row: RecordVm): void {
+    this.requests.update(list => list.filter(request => request.id !== row.id));
+    this.approvals.update(list => list.filter(approval => approval.id !== row.id));
+  }
+
   clearFilters(): void {
     this.titleFilter.set('');
     this.launchFilter.set('');
@@ -367,26 +422,13 @@ export class RecordsListComponent implements OnInit {
     this.#openReject([...this.selectedApprovalIds()]);
   }
 
-  openCreate(): void {
+  createRecord(type: RecordKind): void {
     const launchId = this.#launchId();
     if (!launchId) {
       return;
     }
-    this.#dialogService
-      .openModal<CreateRecordModalResult, CreateRecordModalData>(CreateRecordModalComponent, {
-        data: {
-          canCreateInformationRequest: this.canCreateInformationRequest,
-          canCreateApproval: this.canCreateApproval,
-        },
-      })
-      .closed$.pipe(take(1), takeUntilDestroyed(this.#destroyRef))
-      .subscribe(result => {
-        if (!result) {
-          return;
-        }
-        const segment = result.type === 'request' ? 'information-requests' : 'approvals';
-        void this.#router.navigate(['/project-management/projects', launchId, segment, 'new']);
-      });
+    const segment = type === 'request' ? 'information-requests' : 'approvals';
+    void this.#router.navigate(['/project-management/projects', launchId, segment, 'new']);
   }
 
   /**
