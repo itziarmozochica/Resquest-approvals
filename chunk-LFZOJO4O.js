@@ -1,0 +1,1 @@
+var c=class{constructor(s,t,i,h,r,e){this.id=s,this.name=t,this.timeZone=i,this.standard_id=h,this.currency=r,this.country=e}};var o=class{constructor(s,t,i,h,r){this.id=s,this.name=t,this.address=i,this.city=h,this.zipCode=r}};export{c as a,o as b};

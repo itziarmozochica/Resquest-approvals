@@ -1,0 +1,1 @@
+import{ea as e,fa as o,ga as r,ha as i,ia as c}from"./chunk-3KZVGQAX.js";var n=(function(t){return t.accent="accent",t.danger="danger",t.info="info",t.positive="positive",t.warning="warning",t})(n||{}),g={[n.accent]:r,[n.danger]:e,[n.info]:o,[n.positive]:i,[n.warning]:c};export{n as a};

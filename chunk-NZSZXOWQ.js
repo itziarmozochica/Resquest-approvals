@@ -1,0 +1,1 @@
+import{d as n,f as u}from"./chunk-3KZVGQAX.js";var c=class o{constructor(r,t){this.amount=r,this.currency=t}static fromData(r){return r!=null?new o(r.amount,r.currency):null}toString(r="en-US",t){return u(this.amount,r,n(this.currency,"narrow",r),this.currency,t)}};export{c as a};
