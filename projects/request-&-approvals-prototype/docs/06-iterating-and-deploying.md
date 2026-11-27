@@ -22,17 +22,30 @@ Check the build with `pnpm exec ng build --configuration development`.
 
 ## Deploying to Vercel
 
-The prototype is a static single-page app once built, so the simplest deploy needs **no private tokens on Vercel**: build locally and upload the result.
+One Vercel project serves both projects, as plain static files (no build on Vercel, so no private tokens there):
+
+- `/` is the prototype.
+- `/handoff/` is the handoff docs; its "Open prototype" button goes to `/` on the same site.
 
 ```bash
-scripts/deploy-vercel-static.sh              # builds and prepares dist/vercel-static
-cd dist/vercel-static && npx vercel --prod
+scripts/publish-vercel-static.sh
 ```
 
-`vercel login` opens the browser; the first run asks to create the project (accept the defaults; output directory `.`).
-Re-run both commands after each change.
+This builds the prototype (`scripts/deploy-vercel-static.sh`, which also copies the docs into `handoff/` and keeps only the English translations), then force-pushes the result to the `vercel-static` branch of `origin`.
+That branch holds only the built site, so build output never piles up in the history of `main`. In Vercel, import this repository and set:
+
+| Setting | Value |
+| --- | --- |
+| Framework Preset | Other |
+| Production Branch | `vercel-static` |
+| Build Command | empty (override on) |
+| Install Command | empty (override on) |
+| Output Directory | `.` |
+
+Run the publish script again after every change you want online. Vercel redeploys on each push to `vercel-static`.
+To try the same site locally, serve `dist/vercel-static` with any static server that falls back to `index.html` (all paths except `/handoff/` and `/assets/`).
 
 Notes:
 - The build needs the private registries once (see "Run locally"). Vercel itself does not.
 - A new Vercel project may be reachable by anyone with the URL. The prototype contains only mock data, but check *Deployment Protection* if you want it restricted.
-- Auto-deploy on push through GitHub would need the Vercel GitHub app on this repository plus the two registry tokens as environment variables. The root `vercel.json` here is for that case only.
+- To build on Vercel instead, the Vercel project would need the two registry tokens as environment variables.
