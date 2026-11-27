@@ -162,6 +162,13 @@ export class LayoutComponent {
       ),
       { initialValue: router.url.includes('/kiosk/') },
     );
+    this.isRequestsApprovalUrl = toSignal(
+      router.events.pipe(
+        map(() => router.url.includes('/project-management')),
+        distinctUntilChanged(),
+      ),
+      { initialValue: router.url.includes('/project-management') },
+    );
     this.#initializeChatbotButton();
     if (this.isDualScreen) {
       this.isFooterActive.set(false);
@@ -185,6 +192,9 @@ export class LayoutComponent {
   get isFzAssistantDockVisible(): boolean {
     return !this.isKiosk() && this.fzAssistantDockUi.dockRouteEligible() && this.fzAssistantDockUi.panelOpen() && !this.isMobile();
   }
+
+  /** Requests & Approval pages paint a white page background instead of the default grey. */
+  readonly isRequestsApprovalUrl: Signal<boolean>;
 
   isKiosk(): boolean {
     return this.userService.isKioskUser() || this.isKioskEmulatedInFZ();
